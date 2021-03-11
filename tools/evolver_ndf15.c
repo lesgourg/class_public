@@ -1,58 +1,58 @@
 /****************************************/
-/* Stiff ODE evolver for CLASS					*/
-/* 19/11 2010 													*/
-/* Thomas Tram													*/
+/* Stiff ODE evolver for CLASS                    */
+/* 19/11 2010                                     */
+/* Thomas Tram                                    */
 /****************************************/
-/*	This is an variable order, adaptive stepsize ODE evolver for CLASS.
-	It is based on the Numerical Differentiaion Formulas	of order 1-5,
-	and can be used to solve stiff problems. The algorithm is described in
-	[The MATLAB ODE Suite, L. F. Shampine and M. W. Reichelt, SIAM Journal
-	on Scientific Computing, 18-1, 1997].
+/*    This is an variable order, adaptive stepsize ODE evolver for CLASS.
+    It is based on the Numerical Differentiaion Formulas    of order 1-5,
+    and can be used to solve stiff problems. The algorithm is described in
+    [The MATLAB ODE Suite, L. F. Shampine and M. W. Reichelt, SIAM Journal
+    on Scientific Computing, 18-1, 1997].
 
-	The code will call the (*output) routine at x-values in t_vec[]. It
-	will interpolate to get the y-value aswell as (optionally) the first and
-	second derivative at points returned by the routine relevant_indices.
-	Since the transfer function only depends on a few of these values, there
-	is no need to interpolate all of them.
+    The code will call the (*output) routine at x-values in t_vec[]. It
+    will interpolate to get the y-value aswell as (optionally) the first and
+    second derivative at points returned by the routine relevant_indices.
+    Since the transfer function only depends on a few of these values, there
+    is no need to interpolate all of them.
 
-	Every time there is a stepsize change, we need to rebuild **dif, the matrix
-	which holds the backward differences, to reflect the new stepsize. This is done
-	in "adjust_stepsize" and is essentially a matrix multiplication. Every times
-	there is either a stepsize change, the method order k is changed, or we compute
-	a new Jacobian, we must call "new_linearisation" to calculate a new LU
-	decomposition of a matrix.
+    Every time there is a stepsize change, we need to rebuild **dif, the matrix
+    which holds the backward differences, to reflect the new stepsize. This is done
+    in "adjust_stepsize" and is essentially a matrix multiplication. Every times
+    there is either a stepsize change, the method order k is changed, or we compute
+    a new Jacobian, we must call "new_linearisation" to calculate a new LU
+    decomposition of a matrix.
 
-	The method will not recompute the Jacobian in every step, but only when the
-	Newton iterations fail to converge fast enough. This feature makes the
-	solver competitive even for non-stiff problems.
+    The method will not recompute the Jacobian in every step, but only when the
+    Newton iterations fail to converge fast enough. This feature makes the
+    solver competitive even for non-stiff problems.
 
-	Statistics is saved in the stepstat[6] vector. The entries are:
-	stepstat[0] = Successful steps.
-	stepstat[1] = Failed steps.
-	stepstat[2] = Total number of function evaluations.
-	stepstat[3] = Number of Jacobians computed.
-	stepstat[4] = Number of LU decompositions.
-	stepstat[5] = Number of linear solves.
-	If ppt->perturbations_verbose > 2, this statistic is printed at the end of
-	each call to evolver.
+    Statistics is saved in the stepstat[6] vector. The entries are:
+    stepstat[0] = Successful steps.
+    stepstat[1] = Failed steps.
+    stepstat[2] = Total number of function evaluations.
+    stepstat[3] = Number of Jacobians computed.
+    stepstat[4] = Number of LU decompositions.
+    stepstat[5] = Number of linear solves.
+    If ppt->perturbations_verbose > 2, this statistic is printed at the end of
+    each call to evolver.
 
-	Sparsity:
-	When the number of equations becomes high, too much times is spent on solving
-	linear equations. Since the ODE-functions are not very coupled, one would normally
-	supply a sparsity pattern of the jacobian, which would encode the couplings of the
-	equations. However, this would be of some inconvenience to the users who just want
-	to add some new physics without thinking too much about how the code work. So we
-	pay a few more function evaluations, and calculate the full jacobian every time.
+    Sparsity:
+    When the number of equations becomes high, too much times is spent on solving
+    linear equations. Since the ODE-functions are not very coupled, one would normally
+    supply a sparsity pattern of the jacobian, which would encode the couplings of the
+    equations. However, this would be of some inconvenience to the users who just want
+    to add some new physics without thinking too much about how the code work. So we
+    pay a few more function evaluations, and calculate the full jacobian every time.
 
-	Then, if jac->use_sparse==_TRUE_, numjac will try to construct a sparse matrix from
-	the dense matrix. If there are too many nonzero elements in the dense matrix, numjac
-	will stop constructing the sparse matrix and set jac->use_sparse=_FALSE_. The sparse
-	matrix is stored in the compressed column format. (See sparse.h).
+    Then, if jac->use_sparse==_TRUE_, numjac will try to construct a sparse matrix from
+    the dense matrix. If there are too many nonzero elements in the dense matrix, numjac
+    will stop constructing the sparse matrix and set jac->use_sparse=_FALSE_. The sparse
+    matrix is stored in the compressed column format. (See sparse.h).
 
-	In the sparse case, we also do partial pivoting, but with diagonal preference. The
-	structure of the equations are nearly optimal for the LU decomposition, so we don't
-	want to mess it up by too many row permutations if we can avoid it. This is also why
-	do not use any column permutation to pre-order the matrix.
+    In the sparse case, we also do partial pivoting, but with diagonal preference. The
+    structure of the equations are nearly optimal for the LU decomposition, so we don't
+    want to mess it up by too many row permutations if we can avoid it. This is also why
+    do not use any column permutation to pre-order the matrix.
 */
 #include "common.h"
 #include "evolver_ndf15.h"
@@ -60,28 +60,28 @@
 #include "sparse.h"
 
 int evolver_ndf15(
-		  int (*derivs)(double x,double * y,double * dy,
-				void * parameters_and_workspace, ErrorMsg error_message),
-		  double x_ini,
-		  double x_final,
-		  double * y_inout,
-		  int * used_in_output,
-		  int neq,
-		  void * parameters_and_workspace_for_derivs,
-		  double rtol,
-		  double minimum_variation,
-		  int (*timescale_and_approximation)(double x,
-						     void * parameters_and_workspace,
-						     double * timescales,
-						     ErrorMsg error_message),
-		  double timestep_over_timescale,
-		  double * t_vec,
-		  int tres,
-		  int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
-				ErrorMsg error_message),
-		  int (*print_variables)(double x, double y[], double dy[], void *parameters_and_workspace,
-					 ErrorMsg error_message),
-		  ErrorMsg error_message){
+          int (*derivs)(double x,double * y,double * dy,
+                void * parameters_and_workspace, ErrorMsg error_message),
+          double x_ini,
+          double x_final,
+          double * y_inout,
+          int * used_in_output,
+          int neq,
+          void * parameters_and_workspace_for_derivs,
+          double rtol,
+          double minimum_variation,
+          int (*timescale_and_approximation)(double x,
+                             void * parameters_and_workspace,
+                             double * timescales,
+                             ErrorMsg error_message),
+          double timestep_over_timescale,
+          double * t_vec,
+          int tres,
+          int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
+                ErrorMsg error_message),
+          int (*print_variables)(double x, double y[], double dy[], void *parameters_and_workspace,
+                     ErrorMsg error_message),
+          ErrorMsg error_message){
 
   /* Constants: */
   double G[5]={1.0,3.0/2.0,11.0/6.0,25.0/12.0,137.0/60.0};
@@ -110,6 +110,7 @@ int evolver_ndf15(
   /* Misc: */
   int stepstat[6],nfenj,j,ii,jj, numidx, neqp=neq+1;
   int verbose=0;
+  int funcreturn;
 
   /** Allocate memory . */
 
@@ -123,8 +124,8 @@ int evolver_ndf15(
     +(7*neq+1)*sizeof(double);
 
   class_alloc(buffer,
-	      buffer_size,
-	      error_message);
+          buffer_size,
+          error_message);
 
   f0       =(double*)buffer;
   wt       =f0+neqp;
@@ -155,29 +156,29 @@ int evolver_ndf15(
     }
   }
 
-  /* 	class_alloc(f0,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(wt,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(ddfddt,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(pred,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(y,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(invwt,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(rhs,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(psi,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(difkp1,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(del,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(yinterp,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(ypinterp,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(yppinterp,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(tempvec1,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(tempvec2,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(f0,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(wt,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(ddfddt,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(pred,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(y,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(invwt,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(rhs,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(psi,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(difkp1,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(del,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(yinterp,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(ypinterp,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(yppinterp,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(tempvec1,sizeof(double)*neqp,error_message); */
+  /*     class_alloc(tempvec2,sizeof(double)*neqp,error_message); */
 
-  /* 	class_alloc(interpidx,sizeof(int)*neqp,error_message); */
+  /*     class_alloc(interpidx,sizeof(int)*neqp,error_message); */
 
   /* Allocate vector of pointers to rows of dif:*/
-  /* 	class_alloc(dif,sizeof(double*)*neqp,error_message);  */
-  /* 	class_calloc(dif[1],(7*neq+1),sizeof(double),error_message); */
-  /* 	dif[0] = NULL; */
-  /* 	for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; */ /* Set row pointers... */
+  /*     class_alloc(dif,sizeof(double*)*neqp,error_message);  */
+  /*     class_calloc(dif[1],(7*neq+1),sizeof(double),error_message); */
+  /*     dif[0] = NULL; */
+  /*     for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; */ /* Set row pointers... */
 
   /*Set pointers:*/
   ynew = y_inout-1; /* This way y_inout is always up to date. */
@@ -237,13 +238,13 @@ int evolver_ndf15(
 
   nfenj=0;
   class_call(numjac((*derivs),t,y,f0,&jac,&nj_ws,abstol,neq,
-		    &nfenj,parameters_and_workspace_for_derivs,error_message),
-	     error_message,error_message);
+             &nfenj,parameters_and_workspace_for_derivs,error_message),
+             error_message,error_message);
   stepstat[3] += 1;
   stepstat[2] += nfenj;
   Jcurrent = _TRUE_; /* True */
 
-  hmin = 16.0*eps*fabs(t);
+  hmin = 16.0*eps*MAX(fabs(t),fabs(tfinal));
   /*Calculate initial step */
   rh = 0.0;
 
@@ -261,7 +262,7 @@ int evolver_ndf15(
   tdel = (t + tdir*MIN(sqrt(eps)*MAX(fabs(t),fabs(t+h)),absh)) - t;
 
   class_call((*derivs)(t+tdel,y+1,tempvec1+1,parameters_and_workspace_for_derivs,error_message),
-	     error_message,error_message);
+             error_message,error_message);
   stepstat[2] += 1;
 
   /*I assume that a full jacobi matrix is always calculated in the beginning...*/
@@ -284,16 +285,16 @@ int evolver_ndf15(
   h = tdir * absh;
   /* Done calculating initial step
      Get ready to do the loop:*/
-  k = 1;			/*start at order 1 with BDF1	*/
+  k = 1;            /*start at order 1 with BDF1    */
   klast = k;
   abshlast = absh;
 
   for(ii=1;ii<=neq;ii++) dif[ii][1] = h*f0[ii];
 
   hinvGak = h*invGa[k-1];
-  nconhk = 0; 	/*steps taken with current h and k*/
+  nconhk = 0;     /*steps taken with current h and k*/
   class_call(new_linearisation(&jac,hinvGak,neq,error_message),
-	     error_message,error_message);
+             error_message,error_message);
   stepstat[4] += 1;
   havrate = _FALSE_; /*false*/
 
@@ -302,15 +303,14 @@ int evolver_ndf15(
   at_hmin = _FALSE_;
   while (done==_FALSE_){
     /**class_test(stepstat[2] > 1e5, error_message,
-	       "Too many steps in evolver! Current stepsize:%g, in interval: [%g:%g]\n",
-	       absh,t0,tfinal);*/
-    hmin = minimum_variation;
+           "Too many steps in evolver! Current stepsize:%g, in interval: [%g:%g]\n",
+           absh,t0,tfinal);*/
     maxtmp = MAX(hmin,absh);
     absh = MIN(hmax, maxtmp);
     if (fabs(absh-hmin)<100*eps){
       /* If the stepsize has not changed */
       if (at_hmin==_TRUE_){
-	absh = abshlast;	/*required by stepsize recovery */
+    absh = abshlast;    /*required by stepsize recovery */
       }
       at_hmin = _TRUE_;
     }
@@ -329,206 +329,210 @@ int evolver_ndf15(
       hinvGak = h * invGa[k-1];
       nconhk = 0;
       class_call(new_linearisation(&jac,hinvGak,neq,error_message),
-		 error_message,error_message);
+                 error_message,error_message);
       stepstat[4] += 1;
       havrate = _FALSE_;
     }
-    /*		Loop for advancing one step */
+    /*        Loop for advancing one step */
     nofailed = _TRUE_;
     for( ; ; ){
-      gotynew = _FALSE_;	/* is ynew evaluated yet?*/
+      gotynew = _FALSE_;    /* is ynew evaluated yet?*/
       while(gotynew==_FALSE_){
-	/*Compute the constant terms in the equation for ynew.
-	  Next FOR lop is just: psi = matmul(dif(:,1:k),(G(1:k) * invGa(k)))*/
-	for(ii=1;ii<=neq;ii++){
-	  psi[ii] = 0.0;
-	  for(jj=1;jj<=k;jj++){
-	    psi[ii] += dif[ii][jj]*G[jj-1]*invGa[k-1];
-	  }
-	}
-	/* Predict a solution at t+h. */
-	tnew = t + h;
-	if (done==_TRUE_){
-	  tnew = tfinal; /*Hit end point exactly. */
-	}
-	h = tnew - t; 		 /* Purify h. */
-	for(ii=1;ii<=neq;ii++){
-	  pred[ii] = y[ii];
-	  for(jj=1;jj<=k;jj++){
-	    pred[ii] +=dif[ii][jj];
-	  }
-	}
-	eqvec(pred,ynew,neq);
+        /*Compute the constant terms in the equation for ynew.
+          Next FOR lop is just: psi = matmul(dif(:,1:k),(G(1:k) * invGa(k)))*/
+        for(ii=1;ii<=neq;ii++){
+          psi[ii] = 0.0;
+          for(jj=1;jj<=k;jj++){
+            psi[ii] += dif[ii][jj]*G[jj-1]*invGa[k-1];
+          }
+        }
+        /* Predict a solution at t+h. */
+        tnew = t + h;
+        if (done==_TRUE_){
+          tnew = tfinal; /*Hit end point exactly. */
+        }
+        h = tnew - t;          /* Purify h. */
+        for(ii=1;ii<=neq;ii++){
+          pred[ii] = y[ii];
+          for(jj=1;jj<=k;jj++){
+            pred[ii] +=dif[ii][jj];
+          }
+        }
+        eqvec(pred,ynew,neq);
 
-	/*The difference, difkp1, between pred and the final accepted
-	  ynew is equal to the backward difference of ynew of order
-	  k+1. Initialize to zero for the iteration to compute ynew.
-	*/
+        /*The difference, difkp1, between pred and the final accepted
+          ynew is equal to the backward difference of ynew of order
+          k+1. Initialize to zero for the iteration to compute ynew.
+        */
 
-	minnrm = 0.0;
-	for(j=1;j<=neq;j++){
-	  difkp1[j] = 0.0;
-	  maxtmp = MAX(fabs(ynew[j]),fabs(y[j]));
-	  invwt[j] = 1.0 / MAX(maxtmp,threshold);
-	  maxtmp = 100*eps*fabs(ynew[j]*invwt[j]);
-	  minnrm = MAX(minnrm,maxtmp);
-	}
-	/* Iterate with simplified Newton method. */
-	tooslow = _FALSE_;
-	for(iter=1;iter<=maxit;iter++){
-	  for (ii=1;ii<=neq;ii++){
-	    tempvec1[ii]=(psi[ii]+difkp1[ii]);
-	  }
-	  class_call((*derivs)(tnew,ynew+1,f0+1,parameters_and_workspace_for_derivs,error_message),
-		     error_message,error_message);
-	  stepstat[2] += 1;
-	  for(j=1;j<=neq;j++){
-	    rhs[j] = hinvGak*f0[j]-tempvec1[j];
-	  }
+        minnrm = 0.0;
+        for(j=1;j<=neq;j++){
+          difkp1[j] = 0.0;
+          maxtmp = MAX(fabs(ynew[j]),fabs(y[j]));
+          invwt[j] = 1.0 / MAX(maxtmp,threshold);
+          maxtmp = 100*eps*fabs(ynew[j]*invwt[j]);
+          minnrm = MAX(minnrm,maxtmp);
+        }
+        /* Iterate with simplified Newton method. */
+        tooslow = _FALSE_;
+        for(iter=1;iter<=maxit;iter++){
+          for (ii=1;ii<=neq;ii++){
+            tempvec1[ii]=(psi[ii]+difkp1[ii]);
+          }
+          class_call((*derivs)(tnew,ynew+1,f0+1,parameters_and_workspace_for_derivs,error_message),
+                 error_message,error_message);
+          stepstat[2] += 1;
+          for(j=1;j<=neq;j++){
+            rhs[j] = hinvGak*f0[j]-tempvec1[j];
+          }
 
-	  /*Solve the linear system A*x=del by using the LU decomposition stored in jac.*/
-	  if (jac.use_sparse){
-	    sp_lusolve(jac.Numerical, rhs+1, del+1);
-	  }
-	  else{
-	    eqvec(rhs,del,neq);
-	    lubksb(jac.LU,neq,jac.luidx,del);
-	  }
+          /*Solve the linear system A*x=del by using the LU decomposition stored in jac.*/
+          if (jac.use_sparse){
+            funcreturn = sp_lusolve(jac.Numerical, rhs+1, del+1);
+            class_test(funcreturn == _FAILURE_,error_message,
+            "Failure in sp_lusolve. Possibly singular matrix!");
+          }
+          else{
+            eqvec(rhs,del,neq);
+            funcreturn = lubksb(jac.LU,neq,jac.luidx,del);
+            class_test(funcreturn == _FAILURE_,error_message,
+            "Failure in lubksb. Possibly singular matrix!");
+          }
 
-	  stepstat[5]+=1;
-	  newnrm = 0.0;
-	  for(j=1;j<=neq;j++){
-	    maxtmp = fabs(del[j]*invwt[j]);
-	    newnrm = MAX(newnrm,maxtmp);
-	  }
-	  for(j=1;j<=neq;j++){
-	    difkp1[j] += del[j];
-	    ynew[j] = pred[j] + difkp1[j];
-	  }
-	  if (newnrm <= minnrm){
-	    gotynew = _TRUE_;
-	    break; /* Break Newton loop */
-	  }
-	  else if(iter == 1){
-	    if (havrate==_TRUE_){
-	      errit = newnrm * rate / (1.0 - rate);
-	      if (errit <= 0.05*rtol){
-		gotynew = _TRUE_;
-		break; /* Break Newton Loop*/
-	      }
-	    }
-	    else {
-	      rate = 0.0;
-	    }
-	  }
-	  else if(newnrm > 0.9*oldnrm){
-	    tooslow = _TRUE_;
-	    break; /*Break Newton lop */
-	  }
-	  else{
-	    rate = MAX(0.9*rate, newnrm / oldnrm);
-	    havrate = _TRUE_;
-	    errit = newnrm * rate / (1.0 - rate);
-	    if (errit <= 0.5*rtol){
-	      gotynew = _TRUE_;
-	      break; /* exit newton */
-	    }
-	    else if (iter == maxit){
-	      tooslow = _TRUE_;
-	      break; /*exit newton */
-	    }
-	    else if (0.5*rtol < errit*pow(rate,(maxit-iter))){
-	      tooslow = _TRUE_;
-	      break; /*exit Newton */
-	    }
-	  }
-	  oldnrm = newnrm;
-	}
-	if (tooslow==_TRUE_){
-	  stepstat[1] += 1;
-	  /*	! Speed up the iteration by forming new linearization or reducing h. */
-	  if (Jcurrent==_FALSE_){
-	    class_call((*derivs)(t,y+1,f0+1,parameters_and_workspace_for_derivs,error_message),
-		       error_message,error_message);
-	    nfenj=0;
-	    class_call(numjac((*derivs),t,y,f0,&jac,&nj_ws,abstol,neq,
-			      &nfenj,parameters_and_workspace_for_derivs,error_message),
-		       error_message,error_message);
-	    stepstat[3] += 1;
-	    stepstat[2] += (nfenj + 1);
-	    Jcurrent = _TRUE_;
-	  }
-	  else if (absh <= hmin){
-	    class_test(absh <= hmin, error_message,
-		       "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]\n",
-		       absh,hmin,t0,tfinal);
-	  }
-	  else{
-	    abshlast = absh;
-	    absh = MAX(0.3 * absh, hmin);
-	    h = tdir * absh;
-	    done = _FALSE_;
-	    adjust_stepsize(dif,(absh/abshlast),neq,k);
-	    hinvGak = h * invGa[k-1];
-	    nconhk = 0;
-	  }
-	  /* A new linearisation is needed in both cases */
-	  class_call(new_linearisation(&jac,hinvGak,neq,error_message),
-		     error_message,error_message);
-	  stepstat[4] += 1;
-	  havrate = _FALSE_;
-	}
+          stepstat[5]+=1;
+          newnrm = 0.0;
+          for(j=1;j<=neq;j++){
+            maxtmp = fabs(del[j]*invwt[j]);
+            newnrm = MAX(newnrm,maxtmp);
+          }
+          for(j=1;j<=neq;j++){
+            difkp1[j] += del[j];
+            ynew[j] = pred[j] + difkp1[j];
+          }
+          if (newnrm <= minnrm){
+            gotynew = _TRUE_;
+            break; /* Break Newton loop */
+          }
+          else if(iter == 1){
+            if (havrate==_TRUE_){
+              errit = newnrm * rate / (1.0 - rate);
+              if (errit <= 0.05*rtol){
+            gotynew = _TRUE_;
+            break; /* Break Newton Loop*/
+              }
+            }
+            else {
+              rate = 0.0;
+            }
+          }
+          else if(newnrm > 0.9*oldnrm){
+            tooslow = _TRUE_;
+            break; /*Break Newton lop */
+          }
+          else{
+            rate = MAX(0.9*rate, newnrm / oldnrm);
+            havrate = _TRUE_;
+            errit = newnrm * rate / (1.0 - rate);
+            if (errit <= 0.5*rtol){
+              gotynew = _TRUE_;
+              break; /* exit newton */
+            }
+            else if (iter == maxit){
+              tooslow = _TRUE_;
+              break; /*exit newton */
+            }
+            else if (0.5*rtol < errit*pow(rate,(maxit-iter))){
+              tooslow = _TRUE_;
+              break; /*exit Newton */
+            }
+          }
+          oldnrm = newnrm;
+        }
+        if (tooslow==_TRUE_){
+          stepstat[1] += 1;
+          /*    ! Speed up the iteration by forming new linearization or reducing h. */
+          if (Jcurrent==_FALSE_){
+            class_call((*derivs)(t,y+1,f0+1,parameters_and_workspace_for_derivs,error_message),
+                       error_message,error_message);
+            nfenj=0;
+            class_call(numjac((*derivs),t,y,f0,&jac,&nj_ws,abstol,neq,
+                       &nfenj,parameters_and_workspace_for_derivs,error_message),
+                       error_message,error_message);
+            stepstat[3] += 1;
+            stepstat[2] += (nfenj + 1);
+            Jcurrent = _TRUE_;
+          }
+          else if (absh <= hmin){
+            class_test(absh <= hmin, error_message,
+                       "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]\n",
+                       absh,hmin,t0,tfinal);
+          }
+          else{
+            abshlast = absh;
+            absh = MAX(0.3 * absh, hmin);
+            h = tdir * absh;
+            done = _FALSE_;
+            adjust_stepsize(dif,(absh/abshlast),neq,k);
+            hinvGak = h * invGa[k-1];
+            nconhk = 0;
+          }
+          /* A new linearisation is needed in both cases */
+          class_call(new_linearisation(&jac,hinvGak,neq,error_message),
+                     error_message,error_message);
+          stepstat[4] += 1;
+          havrate = _FALSE_;
+        }
       }
       /*end of while loop for getting ynew
-	difkp1 is now the backward difference of ynew of order k+1. */
+    difkp1 is now the backward difference of ynew of order k+1. */
       err = 0.0;
       for(jj=1;jj<=neq;jj++){
-	err = MAX(err,fabs(difkp1[jj]*invwt[jj]));
+        err = MAX(err,fabs(difkp1[jj]*invwt[jj]));
       }
       err = err * erconst[k-1];
       if (err>rtol){
-	/*Step failed */
-	stepstat[1]+= 1;
-	if (absh <= hmin){
-	  class_test(absh <= hmin, error_message,
-		     "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]\n",
-		     absh,hmin,t0,tfinal);
-	}
-	abshlast = absh;
-	if (nofailed==_TRUE_){
-	  nofailed = _FALSE_;
-	  hopt = absh * MAX(0.1, 0.833*pow((rtol/err),(1.0/(k+1))));
-	  if (k > 1){
-	    errkm1 = 0.0;
-	    for(jj=1;jj<=neq;jj++){
-	      errkm1 = MAX(errkm1,fabs((dif[jj][k]+difkp1[jj])*invwt[jj]));
-	    }
-	    errkm1 = errkm1*erconst[k-2];
-	    hkm1 = absh * MAX(0.1, 0.769*pow((rtol/errkm1),(1.0/k)));
-	    if (hkm1 > hopt){
-	      hopt = MIN(absh,hkm1); 		/* don't allow step size increase */
-	      k = k - 1;
-	    }
-	  }
-	  absh = MAX(hmin, hopt);
-	}
-	else{
-	  absh = MAX(hmin, 0.5 * absh);
-	}
-	h = tdir * absh;
-	if (absh < abshlast){
-	  done = _FALSE_;
-	}
-	adjust_stepsize(dif,(absh/abshlast),neq,k);
-	hinvGak = h * invGa[k-1];
-	nconhk = 0;
-	class_call(new_linearisation(&jac,hinvGak,neq,error_message),
-		   error_message,error_message);
-	stepstat[4] += 1;
-	havrate = _FALSE_;
+        /*Step failed */
+        stepstat[1]+= 1;
+        if (absh <= hmin){
+          class_test(absh <= hmin, error_message,
+                     "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]\n",
+                     absh,hmin,t0,tfinal);
+        }
+        abshlast = absh;
+        if (nofailed==_TRUE_){
+          nofailed = _FALSE_;
+          hopt = absh * MAX(0.1, 0.833*pow((rtol/err),(1.0/(k+1))));
+          if (k > 1){
+            errkm1 = 0.0;
+            for(jj=1;jj<=neq;jj++){
+              errkm1 = MAX(errkm1,fabs((dif[jj][k]+difkp1[jj])*invwt[jj]));
+            }
+            errkm1 = errkm1*erconst[k-2];
+            hkm1 = absh * MAX(0.1, 0.769*pow((rtol/errkm1),(1.0/k)));
+            if (hkm1 > hopt){
+              hopt = MIN(absh,hkm1);         /* don't allow step size increase */
+              k = k - 1;
+            }
+          }
+          absh = MAX(hmin, hopt);
+        }
+        else{
+          absh = MAX(hmin, 0.5 * absh);
+        }
+        h = tdir * absh;
+        if (absh < abshlast){
+          done = _FALSE_;
+        }
+        adjust_stepsize(dif,(absh/abshlast),neq,k);
+        hinvGak = h * invGa[k-1];
+        nconhk = 0;
+        class_call(new_linearisation(&jac,hinvGak,neq,error_message),
+                   error_message,error_message);
+        stepstat[4] += 1;
+        havrate = _FALSE_;
       }
       else {
-	break; /* Succesfull step */
+        break; /* Succesfull step */
       }
     }
     /* End of conditionless FOR loop */
@@ -541,31 +545,31 @@ int evolver_ndf15(
     }
     for(j=k;j>=1;j--){
       for(ii=1;ii<=neq;ii++){
-	dif[ii][j] += dif[ii][j+1];
+        dif[ii][j] += dif[ii][j+1];
       }
     }
     /** Output **/
     while ((next<tres)&&(tdir * (tnew - t_vec[next]) >= 0.0)){
       /* Do we need to write output? */
       if (tnew==t_vec[next]){
-	class_call((*output)(t_vec[next],ynew+1,f0+1,next,parameters_and_workspace_for_derivs,error_message),
-		   error_message,error_message);
+        class_call((*output)(t_vec[next],ynew+1,f0+1,next,parameters_and_workspace_for_derivs,error_message),
+                   error_message,error_message);
 // MODIFICATION BY LUC
 // All print_variables have been moved to the end of time step
 /*
-	if (print_variables != NULL){
-	  class_call((*print_variables)(t_vec[next],ynew+1,f0+1,
-					parameters_and_workspace_for_derivs,error_message),
-		     error_message,error_message);
-	}
+    if (print_variables != NULL){
+      class_call((*print_variables)(t_vec[next],ynew+1,f0+1,
+                    parameters_and_workspace_for_derivs,error_message),
+             error_message,error_message);
+    }
 */
       }
       else {
-	/*Interpolate if we have overshot sample values*/
-	interp_from_dif(t_vec[next],tnew,ynew,h,dif,k,yinterp,ypinterp,yppinterp,interpidx,neq,2);
+        /*Interpolate if we have overshot sample values*/
+        interp_from_dif(t_vec[next],tnew,ynew,h,dif,k,yinterp,ypinterp,yppinterp,interpidx,neq,2);
 
-	class_call((*output)(t_vec[next],yinterp+1,ypinterp+1,next,parameters_and_workspace_for_derivs,
-			     error_message),error_message,error_message);
+        class_call((*output)(t_vec[next],yinterp+1,ypinterp+1,next,parameters_and_workspace_for_derivs,
+                   error_message),error_message,error_message);
 
       }
       next++;
@@ -580,53 +584,53 @@ int evolver_ndf15(
     if (nconhk >= k + 2){
       temp = 1.2*pow((err/rtol),(1.0/(k+1.0)));
       if (temp > 0.1){
-	hopt = absh / temp;
+        hopt = absh / temp;
       }
       else {
-	hopt = 10*absh;
+        hopt = 10*absh;
       }
       kopt = k;
       if (k > 1){
-	errkm1 = 0.0;
-	for(jj=1;jj<=neq;jj++){
-	  errkm1 = MAX(errkm1,fabs(dif[jj][k]*invwt[jj]));
-	}
-	errkm1 = errkm1*erconst[k-2];
-	temp = 1.3*pow((errkm1/rtol),(1.0/k));
-	if (temp > 0.1){
-	  hkm1 = absh / temp;
-	}
-	else {
-	  hkm1 = 10*absh;
-	}
-	if (hkm1 > hopt){
-	  hopt = hkm1;
-	  kopt = k - 1;
-	}
+        errkm1 = 0.0;
+        for(jj=1;jj<=neq;jj++){
+          errkm1 = MAX(errkm1,fabs(dif[jj][k]*invwt[jj]));
+        }
+        errkm1 = errkm1*erconst[k-2];
+        temp = 1.3*pow((errkm1/rtol),(1.0/k));
+        if (temp > 0.1){
+          hkm1 = absh / temp;
+        }
+        else {
+          hkm1 = 10*absh;
+        }
+        if (hkm1 > hopt){
+          hopt = hkm1;
+          kopt = k - 1;
+        }
       }
       if (k < maxk){
-	errkp1 = 0.0;
-	for(jj=1;jj<=neq;jj++){
-	  errkp1 = MAX(errkp1,fabs(dif[jj][k+2]*invwt[jj]));
-	}
-	errkp1 = errkp1*erconst[k];
-	temp = 1.4*pow((errkp1/rtol),(1.0/(k+2.0)));
-	if (temp > 0.1){
-	  hkp1 = absh / temp;
-	}
-	else {
-	  hkp1 = 10*absh;
-	}
-	if (hkp1 > hopt){
-	  hopt = hkp1;
-	  kopt = k + 1;
-	}
+        errkp1 = 0.0;
+        for(jj=1;jj<=neq;jj++){
+          errkp1 = MAX(errkp1,fabs(dif[jj][k+2]*invwt[jj]));
+        }
+        errkp1 = errkp1*erconst[k];
+        temp = 1.4*pow((errkp1/rtol),(1.0/(k+2.0)));
+        if (temp > 0.1){
+          hkp1 = absh / temp;
+        }
+        else {
+          hkp1 = 10*absh;
+        }
+        if (hkp1 > hopt){
+          hopt = hkp1;
+          kopt = k + 1;
+        }
       }
       if (hopt > absh){
-	absh = hopt;
-	if (k!=kopt){
-	  k = kopt;
-	}
+        absh = hopt;
+        if (k!=kopt){
+          k = kopt;
+        }
       }
     }
     /* Advance the integration one step. */
@@ -637,15 +641,15 @@ int evolver_ndf15(
 // MODIFICATION BY LUC
     if (print_variables!=NULL){
       class_call((*derivs)(tnew,
-		             ynew+1,
-		             f0+1,
-		             parameters_and_workspace_for_derivs,error_message),
-	               error_message,
-	               error_message);
+                     ynew+1,
+                     f0+1,
+                     parameters_and_workspace_for_derivs,error_message),
+                 error_message,
+                 error_message);
 
         class_call((*print_variables)(tnew,ynew+1,f0+1,
-					parameters_and_workspace_for_derivs,error_message),
-		     error_message,error_message);
+                    parameters_and_workspace_for_derivs,error_message),
+                    error_message,error_message);
     }
 // end of modification
 
@@ -654,50 +658,49 @@ int evolver_ndf15(
   /* a last call is compulsory to ensure that all quantitites in
      y,dy,parameters_and_workspace_for_derivs are updated to the
      last point in the covered range */
-  class_call(
-	     (*derivs)(tnew,
-		       ynew+1,
-		       f0+1,
-		       parameters_and_workspace_for_derivs,error_message),
-	     error_message,
-	     error_message);
+  class_call((*derivs)(tnew,
+                   ynew+1,
+                   f0+1,
+                   parameters_and_workspace_for_derivs,error_message),
+             error_message,
+             error_message);
 
   if (print_variables!=NULL){
     /** If we are printing variables, we must store the final point */
     class_call((*print_variables)(tnew,ynew+1,f0+1,
-				  parameters_and_workspace_for_derivs,error_message),
-	       error_message,error_message);
+                  parameters_and_workspace_for_derivs,error_message),
+               error_message,error_message);
   }
 
   if (verbose > 0){
     printf("\n End of evolver. Next=%d, t=%e and tnew=%e.",next,t,tnew);
     printf("\n Statistics: [%d %d %d %d %d %d] \n",stepstat[0],stepstat[1],
-	   stepstat[2],stepstat[3],stepstat[4],stepstat[5]);
+       stepstat[2],stepstat[3],stepstat[4],stepstat[5]);
   }
 
   /** Deallocate memory */
 
   free(buffer);
 
-  /* 	free(f0); */
-  /* 	free(wt); */
-  /* 	free(ddfddt); */
-  /* 	free(pred); */
-  /* 	free(y); */
-  /* 	free(invwt); */
-  /* 	free(rhs); */
-  /* 	free(psi); */
-  /* 	free(difkp1); */
-  /* 	free(del); */
-  /* 	free(yinterp); */
-  /* 	free(ypinterp); */
-  /* 	free(yppinterp); */
-  /* 	free(tempvec1); */
-  /* 	free(tempvec2); */
+  /*     free(f0); */
+  /*     free(wt); */
+  /*     free(ddfddt); */
+  /*     free(pred); */
+  /*     free(y); */
+  /*     free(invwt); */
+  /*     free(rhs); */
+  /*     free(psi); */
+  /*     free(difkp1); */
+  /*     free(del); */
+  /*     free(yinterp); */
+  /*     free(ypinterp); */
+  /*     free(yppinterp); */
+  /*     free(tempvec1); */
+  /*     free(tempvec2); */
 
-  /* 	free(interpidx); */
-  /* 	free(dif[1]); */
-  /* 	free(dif); */
+  /*     free(interpidx); */
+  /*     free(dif[1]); */
+  /*     free(dif); */
 
   uninitialize_jacobian(&jac);
   uninitialize_numjac_workspace(&nj_ws);
@@ -733,35 +736,35 @@ int calc_C(struct jacobian *jac){
     for (i=Ap[j];i<Ap[j+1];i++){
       /* Loop over rows */
       if(Ai[i]!=j){
-	/*Don't consider diagonal entries..*/
-	/* Add (i,j) to sparsity pattern of C, if it does not exist: */
-	duplicate = _FALSE_;
-	col = j; row = Ai[i];
-	for(k=0;k<Cp[col+1];k++){
-	  /* Check for duplicates in column col:*/
-	  if(jac->Numerical->xi[col][k]==row){
-	    duplicate = _TRUE_;
-	    break;
-	  }
-	}
-	if (!duplicate){
-	  jac->Numerical->xi[col][Cp[col+1]] = row;
-	  Cp[col+1]++;
-	}
-	/* Add (j,i) to sparsity pattern if it does not exist: */
-	duplicate = _FALSE_;
-	col = Ai[i]; row = j;
-	for(k=0;k<Cp[col+1];k++){
-	  /* Check for dublicates in the Ai[i]'th column: */
-	  if(jac->Numerical->xi[col][k]==row){
-	    duplicate = _TRUE_;
-	    break;
-	  }
-	}
-	if (!duplicate){
-	  jac->Numerical->xi[col][Cp[col+1]] = row;
-	  Cp[col+1]++;
-	}
+    /*Don't consider diagonal entries..*/
+    /* Add (i,j) to sparsity pattern of C, if it does not exist: */
+    duplicate = _FALSE_;
+    col = j; row = Ai[i];
+    for(k=0;k<Cp[col+1];k++){
+      /* Check for duplicates in column col:*/
+      if(jac->Numerical->xi[col][k]==row){
+        duplicate = _TRUE_;
+        break;
+      }
+    }
+    if (!duplicate){
+      jac->Numerical->xi[col][Cp[col+1]] = row;
+      Cp[col+1]++;
+    }
+    /* Add (j,i) to sparsity pattern if it does not exist: */
+    duplicate = _FALSE_;
+    col = Ai[i]; row = j;
+    for(k=0;k<Cp[col+1];k++){
+      /* Check for dublicates in the Ai[i]'th column: */
+      if(jac->Numerical->xi[col][k]==row){
+        duplicate = _TRUE_;
+        break;
+      }
+    }
+    if (!duplicate){
+      jac->Numerical->xi[col][Cp[col+1]] = row;
+      Cp[col+1]++;
+    }
       }
     }
   }
@@ -779,7 +782,7 @@ int calc_C(struct jacobian *jac){
 
 /* Subroutine that interpolates from information stored in dif */
 int interp_from_difold(double tinterp,double tnew,double *ynew,double h,double **dif,int k, double *yinterp,
-		    double *ypinterp, double *yppinterp, int* index, int neq, int output){
+            double *ypinterp, double *yppinterp, int* index, int neq, int output){
   /* Output=1: only y_vector. Output=2: y and y prime. Output=3: y, yp and ypp*/
   int i,j,m,l,p,factor;
   double sumj,suml,sump,prodm,s;
@@ -787,9 +790,9 @@ int interp_from_difold(double tinterp,double tnew,double *ynew,double h,double *
   if (k==1){
     for(i=1;i<=neq;i++){
       if(index[i]==_TRUE_){
-	yinterp[i] = ynew[i] + dif[i][1] * s;
-	if (output>1) ypinterp[i] = dif[i][1]/h;
-	if (output>2) yppinterp[i] = 0; /* No good estimate can be made of the second derivative */
+        yinterp[i] = ynew[i] + dif[i][1] * s;
+        if (output>1) ypinterp[i] = dif[i][1]/h;
+        if (output>2) yppinterp[i] = 0; /* No good estimate can be made of the second derivative */
       }
     }
   }
@@ -797,60 +800,60 @@ int interp_from_difold(double tinterp,double tnew,double *ynew,double h,double *
     /*This gets tricky */
     for(i=1;i<=neq;i++){
       if(index[i]==_TRUE_){
-	/*First the value of the function:	*/
-	sumj=0.0;
-	factor=1;
-	for(j=1;j<=k;j++){
-	  prodm=1.0;
-	  factor*=j;
-	  for(m=0;m<j;m++) prodm*=(m+s);
-	  sumj+=dif[i][j]/factor*prodm;
-	}
-	yinterp[i] = ynew[i]+sumj;
-	/* Now the first derivative: */
-	if (output>1){
-	  factor = 1;
-	  sumj=0.0;
-	  for(j=1;j<=k;j++){
-	    suml = 0.0;
-	    factor *=j;
-	    for(l=0;l<j;l++){
-	      prodm=1.0;
-	      for(m=0;m<j;m++){
-		if(m!=l) prodm*=(m+s);
-	      }
-	      suml+=prodm;
-	    }
-	    sumj+=dif[i][j]/factor*suml;
-	  }
-	  ypinterp[i] = sumj/h;
-	}
-	/* The second derivative: */
-	if (output>2){
-	  factor=1;
-	  sumj=0.0;
-	  for(j=1;j<=k;j++){
-	    suml=0.0;
-	    factor*=j;
-	    for(l=0;l<j;l++){
-	      sump=0.0;
-	      for(p=0;p<j;p++){
-		if(p!=l){
-		  prodm=1.0;
-		  for(m=0;m<j;m++){
-		    if((m!=l)&&(m!=p)){
-		      prodm*=(m+s);
-		    }
-		  }
-		  sump+=prodm;
-		}
-	      }
-	      suml+=sump;
-	    }
-	    sumj+=dif[i][j]/factor*suml;
-	  }
-	  yppinterp[i] = sumj/(h*h);
-	}
+        /*First the value of the function:    */
+        sumj=0.0;
+        factor=1;
+        for(j=1;j<=k;j++){
+          prodm=1.0;
+          factor*=j;
+          for(m=0;m<j;m++) prodm*=(m+s);
+          sumj+=dif[i][j]/factor*prodm;
+        }
+        yinterp[i] = ynew[i]+sumj;
+        /* Now the first derivative: */
+        if (output>1){
+          factor = 1;
+          sumj=0.0;
+          for(j=1;j<=k;j++){
+            suml = 0.0;
+            factor *=j;
+            for(l=0;l<j;l++){
+              prodm=1.0;
+              for(m=0;m<j;m++){
+            if(m!=l) prodm*=(m+s);
+              }
+              suml+=prodm;
+            }
+            sumj+=dif[i][j]/factor*suml;
+          }
+          ypinterp[i] = sumj/h;
+        }
+        /* The second derivative: */
+        if (output>2){
+          factor=1;
+          sumj=0.0;
+          for(j=1;j<=k;j++){
+            suml=0.0;
+            factor*=j;
+            for(l=0;l<j;l++){
+              sump=0.0;
+              for(p=0;p<j;p++){
+                if(p!=l){
+                  prodm=1.0;
+                  for(m=0;m<j;m++){
+                    if((m!=l)&&(m!=p)){
+                      prodm*=(m+s);
+                    }
+                  }
+                  sump+=prodm;
+                }
+              }
+              suml+=sump;
+            }
+            sumj+=dif[i][j]/factor*suml;
+          }
+          yppinterp[i] = sumj/(h*h);
+        }
       }
     }
   }
@@ -865,7 +868,7 @@ int interp_from_dif(double tinterp,
                     double **dif,
                     int k,
                     double *yinterp,
-		    double *ypinterp,
+                    double *ypinterp,
                     double *yppinterp,
                     int* mask,
                     int neq,
@@ -925,7 +928,7 @@ int adjust_stepsize(double **dif, double abshdivabshlast, int neq,int k){
     for(jj=0;jj<5;jj++){
       /* Now do the matrix multiplication: */
       mydifRU[ii][jj] = 0.0;
-      for(kk=0;kk<5;kk++)	mydifRU[ii][jj] += tempvec[kk]*mydifU[kk][jj];
+      for(kk=0;kk<5;kk++)    mydifRU[ii][jj] += tempvec[kk]*mydifU[kk][jj];
     }
   }
 
@@ -951,30 +954,30 @@ int new_linearisation(struct jacobian *jac,double hinvGak,int neq,ErrorMsg error
     /* Construct jac->spJ->Ax from jac->xjac, the jacobian:*/
     for(j=0;j<neq;j++){
       for(i=Ap[j];i<Ap[j+1];i++){
-	if(Ai[i]==j){
-	  /* I'm at the diagonal */
-	  Ax[i] = 1.0-hinvGak*jac->xjac[i];
-	}
-	else{
-	  Ax[i] = -hinvGak*jac->xjac[i];
-	}
+        if(Ai[i]==j){
+          /* I'm at the diagonal */
+          Ax[i] = 1.0-hinvGak*jac->xjac[i];
+        }
+        else{
+          Ax[i] = -hinvGak*jac->xjac[i];
+        }
       }
     }
     /* Matrix constructed... */
     if(jac->new_jacobian==_TRUE_){
       /*I have a new pattern, and I have not done a LU decomposition
-	since the last jacobian calculation, so	I need to do a full
-	sparse LU-decomposition: */
+        since the last jacobian calculation, so    I need to do a full
+        sparse LU-decomposition: */
       /* Find the sparsity pattern C = J + J':*/
       calc_C(jac);
       /* Calculate the optimal ordering: */
       sp_amd(jac->Cp, jac->Ci, neq, jac->cnzmax,
-	     jac->Numerical->q,jac->Numerical->wamd);
+         jac->Numerical->q,jac->Numerical->wamd);
       /* if the next line is uncomented, the code uses natural ordering instead of AMD ordering */
       /*jac->Numerical->q = NULL;*/
       funcreturn = sp_ludcmp(jac->Numerical, jac->spJ, 1e-3);
       class_test(funcreturn == _FAILURE_,error_message,
-		 "Failure in sp_ludcmp. Possibly singular matrix!");
+         "Failure in sp_ludcmp. Possibly singular matrix!");
       jac->new_jacobian = _FALSE_;
     }
     else{
@@ -986,14 +989,14 @@ int new_linearisation(struct jacobian *jac,double hinvGak,int neq,ErrorMsg error
     /* Normal calculation: */
     for(i=1;i<=neq;i++){
       for(j=1;j<=neq;j++){
-	jac->LU[i][j] = - hinvGak * jac->dfdy[i][j];
-	if(i==j) jac->LU[i][j] +=1.0;
+    jac->LU[i][j] = - hinvGak * jac->dfdy[i][j];
+    if(i==j) jac->LU[i][j] +=1.0;
       }
     }
     /*Dense LU decomposition: */
     funcreturn = ludcmp(jac->LU,neq,jac->luidx,&luparity,jac->LUw);
     class_test(funcreturn == _FAILURE_,error_message,
-	       "Failure in ludcmp. Possibly singular matrix!");
+           "Failure in ludcmp. Possibly singular matrix!");
   }
   return _SUCCESS_;
 }
@@ -1041,15 +1044,15 @@ int ludcmp(double **a, int n, int *indx, double *d, double *vv){
       for (k=1;k<j;k++) sum -= a[i][k]*a[k][j];
       a[i][j]=sum;
       if ( (dum=vv[i]*fabs(sum)) >= big) {
-	big=dum;
-	imax=i;
+    big=dum;
+    imax=i;
       }
     }
     if (j != imax) {
       for (k=1;k<=n;k++) {
-	dum=a[imax][k];
-	a[imax][k]=a[j][k];
-	a[j][k]=dum;
+    dum=a[imax][k];
+    a[imax][k]=a[j][k];
+    a[j][k]=dum;
       }
       *d = -(*d);
       vv[imax]=vv[j];
@@ -1084,6 +1087,7 @@ int fzero_Newton(int (*func)(double *x,
   int k,i,j,*indx, ntrial=20;
   double errx,errf,d,*F0,*Fdel,**Fjac,*p, *lu_work;
   int has_converged = _FALSE_;
+  int funcreturn;
   double toljac = 1e-3;
   double *delx;
 
@@ -1150,8 +1154,12 @@ int fzero_Newton(int (*func)(double *x,
 
     for (i=1; i<=x_size; i++)
       p[i] = -F0[i-1]; //Right-hand side of linear equations.
-    ludcmp(Fjac, x_size, indx, &d, lu_work); //Solve linear equations using LU decomposition.
-    lubksb(Fjac, x_size, indx, p);
+    funcreturn = ludcmp(Fjac, x_size, indx, &d, lu_work); //Solve linear equations using LU decomposition.
+    class_test(funcreturn == _FAILURE_,error_message,
+               "Failure in ludcmp. Possibly singular matrix!");
+    funcreturn = lubksb(Fjac, x_size, indx, p);
+    class_test(funcreturn == _FAILURE_,error_message,
+               "Failure in lubksb. Possibly singular matrix!");
     errx=0.0; //Check root convergence.
     for (i=1; i<=x_size; i++) { //Update solution.
       errx += fabs(p[i]);
@@ -1182,19 +1190,19 @@ int fzero_Newton(int (*func)(double *x,
 
 /**********************************************************************/
 /* Here are some routines related to the calculation of the jacobian: */
-/* "numjac", "initialize_jacobian", "uninitialize_jacobian",					*/
-/* "initialize_numjac_workspace", "uninitialize_numjac_workspace".		*/
+/* "numjac", "initialize_jacobian", "uninitialize_jacobian",                    */
+/* "initialize_numjac_workspace", "uninitialize_numjac_workspace".        */
 /**********************************************************************/
 int numjac(
-	   int (*derivs)(double x, double * y,double * dy,
-			 void * parameters_and_workspace, ErrorMsg error_message),
-	   double t, double *y, double *fval,
-	   struct jacobian *jac, struct numjac_workspace *nj_ws,
-	   double thresh, int neq, int *nfe, void * parameters_and_workspace_for_derivs,
-	   ErrorMsg error_message){
-  /*	Routine that computes the jacobian numerically. It is based on the numjac
-	implementation in MATLAB, but a feature for recognising sparsity in the
-	jacobian and taking advantage of that has been added.
+       int (*derivs)(double x, double * y,double * dy,
+             void * parameters_and_workspace, ErrorMsg error_message),
+       double t, double *y, double *fval,
+       struct jacobian *jac, struct numjac_workspace *nj_ws,
+       double thresh, int neq, int *nfe, void * parameters_and_workspace_for_derivs,
+       ErrorMsg error_message){
+  /*    Routine that computes the jacobian numerically. It is based on the numjac
+    implementation in MATLAB, but a feature for recognising sparsity in the
+    jacobian and taking advantage of that has been added.
   */
   double eps=1e-16, br=pow(eps,0.875),bl=pow(eps,0.75),bu=pow(eps,0.25);
   double facmin=pow(eps,0.78),facmax=0.1;
@@ -1229,17 +1237,17 @@ int numjac(
   for(j=1;j<=neq;j++){
     if (nj_ws->del[j]==0.0){
       for(;;){
-	if (fac[j] < facmax){
-	  fac[j] = MIN(100*fac[j],facmax);
-	  nj_ws->del[j] = (y[j] + fac[j]*nj_ws->yscale[j]) - y[j];
-	  if(nj_ws->del[j]==0.0){
-	    break;
-	  }
-	}
-	else{
-	  nj_ws->del[j] = thresh;
-	  break;
-	}
+    if (fac[j] < facmax){
+      fac[j] = MIN(100*fac[j],facmax);
+      nj_ws->del[j] = (y[j] + fac[j]*nj_ws->yscale[j]) - y[j];
+      if(nj_ws->del[j]==0.0){
+        break;
+      }
+    }
+    else{
+      nj_ws->del[j] = thresh;
+      break;
+    }
       }
     }
   }
@@ -1263,15 +1271,15 @@ int numjac(
       jac->has_grouping = 1;
     }
     colmax = jac->max_group+1;
-    /*	printf("\n				->groups=%d/%d.",colmax,neq);  */
+    /*    printf("\n                ->groups=%d/%d.",colmax,neq);  */
     for(j=1;j<=colmax;j++){
       /*loop over groups */
       group = j-1;
       for(i=1;i<=neq;i++){
-	/*Add y-vector.. */
-	nj_ws->ydel_Fdel[i][j] = y[i];
-	/*Add del of all groupmembers:*/
-	if(jac->col_group[i-1]==group) nj_ws->ydel_Fdel[i][j] +=nj_ws->del[i];
+        /*Add y-vector.. */
+        nj_ws->ydel_Fdel[i][j] = y[i];
+        /*Add del of all groupmembers:*/
+        if(jac->col_group[i-1]==group) nj_ws->ydel_Fdel[i][j] +=nj_ws->del[i];
       }
     }
   }
@@ -1281,7 +1289,7 @@ int numjac(
     colmax = neq;
     for(j=1;j<=neq;j++){
       for(i=1;i<=neq;i++){
-	nj_ws->ydel_Fdel[i][j] = y[i];
+        nj_ws->ydel_Fdel[i][j] = y[i];
       }
       nj_ws->ydel_Fdel[j][j] += nj_ws->del[j];
     }
@@ -1294,8 +1302,8 @@ int numjac(
       nj_ws->yydel[i] = nj_ws->ydel_Fdel[i][j];
     }
     class_call((*derivs)(t,nj_ws->yydel+1,nj_ws->ffdel+1,
-			 parameters_and_workspace_for_derivs,error_message),
-	       error_message,error_message);
+               parameters_and_workspace_for_derivs,error_message),
+               error_message,error_message);
 
     *nfe+=1;
     for(i=1;i<=neq;i++) nj_ws->ydel_Fdel[i][j] = nj_ws->ffdel[i];
@@ -1312,17 +1320,17 @@ int numjac(
       Fdiff_new = 0.0;
       Fdiff_absrm = 0.0;
       for(i=Ap[j];i<Ap[j+1];i++){
-	/* Loop over rows in the sparse matrix */
-	row = Ai[i]+1;
-	/* Do I want to construct the full jacobian? No, that is ugly..*/
-	Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
-	Fdiff_new = nj_ws->ydel_Fdel[row][group+1]-fval[row]; /*Remember to access the column of the corresponding group */
-	if (fabs(Fdiff_new)>=Fdiff_absrm){
-	  nj_ws->Rowmax[j+1] = row;
-	  nj_ws->Difmax[j+1] = Fdiff_new;
-	}
-	/* Assign value to sparse rep of jacobian: */
-	jac->xjac[i] = Fdiff_new/nj_ws->del[j+1];
+        /* Loop over rows in the sparse matrix */
+        row = Ai[i]+1;
+        /* Do I want to construct the full jacobian? No, that is ugly..*/
+        Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
+        Fdiff_new = nj_ws->ydel_Fdel[row][group+1]-fval[row]; /*Remember to access the column of the corresponding group */
+        if (fabs(Fdiff_new)>=Fdiff_absrm){
+          nj_ws->Rowmax[j+1] = row;
+          nj_ws->Difmax[j+1] = Fdiff_new;
+        }
+        /* Assign value to sparse rep of jacobian: */
+        jac->xjac[i] = Fdiff_new/nj_ws->del[j+1];
       }
       /* The maximum numerical value of Fdel in true column j+1*/
       nj_ws->absFdelRm[j+1] = fabs(nj_ws->ydel_Fdel[nj_ws->Rowmax[j+1]][group+1]);
@@ -1334,15 +1342,15 @@ int numjac(
       Fdiff_new = 0.0;
       Fdiff_absrm = 0.0;
       for(i=1;i<=neq;i++){
-	Fdiff_absrm = MAX(fabs(Fdiff_new),Fdiff_absrm);
-	Fdiff_new = nj_ws->ydel_Fdel[i][j] - fval[i];
-	dFdy[i][j] = Fdiff_new/nj_ws->del[j];
-	/*Find row maximums:*/
-	if(fabs(Fdiff_new)>=Fdiff_absrm){
-	  /* Found new max location in column */
-	  nj_ws->Rowmax[j] = i;
-	  nj_ws->Difmax[j] = fabs(Fdiff_new);
-	}
+        Fdiff_absrm = MAX(fabs(Fdiff_new),Fdiff_absrm);
+        Fdiff_new = nj_ws->ydel_Fdel[i][j] - fval[i];
+        dFdy[i][j] = Fdiff_new/nj_ws->del[j];
+        /*Find row maximums:*/
+        if(fabs(Fdiff_new)>=Fdiff_absrm){
+          /* Found new max location in column */
+          nj_ws->Rowmax[j] = i;
+          nj_ws->Difmax[j] = fabs(Fdiff_new);
+        }
       }
       nj_ws->absFdelRm[j] = fabs(nj_ws->ydel_Fdel[nj_ws->Rowmax[j]][j]);
     }
@@ -1376,61 +1384,61 @@ int numjac(
        ! roundoff error, try a bigger increment. */
     for(j=1;j<=neq;j++){
       if ((nj_ws->logj[j]==1)&&(nj_ws->Difmax[j]<=(br*nj_ws->Fscale[j]))){
-	tmpfac = MIN(sqrt(fac[j]),facmax);
-	del2 = (y[j] + tmpfac*nj_ws->yscale[j]) - y[j];
-	if ((tmpfac!=fac[j])&&(del2!=0.0)){
-	  if (fval[j] >= 0.0){
-	    /*! keep del pointing into region */
-	    del2 = fabs(del2);
-	  }
-	  else{
-	    del2 = -fabs(del2);
-	  }
-	  nj_ws->yydel[j] = y[j] + del2;
-	  class_call((*derivs)(t,nj_ws->yydel+1,nj_ws->ffdel+1,
-			       parameters_and_workspace_for_derivs,error_message),
-		     error_message,error_message);
-	  *nfe+=1;
-	  nj_ws->yydel[j] = y[j];
-	  rowmax2 = 1;
-	  Fdiff_new=0.0;
-	  Fdiff_absrm = 0.0;
-	  for(i=1;i<=neq;i++){
-	    Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
-	    Fdiff_new = nj_ws->ffdel[i]-fval[i];
-	    nj_ws->tmp[i] = Fdiff_new/del2;
-	    if(fabs(Fdiff_new)>=Fdiff_absrm){
-	      rowmax2 = i;
-	      difmax2 = fabs(Fdiff_new);
-	    }
-	  }
-	  maxval1 = difmax2*fabs(del2)*tmpfac;
-	  maxval2 = nj_ws->Difmax[j]*fabs(nj_ws->del[j]);
-	  if(maxval1>=maxval2){
-	    /* The new difference is more significant, so
-	       use the column computed with this increment.
-	       This depends on wether we are in sparse mode or not: */
-	    if ((jac->use_sparse)&&(jac->repeated_pattern >= jac->trust_sparse)){
-	      for(i=Ap[j-1];i<Ap[j];i++) jac->xjac[i]=nj_ws->tmp[Ai[i]+1];
-	    }
-	    else{
-	      for(i=1;i<=neq;i++) dFdy[i][j]=nj_ws->tmp[i];
-	    }
-	    /* Adjust fac for the next call to numjac. */
-	    ffscale = MAX(fabs(nj_ws->ffdel[rowmax2]),nj_ws->absFvalue[rowmax2]);
-	    if (difmax2 <= bl*ffscale){
-	      /* The difference is small, so increase the increment. */
-	      fac[j] = MIN(10*tmpfac, facmax);
-	    }
-	    else if(difmax2 > bu*ffscale){
-	      /* The difference is large, so reduce the increment. */
-	      fac[j] = MAX(0.1*tmpfac, facmin);
-	    }
-	    else{
-	      fac[j] = tmpfac;
-	    }
-	  }
-	}
+        tmpfac = MIN(sqrt(fac[j]),facmax);
+        del2 = (y[j] + tmpfac*nj_ws->yscale[j]) - y[j];
+        if ((tmpfac!=fac[j])&&(del2!=0.0)){
+          if (fval[j] >= 0.0){
+            /*! keep del pointing into region */
+            del2 = fabs(del2);
+          }
+          else{
+            del2 = -fabs(del2);
+          }
+          nj_ws->yydel[j] = y[j] + del2;
+          class_call((*derivs)(t,nj_ws->yydel+1,nj_ws->ffdel+1,
+                     parameters_and_workspace_for_derivs,error_message),
+                     error_message,error_message);
+          *nfe+=1;
+          nj_ws->yydel[j] = y[j];
+          rowmax2 = 1;
+          Fdiff_new=0.0;
+          Fdiff_absrm = 0.0;
+          for(i=1;i<=neq;i++){
+            Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
+            Fdiff_new = nj_ws->ffdel[i]-fval[i];
+            nj_ws->tmp[i] = Fdiff_new/del2;
+            if(fabs(Fdiff_new)>=Fdiff_absrm){
+              rowmax2 = i;
+              difmax2 = fabs(Fdiff_new);
+            }
+          }
+          maxval1 = difmax2*fabs(del2)*tmpfac;
+          maxval2 = nj_ws->Difmax[j]*fabs(nj_ws->del[j]);
+          if(maxval1>=maxval2){
+            /* The new difference is more significant, so
+               use the column computed with this increment.
+               This depends on wether we are in sparse mode or not: */
+            if ((jac->use_sparse)&&(jac->repeated_pattern >= jac->trust_sparse)){
+              for(i=Ap[j-1];i<Ap[j];i++) jac->xjac[i]=nj_ws->tmp[Ai[i]+1];
+            }
+            else{
+              for(i=1;i<=neq;i++) dFdy[i][j]=nj_ws->tmp[i];
+            }
+            /* Adjust fac for the next call to numjac. */
+            ffscale = MAX(fabs(nj_ws->ffdel[rowmax2]),nj_ws->absFvalue[rowmax2]);
+            if (difmax2 <= bl*ffscale){
+              /* The difference is small, so increase the increment. */
+              fac[j] = MIN(10*tmpfac, facmax);
+            }
+            else if(difmax2 > bu*ffscale){
+              /* The difference is large, so reduce the increment. */
+              fac[j] = MAX(0.1*tmpfac, facmin);
+            }
+            else{
+              fac[j] = tmpfac;
+            }
+          }
+        }
       }
     }
   }
@@ -1444,53 +1452,53 @@ int numjac(
     pattern_broken = _FALSE_;
     for(j=1;j<=neq;j++){
       for(i=1;i<=neq;i++){
-	if ((i==j)||(fabs(dFdy[i][j])!=0.0)){
-	  /* Diagonal or non-zero index found. */
-	  if (nz>=jac->max_nonzero){
-	    /* Too many non-zero points to take advantage of sparsity.*/
-	    jac->use_sparse = 0;
-	    break;
-	  }
-	  /* Test pattern if it is still unbroken: */
-	  /* Two conditions must be met if the pattern is intact: Ap[j-1]<=nz<Ap[j],
-	     so that we are in the right column, and (i-1) must exist in column. Ai[nz]*/
-	  /* We should first test if nz is in the column, otherwise pattern is dead:*/
-	  if ((pattern_broken==_FALSE_)&&(jac->has_pattern==_TRUE_)){
-	    if ((nz<Ap[j-1])||(nz>=Ap[j])){
-	      /* If we are no longer in the right column, pattern is broken for sure. */
-	      pattern_broken = _TRUE_;
-	    }
-	  }
-	  if ((pattern_broken==_FALSE_)&&(jac->has_pattern==_TRUE_)){
-	    /* Up to this point, the new jacobian has managed to fit in the old
-	       sparsity pattern..*/
-	    if (Ai[nz]!=(i-1)){
-	      /* The current non-zero rownumber does not fit the current entry in the
-		 sparse matrix. Pattern MIGHT be broken. Scan ahead in the sparse matrix
-		 to search for the row entry: (Remember: the indices are sorted..)*/
-	      pattern_broken = _TRUE_;
-	      for(nz2=nz; (nz2<Ap[j])&&(Ai[nz2]<=(i-1)); nz2++){
-		/* Go through the rest of the column with the added constraint that
-		   the row index in the sparse matrix should be smaller than the current
-		   row index i-1:*/
-		if (Ai[nz2]==(i-1)){
-		  /* sparsity pattern recovered.. */
-		  pattern_broken = _FALSE_;
-		  nz = nz2;
-		  break;
-		}
-		/* Write a zero entry in the sparse matrix, in case we recover pattern. */
-		jac->xjac[nz2] = 0.0;
-	      }
-	    }
-	  }
-	  /* The following works no matter the status of the pattern: */
-	  /* Write row_number: */
-	  Ai[nz] = i-1;
-	  /* Write value: */
-	  jac->xjac[nz] = dFdy[i][j];
-	  nz++;
-	}
+        if ((i==j)||(fabs(dFdy[i][j])!=0.0)){
+          /* Diagonal or non-zero index found. */
+          if (nz>=jac->max_nonzero){
+            /* Too many non-zero points to take advantage of sparsity.*/
+            jac->use_sparse = 0;
+            break;
+          }
+          /* Test pattern if it is still unbroken: */
+          /* Two conditions must be met if the pattern is intact: Ap[j-1]<=nz<Ap[j],
+             so that we are in the right column, and (i-1) must exist in column. Ai[nz]*/
+          /* We should first test if nz is in the column, otherwise pattern is dead:*/
+          if ((pattern_broken==_FALSE_)&&(jac->has_pattern==_TRUE_)){
+            if ((nz<Ap[j-1])||(nz>=Ap[j])){
+              /* If we are no longer in the right column, pattern is broken for sure. */
+              pattern_broken = _TRUE_;
+            }
+          }
+          if ((pattern_broken==_FALSE_)&&(jac->has_pattern==_TRUE_)){
+            /* Up to this point, the new jacobian has managed to fit in the old
+               sparsity pattern..*/
+            if (Ai[nz]!=(i-1)){
+              /* The current non-zero rownumber does not fit the current entry in the
+             sparse matrix. Pattern MIGHT be broken. Scan ahead in the sparse matrix
+             to search for the row entry: (Remember: the indices are sorted..)*/
+              pattern_broken = _TRUE_;
+              for(nz2=nz; (nz2<Ap[j])&&(Ai[nz2]<=(i-1)); nz2++){
+            /* Go through the rest of the column with the added constraint that
+               the row index in the sparse matrix should be smaller than the current
+               row index i-1:*/
+            if (Ai[nz2]==(i-1)){
+              /* sparsity pattern recovered.. */
+              pattern_broken = _FALSE_;
+              nz = nz2;
+              break;
+            }
+            /* Write a zero entry in the sparse matrix, in case we recover pattern. */
+            jac->xjac[nz2] = 0.0;
+              }
+            }
+          }
+          /* The following works no matter the status of the pattern: */
+          /* Write row_number: */
+          Ai[nz] = i-1;
+          /* Write value: */
+          jac->xjac[nz] = dFdy[i][j];
+          nz++;
+        }
       }
       /* Break this loop too if I have hit max non-zero points: */
       if (jac->use_sparse==_FALSE_) break;
@@ -1498,14 +1506,14 @@ int numjac(
     }
     if (jac->use_sparse==_TRUE_){
       if ((jac->has_pattern==_TRUE_)&&(pattern_broken==_FALSE_)){
-	/*New jacobian fitted into the current sparsity pattern:*/
-	jac->repeated_pattern++;
-	/* printf("\n Found repeated pattern. nz=%d/%d and
-	   rep.pat=%d.",nz,neq*neq,jac->repeated_pattern); */
+        /*New jacobian fitted into the current sparsity pattern:*/
+        jac->repeated_pattern++;
+        /* printf("\n Found repeated pattern. nz=%d/%d and
+           rep.pat=%d.",nz,neq*neq,jac->repeated_pattern); */
       }
       else{
-	/*Something has changed (or first run), better still do the full calculation..*/
-	jac->repeated_pattern = 0;
+        /*Something has changed (or first run), better still do the full calculation..*/
+        jac->repeated_pattern = 0;
       }
       jac->has_pattern = 1;
     }
@@ -1566,10 +1574,10 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
     class_alloc(jac->Ci,sizeof(int)*jac->cnzmax,error_message);
 
     class_call(sp_num_alloc(&jac->Numerical, neq,error_message),
-	       error_message,error_message);
+           error_message,error_message);
 
     class_call(sp_mat_alloc(&jac->spJ, neq, neq, jac->max_nonzero,
-			    error_message),error_message,error_message);
+                error_message),error_message,error_message);
 
   }
 
