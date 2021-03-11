@@ -217,7 +217,12 @@ int primordial_init(
   /** - get kmin and kmax from perturbation structure. Test that they make sense. */
 
   k_min = ppt->k_min; /* first value, inferred from perturbations structure */
-  k_max = ppt->k_max; /* last value, inferred from perturbations structure */
+  if(ppm->has_k_max_for_primordial_pk == _TRUE_){
+    k_max = ppm->k_max_for_primordial_pk; /* last value, user-defined (i.e. if specified in .ini file) */
+  }
+  else{
+    k_max = ppt->k_max; /* last value, inferred from perturbations structure */
+  }
 
   class_test(k_min <= 0.,
              ppm->error_message,
@@ -2647,7 +2652,7 @@ int primordial_inflation_find_phi_pivot(
 
       sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
       Omega_g0 = (4.*sigma_B/_c_*pow(2.726,4.)) / (3.*_c_*_c_*1.e10*h*h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
-      Omega_r0 = 3.046*7./8.*pow(4./11.,4./3.)*Omega_g0;
+      Omega_r0 = 3.044*7./8.*pow(4./11.,4./3.)*Omega_g0;
 
       target = log(H0/0.05*pow(Omega_r0,0.5)*pow(2./100.,1./12.)*pow(rho_end/rho_c0,0.25));
 
