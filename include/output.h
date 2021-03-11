@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "lensing.h"
+#include "distortions.h"
 
 /**
  * Maximum number of values of redshift at which the spectra will be
@@ -49,6 +50,8 @@ struct output {
   short write_perturbations; /**< flag for outputing perturbations of selected wavenumber(s) in file(s) */
   short write_primordial; /**< flag for outputing scalar/tensor primordial spectra in files */
   short write_exotic_injection; /**< flag for outputing exotic energy injection/deposition in files */
+  short write_noninjection; /**< flag for outputing non-injected contributions in files */
+  short write_distortions; /**< flag for outputing spectral distortions in files */
 
   //@}
 
@@ -89,6 +92,7 @@ extern "C" {
                   struct spectra * psp,
                   struct nonlinear * pnl,
                   struct lensing * ple,
+                  struct distortions * psd,
                   struct output * pop
                   );
 
@@ -139,8 +143,14 @@ extern "C" {
 
   int output_heating(
                      struct injection* pin,
+                     struct noninjection* pni,
                      struct output * pop
                      );
+
+  int output_distortions(
+                         struct distortions * psd,
+                         struct output * pop
+                         );
 
   int output_print_data(FILE *out,
                         char titles[_MAXTITLESTRINGLENGTH_],

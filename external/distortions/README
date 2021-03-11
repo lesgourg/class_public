@@ -1,0 +1,42 @@
+In this folder all files regarding the evaluation of the PCA decomposition of spectral distortions are contained. 
+
+When using the code, the user is encouraged to cite the following papers:
+	- Chluba & Jeong 2014, arXiv:1306.5751
+	- Release under construction
+
+All mathematical relations and main concepts are described in Chluba & Jeong 2014. Unless stated differently, all equations' and figures' numbers refer to that paper.
+
+The basic idea of the PCA decomposition is to compute the amount of energy stored in so-called "residuals", i.e. the energy NOT stored y, mu distortions or temperature shifts, by computing the corresponding spectral distortion.
+To achieve this goal, one first has to calculate in a model-independent way the evolution in redshift and frequency of the total Green's function G_th (see e.g. discussion following Eq. (3)). Once G_th is known, one can build an orthonormal basis of "spectral vectors" as explained in Appendix A of the paper. Following the same discussion one can then compute the branching ratios and the residual function (see Appendix A again). Once the residuals are known one can compute the Fisher matrix according to Eq. (9) and the relative eigenvectors correspond to the principal components of the system. 
+The knowledge of the eingenvectors and the so-called heating function Q is enough to calculate the distortion amplitudes mu_k. The result of the multiplication between mu_k and the distortion signals S_k is then the shape of the residual spectral distortion Delta_I_R (see Eq. (10)).
+
+As showed in the paper, the resulting vectors E_k and S_k as well as the value of Delta_I_R highly depend on the frequency range assumed before vectorizing Y_SZ(x), M(x), G(x) and G_th(x) as well as the noise level of the detercor. It is therefore fundamental to define the characteristics of the detector before beginning the evaluation of the PCA decomposition. The idea behind this folder is then to determine the full PCA decomposition for each choice of the detector and to create new files (one for redshift dependent quantities called DETECTORNAME_branching_ratios.dat and one for frequency dependent quantities called DETECTORNAME_spectral_shapes.dat) containing the evaluation. 
+In principle, to do it, it is enough to set 4 input parameters (maximum and minumum frequecy of the detector and corresponding bin size/number of bins, all in GHz, and detector's noise in W/(m^2 Hz sr)) and the program generate_PCA_files.py outputs the evaluated files. Those files are then going to be read by CLASS in distortions.c and, by computing the thermal history of the universe, it will be possible to compute the final shape of the spectral distortions.
+In practice, however, it is enough to set the 4 free parameters in the .ini file used to run CLASS together with the detector name. The program will then check in detectors_list.dat, i.e. a list of all "known" detectors with corresponding characteristics, if the required detector is already present. If not, generate_PCA_files.py computes the files for the wished detector and detectors_list.dat is automatically updated with the new setup.
+
+Said that, the folder contains 4 types of documents:
+	- Greens_data.dat
+	  This file is adapted from the public version of CosmoTherm (version 1.0.3) by Jens Chluba. It contains
+		- the number of rows and columns,
+		- the redshift array,
+		- the initial blackbody temperature as function of z in K,
+		- the last blackbody temperature shift as function of z in K,
+		- the energy injected by the temperature shift and
+		- a matrix where each line contains the value of the dimensionless frequency x, the array of G_th values 
+		  for every z at the corresponding x (the units are 10^-26 W/(m^2 Hz sr)) and the the value of the 
+		  blackbody spectrum at the corresponding x.
+	- generate_PCA_files.py
+	  This file contains the program used read and interpolate G_th from Greens_data.dat, orthonomalize the spectral shapes, calculate
+          the branching ratios, calculate the Fisher matrix and evaluates corresponding eigenvectors E_k(z) and spectral signals S_k(x).
+	- DETECTORNAME_branching_ratios.dat
+	  This file contains all redshift dependent quantities, i.e.
+		- the redshift array,
+		- the 3 branching ratios for y, mu and g distortion types and
+		- the eigenvectors E_k of the Fisher matrix up to the 8th order.
+	- DETECTORNAME_spectral_shapes.dat
+	  This file contains all frequency dependent quantities, i.e.
+		- the frequency array,
+		- the 3 spectral distortion shapes for y, mu and g distortion types and
+		- the spectral signals S_k up to the 8th order.
+	  All values are given in units of 10^-18 W/(m^2 Hz sr).
+

@@ -102,6 +102,7 @@ int output_total_cl_at_l(
  * @param psp Input: pointer to spectra structure
  * @param pnl Input: pointer to nonlinear structure
  * @param ple Input: pointer to lensing structure
+ * @param psd Input: pointer to distortions structure
  * @param pop Input: pointer to output structure
  */
 
@@ -114,6 +115,7 @@ int output_init(
                 struct spectra * psp,
                 struct nonlinear * pnl,
                 struct lensing * ple,
+                struct distortions * psd,
                 struct output * pop
                 ) {
 
@@ -189,7 +191,7 @@ int output_init(
 
   /** - deal with perturbation quantities */
 
-  if (pop->write_perturbations == _TRUE_) {
+  if (pop->write_perturbations == _TRUE_ && ppt->has_perturbations) {
 
     class_call(output_perturbations(pba,ppt,pop),
                pop->error_message,
@@ -199,7 +201,7 @@ int output_init(
 
   /** - deal with primordial spectra */
 
-  if (pop->write_primordial == _TRUE_) {
+  if (pop->write_primordial == _TRUE_ && ppt->has_perturbations) {
 
     class_call(output_primordial(ppt,ppm,pop),
                pop->error_message,
@@ -209,9 +211,18 @@ int output_init(
 
   /** - deal with heating */
 
-  if (pop->write_exotic_injection == _TRUE_) {
+  if (pop->write_exotic_injection == _TRUE_ || pop->write_noninjection == _TRUE_) {
 
-    class_call(output_heating(&(pth->in),pop),
+    class_call(output_heating(&(pth->in),&(psd->ni),pop),
+               pop->error_message,
+               pop->error_message);
+  }
+
+  /** - deal with spectral distortions */
+
+  if (pop->write_distortions == _TRUE_) {
+
+    class_call(output_distortions(psd,pop),
                pop->error_message,
                pop->error_message);
   }
@@ -1244,17 +1255,25 @@ int output_primordial(
   return _SUCCESS_;
 }
 
-int output_heating(struct injection* pin, struct output * pop) {
+int output_heating(struct injection* pin, struct noninjection* pni, struct output * pop) {
 
   /** Local variables*/
   FileName file_name_injection;
   FILE * out_injection;
+  FileName file_name_noninjection;
+  FILE * out_noninjection;
 
   char titles_injection[_MAXTITLESTRINGLENGTH_]={0};
 
   double * data_injection;
   int size_data_injection;
   int number_of_titles_injection;
+
+  char titles_noninjection[_MAXTITLESTRINGLENGTH_]={0};
+
+  double * data_noninjection;
+  int size_data_noninjection;
+  int number_of_titles_noninjection;
 
   if(pop->write_exotic_injection == _TRUE_){
 
@@ -1298,8 +1317,151 @@ int output_heating(struct injection* pin, struct output * pop) {
 
   }
 
+  if(pop->write_noninjection == _TRUE_){
+
+    /* File name */
+    sprintf(file_name_noninjection,"%s%s",pop->root,"photon_noninjection.dat");
+
+    /* Titles */
+    class_call(noninjection_output_titles(pni,titles_noninjection),
+               pni->error_message,
+               pni->error_message);
+    number_of_titles_noninjection = get_number_of_titles(titles_noninjection);
+
+    /* Data array */
+    size_data_noninjection = number_of_titles_noninjection*pin->z_size;
+    class_alloc(data_noninjection,
+                sizeof(double)*size_data_noninjection,
+                pop->error_message);
+    class_call(noninjection_output_data(pni,
+                                        number_of_titles_noninjection,
+                                        data_noninjection),
+               pni->error_message,
+               pop->error_message);
+
+    /* File IO */
+    class_open(out_noninjection,
+               file_name_noninjection,
+               "w",
+               pop->error_message);
+
+    if(pop->write_header == _TRUE_){
+      fprintf(out_noninjection,"# Table of non-injected energy influencing the photon spectral distortions \n");
+    }
+
+    output_print_data(out_noninjection,
+                      titles_noninjection,
+                      data_noninjection,
+                      size_data_noninjection);
+    free(data_noninjection);
+    fclose(out_noninjection);
+
+  }
+
   return _SUCCESS_;
 }
+
+int output_distortions(
+                       struct distortions * psd,
+                       struct output * pop
+                       ) {
+
+  /** Local variables*/
+  FileName file_name_heat, file_name_distortion;
+  FILE * out_heat, * out_distortion;
+
+  char titles_heat[_MAXTITLESTRINGLENGTH_]={0};
+  char titles_distortion[_MAXTITLESTRINGLENGTH_]={0};
+
+  double * data_heat, * data_distortion;
+  int size_data_heat, size_data_distortion;
+  int number_of_titles_heat, number_of_titles_distortion;
+
+  if(pop->write_distortions==_TRUE_ && psd->has_distortions == _TRUE_){
+
+    /* File name */
+    sprintf(file_name_heat,"%s%s",pop->root,"sd_heating.dat");
+
+    /* Titles */
+    class_call(distortions_output_heat_titles(psd,titles_heat),
+               psd->error_message,
+               pop->error_message);
+    number_of_titles_heat = get_number_of_titles(titles_heat);
+
+    /* Data array */
+    size_data_heat = number_of_titles_heat*psd->z_size;
+    class_alloc(data_heat,
+                sizeof(double)*size_data_heat,
+                pop->error_message);
+    class_call(distortions_output_heat_data(psd,
+                                            number_of_titles_heat,
+                                            data_heat),
+               psd->error_message,
+               pop->error_message);
+
+    /* File IO */
+    class_open(out_heat,
+               file_name_heat,
+               "w",
+               pop->error_message);
+
+    if(pop->write_header == _TRUE_){
+      fprintf(out_heat,"# Heat is d(Q/rho)/dz\n");
+      fprintf(out_heat,"# LHeat is d(Q/rho)/dlnz\n");
+      fprintf(out_heat,"#\n");
+    }
+
+    output_print_data(out_heat,
+                      titles_heat,
+                      data_heat,
+                      size_data_heat);
+    free(data_heat);
+    fclose(out_heat);
+
+    /* File name */
+    sprintf(file_name_distortion,"%s%s",pop->root,"sd_distortions.dat");
+
+    /* Titles */
+    class_call(distortions_output_sd_titles(psd,titles_distortion),
+               psd->error_message,
+               pop->error_message);
+    number_of_titles_distortion = get_number_of_titles(titles_distortion);
+
+    /* Data array */
+    size_data_distortion = number_of_titles_distortion*psd->x_size;
+    class_alloc(data_distortion,
+                sizeof(double)*size_data_distortion,
+                pop->error_message);
+    class_call(distortions_output_sd_data(psd,
+                                          number_of_titles_distortion,
+                                          data_distortion),
+               psd->error_message,
+               pop->error_message);
+
+    /* File IO */
+    class_open(out_distortion,
+               file_name_distortion,
+               "w",
+               pop->error_message);
+
+    if(pop->write_header == _TRUE_){
+      fprintf(out_distortion,"# SD_tot is the amplitude of the overall spectral distortion (SD)\n");
+      fprintf(out_distortion,"# The SD[i] are the amplitudes of the individual SDs\n");
+      fprintf(out_distortion,"# The SDs are given in units [10^-26 W m^-2 Hz^-1 sr^-1] \n");
+      fprintf(out_distortion,"#\n");
+    }
+
+    output_print_data(out_distortion,
+                      titles_distortion,
+                      data_distortion,
+                      size_data_distortion);
+    free(data_distortion);
+    fclose(out_distortion);
+  }
+
+  return _SUCCESS_;
+}
+
 
 int output_print_data(FILE *out,
                       char titles[_MAXTITLESTRINGLENGTH_],
@@ -1336,6 +1498,7 @@ int output_print_data(FILE *out,
   }
   return _SUCCESS_;
 }
+
 
 /**
  * This routine opens one file where some \f$ C_l\f$'s will be written, and writes

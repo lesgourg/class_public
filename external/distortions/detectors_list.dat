@@ -1,0 +1,13 @@
+# The list includes all known detector with corresponding 
+#   1) the name,
+# and
+#   2) the minimum frequency in GHz,
+#   3) the maximum frequencies in GHz,
+#   4) the bin widthin in GHz,
+#   5) the number of bins and
+#   6) the noise of the detector in W/(m^2 Hz sr)
+# or
+#   2) path to frequency-noise file
+#
+PIXIE  3.000000e+01  1.005000e+03  1.500000e+01  65  5.000000e-26
+FIRAS  FIRAS_nu_delta_I.dat

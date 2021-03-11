@@ -22,6 +22,7 @@
 #include "spectra.h"
 #include "nonlinear.h"
 #include "lensing.h"
+#include "distortions.h"
 #include "output.h"
 
 /**
@@ -38,6 +39,7 @@
  * @param psp     Input: pointer to spectra structure
  * @param pnl     Input: pointer to nonlinear structure
  * @param ple     Input: pointer to lensing structure
+ * @param psd     Input: pointer to distorsion structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input/Output: Error message
  * @return the error status
@@ -54,6 +56,7 @@ int input_init(int argc,
                struct spectra *psp,
                struct nonlinear * pnl,
                struct lensing *ple,
+               struct distortions *psd,
                struct output *pop,
                ErrorMsg errmsg){
 
@@ -72,7 +75,7 @@ int input_init(int argc,
 
   /** Initialize all parameters given the input 'file_content' structure.
       If its size is null, all parameters take their default values. */
-  class_call(input_read_from_file(&fc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+  class_call(input_read_from_file(&fc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
                                   errmsg),
              errmsg,
              errmsg);
@@ -370,6 +373,7 @@ int input_set_root(char* input_file,
  * @param psp     Input: pointer to spectra structure
  * @param pnl     Input: pointer to nonlinear structure
  * @param ple     Input: pointer to lensing structure
+ * @param psd     Input: pointer to distorsion structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input/Output: Error message
  * @return the error status
@@ -385,6 +389,7 @@ int input_read_from_file(struct file_content * pfc,
                          struct spectra *psp,
                          struct nonlinear * pnl,
                          struct lensing *ple,
+                         struct distortions *psd,
                          struct output *pop,
                          ErrorMsg errmsg) {
 
@@ -401,7 +406,7 @@ int input_read_from_file(struct file_content * pfc,
       Before getting into the assignment of parameters and the shooting, we want
       to already fix our precision parameters. No precision parameter should
       depend on any input parameter  */
-  class_call(input_read_precisions(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+  class_call(input_read_precisions(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
                                    errmsg),
              errmsg,
              errmsg);
@@ -411,7 +416,7 @@ int input_read_from_file(struct file_content * pfc,
 
   /** Find out if shooting necessary and, eventually, shoot and initialize
       read parameters */
-  class_call(input_shooting(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+  class_call(input_shooting(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
                             input_verbose,
                             &has_shooting,
                             errmsg),
@@ -420,7 +425,7 @@ int input_read_from_file(struct file_content * pfc,
 
   /** If no shooting is necessary, initialize read parameters without it */
   if(has_shooting == _FALSE_){
-    class_call(input_read_parameters(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+    class_call(input_read_parameters(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
                                      errmsg),
                errmsg,
                errmsg);
@@ -481,6 +486,7 @@ int input_read_from_file(struct file_content * pfc,
  * @param psp               Input: pointer to spectra structure
  * @param pnl               Input: pointer to nonlinear structure
  * @param ple               Input: pointer to lensing structure
+ * @param psd               Input: pointer to distorsion structure
  * @param pop               Input: pointer to output structure
  * @param input_verbose     Input: Verbosity of input
  * @param has_shooting      Output: do we need shooting?
@@ -498,6 +504,7 @@ int input_shooting(struct file_content * pfc,
                    struct spectra *psp,
                    struct nonlinear * pnl,
                    struct lensing *ple,
+                   struct distortions *psd,
                    struct output *pop,
                    int input_verbose,
                    int * has_shooting,
@@ -722,7 +729,7 @@ int input_shooting(struct file_content * pfc,
     }
 
     /** Read all parameters from the fc obtained through shooting */
-    class_call(input_read_parameters(&(fzw.fc),ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+    class_call(input_read_parameters(&(fzw.fc),ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
                                      errmsg),
                errmsg,
                errmsg);
@@ -1053,6 +1060,7 @@ int input_get_guess(double *xguess,
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
   int i;
   double Omega_M, a_decay, gamma, Omega0_dcdmdr=1.0;
@@ -1061,11 +1069,11 @@ int input_get_guess(double *xguess,
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
 
-  class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,
+  class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,
                                    errmsg),
              errmsg,
              errmsg);
-  class_call(input_read_parameters(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,
+  class_call(input_read_parameters(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,
                                    errmsg),
              errmsg,
              errmsg);
@@ -1198,6 +1206,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
 
   int i;
@@ -1216,12 +1225,12 @@ int input_try_unknown_parameters(double * unknown_parameter,
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],"%.20e",unknown_parameter[i]);
   }
 
-  class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,
+  class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,
                                    errmsg),
              errmsg,
              errmsg);
 
-  class_call(input_read_parameters(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,
+  class_call(input_read_parameters(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,
                                    errmsg),
              errmsg,
              errmsg);
@@ -1401,6 +1410,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
  * @param pnl     Input: pointer to non-linear structure
  * @param ple     Input: pointer to lensing structure
  * @param pop     Input: pointer to output structure
+ * @param psd     Input: pointer to distorsion structure
  * @param errmsg  Input: Error message
  * @return the error status
  */
@@ -1415,6 +1425,7 @@ int input_read_precisions(struct file_content * pfc,
                           struct spectra *psp,
                           struct nonlinear * pnl,
                           struct lensing *ple,
+                          struct distortions *psd,
                           struct output *pop,
                           ErrorMsg errmsg){
 
@@ -1464,6 +1475,7 @@ int input_read_precisions(struct file_content * pfc,
  * @param psp     Input: pointer to spectra structure
  * @param pnl     Input: pointer to nonlinear structure
  * @param ple     Input: pointer to lensing structure
+ * @param psd     Input: pointer to distorsion structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input: Error message
  * @return the error status
@@ -1479,6 +1491,7 @@ int input_read_parameters(struct file_content * pfc,
                           struct spectra *psp,
                           struct nonlinear * pnl,
                           struct lensing *ple,
+                          struct distortions *psd,
                           struct output *pop,
                           ErrorMsg errmsg){
 
@@ -1488,7 +1501,7 @@ int input_read_parameters(struct file_content * pfc,
   int input_verbose=0;
 
   /** Set all input parameters to default values */
-  class_call(input_default_params(pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop),
+  class_call(input_default_params(pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop),
              errmsg,
              errmsg);
 
@@ -1501,7 +1514,7 @@ int input_read_parameters(struct file_content * pfc,
    * This function is exclusively for those parameters, NOT
    *  related to any physical species
    * */
-  class_call(input_read_parameters_general(pfc,pba,pth,ppt,
+  class_call(input_read_parameters_general(pfc,pba,pth,ppt,psd,
                                            errmsg),
              errmsg,
              errmsg);
@@ -1544,6 +1557,12 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
+  /** Read parameters for distortions quantities */
+  class_call(input_read_parameters_distortions(pfc,ppr,psd,
+                                               errmsg),
+             errmsg,
+             errmsg);
+
   /** Read obsolete parameters */
   class_call(input_read_parameters_additional(pfc,ppr,pba,pth,
                                               errmsg),
@@ -1551,7 +1570,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for output quantities */
-  class_call(input_read_parameters_output(pfc,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+  class_call(input_read_parameters_output(pfc,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
                                           errmsg),
              errmsg,
              errmsg);
@@ -1572,6 +1591,7 @@ int input_read_parameters(struct file_content * pfc,
  * @param pba     Input: pointer to background structure
  * @param pth     Input: pointer to thermodynamics structure
  * @param ppt     Input: pointer to perturbation structure
+ * @param psd     Input: pointer to distorsion structure
  * @param errmsg  Input: Error message
  * @return the error status
  */
@@ -1580,6 +1600,7 @@ int input_read_parameters_general(struct file_content * pfc,
                                   struct background * pba,
                                   struct thermo * pth,
                                   struct perturbs * ppt,
+                                  struct distortions * psd,
                                   ErrorMsg errmsg){
 
   /** Summary: */
@@ -1599,6 +1620,7 @@ int input_read_parameters_general(struct file_content * pfc,
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
   ppt->has_cls = _FALSE_;
+  psd->has_distortions = _FALSE_;
 
   /** 1) List of output spectra requested */
   /* Read */
@@ -1648,6 +1670,7 @@ int input_read_parameters_general(struct file_content * pfc,
     }
     if ((strstr(string1,"Sd") != NULL) || (strstr(string1,"sd") != NULL) || (strstr(string1,"SD") != NULL)) {
       ppt->has_perturbations = _TRUE_;
+      psd->has_distortions=_TRUE_;
       pth->compute_damping_scale=_TRUE_;
     }
 
@@ -4579,6 +4602,211 @@ int input_read_parameters_lensing(struct file_content * pfc,
 
 }
 
+
+/**
+ * Read free parameters of distortions structure.
+ *
+ * @param pfc     Input: pointer to local structure
+ * @param ppr     Input: pointer to precision structure
+ * @param psd     Input: pointer to distortions structure
+ * @param errmsg  Input: Error message
+ * @return the error status
+ */
+
+int input_read_parameters_distortions(struct file_content * pfc,
+                                      struct precision * ppr,
+                                      struct distortions * psd,
+                                      ErrorMsg errmsg){
+
+  /** Summary: */
+
+  /** Define local variables */
+  int flag1, flag2;
+  char string1[_ARGUMENT_LENGTH_MAX_];
+  double param1, param2;
+  double updated_nu_max;
+
+  /** 1) Branching ratio approximation */
+  /* Read */
+  class_call(parser_read_string(pfc,"sd_branching_approx",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+
+  if(flag1 == _TRUE_){
+    if ( (strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL) ) {
+      psd->sd_branching_approx = bra_sharp_sharp;
+      psd->sd_PCA_size = 0;
+    }
+    else if ( (strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL) ) {
+      psd->sd_branching_approx = bra_sharp_soft;
+      psd->sd_PCA_size = 0;
+    }
+    else if ( (strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL) ) {
+      psd->sd_branching_approx = bra_soft_soft;
+      psd->sd_PCA_size = 0;
+    }
+    else if ( (strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL) ) {
+      psd->sd_branching_approx = bra_soft_soft_cons;
+      psd->sd_PCA_size = 0;
+    }
+    else if ( (strstr(string1,"exact") != NULL) ) {
+      psd->sd_branching_approx = bra_exact;
+    }
+    else{
+      class_stop(errmsg,"You specified 'branching_approx' as '%s'. It has to be one of {'sharp_sharp','sharp_soft','soft_soft','soft_soft_cons','exact'}.",string1);
+    }
+  }
+
+  /* Only read these if 'bra_exact' has been set (could also be set from default) */
+  if(psd->sd_branching_approx == bra_exact){
+
+    /** 1.a.1) Number of multipoles in PCA expansion */
+    /* Read */
+    class_read_int("sd_PCA_size",psd->sd_PCA_size);
+    /* Test */
+    if(psd->sd_PCA_size < 0 || psd->sd_PCA_size > 6){
+      psd->sd_PCA_size = 6;
+    }
+
+    /** 1.a.2) Detector name */
+    /* Read */
+    class_call(parser_read_string(pfc,"sd_detector_name",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      strcpy(psd->sd_detector_name,string1);
+      psd->has_user_defined_name = _TRUE_;
+    }
+
+    /** 1.a.3) Detector specifics */
+    /** 1.a.3.1) From file */
+    /* Read */
+    class_call(parser_read_string(pfc,"sd_detector_file",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      strcpy(psd->sd_detector_file_name,string1);
+      psd->has_detector_file = _TRUE_;
+    }
+
+    /** 1.a.3.2) User defined */
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_nu_min",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_nu_min = param1;
+      psd->has_user_defined_detector = _TRUE_;
+    }
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_nu_max = param1;
+      psd->has_user_defined_detector = _TRUE_;
+    }
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+     class_call(parser_read_double(pfc,"sd_detector_bin_number",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+               errmsg,
+               "You can only enter one of 'sd_detector_nu_delta' or 'sd_detector_bin_number'.",
+               psd->sd_detector_nu_delta,psd->sd_detector_bin_number);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_nu_delta = param1;
+      psd->sd_detector_bin_number = ((int)ceil((psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param1));
+      psd->has_user_defined_detector = _TRUE_;
+    }
+    if(flag2 == _TRUE_){
+      psd->sd_detector_nu_delta = (psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param2;
+      psd->sd_detector_bin_number = param2;
+      psd->has_user_defined_detector = _TRUE_;
+   }
+    /* Update value of nu_max, given the number of bins */
+    updated_nu_max = psd->sd_detector_nu_min+psd->sd_detector_nu_delta*psd->sd_detector_bin_number;
+    if(fabs(updated_nu_max-psd->sd_detector_nu_max) > ppr->tol_sd_detector){
+      printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accommodate the binning of your detector.\n",updated_nu_max);
+      psd->sd_detector_nu_max = updated_nu_max;
+    }
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_delta_Ic = 1.0e-26*param1;
+      psd->has_user_defined_detector = _TRUE_;
+    }
+  }
+
+  /* Final tests */
+  class_test(psd->sd_branching_approx != bra_exact && psd->sd_PCA_size > 0,
+             errmsg,
+             "The PCA expansion is possible only for 'branching_approx = exact'");
+  class_test(psd->has_detector_file && psd->has_user_defined_detector,
+             errmsg,
+             "You can only enter the noise file {'%s'} or the specifications {'%s','%s'/'%s','%s'}.",
+             "sd_detector_file","sd_detector_nu_min","sd_detector_nu_max",
+             "sd_detector_nu_delta","sd_detector_bin_number","sd_detector_delta_Ic");
+
+
+  /** 2) Only calculate exotic energy injections and no LCDM processes for spectral distortions ? */
+  class_read_flag("sd_only_exotic",psd->include_only_exotic);
+
+  /** 3) Include g distortions? */
+  class_read_flag("sd_include_g_distortion",psd->include_g_distortion);
+
+
+  /** 4) Set g-distortions to zero? */
+  class_call(parser_read_double(pfc,"sd_add_y",&psd->sd_add_y,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"sd_add_mu",&psd->sd_add_mu,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+
+  /** 5) Include SZ effect from reionization? */
+  class_read_flag("include_SZ_effect",psd->has_SZ_effect);
+
+  if(psd->has_SZ_effect == _TRUE_){
+    /** 5.a) Type of calculation */
+    /* Read */
+    class_call(parser_read_string(pfc,"sd_reio_type",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      if (strcmp(string1,"Nozawa_2005") == 0){
+        psd->sd_reio_type = sd_reio_Nozawa;
+      }
+      else if (strcmp(string1,"Chluba_2012") == 0){
+        psd->sd_reio_type = sd_reio_Chluba;
+      }
+      else{
+        class_stop(errmsg,
+                   "You specified 'sd_reio_type' as '%s'. It has to be one of {'Nozawa_2005','Chluba_2012'}.",string1);
+      }
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+
 /**
  * Read obsolete/additional parameters that are not assigned to a specific structure
  *
@@ -4707,6 +4935,7 @@ int input_read_parameters_additional(struct file_content* pfc,
  * @param psp     Input: pointer to spectra structure
  * @param pnl     Input: pointer to non-linear structure
  * @param ple     Input: pointer to lensing structure
+ * @param psd     Input: pointer to distorsion structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input: Error message
  * @return the error status
@@ -4721,6 +4950,7 @@ int input_read_parameters_output(struct file_content * pfc,
                                  struct spectra *psp,
                                  struct nonlinear * pnl,
                                  struct lensing *ple,
+                                 struct distortions *psd,
                                  struct output *pop,
                                  ErrorMsg errmsg){
 
@@ -4809,6 +5039,14 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("write_exotic_injection","write exotic injection",pop->write_exotic_injection);
 
+  /** 1.i) Non-injected photon injection */
+  /* Read */
+  class_read_flag_or_deprecated("write_noninjection","write noninjection",pop->write_noninjection);
+
+  /** 1.k) Spectral Distortions */
+  /* Read */
+  class_read_flag_or_deprecated("write_distortions","write distortions",pop->write_distortions);
+
   /** 1.l) Input/precision parameters */
   /* Read */
   flag1 = _FALSE_;
@@ -4826,6 +5064,7 @@ int input_read_parameters_output(struct file_content * pfc,
   class_read_int("spectra_verbose",psp->spectra_verbose);
   class_read_int("nonlinear_verbose",pnl->nonlinear_verbose);
   class_read_int("lensing_verbose",ple->lensing_verbose);
+  class_read_int("distortions_verbose",psd->distortions_verbose);
   class_read_int("output_verbose",pop->output_verbose);
 
 
@@ -4880,6 +5119,7 @@ int input_read_parameters_output(struct file_content * pfc,
  * @param psp Input: pointer to spectra structure
  * @param pnl Input: pointer to nonlinear structure
  * @param ple Input: pointer to lensing structure
+ * @param psd     Input: pointer to distorsion structure
  * @param pop Input: pointer to output structure
  * @return the error status
  * @return the error status
@@ -4893,6 +5133,7 @@ int input_default_params(struct background *pba,
                          struct spectra *psp,
                          struct nonlinear * pnl,
                          struct lensing *ple,
+                         struct distortions *psd,
                          struct output *pop) {
 
   /** Summary: */
@@ -5336,6 +5577,45 @@ int input_default_params(struct background *pba,
   ptr->lcmb_pivot=0.1;
 
   /**
+   * Default to input_read_parameters_distortions
+   */
+
+  /** 1) Branching ratio approximation */
+  psd->sd_branching_approx = bra_exact;
+  /** 1.a.1) Number of multipoles in PCA expansion */
+  psd->sd_PCA_size=2;
+  /** 1.a.2) Detector noise file name */
+  psd->has_detector_file = _FALSE_;
+  /** 1.a.3) Detector name */
+  psd->has_user_defined_name = _FALSE_;
+  psd->has_user_defined_detector = _FALSE_;
+  sprintf(psd->sd_detector_name,"PIXIE");
+  /** 1.3.a.1) Detector nu min */
+  psd->sd_detector_nu_min = 30.;
+  /** 1.3.a.2) Detector nu max */
+  psd->sd_detector_nu_max = 1005.;
+  /** 1.3.a.3) Detector nu delta/bin number */
+  psd->sd_detector_nu_delta = 15.;
+  psd->sd_detector_bin_number = 65;
+  /** 1.3.a.1) Detector noise */
+  psd->sd_detector_delta_Ic = 5.e-26;
+
+  /** 2) Only exotic species? */
+  psd->include_only_exotic = _FALSE_;
+
+  /** 3) Include g distortion in total calculation? */
+  psd->include_g_distortion = _FALSE_;
+
+  /** 4) Additional y or mu parameters? */
+  psd->sd_add_y = 0.;
+  psd->sd_add_mu = 0.;
+
+  /** 5) Include SZ effect from reionization? */
+  psd->has_SZ_effect = _FALSE_;
+  /** 5.a) What type of approximation you want to use for the SZ effect? */
+  psd->sd_reio_type = sd_reio_Chluba;
+
+  /**
    * Default to input_read_additional
    */
 
@@ -5364,6 +5644,10 @@ int input_default_params(struct background *pba,
   pop->write_primordial = _FALSE_;
   /** 1.h) Exotic energy injection function */
   pop->write_exotic_injection = _FALSE_;
+  pop->write_noninjection = _FALSE_;
+  /** 1.i) Spectral distortions */
+  pop->write_distortions = _FALSE_;
+
 
   /** 2) Verbosity */
   pba->background_verbose = 0;
@@ -5375,6 +5659,7 @@ int input_default_params(struct background *pba,
   psp->spectra_verbose = 0;
   pnl->nonlinear_verbose = 0;
   ple->lensing_verbose = 0;
+  psd->distortions_verbose = 0;
   pop->output_verbose = 0;
 
   return _SUCCESS_;
