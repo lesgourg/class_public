@@ -1,4 +1,3 @@
-
 //KLASS
 #include"ClassEngine.hh"
 
@@ -41,31 +40,31 @@ int main(int argc,char** argv){
   pars.add("nonlinear_verbose",1);
   pars.add("lensing_verbose",1);
 
-  ClassEngine* KKK(0);
+  ClassEngine* tKlass(0);
 
   try{
     //le calculateur de spectres
     if (argc==2){
       string pre=string(argv[1]);
-      KKK=new ClassEngine(pars,pre);
+      tKlass=new ClassEngine(pars,pre);
     }
     else{
-      KKK=new ClassEngine(pars);
+      tKlass=new ClassEngine(pars);
     }
 
     //cout.precision( 16 );
-    //KKK->writeCls(cout);
+    //tKlass->writeCls(cout);
 
     ofstream outfile;
     const char* outfile_name = "testKlass_Cl_lensed.dat";
     outfile.open(outfile_name, ios::out | ios::trunc );
-    KKK->writeCls(outfile);
+    tKlass->writeCls(outfile);
     cout << "Cl's written in file " << outfile_name << endl;
   }
   catch (std::exception &e){
     cout << "GOSH" << e.what() << endl;
   }
 
-  delete KKK;
+  delete tKlass;
 
 }

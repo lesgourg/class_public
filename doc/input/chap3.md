@@ -10,9 +10,9 @@ Author: Julien Lesgourgues
 
 After downloading `CLASS`, one can see the following files in the root directory contains:
 
-- some example of input files, the most important being `explanatory.ini`. a reference input file containing all possible flags, options and physical input parameters. While this documentation explains the structure and use of the code, `explanatory.ini` can be seen as the _physical_ documentation of `CLASS`. The other input file are alternative parameter input files (ending with `.ini`) and precision input files (ending with `.pre`)
+- some example of input files, the most important being `explanatory.ini`. a reference input file containing all possible flags, options and physical input parameters. While this documentation explains the structure and use of the code, `explanatory.ini` can be seen as the _physical_ documentation of `CLASS`. We also provide a few other input files ending with `.ini` (a concise input file `default.ini` with the most used parameters, and two files corresponding to the best-fit baseline models of respectively Planck 2015 and 2018), and a few precision input files (ending with `.pre`)
 
-- the `Makefile`,  with which you can compile the code by typing `make clean; make;` this will create the executable `class` and some binary files in the directory `build/`. The `Makefile` contains other compilation options that you can view inside the file.
+- the `Makefile`,  with which you can compile the code by typing `make clean; make -j;` this will create the executable `class` and some binary files in the directory `build/`. The `Makefile` contains other compilation options that you can view inside the file.
 
 - `CPU.py` is a python script designed for plotting the `CLASS` output; for documentation type `python CPU.py --help`
 
@@ -22,7 +22,7 @@ After downloading `CLASS`, one can see the following files in the root directory
 
 Other files are split between the following directories:
 
-- `source/` contains the C files for each `CLASS` module, i.e. each
+- `source/` contains the C files for each main `CLASS` module, i.e. each
 block containing some part of the physical equations and logic of
 the Boltzmann code.
 
@@ -47,12 +47,21 @@ it can be interfaced with other codes, etc.
 
 - `doc/` contains the automatic documentation (manual and input files required to build it)
 
-- `external_Pk/` contains examples of external codes that can be used to generate the primordial spectrum and be interfaced with `CLASS`, when one of the many options already built inside the code are not sufficient.
+- `external/` contains auxiliary or external algorithms used by `CLASS`, in particular:
 
-- `bbn/` contains interpolation tables produced by BBN codes, in order to predict e.g. \f$ Y_\mathrm{He}(\omega_b, \Delta N_\mathrm{eff})\f$.
+- `external/hyrec/` contains the recombination code HyRec (Lee and Ali-Haimoud 2020) that solves the recombinaiton equations by default.
 
-- `hyrec/` contains the recombination code HyRec of Yacine Ali-Haimoud and Chris Hirata, that can be used as an alternative to the built-in Recfast (using the input parameter `recombination = <...>`).
+- `external/RecfastCLASS/` contains an modified version of the recombinaiton code RECFAST v1.5. It can be used as an alternative to solve the recombinaiton equations (with `recombination=recfast').
 
+- `external/heating/` contains additional peices of code and interpolation tables for the calculation of energy injection (relevant for CMB anisotropies and spectral distorsions).
+
+- `external/distortions/` contains interpolation tables relevant for the calculation of CMB spectral distortions with J.Chluba's Green function method.
+
+- `external/bbn/` contains interpolation tables produced by BBN codes, in order to predict e.g. \f$ Y_\mathrm{He}(\omega_b, \Delta N_\mathrm{eff})\f$.
+
+- `external/external_Pk/` contains examples of external codes that can be used to generate the primordial spectrum and be interfaced with `CLASS`, when one of the many options already built inside the code are not sufficient.
+
+- `external/RealSpaceInterface` contains a software that uses `CLASS` to plot the eockution of linear perturabtions in reals space, with a graphical interface (credits M. Beutelspacher and G. Samaras).
 
 ## The ten-module backbone ##
 
@@ -70,16 +79,17 @@ The purpose of `class` consists in computing some background quantities, thermod
 
 5. compute the primordial spectra.
 
-6. eventually, compute non-linear corrections at small redshift/large wavenumber.
+6. compute the linear and non-linear 2-point statistics in Fourier space (i.e. the power spectra \f$P(k)\f$).
 
-7. compute transfer functions in harmonic space \f$\Delta_l(k)\f$ (unless one needs only Fourier spectra \f$P(k)\f$'s and no harmonic spectra \f$C_l\f$'s).
+7. compute the transfer functions in harmonic space \f$\Delta_l(k)\f$.
 
-8. compute the observable power spectra \f$C_l\f$'s (by convolving the primordial spectra and the harmonic transfer functions) and/or \f$P(k)\f$'s (by multiplying the primordial spectra and the appropriate source functions \f$S(k,\tau)\f$).
+8. compute the linear and non-linear 2-point statistics in harmonic space (harmonic power spectra \f$C_l\f$'s).
 
-9. eventually, compute the lensed CMB spectra (using second-order perturbation theory)
+9. compute the lensed CMB spectra (using second-order perturbation theory).
 
-10. write results in  files (when `CLASS` is used interactively. The python wrapper does not go through this step, after 1.-9. it just keeps the output stored internally).
+10. compute the CMB spectral distortions.
 
+(11. The results can optionally be written in files when `CLASS` is used interactively. The python wrapper does not go through this step.)
 
 ### Ten structures ###
 
@@ -90,11 +100,13 @@ In `class`, each of these steps is associated with a structure:
 3. `struct thermo`      for thermodynamics,
 4. `struct perturbs`    for source functions,
 5. `struct primordial`  for primordial spectra,
-6. `struct nonlinear`   for nonlinear corrections,
+6. `struct nonlinear`   for Fourier spectra,
 7. `struct transfers`   for transfer functions,
-8. `struct spectra`     for observable spectra,
+8. `struct spectra`     for harmonic spectra,
 9. `struct lensing`     for lensed CMB spectra,
-10. `struct output`     for auxiliary variable describing the output format.
+10. `struct distortions` for CMB spectral distortions,
+
+(11. `struct output`     for auxiliary variable describing the output format.)
 
 A given structure contains "everything concerning one step that the
 subsequent steps need to know" (for instance, `struct perturbs` contains everything about source
@@ -127,8 +139,9 @@ Each structure is defined and filled in one of the following modules
 7. `transfer.c`
 8. `spectra.c`
 9. `lensing.c`
-10. `output.c`
+10. `distortions.c`
 
+(11. `output.c`)
 
 Each of these modules contains at least three functions:
 
@@ -138,7 +151,7 @@ Each of these modules contains at least three functions:
 
 - `module_something_at_somevalue`
 
-where _module_ is one of `input, background, thermodynamics, perturb, primordial, nonlinear, transfer, spectra, lensing, output`.
+where _module_ is one of `input, background, thermodynamics, perturb, primordial, nonlinear, transfer, spectra, lensing, distortions, output`.
 
 
 The first function allocates and fills each structure. This can be
@@ -197,10 +210,12 @@ following lines
 
      struct lensing le;
 
+     struct distortions sd;
+
      struct output op;
 
 
-     input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg);
+     input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg);
 
      background_init(&pr,&ba);
 
@@ -218,11 +233,15 @@ following lines
 
      lensing_init(&pr,&pt,&sp,&nl,&le);
 
+     distortions_init(&pr,&ba,&th,&pt,&pm,&sd);
+
      output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&op)
 
 
      /****** done ******/
 
+
+     distortions_free(&sd);
 
      lensing_free(&le);
 
