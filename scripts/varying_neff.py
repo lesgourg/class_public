@@ -1,11 +1,12 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
 
+
 # import necessary modules
-# uncomment to get plots displayed in notebool
-#%matplotlib inline
+# uncomment to get plots displayed in notebook
+#get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,12 +17,13 @@ import math
 
 # In[ ]:
 
+
 ############################################
 #
 # Varying parameter (others fixed to default)
 #
 var_name = 'N_ur'
-var_array = np.linspace(3.046,5.046,5)
+var_array = np.linspace(3.044,5.044,5)
 var_num = len(var_array)
 var_legend = r'$N_\mathrm{eff}$'
 var_figname = 'neff'
@@ -33,26 +35,32 @@ var_figname = 'neff'
 # - h by a factor sqrt*(alpha)
 # in order to keep a fixed z_equality(R/M) and z_equality(M/Lambda)
 #
+omega_b = 0.0223828
+omega_cdm_standard = 0.1201075
+h_standard = 0.67810
+#
 # coefficient such that omega_r = omega_gamma (1 + coeff*Neff),
 # i.e. such that omega_ur = omega_gamma * coeff * Neff:
 # coeff = omega_ur/omega_gamma/Neff_standard
-coeff = 1.710730e-05/2.472979e-05/3.046
-print "coeff=",coeff
+# We could extract omega_ur and omega_gamma on-the-fly within th script,
+# but for simplicity we did a preliminary interactive run with background_verbose=2
+# and we copied the values given in the budget output.
+#
+coeff = 1.70961e-05/2.47298e-05/3.044
+print ("coeff=",coeff)
 #
 #############################################
 #
 # Fixed settings
 #
-common_settings = {'output':'tCl,pCl,lCl,mPk',
+common_settings = {# fixed LambdaCDM parameters
+                   'omega_b':omega_b,
+                   'A_s':2.100549e-09,
+                   'n_s':0.9660499,
+                   'tau_reio':0.05430842,
+                   # output and precision parameters
+                   'output':'tCl,pCl,lCl,mPk',
                    'lensing':'yes',
-                   # fixed LambdaCDM parameters
-                   'omega_b':0.022032,
-                   'A_s':2.215e-9,
-                   'n_s':0.9619,
-                   'tau_reio':0.0925,
-                   # Take fixed value for primordial Helium (instead of automatic BBN adjustment)
-                   'YHe':0.246,
-                   # other output and precision parameters
                    'P_k_max_1/Mpc':3.0,
                    'l_switch_limber':9}
 #
@@ -66,10 +74,10 @@ for i, N_ur in enumerate(var_array):
     #
     # rescale omega_cdm and h
     #
-    alpha = (1.+coeff*N_ur)/(1.+coeff*3.046)
-    omega_cdm = (0.022032 + 0.12038)*alpha - 0.022032
-    h = 0.67556*math.sqrt(alpha)
-    print ' * Compute with %s=%e, %s=%e, %s=%e'%('N_ur',N_ur,'omega_cdm',omega_cdm,'h',h)
+    alpha = (1.+coeff*N_ur)/(1.+coeff*3.044)
+    omega_cdm = (omega_b + omega_cdm_standard)*alpha - omega_b
+    h = h_standard*math.sqrt(alpha)
+    print (' * Compute with %s=%e, %s=%e, %s=%e'%('N_ur',N_ur,'omega_cdm',omega_cdm,'h',h))
     #
     # call CLASS
     #
@@ -83,6 +91,7 @@ for i, N_ur in enumerate(var_array):
 
 # In[ ]:
 
+
 # esthetic definitions for the plots
 font = {'size'   : 24, 'family':'STIXGeneral'}
 axislabelfontsize='large'
@@ -92,6 +101,7 @@ plt.rcParams["figure.figsize"] = [8.0,6.0]
 
 
 # In[ ]:
+
 
 #############################################
 #
@@ -116,8 +126,8 @@ legarray = []
 
 for i, N_ur in enumerate(var_array):
     #
-    alpha = (1.+0.2271*N_ur)/(1.+0.2271*3.046)
-    h = 0.67556*math.sqrt(alpha) # this is h
+    alpha = (1.+coeff*N_ur)/(1.+coeff*3.044)
+    h = 0.67810*math.sqrt(alpha) # this is h
     #
     # deal with colors and legends
     #
@@ -151,7 +161,7 @@ for i, N_ur in enumerate(var_array):
         ax_Pk.semilogx(kvec,np.array(pkM[i])/np.array(pkM[0]),
                        color=var_color,#alpha=var_alpha,
                        linestyle='-',
-                      label=r'$\Delta N_\mathrm{eff}=%g$'%(N_ur-3.046))
+                      label=r'$\Delta N_\mathrm{eff}=%g$'%(N_ur-3.044))
     #
     # plot C_l^TT
     #
@@ -161,8 +171,7 @@ for i, N_ur in enumerate(var_array):
     else:
         ax_TT.semilogx(ll[i],clTT[i]/clTT[0],
                        color=var_color,alpha=var_alpha,linestyle='-',
-                      label=r'$\Delta N_\mathrm{eff}=%g$'%(N_ur-3.046))
-
+                      label=r'$\Delta N_\mathrm{eff}=%g$'%(N_ur-3.044))
 #
 # output of P(k) figure
 #
@@ -183,21 +192,3 @@ ax_TT.set_ylabel(r'$C_\ell^\mathrm{TT}/C_\ell^\mathrm{TT}(N_\mathrm{eff}=3.046)$
 ax_TT.legend(loc='lower left')
 fig_TT.tight_layout()
 fig_TT.savefig('ratio-%s-cltt.pdf' % var_figname)
-#
-# output of C_l^EE figure
-#
-#ax_EE.set_xlim([2,2500])
-#ax_EE.set_xlabel(r'$\ell$')
-#ax_EE.set_ylabel(r'$[\ell(\ell+1)/2\pi]  C_\ell^\mathrm{EE}$')
-#ax_EE.legend(legarray,loc='lower right')
-#fig_EE.tight_layout()
-#fig_EE.savefig('spectra_%s_clee.pdf' % var_figname)
-#
-# output of C_l^pp figure
-#
-#ax_PP.set_xlim([10,2500])
-#ax_PP.set_xlabel(r'$\ell$')
-#ax_PP.set_ylabel(r'$[\ell^2(\ell+1)^2/2\pi]  C_\ell^\mathrm{\phi \phi}$')
-#ax_PP.legend(legarray)
-#fig_PP.tight_layout()
-#fig_PP.savefig('spectra_%s_clpp.pdf' % var_figname)

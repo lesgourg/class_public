@@ -1,11 +1,12 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
 
+
 # import necessary modules
 # uncomment to get plots displayed in notebook
-#%matplotlib inline
+#get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +18,7 @@ import math
 
 # In[ ]:
 
+
 # esthetic definitions for the plots
 font = {'size'   : 16, 'family':'STIXGeneral'}
 axislabelfontsize='large'
@@ -26,6 +28,7 @@ plt.rcParams["figure.figsize"] = [8.0,6.0]
 
 
 # In[ ]:
+
 
 #############################################
 #
@@ -41,14 +44,14 @@ common_settings = {# we need to set the output field to something although
                    # value of k we want to polot in [1/Mpc]
                    'k_output_values':k,
                    # LambdaCDM parameters
-                   'h':0.67556,
-                   'omega_b':0.022032,
-                   'omega_cdm':0.12038,
-                   'A_s':2.215e-9,
-                   'n_s':0.9619,
-                   'tau_reio':0.0925,
+                   'h':0.67810,
+                   'omega_b':0.02238280,
+                   'omega_cdm':0.1201075,
+                   'A_s':2.100549e-09 ,
+                   'n_s':0.9660499,
+                   'tau_reio':0.05430842,
                    # Take fixed value for primordial Helium (instead of automatic BBN adjustment)
-                   'YHe':0.246,
+                   'YHe':0.2454,
                    # other options and settings
                    'compute damping scale':'yes', # needed to output the time of damping scale crossing
                    'gauge':'newtonian'}
@@ -63,7 +66,7 @@ M.compute()
 # load perturbations
 #
 all_k = M.get_perturbations()  # this potentially constains scalars/tensors and all k values
-print all_k['scalar'][0].viewkeys()
+print (all_k['scalar'][0].keys())
 #
 one_k = all_k['scalar'][0]     # this contains only the scalar perturbations for the requested k values
 #
