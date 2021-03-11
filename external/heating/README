@@ -1,0 +1,92 @@
+The main goal of this module is to calculate the deposited energy in form of heating, ionization
+and Lyman alpha processes. When using this module please consider citing Lucca et al. 2019, where
+a complete description of the modules is presented (see Section 2.4 therein), as well as the many
+references listed below.
+
+There are two different kinds of heating that are interesting here: the heating of the baryons and
+the heating of the photons.
+ - For photons, we do not actually calculate any changes in their temperature or density etc.
+   Instead, we simply model any energy that modifies the photon spectrum as a small
+   distortion to the blackbody spectrum. This either manifests in tiny temperature shifts
+   (g-distortion, or dT distortion), or as a change in the spectral shape
+   (mainly y and mu distortions, depending on the effectivity of energy-redistribution mechanisms).
+ - For baryons, this treatment is not enough. While compared to the huge photon energy budget
+   all injection mechanisms must be small, for baryons this is not true. The baryon temperature
+   might strongly react to injected energy. Sometimes the energy will be used to heat the baryons,
+   but it can also ionize them, or excite the lyman-alpha level of hydrogen.
+   The minimal energy to have an effect on baryons is around 10.2 eV, which is derived from the
+   1s->2p transition in HI, which is the smallest transition a 1s electron in neutral hydrogen can make.
+   We thus group together photons with enough energy to completely ionize HeI, to completely ionize HI,
+   photons with enough energy to excite the lyman-alpha line, photons with too little energy to excite
+   anything, and finally the effective heating of the baryons due to the injected energy. The
+   deposition names are correspondingly 'ion_He', 'ion_H', 'lya', 'lowE', and 'heat'.
+   Of course, many injections could lead to not only heating the baryons (or exciting and ionizing them),
+   but also create spectral distortions of the baryon blackbody. However, due to the very strong galactic
+   influences, we do not expect the spectrum to be anywhere close to blackbody anyway. We thus do not
+   model the spectral distortions of baryons.
+
+We thus decided to split the tables into
+ - one which is the baryonic table, the 'deposition_table', that lists all of the contributions of energy
+   deposition in the IGM to the state of the baryons, and is split among the different types of effects
+   the energy deposition can have (dep_type), and
+ - one, the 'photon_dep_table', which lists the energy deposition into the photon fluid. Of course, the
+   only thing the energy deposition does there is create spectral distortions (including g / dT distortions).
+   Thus, we do not to split it into different effect types as we do for the baryons.
+
+To calculate the deposited energy, we first calculate the injected energy rate for different physical
+effects, e.g.
+ 1) Annihilating particles (e.g. dark matter) as described in Chluba 2010 and Chluba & Sunyaev 2012.
+    (see also Chluba 2013 for useful discussion)
+ 2) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012 (see also
+    Chluba 2013 for useful discussion)
+ 3) Evaporation of primordial black holes as described in Poulin et al. 2017 (see also
+    Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions)
+ 4) Acctretion of matter into primordial black holes both via
+     a) Spherical accretion as described in Ali-Haimoud & Kamionkowski 2017 and
+     b) Disk accretion as described in Poulin et al. 2017
+    (see also Carr et al. 2010 for useful discussion)
+
+Once the rate of energy injection is known, a so-called deposition function is evaluated, which
+determines the amount of energy effectively deposited into the different effects, i.e. heating,
+ionization of H, He, Lyman alpha, and low energy for baryons. Also in this case, there are several options
+ 1) by setting 'chi_type' to 'CK_2004', the approximation by Chen & Kamionkowski 2004 is employed,
+ 2) by setting 'chi_type' to 'Galli_2013', the approximation by Galli et al. 2013 is employed,
+ 3) by setting 'chi_type' to 'Slatyer_2013', the approximation by Slatyer 2013 is employed,
+ 4) by setting 'chi_type' to 'heat', the whole injected energy is going to be deposited into heat,
+ 5) by setting 'chi_type' to 'from_x_file' or 'from_z_file', the user can define own deposition
+    functions with respect to the free electron fraction x_e or to redshift, respectively.
+
+Furthermore, it is also possible to define a so-called injection efficiency, i.e. a factor
+determining how much of the heating is deposited at all, regardless of the form. There are two
+options to define this function
+ 1) the on-the-spot approximation, where the whole injected energy is transformed into deposited energy,
+    i.e. f_eff=1, and
+ 2) reading a precomputed function from an external file.
+All of these steps are evaluated in the module 'injection.c'.
+
+However, in the above discussion, we have seen that baryons and photons both do receive heating,
+but react differently to it. In addition, there are some sources of spectral distortions that do not
+come from injected (and deposited) energy, usually related to the interactions of baryons and
+photons. This includes
+ 1) Adiabatically cooling electrons and barions during the thermal history as photons and baryons are
+    coupled due to Compton scattering (see Chluba & Sunyaev 2012, Khatri, Sunyaev & Chluba 2012 for
+    useful discussions)
+ 2) Dissipation of acoustic waves, a second order contribution evaluated only after the perturbations
+    have been found, with two possible approximations
+     a) Eq. 42 from Chluba, Khatri & Sunyaev 2012 (approximated to Y_SZ*S_ac) (TODO)
+     b) Eq. 45 from Chluba, Khatri & Sunyaev 2012
+    (The user can select the preferred option with 'heating approx'=yes/no)
+    (see Chluba, Khatri & Sunyaev 2012  Chluba 2013 and Diacoumis & Wong 2017 for useful discussions)
+ 3) Cosmological recombination radiation as described in Chluba & Ali-Haimoud 2016 (TODO)
+ 4) Kinetic and thermal SZ effect due to reionization and LSS formation (see Nozawa et al. 2006 and
+    Hill et al. 2015 for useful discussions)
+ 5) Superposition of blackbodies, e.g. in the case of CMB multipoles
+All of these additional term, which are not injected and deposited into the IGM in the usual sense,
+are grouped within the module 'noninjection.c'.
+
+This fills a table of deposited energy in baryons split by the different effects. Additionally, a
+table of deposited energy in photons is created, mostly similar to the baryon column 'heat', except
+for the additional effects of non-injected terms.
+
+In conclusion, note that this module is in based on the public version of ExoCLASS (see
+Stoecker et al. 2018) which has been mainly developed by Vivian Poulin and Patrick Stöcker.

@@ -103,50 +103,69 @@ class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
  *  Thermodynamical quantities
  */
 
-
 /**
- * The initial z for the recfast calculation of the recombination history, e.g. 10^4
+ * The initial z for the recfast calculation of the recombination history
  */
-class_precision_parameter(recfast_z_initial,double,1.0e4)
+class_precision_parameter(thermo_z_initial,double,5.e6)
+class_precision_parameter(thermo_z_initial_if_idm_dr,double,1.e9)
 /**
- * Number of recfast integration steps, e.g. if this is 1.10^4 and the previous one is 10^4, the step will be Delta z = 0.5
+ * The switch z for the recfast calculation towards linear sampling
  */
-class_precision_parameter(recfast_Nz0,int,20000)
+class_precision_parameter(thermo_z_linear,double,1.e4)
 /**
- * If there is interacting DM, we want the thermodynamics table to
- * start at a much larger z, in order to capture the possible
- * non-trivial behavior of the dark matter interaction rate at early
- * times:
- *
- * - The new initial redshift will be thermo_z_initial_idm_dr
- *
- * - the highest redhsift will be sampled with thermo_Nz1_idm_dr values, and the step will be
- * Delta z = (thermo_z_initial_idm_dr-recfast_z_initial)/thermo_Nz1_idm_dr
- * For instance, if the previous value is 10^9 and this value is 10^4, then Delta z simeq 10^5
- *
- * - But the first interval after recfast_z_initial will be better
- * sampled with thermo_Nz2_idm_dr values, in order to ensure a smoother
- * transition from a small step to a large step. The intermediate
- * stepsize will then be
- * Delta z = (thermo_z_initial_idm_dr-recfast_z_initial)/thermo_Nz1_idm_dr/thermo_Nz1_idm_dr.
- * For instance, if the three values are (10^9, 10^4, 10^2), then the intermediate timestep is Delta z simeq 10^3
-*/
-class_precision_parameter(thermo_z_initial_idm_dr,double,1.0e9)
-class_precision_parameter(thermo_Nz1_idm_dr,int,10000)
-class_precision_parameter(thermo_Nz2_idm_dr,int,100)
+ * Number of recfast integration steps (linear sampling, intermdiate times between z_linear and reionization)
+ */
+class_precision_parameter(thermo_Nz_lin,int,20000)
+/**
+ * Number of recfast integration steps (logarithmnic sampling. early times between z-initial and z_linear)
+ */
+class_precision_parameter(thermo_Nz_log,int,5000)
+class_precision_parameter(thermo_Nz_log_if_idm_dr,int,10000)
+/**
+ * Evolver to be used for thermodynamics (rk, ndf15)
+ */
+class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
 /**
  * Tolerance of the relative value of integral during thermodynamical integration
+ * (used by both evolvers)
  */
-class_precision_parameter(tol_thermo_integration,double,1.0e-2)
-/*
- * Recfast 1.4 switch parameters
+class_precision_parameter(tol_thermo_integration,double,1.0e-6)
+/**
+ * Only relevant for rk evolver: the default integration step is given
+ * by this number multiplied by the timescale defined in
+ * thermodynamics_timescale (given by the sampling step)
  */
-class_precision_parameter(recfast_Heswitch,int,6)       /**< from recfast 1.4, specifies how accurate the Helium recombination should be handled */
-class_precision_parameter(recfast_fudge_He,double,0.86) /**< from recfast 1.4, fugde factor for Peeble's equation coefficient of Helium */
+class_precision_parameter(thermo_integration_stepsize,double,0.1)
+/**
+ * Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards
+ */
+class_precision_parameter(thermo_rate_smoothing_radius,int,50)
+/**
+ * Redshift at which CLASS starts to test for too early re-ionization and/or incomplete recombination.
+ */
+class_precision_parameter(z_end_reco_test,double,500.)
+/**
+ * Number of sampling points in the case of primordial black holes in ln(1+z)
+ */
+class_precision_parameter(primordial_black_hole_Nz,int,75000)
+/**
+ * Number of sampling points in the case of the coarse sampling in noninjection.c in ln(1+z)
+ */
+class_precision_parameter(noninjection_Nz_log,int,1000)
+/**
+ * Number of discrete wavenumbers for dissipation of acoustic waves (found to be giving a reasonable precision)
+ */
+class_precision_parameter(noninjection_Nk_acc_diss,int,500)
+class_precision_parameter(k_min_acc_diss,double,0.12) /**< Minimum wavenumber for dissipation of acoustic waves */
+class_precision_parameter(k_max_acc_diss,double,1.e6) /**< Maximum wavenumber for dissipation of acoustic waves */
+class_precision_parameter(z_wkb_acc_diss,double,1.e6) /**< Redshift of the WKB approximation for diss. of acoustic waves */
 
 /*
- * Recfast 1.5 parameters
+ * Recfast 1.4/1.5 parameters
  */
+
+class_precision_parameter(recfast_Heswitch,int,6)       /**< from recfast 1.4, specifies how accurate the Helium recombination should be handled */
+class_precision_parameter(recfast_fudge_He,double,0.86) /**< from recfast 1.4, fugde factor for Peeble's equation coefficient of Helium */
 class_precision_parameter(recfast_Hswitch,int,_TRUE_)   /**< from recfast 1.5, specifies how accurate the Hydrogen recombination should be handled */
 class_precision_parameter(recfast_fudge_H,double,1.14)  /**< from recfast 1.4, fudge factor for Peeble's equation coeffient of Hydrogen */
 class_precision_parameter(recfast_delta_fudge_H,double,-0.015) /**< from recfast 1.5.2, increasing Hydrogen fudge factor if Hswitch is enabled */
@@ -159,10 +178,19 @@ class_precision_parameter(recfast_wGauss2,double,0.33)  /**< from recfast 1.5, G
 
 class_precision_parameter(recfast_z_He_1,double,8000.0) /**< from recfast 1.4, Starting value of Helium recombination 1 */
 class_precision_parameter(recfast_delta_z_He_1,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_2,double,5000.0) /**< from recfast 1.4, Ending value of Helium recombination 1 */
+class_precision_parameter(recfast_z_He_2,double,4500.0) /**< from recfast 1.4, Ending value of Helium recombination 1, changed on 28.10.20 from 5000 to 4500 */
 class_precision_parameter(recfast_delta_z_He_2,double,100.0)/**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 class_precision_parameter(recfast_z_He_3,double,3500.0) /**< from recfast 1.4, Starting value of Helium recombination 2 */
 class_precision_parameter(recfast_delta_z_He_3,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+
+class_precision_parameter(recfast_z_early_H_recombination,double,2870.) /**< from class 3.0, redshift at beginning of early H-recombination (analytic approximation possible), replaces condition  */
+class_precision_parameter(recfast_delta_z_early_H_recombination,double,50.) /**< from class 3.0, smoothing radius delta z for beginning of early H-recombination period  */
+
+class_precision_parameter(recfast_z_full_H_recombination,double,1600.)  /**< from class 3.0, redshift at beignning of full H recombination (always use full equations), replaces condition x_H <  recfast_x_H0_trigger */
+class_precision_parameter(recfast_delta_z_full_H_recombination,double,50.)  /**< from class 3.0, smoothing radius delta z for full H-recombination period  */
+
+class_precision_parameter(recfast_delta_z_reio,double,2.)  /**< from class 3.0, smoothing radius delta z for reionization period  */
+
 class_precision_parameter(recfast_x_He0_trigger,double,0.995) /**< Switch for Helium full calculation during reco, raised from 0.99 to 0.995 for smoother Helium */
 class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /**< Switch for Helium full calculation during reco, for changing Helium flag, raised from 0.985 to same as previous one for smoother Helium */
 class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
@@ -170,18 +198,33 @@ class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /**< Switch f
 class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< Switch for Hydrogen full calculation during reco, for changing Hydrogen flag, raised from 0.98 to same as previous one for smoother Hydrogen */
 class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 
-class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation */
+//class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation, not used currently */
+/**
+ * This is an important flag for energy injections! It also modifies wether recfast will switch approximation schemes or not.
+ */
+class_precision_parameter(recfast_z_switch_late,double,800.)
+
+/*
+ * Hyrec Parameters
+ */
+
+class_string_parameter(hyrec_path,"/external/HyRec2020/","hyrec_path") /**< Path to hyrec */
+
+/*
+ * Reionization parameters
+ */
 
 class_precision_parameter(reionization_z_start_max,double,50.0) /**< Maximum starting value in z for reionization */
-class_precision_parameter(reionization_sampling,double,5.0e-2)  /**< Sampling density in z during reionization */
+class_precision_parameter(reionization_sampling,double,1.5e-2)  /**< Minimum sampling density in z during reionization */
 class_precision_parameter(reionization_optical_depth_tol,double,1.0e-4) /**< Relative tolerance on finding the user-given optical depth of reionization given a certain redshift of reionization */
 class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching optical depth corresponding to the redshift is started from an initial offset beyond z_reionization_start, multiplied by reionization_width */
 
-class_precision_parameter(thermo_rate_smoothing_radius,int,50) /**< Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards */
+/*
+ * Heating parameters
+ */
 
-class_string_parameter(hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
+class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli_file") /**< File containing the chi approximation according to Galli et al 2013 */
+class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshift from full heating to chosen approx for deposition function */
 
 /*
  * Perturbation parameters
