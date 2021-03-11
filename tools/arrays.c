@@ -6,7 +6,7 @@
 #include "arrays.h"
 
 /**
- * Called by thermodynamics_init(); perturb_sources().
+ * Called by thermodynamics_init(); perturbations_sources().
  */
 int array_derive(
 		 double * array,
@@ -1874,7 +1874,7 @@ int array_interpolate_spline(
  /**
   * Get the y[i] for which y[i]>c
   *
-  * Called by nonlinear_HMcode()
+  * Called by fourier_HMcode()
   */
 int array_search_bisect(
                         int n_lines,
@@ -2751,7 +2751,7 @@ int array_spline_hunt(double* x_array,
 /**
  * interpolate linearily to get y_i(x), when x and y_i are in two different arrays
  *
- * Called by transfer_interpolate_sources(); transfer_functions_at_k(); perturb_sources_at_eta().
+ * Called by transfer_interpolate_sources(); transfer_functions_at_k(); perturbations_sources_at_eta().
  */
 int array_interpolate_two(
 		   double * array_x,
@@ -2904,7 +2904,7 @@ int array_interpolate_two_bis(
 /**
  * interpolate linearily to get y_i(x), when x and y_i are in two different arrays
  *
- * Called by transfer_interpolate_sources(); transfer_functions_at_k(); perturb_sources_at_eta().
+ * Called by transfer_interpolate_sources(); transfer_functions_at_k(); perturbations_sources_at_eta().
  */
 int array_interpolate_two_arrays_one_column(
 					    double * array_x, /* assumed to be a vector (i.e. one column array) */

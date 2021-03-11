@@ -55,7 +55,7 @@ int initialize_generic_integrator(
 /**
  * Free the integrator's memory space
  *
- * Called by background_solve(); thermodynamics_solve_with_recfast(); perturb_solve().
+ * Called by background_solve(); thermodynamics_solve_with_recfast(); perturbations_solve().
  */
 int cleanup_generic_integrator(struct generic_integrator_workspace * pgi){
 

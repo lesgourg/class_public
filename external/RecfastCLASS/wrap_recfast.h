@@ -68,17 +68,17 @@ extern "C" {
 
   int recfast_init(struct precision* ppr,
                    struct background* pba,
-                   struct thermo * pth,
+                   struct thermodynamics * pth,
                    struct thermorecfast * precfast,
                    enum recfast_photoion_modes recfast_photoion_mode,
                    double fHe);
 
-  int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,
+  int recfast_dx_H_dz(struct thermodynamics* pth, struct thermorecfast * pre,
                       double x_H, double x, double n,
                       double z, double Hz, double Tmat, double Trad,
                       double* dxH_dz);
 
-  int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre,
+  int recfast_dx_He_dz(struct thermodynamics* pth, struct thermorecfast * pre,
                        double x_He, double x, double x_H, double n,
                        double z, double Hz, double Tmat, double Trad,
                        double* dxHe_dz);

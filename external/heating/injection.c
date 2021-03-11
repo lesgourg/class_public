@@ -19,7 +19,7 @@
  */
 int injection_init(struct precision * ppr,
                    struct background* pba,
-                   struct thermo* pth){
+                   struct thermodynamics* pth){
 
   /** Summary: */
 
@@ -157,7 +157,7 @@ int injection_init(struct precision * ppr,
  * @param pth   Input: pointer to thermodynamics structure
  * @return the error status
  */
-int injection_indices(struct thermo* pth){
+int injection_indices(struct thermodynamics* pth){
 
   /** - Define local variables */
   struct injection* pin = &(pth->in);
@@ -205,7 +205,7 @@ int injection_indices(struct thermo* pth){
  * @param pth   Input: pointer to thermodynamics structure
  * @return the error status
  */
-int injection_free(struct thermo* pth){
+int injection_free(struct thermodynamics* pth){
 
   /** - Define local variables */
   struct injection* pin = &(pth->in);
@@ -268,7 +268,7 @@ int injection_free(struct thermo* pth){
  * @return the error status
  */
 int injection_calculate_at_z(struct background* pba,
-                             struct thermo* pth,
+                             struct thermodynamics* pth,
                              double x,
                              double z,
                              double Tmat,
@@ -653,7 +653,7 @@ int injection_deposition_function_at_z(struct injection* pin,
  * @param z           Input: redshift
  * @return the error status
  */
-int injection_deposition_at_z(struct thermo* pth,
+int injection_deposition_at_z(struct thermodynamics* pth,
                               double z){
 
   /** - Define local variables */

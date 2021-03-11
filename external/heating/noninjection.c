@@ -22,8 +22,8 @@
  */
 int noninjection_init(struct precision* ppr,
                       struct background* pba,
-                      struct thermo* pth,
-                      struct perturbs* ppt,
+                      struct thermodynamics* pth,
+                      struct perturbations* ppt,
                       struct primordial* ppm,
                       struct noninjection* pni){
 

@@ -3,7 +3,7 @@ CLASS: Cosmic Linear Anisotropy Solving System
 
 Author: Julien Lesgourgues
 
-_This manual is under construction; this is only a provisional version. The definitive version will be made available soon, as well as all the necessary documentation to generate new versions of the manual. Currently the introduction is outdated and the definitions for some specific variables in the header files are missing. There are also some unresolved formatting issues in the documentation for spectra.c and transfer.c, which will be corrected shortly._
+_This manual is under construction; this is only a provisional version. The definitive version will be made available soon, as well as all the necessary documentation to generate new versions of the manual. Currently the introduction is outdated and the definitions for some specific variables in the header files are missing. There are also some unresolved formatting issues in the documentation for harmonic.c and transfer.c, which will be corrected shortly._
 
 Overall architecture of `class`
 ==========================================
@@ -41,17 +41,17 @@ structure:
 
 1.  `struct background ` for cosmological background,
 
-2.  `struct thermo ` for thermodynamics,
+2.  `struct thermodynamics ` for thermodynamics,
 
-3.  `struct perturbs ` for source functions,
+3.  `struct perturbations ` for source functions,
 
 4.  `struct bessels ` for bessel functions,
 
-5.  `struct transfers ` for transfer functions,
+5.  `struct transfer ` for transfer functions,
 
 6.  `struct primordial ` for primordial spectra,
 
-7.  `struct spectra ` for output spectra.
+7.  `struct harmonic ` for output spectra.
 
 A given structure contains “everything concerning one step that the
 subsequent steps need to know” (for instance, everything about source
@@ -81,7 +81,7 @@ Each structure is defined and filled in one of the following modules
 
 6.  `primordial.c `
 
-7.  `spectra.c `
+7.  `harmonic.c `
 
 Each of these modules contains at least three functions:
 
@@ -184,13 +184,13 @@ steps after `output\_init(...)`:
 
 primordial\_free()
 
-input\_init(&ba,&th,&pt,&bs,&tr,&pm,&sp,&op)
+input\_init(&ba,&th,&pt,&bs,&tr,&pm,&hr,&op)
 
 primordial\_init(&pt,&pr,&pm)
 
-spectra\_init(&pt,&tr,&pm,&sp)
+spectra\_init(&pt,&tr,&pm,&hr)
 
-output\_init(&pt,&tr,&sp,&op)
+output\_init(&pt,&tr,&hr,&op)
 
 `
 

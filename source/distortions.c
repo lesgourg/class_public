@@ -26,8 +26,8 @@
 
 int distortions_init(struct precision * ppr,
                      struct background * pba,
-                     struct thermo * pth,
-                     struct perturbs * ppt,
+                     struct thermodynamics * pth,
+                     struct perturbations * ppt,
                      struct primordial * ppm,
                      struct distortions * psd) {
 
@@ -147,7 +147,7 @@ int distortions_free(struct distortions * psd) {
 
 int distortions_constants(struct precision * ppr,
                           struct background * pba,
-                          struct thermo * pth,
+                          struct thermodynamics * pth,
                           struct distortions * psd){
 
   /** Define unit conventions */
@@ -461,7 +461,7 @@ int distortions_indices(struct distortions * psd) {
 
 int distortions_get_xz_lists(struct precision * ppr,
                              struct background * pba,
-                             struct thermo * pth,
+                             struct thermodynamics * pth,
                              struct distortions * psd){
 
   /** Define local variables */
@@ -704,8 +704,8 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
 int distortions_compute_heating_rate(struct precision* ppr,
                                      struct background* pba,
-                                     struct thermo * pth,
-                                     struct perturbs * ppt,
+                                     struct thermodynamics * pth,
+                                     struct perturbations * ppt,
                                      struct primordial * ppm,
                                      struct distortions * psd){
 
@@ -810,7 +810,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
 
 int distortions_compute_spectral_shapes(struct precision * ppr,
                                         struct background * pba,
-                                        struct thermo * pth,
+                                        struct thermodynamics * pth,
                                         struct distortions * psd){
 
   /** Define local variables */
@@ -1066,7 +1066,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
  */
 
 int distortions_add_effects_reio(struct background * pba,
-                                 struct thermo * pth,
+                                 struct thermodynamics * pth,
                                  struct distortions * psd,
                                  double T_e,
                                  double Dtau,
