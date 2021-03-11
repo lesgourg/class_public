@@ -193,8 +193,6 @@ struct transfers {
 
   //@{
 
-  short initialise_HIS_cache; /**< only true if we are using CLASS for setting up a cache of HIS structures */
-
   short transfer_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */

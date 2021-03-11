@@ -141,15 +141,6 @@ struct background
 
   //@}
 
-  /** @name - other background parameters */
-
-  //@{
-
-  // kept temporarily in intermediate 2.10.x versions for compatibility
-  // with later modules; will disappear in final 2.10 version and 3.x
-  double a_today; /**< scale factor today (arbitrary and irrelevant for most purposes) */
-
-  //@}
 
   /** @name - all indices for the vector of background (=bg) quantities stored in table */
 
@@ -308,23 +299,6 @@ struct background
   int * q_size_ncdm_bg; /**< Size of the q_ncdm_bg arrays */
   int * q_size_ncdm;    /**< Size of the q_ncdm arrays */
   double * factor_ncdm; /**< List of normalization factors for calculating energy density etc.*/
-
-  //@}
-
-  /**
-   *@name - some flags needed for calling background functions
-   */
-
-  //@{
-
-  // kept temporarily in intermediate 2.10.x versions for compatibility
-  // with later modules; will disappear in final 2.10 version and 3.x
-  short short_info;  /**< flag for calling background_at_eta and return little information */
-  short normal_info; /**< flag for calling background_at_eta and return medium information */
-  short long_info;   /**< flag for calling background_at_eta and return all information */
-
-  short inter_normal;  /**< flag for calling background_at_eta and find position in interpolation table normally */
-  short inter_closeby; /**< flag for calling background_at_eta and find position in interpolation table starting from previous position in previous call */
 
   //@}
 

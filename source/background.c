@@ -1121,17 +1121,6 @@ int background_indices(
   /* -> end of indices in the vector of variables to integrate */
   pba->bi_size = index_bi;
 
-  /* flags for calling the interpolation routine */
-
-  // kept temporarily in intermediate 2.10.x versions for compatibility
-  // with later modules; will disappear in final 2.10 version and 3.x
-  pba->short_info = short_info;
-  pba->normal_info = normal_info;
-  pba->long_info = long_info;
-
-  pba->inter_normal = inter_normal;
-  pba->inter_closeby = inter_closeby;
-
   return _SUCCESS_;
 
 }
