@@ -1269,8 +1269,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
   if (pfzw->required_computation_stage >= cs_thermodynamics){
    if (input_verbose>2)
      printf("Stage 2: thermodynamics\n");
-    pr.recfast_Nz0 = 10000;
+    pr.thermo_Nz_lin = 10000;
+    pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
+    th.hyrec_verbose = 0;
     class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba));
   }
 
@@ -1953,7 +1955,7 @@ int input_read_parameters_general(struct file_content * pfc,
   /* Complete set of parameters */
   if (flag1 == _TRUE_) {
     if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)){
-      pth->YHe = _BBN_;
+      pth->YHe = _YHE_BBN_;
     }
     else {
       class_read_double("YHe",pth->YHe);
@@ -1977,6 +1979,26 @@ int input_read_parameters_general(struct file_content * pfc,
     else{
       class_stop(errmsg,
                  "You specified 'recombination' as '%s'. It has to be one of {'recfast','hyrec'}.",string1);
+    }
+  }
+
+  /** 7.a) Photo-ionization dependence for recfast */
+  /* Read */
+  if(pth->recombination == recfast){
+    class_call(parser_read_string(pfc,"recfast_photoion_dependence",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_){
+      if((strstr(string1,"Tmat") != NULL) || (strstr(string1,"tmat") != NULL ) || (strstr(string1,"TMAT") !=NULL)){
+        pth->recfast_photoion_mode = recfast_photoion_Tmat;
+      }
+      else if((strstr(string1,"Trad") != NULL) || (strstr(string1,"trad") != NULL ) || (strstr(string1,"TRAD") !=NULL)){
+        pth->recfast_photoion_mode = recfast_photoion_Trad;
+      }
+      else{
+        class_stop(errmsg,
+                   "You specified 'recfast_photoion_dependence' as '%s'. It has to be one of {'Tmat','Trad'}.",string1);
+      }
     }
   }
 
@@ -2477,10 +2499,26 @@ int input_read_parameters_species(struct file_content * pfc,
     class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
                errmsg,
                errmsg);
-
+    class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),                            // [s]
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
     /* Complete set of parameters */
-    pba->Gamma_dcdm = param1*(1.e3/_c_);                                                          // [Mpc]
-
+    if (flag1 == _TRUE_){
+      pba->Gamma_dcdm = param1*(1.e3/_c_);                                                          // [Mpc]
+      pba->tau_dcdm = 1/(param1*1.02e-3)*(1e9*365*24*3600);                                         // [s]
+    }//TODO :: fix these factors to be proper (i.e. no 1.02e-3)
+    if (flag2 == _TRUE_){
+      pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_);                          // [Mpc]
+      pba->tau_dcdm = param2;                                                                       // [s]
+    }
+    /* Test */
+    class_test(pba->tau_dcdm<0.,
+               errmsg,
+               "You need to enter a lifetime for the decaying DM 'tau_dcdm > 0.'");
     class_test(pba->Gamma_dcdm<0.,
                errmsg,
                "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
@@ -2570,7 +2608,7 @@ int input_read_parameters_species(struct file_content * pfc,
                errmsg,
                "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
     /** 7.2.d) */
-    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
+    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm_dr);
 
     /** 7.2.e) */
     class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
@@ -2910,45 +2948,263 @@ int input_read_parameters_injection(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
+  struct injection* pin = &(pth->in);
   int flag1;
   char string1[_ARGUMENT_LENGTH_MAX_];
   string1[0]='\0';
 
-  class_read_double("annihilation",pth->annihilation);
+  /** 1) DM annihilation */
+  /** 1.a) Annihilation efficiency */
+  /* Read */
+  class_read_double("DM_annihilation_efficiency",pin->DM_annihilation_efficiency);
+  class_read_double("DM_annihilation_cross_section",pin->DM_annihilation_cross_section);
+  class_read_double("DM_annihilation_mass",pin->DM_annihilation_mass);
+  class_read_double("DM_annihilation_fraction",pin->DM_annihilation_fraction);
 
-  if (pth->annihilation > 0.) {
+  /* Test consistency of this input */
+  class_test(pin->DM_annihilation_efficiency<0,
+             errmsg,
+             "annihilation efficiency cannot be negative");
+  class_test(pin->DM_annihilation_efficiency>1.e-4,
+             errmsg,
+             "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",pin->DM_annihilation_efficiency);
+  class_test(pin->DM_annihilation_mass<0. || pin->DM_annihilation_cross_section <0,
+             errmsg,
+             "Both mass and cross section for your dark matter particle must be positive.");
+  class_test(pin->DM_annihilation_mass ==0 && pin->DM_annihilation_cross_section >0,
+             errmsg,
+             "you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
+  class_test((pin->DM_annihilation_cross_section !=0 || pin->DM_annihilation_mass !=0 || pin->DM_annihilation_fraction !=0) && pin->DM_annihilation_efficiency != 0,
+             errmsg,
+             "You can only enter one of {'DM_annihilation_cross_section', 'DM_annihilation_mass', 'DM_annihilation_fraction'} or 'annihilation_efficiency'.");
+  if ((pin->DM_annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast)) {
+      printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
+  } //TODO :: check if still occurs !!!
 
-    class_read_double("annihilation_variation",pth->annihilation_variation);
-    class_read_double("annihilation_z",pth->annihilation_z);
-    class_read_double("annihilation_zmax",pth->annihilation_zmax);
-    class_read_double("annihilation_zmin",pth->annihilation_zmin);
-    class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
-    class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+  /* Complete set of parameters */
+  if(pin->DM_annihilation_mass > 0 && pin->DM_annihilation_cross_section > 0.){
+    pin->DM_annihilation_efficiency = pin->DM_annihilation_cross_section*1.e-6/(pin->DM_annihilation_mass*_eV_*1.e9);
+  }
 
-    class_call(parser_read_string(pfc,
-                                  "on the spot",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
+  if(pin->DM_annihilation_efficiency > 0){
+    pth->has_exotic_injection = _TRUE_;
+  }
+
+  if (pin->DM_annihilation_efficiency > 0.) {
+    /** 1.a.1) Model energy fraction absorbed by the gas as a function of redhsift */
+    /* Read */
+    class_read_double("DM_annihilation_variation",pin->DM_annihilation_variation);
+    class_read_double("DM_annihilation_z",pin->DM_annihilation_z);
+    class_read_double("DM_annihilation_zmax",pin->DM_annihilation_zmax);
+    class_read_double("DM_annihilation_zmin",pin->DM_annihilation_zmin);
+    class_read_double("DM_annihilation_f_halo",pin->DM_annihilation_f_halo);
+    class_read_double("DM_annihilation_z_halo",pin->DM_annihilation_z_halo);
+    /* Test */
+    class_test(pin->DM_annihilation_variation>0,
                errmsg,
-               errmsg);
+               "annihilation variation parameter must be negative (decreasing annihilation rate)");
+    class_test(pin->DM_annihilation_z<0,
+               errmsg,
+               "characteristic annihilation redshift cannot be negative");
+    class_test(pin->DM_annihilation_zmin<0,
+               errmsg,
+               "characteristic annihilation redshift cannot be negative");
+    class_test(pin->DM_annihilation_zmax<0,
+               errmsg,
+               "characteristic annihilation redshift cannot be negative");
+    class_test(pin->DM_annihilation_f_halo<0,
+               errmsg,
+               "Parameter for DM annihilation in halos cannot be negative");
+    class_test(pin->DM_annihilation_z_halo<0,
+               errmsg,
+               "Parameter for DM annihilation in halos cannot be negative");
+  }
 
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        pth->has_on_the_spot = _TRUE_;
-      }
-      else {
-        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-          pth->has_on_the_spot = _FALSE_;
-        }
-        else {
-          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
-        }
-      }
+  /** 2) DM decay */
+  /** 2.a) Fraction */
+  /* Read */
+  class_read_double("DM_decay_fraction",pin->DM_decay_fraction);
+  if(pin->DM_decay_fraction!=0){
+    pth->has_exotic_injection = _TRUE_;
+  }
+  /* Test */
+  class_test(pin->DM_decay_fraction<0,
+             errmsg,
+             "You need to enter a positive fraction of decaying DM. Please adjust your param file.");
+
+  /** 2.b) Decay width */
+  /* Read */
+  class_read_double("DM_decay_Gamma",pin->DM_decay_Gamma);
+
+
+  /** 3) PBH evaporation */
+  /** 3.a) Fraction */
+  /* Read */
+  class_read_double("PBH_evaporation_fraction",pin->PBH_evaporation_fraction);
+  if(pin->PBH_evaporation_fraction!=0){
+    pth->has_exotic_injection = _TRUE_;
+  }
+  /* Test */
+  class_test(pin->PBH_evaporation_fraction <0.,
+             errmsg,
+             "You need to enter a positive fraction of evaporating PBH. Please adjust your param file.");
+
+  /** 3.b) Mass */
+  /* Read */
+  class_read_double("PBH_evaporation_mass",pin->PBH_evaporation_mass);
+  /* Test */
+  class_test(pin->PBH_evaporation_mass<0.,
+             errmsg,
+             "You need to enter a positive mass for your PBH.");
+  class_test(pin->PBH_evaporation_mass>0. && pin->PBH_evaporation_fraction == 0,
+             errmsg,
+            "You have 'PBH_evaporation_mass > 0.' but 'PBH_evaporation_fraction = 0'. Please adjust your param file.");
+  class_test(pin->PBH_evaporation_fraction>0. && pin->PBH_evaporation_mass == 0.,
+             errmsg,
+             "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
+
+
+  /** 4) PBH matter accretion */
+  /** 4.a) Fraction */
+  /* Read */
+  class_read_double("PBH_accretion_fraction",pin->PBH_accretion_fraction);
+  if(pin->PBH_accretion_fraction!=0){
+    pth->has_exotic_injection = _TRUE_;
+  }
+  /* Test */
+  class_test(pin->PBH_accretion_fraction < 0.,
+             errmsg,
+             "You need to enter a positive fraction of accreting PBH. Please adjust your param file.");
+
+  /** 4.b) Mass */
+  /* Read */
+  class_read_double("PBH_accretion_mass",pin->PBH_accretion_mass);
+  /* Test */
+  class_test(pin->PBH_accretion_mass<0.,
+             errmsg,
+             "You need to enter a positive mass for your PBH.");
+  class_test(pin->PBH_accretion_mass>0. && pin->PBH_accretion_fraction == 0,
+             errmsg,
+            "You have 'PBH_accretion_mass > 0.' but 'PBH_accretion_fraction = 0'. Please adjust your param file.");
+  class_test(pin->PBH_accretion_fraction>0. && pin->PBH_accretion_mass == 0.,
+             errmsg,
+             "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
+
+  /** 4.c) Recipe */
+  /* Read */
+  class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if (strcmp(string1,"spherical_accretion") == 0) {
+      pin->PBH_accretion_recipe=spherical_accretion;
+    }
+    else if (strcmp(string1,"disk_accretion") == 0) {
+      pin->PBH_accretion_recipe=disk_accretion;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'PBH_accretion_recipe' as '%s'. It has to be one of {'spherical_accretion','disk_accretion'}.",string1);
     }
   }
 
-  class_read_double("decay",pth->decay);
+  /** 4.c.1) Additional parameters specific for spherical accretion */
+  if(pin->PBH_accretion_recipe == spherical_accretion){
+    /* Read */
+    class_read_double("PBH_accretion_relative_velocities",pin->PBH_accretion_relative_velocities);
+  }
+
+  /** 4.c.2) Additional parameters specific for disk accretion */
+  if(pin->PBH_accretion_recipe == disk_accretion){
+    /* Read */
+    class_read_double("PBH_accretion_ADAF_delta",pin->PBH_accretion_ADAF_delta);
+    class_read_double("PBH_accretion_eigenvalue",pin->PBH_accretion_eigenvalue);
+    /* Test */
+    class_test(pin->PBH_accretion_ADAF_delta != 1e-3 && pin->PBH_accretion_ADAF_delta != 0.5  && pin->PBH_accretion_ADAF_delta != 0.1,
+               errmsg,
+               "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
+  }
+
+
+  /** 5) Injection efficiency */
+  /* Read */
+  class_call(parser_read_string(pfc,"f_eff_type",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if (strcmp(string1,"on_the_spot") == 0){
+      pin->f_eff_type = f_eff_on_the_spot;
+      class_read_double("f_eff",pin->f_eff);
+    }
+    else if (strcmp(string1,"from_file") == 0){
+      pin->f_eff_type = f_eff_from_file;
+      /* Read */
+      class_call(parser_read_string(pfc,"f_eff_file",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test(flag1 == _FALSE_,
+                 errmsg,
+                 "for the option 'from_file' for 'f_eff_type' the option 'f_eff_file' is required.");
+      /* Complete set of parameters */
+      strcpy(pin->f_eff_file, string1);
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'f_eff_type' as '%s'. It has to be one of {'on_the_spot','from_file'}.",string1);
+    }
+  }
+
+  /** 6) deposition function */
+  /* Read */
+  class_call(parser_read_string(pfc,"chi_type",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if (strcmp(string1,"CK_2004") == 0){
+      pin->chi_type = chi_CK;
+    }
+    else if (strcmp(string1,"PF_2005") == 0){
+      pin->chi_type = chi_PF;
+    }
+    else if (strcmp(string1,"Galli_2013_file") == 0){
+      pin->chi_type = chi_Galli_file;
+    }
+    else if (strcmp(string1,"Galli_2013_analytic") == 0){
+      pin->chi_type = chi_Galli_analytic;
+    }
+    else if (strcmp(string1,"heat") == 0){
+      pin->chi_type = chi_full_heating;
+    }
+    else if (strcmp(string1,"from_x_file") == 0){
+      pin->chi_type = chi_from_x_file;
+    }
+    else if (strcmp(string1,"from_z_file") == 0){
+      pin->chi_type = chi_from_z_file;
+    }
+    else{
+      class_stop(errmsg,
+                   "You specified 'chi_type' as '%s'. It has to be one of {'CK_2004','PF_2005','Galli_2013_file','Galli_2013_analytic','heat','from_x_file','from_z_file'}.",string1);
+    }
+  }
+
+  if(pin->chi_type == chi_from_x_file || pin->chi_type == chi_from_z_file){
+    /** 6.a) External file */
+    /* Read */
+    class_call(parser_read_string(pfc,"chi_file",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test(flag1 == _FALSE_,
+               errmsg,
+               "for the option 'from_x_file' or 'from_z_file' for 'chi_type' the option 'chi_file' is required.");
+    /* Complete set of parameters */
+    strcpy(pin->chi_z_file, string1);
+    strcpy(pin->chi_x_file, string1);
+  }
 
   return _SUCCESS_;
 
@@ -3140,6 +3396,7 @@ int input_prepare_pk_eq(struct precision * ppr,
   int index_eq;
   int true_background_verbose;
   int true_thermodynamics_verbose;
+  int true_hyrec_verbose;
   double true_w0_fld;
   double true_wa_fld;
   double * z;
@@ -3147,12 +3404,14 @@ int input_prepare_pk_eq(struct precision * ppr,
   /** Store the true cosmological parameters (w0, wa) somwhere before using temporarily some fake ones in this function */
   true_background_verbose = pba->background_verbose;
   true_thermodynamics_verbose = pth->thermodynamics_verbose;
+  true_hyrec_verbose = pth->hyrec_verbose;
   true_w0_fld = pba->w0_fld;
   true_wa_fld = pba->wa_fld;
 
   /** The fake calls of the background and thermodynamics module will be done in non-verbose mode */
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
+  pth->hyrec_verbose = 0;
 
   /** Allocate indices and arrays for storing the results */
   pnl->pk_eq_tau_size = ppr->pk_eq_Nzlog;
@@ -3251,8 +3510,8 @@ int input_prepare_pk_eq(struct precision * ppr,
                 pba->error_message);
     class_call(background_at_tau(pba,
                                  tau_of_z,
-                                 pba->long_info,
-                                 pba->inter_normal,
+                                 long_info,
+                                 inter_normal,
                                  &last_index,
                                  pvecback),
                pba->error_message, errmsg);
@@ -3270,6 +3529,7 @@ int input_prepare_pk_eq(struct precision * ppr,
   /** Restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules */
   pba->background_verbose = true_background_verbose;
   pth->thermodynamics_verbose = true_thermodynamics_verbose;
+  pth->hyrec_verbose = true_hyrec_verbose;
 
   pba->w0_fld = true_w0_fld;
   pba->wa_fld = true_wa_fld;
@@ -4523,6 +4783,10 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("write_primordial","write primordial",pop->write_primordial);
 
+  /** 1.h) Exotic energy injection output */
+  /* Read */
+  class_read_flag_or_deprecated("write_exotic_injection","write exotic injection",pop->write_exotic_injection);
+
   /** 1.l) Input/precision parameters */
   /* Read */
   flag1 = _FALSE_;
@@ -4533,6 +4797,7 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_int("background_verbose",pba->background_verbose);
   class_read_int("thermodynamics_verbose",pth->thermodynamics_verbose);
+  class_read_int("hyrec_verbose",pth->hyrec_verbose);
   class_read_int("perturbations_verbose",ppt->perturbations_verbose);
   class_read_int("transfer_verbose",ptr->transfer_verbose);
   class_read_int("primordial_verbose",ppm->primordial_verbose);
@@ -4611,6 +4876,7 @@ int input_default_params(struct background *pba,
   /** Summary: */
 
   /** - Define local variables */
+  struct injection* pin = &(pth->in);
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
@@ -4688,10 +4954,11 @@ int input_default_params(struct background *pba,
   pba->H0 = pba->h*1.e5/_c_;
 
   /** 6) Primordial Helium fraction */
-  pth->YHe = _BBN_;
+  pth->YHe = _YHE_BBN_;
 
   /** 7) Recombination algorithm */
-  pth->recombination=recfast;
+  pth->recombination=hyrec;
+  pth->recfast_photoion_mode=recfast_photoion_Tmat;
 
   /** 8) Parametrization of reionization */
   pth->reio_parametrization=reio_camb;
@@ -4781,6 +5048,7 @@ int input_default_params(struct background *pba,
   pba->Omega0_dcdm = 0.0;
   /** 7.1.c) Decay constant */
   pba->Gamma_dcdm = 0.0;
+  pba->tau_dcdm = 0.0;
 
   /* ** ADDITIONAL SPECIES ** --> Add your species here */
   /** 7.2) Interacting Dark Matter */
@@ -4793,7 +5061,7 @@ int input_default_params(struct background *pba,
   pth->a_idm_dr = 0.;
   pth->b_idr = 0.;
   pth->nindex_idm_dr = 4.;
-  pth->m_idm = 1.e11;
+  pth->m_idm_dr = 1.e11;
   /** 7.2.d) Approximation mode of idr */
   ppt->idr_nature=idr_free_streaming;
 
@@ -4831,17 +5099,57 @@ int input_default_params(struct background *pba,
   /**
    * Deafult to input_read_parameters_heating
    */
+  pth->has_exotic_injection = _FALSE_;
 
-  pth->annihilation = 0.;
-  pth->decay = 0.;
+  /** 1) DM annihilation */
+  /** 1.a) Energy fraction absorbed by the gas */
+  pin->DM_annihilation_efficiency = 0.;
+  pin->DM_annihilation_cross_section = 0.;
+  pin->DM_annihilation_mass = 0.;
+  pin->DM_annihilation_fraction = 0.;
+  /** 1.a.1) Redshift dependence */
+  pin->DM_annihilation_variation = 0.;
+  pin->DM_annihilation_z = 1000.;
+  pin->DM_annihilation_zmax = 2500.;
+  pin->DM_annihilation_zmin = 30.;
+  pin->DM_annihilation_f_halo = 0.;
+  pin->DM_annihilation_z_halo = 30.;
 
-  pth->annihilation_variation = 0.;
-  pth->annihilation_z = 1000.;
-  pth->annihilation_zmax = 2500.;
-  pth->annihilation_zmin = 30.;
-  pth->annihilation_f_halo = 0.;
-  pth->annihilation_z_halo = 30.;
-  pth->has_on_the_spot = _TRUE_;
+  /** 2) DM decay */
+  /** 2.a) Fraction */
+  pin->DM_decay_fraction = 0.;
+  /** 2.b) Decay width */
+  pin->DM_decay_Gamma = 0.;
+
+  /** 3) PBH evaporation */
+  /** 3.a) Fraction */
+  pin->PBH_evaporation_fraction = 0.;
+  /** 3.b) Mass */
+  pin->PBH_evaporation_mass = 0.;
+
+  /** 4) PBH accretion */
+  /** 4.a) Fraction */
+  pin->PBH_accretion_fraction = 0.;
+  /** 4.b) Mass */
+  pin->PBH_accretion_mass = 0.;
+  /** 4.c) Recipe */
+  pin->PBH_accretion_recipe = disk_accretion;
+  /** 4.c.1) Additional parameters for spherical accretion */
+  pin->PBH_accretion_relative_velocities = -1.;
+  /** 4.c.1) Additional parameters for disk accretion */
+  pin->PBH_accretion_eigenvalue = 0.1;
+  pin->PBH_accretion_ADAF_delta = 1.e-3;
+
+  /** 5) Injection efficiency */
+  pin->f_eff_type = f_eff_on_the_spot;
+  pin->f_eff = 1.;
+  sprintf(pin->f_eff_file,"/external/heating/example_f_eff_file.dat");
+
+  /** 6) Deposition function */
+  pin->chi_type = chi_CK;
+  /** 6.1) External file */
+  sprintf(pin->chi_z_file,"/external/heating/example_chiz_file.dat");
+  sprintf(pin->chi_x_file,"/external/heating/example_chix_file.dat");
 
   /**
    * Default to input_read_parameters_nonlinear
@@ -5032,10 +5340,13 @@ int input_default_params(struct background *pba,
   ppt->store_perturbations = _FALSE_;
   /** 1.g) Primordial spectra */
   pop->write_primordial = _FALSE_;
+  /** 1.h) Exotic energy injection function */
+  pop->write_exotic_injection = _FALSE_;
 
   /** 2) Verbosity */
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
+  pth->hyrec_verbose = 0;
   ppt->perturbations_verbose = 0;
   ptr->transfer_verbose = 0;
   ppm->primordial_verbose = 0;

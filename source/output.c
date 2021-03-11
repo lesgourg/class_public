@@ -207,6 +207,15 @@ int output_init(
 
   }
 
+  /** - deal with heating */
+
+  if (pop->write_exotic_injection == _TRUE_) {
+
+    class_call(output_heating(&(pth->in),pop),
+               pop->error_message,
+               pop->error_message);
+  }
+
   return _SUCCESS_;
 
 }
@@ -1235,6 +1244,62 @@ int output_primordial(
   return _SUCCESS_;
 }
 
+int output_heating(struct injection* pin, struct output * pop) {
+
+  /** Local variables*/
+  FileName file_name_injection;
+  FILE * out_injection;
+
+  char titles_injection[_MAXTITLESTRINGLENGTH_]={0};
+
+  double * data_injection;
+  int size_data_injection;
+  int number_of_titles_injection;
+
+  if(pop->write_exotic_injection == _TRUE_){
+
+    /* File name */
+    sprintf(file_name_injection,"%s%s",pop->root,"exotic_injection.dat");
+
+    /* Titles */
+    class_call(injection_output_titles(pin,titles_injection),
+               pin->error_message,
+               pin->error_message);
+    number_of_titles_injection = get_number_of_titles(titles_injection);
+
+    /* Data array */
+    size_data_injection = number_of_titles_injection*pin->z_size;
+    class_alloc(data_injection,
+                sizeof(double)*size_data_injection,
+                pop->error_message);
+    class_call(injection_output_data(pin,
+                                     number_of_titles_injection,
+                                     data_injection),
+               pin->error_message,
+               pop->error_message);
+
+    /* File IO */
+    class_open(out_injection,
+               file_name_injection,
+               "w",
+               pop->error_message);
+
+    if(pop->write_header == _TRUE_){
+      fprintf(out_injection,"# Table of energy injection and deposition from exotic processes \n");
+      fprintf(out_injection,"# Heat is dE/dt|dep_h\n");
+    }
+
+    output_print_data(out_injection,
+                      titles_injection,
+                      data_injection,
+                      size_data_injection);
+    free(data_injection);
+    fclose(out_injection);
+
+  }
+
+  return _SUCCESS_;
+}
 
 int output_print_data(FILE *out,
                       char titles[_MAXTITLESTRINGLENGTH_],
@@ -1271,7 +1336,6 @@ int output_print_data(FILE *out,
   }
   return _SUCCESS_;
 }
-
 
 /**
  * This routine opens one file where some \f$ C_l\f$'s will be written, and writes
