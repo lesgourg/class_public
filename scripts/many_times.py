@@ -1,12 +1,12 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
 
+
 # import necessary modules
 # uncomment to get plots displayed in notebook
-# uncomment to get plots displayed in notebook
-#%matplotlib inline
+#get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,6 +18,7 @@ import math
 
 # In[ ]:
 
+
 # esthetic definitions for the plots
 font = {'size'   : 16, 'family':'STIXGeneral'}
 axislabelfontsize='large'
@@ -27,6 +28,7 @@ plt.rcParams["figure.figsize"] = [8.0,6.0]
 
 
 # In[ ]:
+
 
 #############################################
 #
@@ -58,8 +60,6 @@ common_settings = {# which output? transfer functions only
                    'YHe':0.246,
                    # other output and precision parameters
                    'z_max_pk':z_max_pk,
-                   'recfast_z_initial':z_max_pk,
-                   #'k_step_sub':'0.01',
                    'k_per_decade_for_pk':k_per_decade,
                    'k_per_decade_for_bao':k_per_decade,
                    'k_min_tau0':k_min_tau0, # this value controls the minimum k value in the figure
@@ -129,10 +129,10 @@ tau_lambda = background_tau_at_lm(1.)
 # check and inform user whether intiial arbitrary choice of z_max_pk was OK
 max_z_needed = background_z_at_tau(tau[0])
 if max_z_needed > z_max_pk:
-    print 'you must increase the value of z_max_pk to at least ',max_z_needed
+    print ('you must increase the value of z_max_pk to at least ',max_z_needed)
     () + 1  # this strange line is just a trick to stop the script execution there
 else:
-    print 'in a next run with the same values of tau, you may decrease z_max_pk from ',z_max_pk,' to ',max_z_needed
+    print ('in a next run with the same values of tau, you may decrease z_max_pk from ',z_max_pk,' to ',max_z_needed)
 #
 # get transfer functions at each time and build arrays Theta0(tau,k) and phi(tau,k)
 #
@@ -157,7 +157,7 @@ K,T = np.meshgrid(k,tau)
 #
 # inform user of the size of the grids (related to the figure resolution)
 #
-print 'grid size:',len(k),len(tau),Theta0.shape
+print ('grid size:',len(k),len(tau),Theta0.shape)
 #
 #################
 #
@@ -170,9 +170,9 @@ fig = plt.figure(figsize=(18,8))
 # plot Theta0(k,tau)
 #
 ax_Theta = fig.add_subplot(121)
-print '> Plotting Theta_0'
-fig_Theta = ax_Theta.pcolormesh(K,T,Theta0,cmap='coolwarm',vmin=-Theta_amp, vmax=Theta_amp) #,shading='gouraud')
-print '> Done'
+print ('> Plotting Theta_0')
+fig_Theta = ax_Theta.pcolormesh(K,T,Theta0,cmap='coolwarm',vmin=-Theta_amp,vmax=Theta_amp,shading='auto')
+print ('> Done')
 #
 # plot lines (characteristic times and scales)
 #
@@ -220,9 +220,9 @@ fig.colorbar(fig_Theta)
 ax_phi = fig.add_subplot(122)
 ax_phi.set_xlim(k[0],k[-1])
 #ax_phi.pcolor(K,T,phi,cmap='coolwarm')
-print '> Plotting phi'
-fig_phi = ax_phi.pcolormesh(K,T,phi,cmap='coolwarm',vmin=-0., vmax=phi_amp)
-print '> Done'
+print ('> Plotting phi')
+fig_phi = ax_phi.pcolormesh(K,T,phi,cmap='coolwarm',vmin=-0.,vmax=phi_amp,shading='auto')
+print ('> Done')
 #
 # plot lines (characteristic times and scales)
 #

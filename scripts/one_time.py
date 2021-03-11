@@ -1,76 +1,81 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
+
 
 # import necessary modules
-# uncomment to get plots displayed in notebook
-#%matplotlib inline
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
 from classy import Class
-from scipy.optimize import fsolve
-from scipy.interpolate import interp1d
-import math
+from math import pi
 
 
-# In[2]:
-
-# esthetic definitions for the plots
-font = {'size'   : 16, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-plt.rcParams["figure.figsize"] = [8.0,6.0]
+# In[ ]:
 
 
-# In[3]:
-
-#############################################
+#####################################################
 #
 # Cosmological parameters and other CLASS parameters
 #
-common_settings = {# wich output? ClTT, transfer functions delta_i and theta_i
-                   'output':'tCl,mTk,vTk',
-                   # LambdaCDM parameters
-                   'h':0.67556,
-                   'omega_b':0.022032,
+#####################################################
+common_settings = {# LambdaCDM parameters
+                   'h':0.67810,
+                   'omega_b':0.02238280,
                    'omega_cdm':0.12038,
-                   'A_s':2.215e-9,
-                   'n_s':0.9619,
-                   'tau_reio':0.0925,
-                   # Take fixed value for primordial Helium (instead of automatic BBN adjustment)
-                   'YHe':0.246,
-                   # other output and precision parameters
+                   'A_s':2.100549e-09,
+                   'n_s': 0.9660499,
+                   'tau_reio':0.05430842,
+                   # output and precision parameters
+                   'output':'tCl,mTk,vTk',
                    'l_max_scalars':5000,
                    'P_k_max_1/Mpc':10.0,
-                   'gauge':'newtonian'}
+                   'gauge':'newtonian'
+                   }
+
+
+# In[ ]:
+
+
 ###############
 #
 # call CLASS a first time just to compute z_rec (will compute transfer functions at default: z=0)
 #
+###############
 M = Class()
 M.set(common_settings)
 M.compute()
 derived = M.get_current_derived_parameters(['z_rec','tau_rec','conformal_age'])
-#print derived.viewkeys()
+print (derived.keys())
 z_rec = derived['z_rec']
 z_rec = int(1000.*z_rec)/1000. # round down at 4 digits after coma
-M.struct_cleanup()  # clean output
-M.empty()           # clean input
+print ('z_rec=',z_rec)
 #
-# call CLASS again (will compute transfer functions at inout value z_rec)
+# In the last figure the x-axis will show l/(tau_0-tau_rec), so we need (tau_0-tau_rec) in units of [Mpc/h]
 #
-M = Class()
+tau_0_minus_tau_rec_hMpc = (derived['conformal_age']-derived['tau_rec'])*M.h()
+
+
+# In[ ]:
+
+
+################
+#
+# call CLASS again for the perturbations (will compute transfer functions at input value z_rec)
+#
+################
+M.empty() # reset input parameters to default, before passing a new parameter set
 M.set(common_settings)
 M.set({'z_pk':z_rec})
 M.compute()
 #
+# save the total Cl's (we will plot them in the last step)
+#
+cl_tot = M.raw_cl(5000)
+#
+#
 # load transfer functions at recombination
 #
 one_time = M.get_transfer(z_rec)
-print one_time.viewkeys()
+print (one_time.keys())
 k = one_time['k (h/Mpc)']
 Theta0 = 0.25*one_time['d_g']
 phi = one_time['phi']
@@ -79,24 +84,27 @@ theta_b = one_time['t_b']
 # compute related quantitites
 R = 3./4.*M.Omega_b()/M.Omega_g()/(1+z_rec)  # R = 3/4 * (rho_b/rho_gamma) at z_rec
 zero_point = -(1.+R)*psi                     # zero point of oscillations: -(1.+R)*psi
-#
-# get Theta0 oscillation amplitude (for vertical scale of plot)
-#
-Theta0_amp = max(Theta0.max(),-Theta0.min())
-#
+Theta0_amp = max(Theta0.max(),-Theta0.min()) # Theta0 oscillation amplitude (for vertical scale of plot)
+print ('At z_rec: R=',R,', Theta0_amp=',Theta0_amp)
+
+
+# In[ ]:
+
+
 # use table of background quantitites to find the wavenumbers corresponding to
 # Hubble crossing (k = 2 pi a H), sound horizon crossing (k = 2pi / rs)
 #
 background = M.get_background() # load background table
-#print background.viewkeys()
+print (background.keys())
 #
 background_tau = background['conf. time [Mpc]'] # read confromal times in background table
 background_z = background['z'] # read redshift
-background_kh = 2.*math.pi*background['H [1/Mpc]']/(1.+background['z'])/M.h() # read kh = 2pi aH = 2pi H/(1+z) converted to [h/Mpc]
-background_ks = 2.*math.pi/background['comov.snd.hrz.']/M.h() # read ks = 2pi/rs converted to [h/Mpc]
+background_kh = 2.*pi*background['H [1/Mpc]']/(1.+background['z'])/M.h() # read kh = 2pi aH = 2pi H/(1+z) converted to [h/Mpc]
+background_ks = 2.*pi/background['comov.snd.hrz.']/M.h() # read ks = 2pi/rs converted to [h/Mpc]
 #
 # define interpolation functions; we want the value of tau when the argument is equal to 2pi
 #
+from scipy.interpolate import interp1d
 kh_at_tau = interp1d(background_tau,background_kh)
 ks_at_tau = interp1d(background_tau,background_ks)
 #
@@ -105,7 +113,90 @@ ks_at_tau = interp1d(background_tau,background_ks)
 tau_rec = derived['tau_rec']
 kh = kh_at_tau(tau_rec)
 ks = ks_at_tau(tau_rec)
+print ('at tau_rec=',tau_rec,', kh=',kh,', ks=',ks)
+
+
+# In[ ]:
+
+
+#####################
 #
+# call CLASS with TSW (intrinsic temperature + Sachs-Wolfe) and save
+#
+#####################
+M.empty()           # clean input
+M.set(common_settings) # new input
+M.set({'temperature contributions':'tsw'})
+M.compute()
+cl_TSW = M.raw_cl(5000)
+
+
+# In[ ]:
+
+
+######################
+#
+# call CLASS with early ISW and save
+#
+######################
+M.empty()
+M.set(common_settings)
+M.set({'temperature contributions':'eisw'})
+M.compute()
+cl_eISW = M.raw_cl(5000)
+
+
+# In[ ]:
+
+
+######################
+#
+# call CLASS with late ISW and save
+#
+######################
+M.empty()
+M.set(common_settings)
+M.set({'temperature contributions':'lisw'})
+M.compute()
+cl_lISW = M.raw_cl(5000)
+
+
+# In[ ]:
+
+
+######################
+#
+# call CLASS with Doppler and save
+#
+######################
+M.empty()
+M.set(common_settings)
+M.set({'temperature contributions':'dop'})
+M.compute()
+cl_Doppler = M.raw_cl(5000)
+
+
+# In[ ]:
+
+
+# modules and esthetic definitions for the plots
+#
+# uncomment to get plots displayed in notebook
+#get_ipython().run_line_magic('matplotlib', 'inline')
+#
+import matplotlib
+import matplotlib.pyplot as plt
+#
+font = {'size'   : 16, 'family':'STIXGeneral'}
+axislabelfontsize='large'
+matplotlib.rc('font', **font)
+matplotlib.mathtext.rcParams['legend.fontsize']='medium'
+plt.rcParams["figure.figsize"] = [8.0,6.0]
+
+
+# In[ ]:
+
+
 #################
 #
 # start plotting
@@ -164,11 +255,11 @@ ax_Tk2.legend(loc='right',bbox_to_anchor=(1.4, 0.5))
 #
 # third figure with all contributions to Cls
 #
-# For that we will need to call CLASS again for each contribution (TSW, earlyISW, lateISW, Doppler, total)
-# Note that there is another contribution from polarisation: we don't plot it individually because it is
+# We already computed each contribution (TSW, earlyISW, lateISW, Doppler, total)
+# Note that there is another contribution from polarisation. We don't plot it because it is
 # too small to be seen, however it is included by default in the total.
 #
-# After each step we will save the figure (to get intermediate figures for the slides)
+# After each step we will save the figure (to get intermediate figures that can be used in slides)
 #
 #########################
 # presentation settings
@@ -179,68 +270,31 @@ ax_Cl.set_ylabel(r'$\ell (\ell+1) C_l^{TT} / 2 \pi \,\,\, [\times 10^{10}]$')
 ax_Cl.tick_params(axis='x',which='both',bottom='on',top='off',labelbottom='on',labeltop='off')
 ax_Cl.grid()
 #
-# the x-axis will show l/(tau_0-tau_rec), so we need (tau_0-tau_rec) in units of [Mpc/h]
+# plot and save with TSW
 #
-tau_0_minus_tau_rec_hMpc = (derived['conformal_age']-derived['tau_rec'])*M.h()
-#
-# save the total Cl's (we will plot them in the last step)
-#
-cl_tot = M.raw_cl(5000)
-#
-# call CLASS with TSW, then plot and save
-#
-M.struct_cleanup()  # clean output
-M.empty()           # clean input
-M.set(common_settings) # new input
-M.set({'temperature contributions':'tsw'})
-M.compute()
-cl = M.raw_cl(5000)
-#
-ax_Cl.semilogx(cl['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl['ell']*(cl['ell']+1.)*cl['tt']/2./math.pi,'c-',label=r'$\mathrm{T+SW}$')
+ax_Cl.semilogx(cl_TSW['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl_TSW['ell']*(cl_TSW['ell']+1.)*cl_TSW['tt']/2./pi,'c-',label=r'$\mathrm{T+SW}$')
 #
 ax_Cl.legend(loc='right',bbox_to_anchor=(1.4, 0.5))
 fig.savefig('one_time_with_cl_1.pdf',bbox_inches='tight')
 #
-# call CLASS with early ISW, plot; call CLASS with late ISW, plot; then save
+# plot and save with additionally early ISW and late ISW
 #
-M.struct_cleanup()
-M.empty()
-M.set(common_settings)
-M.set({'temperature contributions':'eisw'})
-M.compute()
-cl = M.raw_cl(5000)
-#
-ax_Cl.semilogx(cl['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl['ell']*(cl['ell']+1.)*cl['tt']/2./math.pi,'r-',label=r'$\mathrm{early} \,\, \mathrm{ISW}$')
-#
-M.struct_cleanup()
-M.empty()
-M.set(common_settings)
-M.set({'temperature contributions':'lisw'})
-M.compute()
-cl = M.raw_cl(5000)
-#
-ax_Cl.semilogx(cl['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl['ell']*(cl['ell']+1.)*cl['tt']/2./math.pi,'y-',label=r'$\mathrm{late} \,\, \mathrm{ISW}$')
+ax_Cl.semilogx(cl_eISW['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl_eISW['ell']*(cl_eISW['ell']+1.)*cl_eISW['tt']/2./pi,'r-',label=r'$\mathrm{early} \,\, \mathrm{ISW}$')
+ax_Cl.semilogx(cl_lISW['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl_lISW['ell']*(cl_lISW['ell']+1.)*cl_lISW['tt']/2./pi,'y-',label=r'$\mathrm{late} \,\, \mathrm{ISW}$')
 #
 ax_Cl.legend(loc='right',bbox_to_anchor=(1.4, 0.5))
 fig.savefig('one_time_with_cl_2.pdf',bbox_inches='tight')
 #
-# call CLASS with Doppler, then plot and save
+# plot and save with additionally Doppler
 #
-M.struct_cleanup()
-M.empty()
-M.set(common_settings)
-M.set({'temperature contributions':'dop'})
-M.compute()
-cl = M.raw_cl(5000)
-#
-ax_Cl.semilogx(cl['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl['ell']*(cl['ell']+1.)*cl['tt']/2./math.pi,'g-',label=r'$\mathrm{Doppler}$')
+ax_Cl.semilogx(cl_Doppler['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl_Doppler['ell']*(cl_Doppler['ell']+1.)*cl_Doppler['tt']/2./pi,'g-',label=r'$\mathrm{Doppler}$')
 #
 ax_Cl.legend(loc='right',bbox_to_anchor=(1.4, 0.5))
 fig.savefig('one_time_with_cl_3.pdf',bbox_inches='tight')
 #
-# plot the total Cls that had been stored, and save
+# plot and save with additionally total Cls
 #
-ax_Cl.semilogx(cl_tot['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl_tot['ell']*(cl_tot['ell']+1.)*cl_tot['tt']/2./math.pi,'k-',label=r'$\mathrm{Total}$')
+ax_Cl.semilogx(cl_tot['ell']/tau_0_minus_tau_rec_hMpc,1.e10*cl_tot['ell']*(cl_tot['ell']+1.)*cl_tot['tt']/2./pi,'k-',label=r'$\mathrm{Total}$')
 #
 ax_Cl.legend(loc='right',bbox_to_anchor=(1.4, 0.5))
 fig.savefig('one_time_with_cl_tot.pdf',bbox_inches='tight')

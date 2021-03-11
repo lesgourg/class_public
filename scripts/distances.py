@@ -1,11 +1,12 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
 
+
 # import necessary modules
 # uncomment to get plots displayed in notebook
-#%matplotlib inline
+#get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +14,7 @@ from classy import Class
 
 
 # In[ ]:
+
 
 font = {'size'   : 20, 'family':'STIXGeneral'}
 axislabelfontsize='large'
@@ -22,6 +24,7 @@ matplotlib.mathtext.rcParams['legend.fontsize']='medium'
 
 # In[ ]:
 
+
 #Lambda CDM
 LCDM = Class()
 LCDM.set({'Omega_cdm':0.25,'Omega_b':0.05})
@@ -29,6 +32,7 @@ LCDM.compute()
 
 
 # In[ ]:
+
 
 #Einstein-de Sitter
 CDM = Class()
@@ -38,19 +42,21 @@ CDM.compute()
 # Just to cross-check that Omega_Lambda is negligible
 # (but not exactly zero because we neglected radiation)
 derived = CDM.get_current_derived_parameters(['Omega0_lambda'])
-print derived
-print "Omega_Lambda =",derived['Omega0_lambda']
+print (derived)
+print ("Omega_Lambda =",derived['Omega0_lambda'])
 
 
 # In[ ]:
+
 
 #Get background quantities and recover their names:
 baLCDM = LCDM.get_background()
 baCDM = CDM.get_background()
-baCDM.viewkeys()
+baCDM.keys()
 
 
 # In[ ]:
+
 
 #Get H_0 in order to plot the distances in this unit
 fLCDM = LCDM.Hubble(0)
@@ -58,6 +64,7 @@ fCDM = CDM.Hubble(0)
 
 
 # In[ ]:
+
 
 namelist = ['lum. dist.','comov. dist.','ang.diam.dist.']
 colours = ['b','g','r']
@@ -77,5 +84,6 @@ plt.tight_layout()
 
 
 # In[ ]:
+
 
 plt.savefig('distances.pdf')
