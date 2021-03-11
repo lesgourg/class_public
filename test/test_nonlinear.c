@@ -17,10 +17,11 @@ int main(int argc, char **argv) {
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+  if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
@@ -94,15 +95,15 @@ int main(int argc, char **argv) {
 
       if (background_at_tau(&ba,
                             nl.tau[index_tau],
-                            ba.short_info,
-                            ba.inter_normal,
+                            short_info,
+                            inter_normal,
                             &junk,
                             pvecback) == _FAILURE_) {
         printf("\n\nError in background_at_tau \n=>%s\n",ba.error_message);
         return _FAILURE_;
       }
 
-      z=ba.a_today/pvecback[ba.index_bg_a]-1.;
+      z=1./pvecback[ba.index_bg_a]-1.;
 
       for (index_k=0; index_k<nl.k_size; index_k++) {
 

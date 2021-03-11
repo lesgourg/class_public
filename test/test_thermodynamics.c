@@ -1,7 +1,7 @@
-/** @file class.c 
- * Julien Lesgourgues, 17.04.2011    
+/** @file class.c
+ * Julien Lesgourgues, 17.04.2011
  */
- 
+
 /* th main runs only the background and thermodynamics parts */
 
 #include "class.h"
@@ -17,11 +17,12 @@ int main(int argc, char **argv) {
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed sepctra */
+  struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error message */
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+  if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg) == _FAILURE_) {
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
 
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
   /********************************************/
   /***** output thermodynamics quantities *****/
   /********************************************/
-  
+
   int i;
   double tau;
   double z;
@@ -92,12 +93,10 @@ int main(int argc, char **argv) {
 
   for (z = th.z_table[th.tt_size-1]; z < 1000*th.z_table[th.tt_size-1]; z *= 2.) {
 
-    background_tau_of_z(&ba,z,&tau);
-    
-    background_at_tau(&ba,tau,ba.normal_info,ba.inter_normal,&last_index,pvecback);
+    background_at_z(&ba,z,normal_info,inter_normal,&last_index,pvecback);
 
-    thermodynamics_at_z(&ba,&th,z,th.inter_normal,&last_index,pvecback,pvecthermo);
-    
+    thermodynamics_at_z(&ba,&th,z,inter_normal,&last_index,pvecback,pvecthermo);
+
     printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,
 	   tau,
@@ -114,7 +113,7 @@ int main(int argc, char **argv) {
 	   pvecthermo[th.index_th_tau_d],
 	   pvecthermo[th.index_th_rate]
 	   );
-    
+
   }
 
   /****** all calculations done, now free the structures ******/
