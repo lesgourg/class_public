@@ -15,10 +15,11 @@ int main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct spectra sp;          /* for output spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */
 
-  if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+  if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init \n=>%s\n",errmsg);
     return _FAILURE_;
   }
@@ -63,12 +64,22 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&op) == _FAILURE_) {
+  if (distortions_init(&pr,&ba,&th,&pt,&pm,&sd) == _FAILURE_) {
+    printf("\n\nError in distortions_init \n=>%s\n",sd.error_message);
+    return _FAILURE_;
+  }
+
+  if (output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&sd,&op) == _FAILURE_) {
     printf("\n\nError in output_init \n=>%s\n",op.error_message);
     return _FAILURE_;
   }
 
   /****** all calculations done, now free the structures ******/
+
+  if (distortions_free(&sd) == _FAILURE_) {
+    printf("\n\nError in distortions_free \n=>%s\n",sd.error_message);
+    return _FAILURE_;
+  }
 
   if (lensing_free(&le) == _FAILURE_) {
     printf("\n\nError in lensing_free \n=>%s\n",le.error_message);

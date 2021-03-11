@@ -96,6 +96,7 @@ cdef class Class:
     cdef spectra sp
     cdef output op
     cdef lensing le
+    cdef distortions sd
     cdef file_content fc
 
     cpdef int computed # Flag to see if classy has already computed with the given pars
@@ -203,6 +204,8 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
+        if "distortions" in self.ncp:
+            distortions_free(&self.sd)
         if "lensing" in self.ncp:
             lensing_free(&self.le)
         if "spectra" in self.ncp:
@@ -292,9 +295,9 @@ cdef class Class:
             return True
         return False
 
-    def compute(self, level=["lensing"]):
+    def compute(self, level=["distortions"]):
         """
-        compute(level=["lensing"])
+        compute(level=["distortions"])
 
         Main function, execute all the _init methods for all desired modules.
         This is called in MontePython, and this ensures that the Class instance
@@ -354,7 +357,7 @@ cdef class Class:
         if "input" in level:
             if input_read_from_file(&self.fc, &self.pr, &self.ba, &self.th,
                                     &self.pt, &self.tr, &self.pm, &self.sp,
-                                    &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
+                                    &self.nl, &self.le, &self.sd, &self.op, errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
             self.ncp.add("input")
             # This part is done to list all the unread parameters, for debugging
@@ -427,6 +430,13 @@ cdef class Class:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
+
+        if "distortions" in level:
+            if distortions_init(&(self.pr), &(self.ba), &(self.th),
+                                &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.sd.error_message)
+            self.ncp.add("distortions")
 
         self.computed = True
 
@@ -886,6 +896,103 @@ cdef class Class:
                 for index_mu in xrange(mu_size):
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
+
+    # [NS] :: TODO :: check optimization
+    def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0):
+        """ General function to get the P(k,z) for ARBITRARY shapes of k,z
+            Additionally, it includes the functionality of selecting wether to use the non-linear parts or not,
+            and wether to use the cdm baryon power spectrum only
+            For Multi-Dimensional k-arrays, it assumes that one of the dimensions is the z-axis
+            This is handled by the z_axis_in_k_arr integer, as described in the source code """
+        # z_axis_in_k_arr specifies the integer position of the z_axis wihtin the n-dimensional k_arr
+        # Example: 1-d k_array -> z_axis_in_k_arr = 0
+        # Example: 3-d k_array with z_axis being the first axis -> z_axis_in_k_arr = 0
+        # Example: 3-d k_array with z_axis being the last axis  -> z_axis_in_k_arr = 2
+
+
+        # 1) Select the correct function
+        if nonlinear:
+            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
+                pk_function = self.pk_cb
+            else:
+                pk_function = self.pk
+        else:
+            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
+                pk_function = self.pk_cb_lin
+            else:
+                pk_function = self.pk_lin
+
+        # 2) Check if z array, or z value
+        if not isinstance(z,(list,np.ndarray)):
+            # Only single z value was passed -> k could still be an array of arbitrary dimension
+            if not isinstance(k,(list,np.ndarray)):
+                # Only single z value AND only single k value -> just return a value
+                # This iterates over ALL remaining dimensions
+                return pk_function(k,z)
+            else:
+                k_arr = np.array(k)
+                out_pk = np.empty(np.shape(k_arr))
+                iterator = np.nditer(k_arr,flags=['multi_index'])
+                while not iterator.finished:
+                    out_pk[iterator.multi_index] = pk_function(iterator[0],z)
+                    iterator.iternext()
+                # This iterates over ALL remaining dimensions
+                #for index_k in range(k_arr.shape[-1]):
+                #    out_pk[...,index_k] = pk_function(k_arr[...,index_k],z)
+                return out_pk
+
+        # 3) An array of z values was passed
+        k_arr = np.array(k)
+        z_arr = np.array(z)
+        if( z_arr.ndim != 1 ):
+            raise CosmoSevereError("Can only parse one-dimensional z-arrays, not multi-dimensional")
+
+        if( k_arr.ndim > 1 ):
+            # 3.1) If there is a multi-dimensional k-array of EQUAL lenghts
+            out_pk = np.empty(np.shape(k_arr))
+            # Bring the z_axis to the front
+            k_arr = np.moveaxis(k_arr, z_axis_in_k_arr, 0)
+            out_pk = np.moveaxis(out_pk, z_axis_in_k_arr, 0)
+            if( len(k_arr) != len(z_arr) ):
+                raise CosmoSevereError("Mismatching array lengths of the z-array")
+            for index_z in range(len(z_arr)):
+                iterator = np.nditer(k_arr[index_z],flags=['multi_index'])
+                while not iterator.finished:
+                    out_pk[index_z][iterator.multi_index] = pk_function(iterator[0],z[index_z])
+                    iterator.iternext()
+                # This iterates over ALL remaining dimensions
+                #for index_k in range(k_arr[index_z].shape[-1]):
+                #    out_pk[index_z][...,index_k] = pk_function(k_arr[index_z][...,index_k],z_arr[index_z])
+            # Move the z_axis back into position
+            k_arr = np.moveaxis(k_arr, 0, z_axis_in_k_arr)
+            out_pk = np.moveaxis(out_pk, 0, z_axis_in_k_arr)
+            return out_pk
+        else:
+            # 3.2) If there is a multi-dimensional k-array of UNEQUAL lenghts
+            if isinstance(k_arr[0],(list,np.ndarray)):
+                # A very special thing happened: The user passed a k array with UNEQUAL lengths of k arrays for each z
+                out_pk = []
+                for index_z in range(len(z_arr)):
+                    k_arr_at_z = np.array(k_arr[index_z])
+                    out_pk_at_z = np.empty(np.shape(k_arr_at_z))
+                    iterator = np.nditer(k_arr_at_z,flags=['multi_index'])
+                    while not iterator.finished:
+                        out_pk_at_z[iterator.multi_index] = pk_function(iterator[0],z[index_z])
+                        iterator.iternext()
+                    #for index_k in range(k_arr_at_z.shape[-1]):
+                    #   out_pk_at_z[...,index_k] = pk_function(k_arr_at_z[...,index_k],z_arr[index_z])
+                    out_pk.append(out_pk_at_z)
+                return out_pk
+
+            # 3.3) If there is a single-dimensional k-array
+            # The user passed a z-array, but only a 1-d k array
+            # Assume thus, that the k array should be reproduced for all z
+            out_pk = np.empty((len(z_arr),len(k_arr)))
+            for index_z in range(len(z_arr)):
+                for index_k in range(len(k_arr)):
+                    out_pk[index_z,index_k] = pk_function(k_arr[index_k],z_arr[index_z])
+            return out_pk
+
 
     def get_pk_and_k_and_z(self, nonlinear=True, only_clustering_species = False):
         """
@@ -1845,7 +1952,12 @@ cdef class Class:
                 value = self.nl.sigma8[self.nl.index_pk_cb]
             elif name == 'k_eq':
                 value = self.ba.a_eq*self.ba.H_eq
-
+            elif name == 'g_sd':
+                value = self.sd.sd_parameter_table[0]
+            elif name == 'y_sd':
+                value = self.sd.sd_parameter_table[1]
+            elif name == 'mu_sd':
+                value = self.sd.sd_parameter_table[2]
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
@@ -2153,3 +2265,21 @@ make        nonlinear_scale_cb(z, z_size)
 
     def Omega0_cdm(self):
         return self.ba.Omega0_cdm
+
+    def spectral_distortion_amplitudes(self):
+        if self.sd.type_size == 0:
+          raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
+        cdef np.ndarray[DTYPE_t, ndim=1] sd_type_amps = np.zeros(self.sd.type_size,'float64')
+        for i in range(self.sd.type_size):
+          sd_type_amps[i] = self.sd.sd_parameter_table[i]
+        return sd_type_amps
+
+    def spectral_distortion(self):
+        if self.sd.x_size == 0:
+          raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
+        cdef np.ndarray[DTYPE_t, ndim=1] sd_amp = np.zeros(self.sd.x_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sd_nu = np.zeros(self.sd.x_size,'float64')
+        for i in range(self.sd.x_size):
+          sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
+          sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
+        return sd_nu,sd_amp
