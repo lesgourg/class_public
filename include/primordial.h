@@ -348,7 +348,7 @@ extern "C" {
 
   int primordial_init(
                       struct precision  * ppr,
-                      struct perturbs   * ppt,
+                      struct perturbations   * ppt,
                       struct primordial * ppm
                       );
 
@@ -357,7 +357,7 @@ extern "C" {
                       );
 
   int primordial_indices(
-                         struct perturbs   * ppt,
+                         struct perturbations   * ppt,
                          struct primordial * ppm
                          );
 
@@ -369,7 +369,7 @@ extern "C" {
                               );
 
   int primordial_analytic_spectrum_init(
-                                        struct perturbs   * ppt,
+                                        struct perturbations   * ppt,
                                         struct primordial * ppm
                                         );
 
@@ -403,27 +403,27 @@ extern "C" {
                                    );
 
   int primordial_inflation_solve_inflation(
-                                           struct perturbs * ppt,
+                                           struct perturbations * ppt,
                                            struct primordial * ppm,
                                            struct precision * ppr
                                            );
 
   int primordial_inflation_analytic_spectra(
-                                            struct perturbs * ppt,
+                                            struct perturbations * ppt,
                                             struct primordial * ppm,
                                             struct precision * ppr,
                                             double * y_ini
                                             );
 
   int primordial_inflation_spectra(
-                                   struct perturbs * ppt,
+                                   struct perturbations * ppt,
                                    struct primordial * ppm,
                                    struct precision * ppr,
                                    double * y_ini
                                    );
 
   int primordial_inflation_one_wavenumber(
-                                          struct perturbs * ppt,
+                                          struct perturbations * ppt,
                                           struct primordial * ppm,
                                           struct precision * ppr,
                                           double * y_ini,
@@ -502,16 +502,16 @@ extern "C" {
                                   );
 
   int primordial_external_spectrum_init(
-                                        struct perturbs * ppt,
+                                        struct perturbations * ppt,
                                         struct primordial * ppm
                                         );
 
-  int primordial_output_titles(struct perturbs * ppt,
+  int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,
                                char titles[_MAXTITLESTRINGLENGTH_]
                                );
 
-  int primordial_output_data(struct perturbs * ppt,
+  int primordial_output_data(struct perturbations * ppt,
                              struct primordial * ppm,
                              int number_of_titles,
                              double *data);

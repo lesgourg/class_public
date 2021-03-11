@@ -225,8 +225,8 @@ class TestClass(unittest.TestCase):
             'perturbations_verbose': 1,
             'transfer_verbose': 1,
             'primordial_verbose': 1,
-            'spectra_verbose': 1,
-            'nonlinear_verbose': 1,
+            'harmonic_verbose': 1,
+            'fourier_verbose': 1,
             'lensing_verbose': 1,
             'output_verbose': 1}
         self.scenario = {}

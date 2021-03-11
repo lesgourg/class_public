@@ -32,9 +32,9 @@ struct thermohyrec{
 extern "C" {
 #endif
 
-  int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, struct thermo * pth, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy);
+  int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, struct thermodynamics * pth, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy);
 
-  int thermodynamics_hyrec_calculate_xe(struct thermo * pth, struct thermohyrec * phy,
+  int thermodynamics_hyrec_calculate_xe(struct thermodynamics * pth, struct thermohyrec * phy,
                                         double z, double H_in, double T_b, double T_gamma,
                                         double* x_e, double* dxe_dlna);
 
@@ -42,8 +42,8 @@ extern "C" {
 
   int thermodynamics_hyrec_free(struct thermohyrec* phy);
 
-  int hyrec_dx_H_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_H_dz);
-  int hyrec_dx_He_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_He_dz);
+  int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_H_dz);
+  int hyrec_dx_He_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_He_dz);
 
 #ifdef __cplusplus
 }

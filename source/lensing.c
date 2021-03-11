@@ -10,7 +10,7 @@
  *
  * The following functions can be called from other modules:
  *
- * -# lensing_init() at the beginning (but after spectra_init())
+ * -# lensing_init() at the beginning (but after harmonic_init())
  * -# lensing_cl_at_l() at any time for computing Cl_lensed at any l
  * -# lensing_free() at the end
  */
@@ -75,17 +75,17 @@ int lensing_cl_at_l(
  *
  * @param ppr Input: pointer to precision structure
  * @param ppt Input: pointer to perturbation structure (just in case, not used in current version...)
- * @param psp Input: pointer to spectra structure
- * @param pnl Input: pointer to nonlinear structure
+ * @param phr Input: pointer to harmonic structure
+ * @param pfo Input: pointer to fourier structure
  * @param ple Output: pointer to initialized lensing structure
  * @return the error status
  */
 
 int lensing_init(
                  struct precision * ppr,
-                 struct perturbs * ppt,
-                 struct spectra * psp,
-                 struct nonlinear * pnl,
+                 struct perturbations * ppt,
+                 struct harmonic * phr,
+                 struct fourier * pfo,
                  struct lensing * ple
                  ) {
 
@@ -134,11 +134,11 @@ int lensing_init(
   int l;
   double ll;
   double * cl_unlensed;  /* cl_unlensed[index_ct] */
-  double * cl_tt; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_te = NULL; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_ee = NULL; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_bb = NULL; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_tt; /* unlensed  cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
+  double * cl_te = NULL; /* unlensed  cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
+  double * cl_ee = NULL; /* unlensed  cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
+  double * cl_bb = NULL; /* unlensed  cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
+  double * cl_pp; /* potential cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
 
   double res,resX,lens;
   double resp, resm, lensp, lensm;
@@ -150,7 +150,7 @@ int lensing_init(
   double * sqrt5;
 
   double ** cl_md_ic; /* array with argument
-                         cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*phr->ct_size+index_ct] */
 
   double ** cl_md;    /* array with argument
                          cl_md[index_md][index_ct] */
@@ -181,7 +181,7 @@ int lensing_init(
   /** - initialize indices and allocate some of the arrays in the
       lensing structure */
 
-  class_call(lensing_indices(ppr,psp,ple),
+  class_call(lensing_indices(ppr,phr,ple),
              ple->error_message,
              ple->error_message);
 
@@ -416,7 +416,7 @@ int lensing_init(
               ple->error_message);
 
   class_alloc(cl_unlensed,
-              psp->ct_size*sizeof(double),
+              phr->ct_size*sizeof(double),
               ple->error_message);
 
 
@@ -443,31 +443,31 @@ int lensing_init(
               ple->error_message);
 
   class_alloc(cl_md_ic,
-              psp->md_size*sizeof(double *),
+              phr->md_size*sizeof(double *),
               ple->error_message);
 
   class_alloc(cl_md,
-              psp->md_size*sizeof(double *),
+              phr->md_size*sizeof(double *),
               ple->error_message);
 
-  for (index_md = 0; index_md < psp->md_size; index_md++) {
+  for (index_md = 0; index_md < phr->md_size; index_md++) {
 
-    if (psp->md_size > 1)
+    if (phr->md_size > 1)
 
       class_alloc(cl_md[index_md],
-                  psp->ct_size*sizeof(double),
+                  phr->ct_size*sizeof(double),
                   ple->error_message);
 
-    if (psp->ic_size[index_md] > 1)
+    if (phr->ic_size[index_md] > 1)
 
       class_alloc(cl_md_ic[index_md],
-                  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
+                  phr->ic_ic_size[index_md]*phr->ct_size*sizeof(double),
                   ple->error_message);
   }
 
   for (l=2; l<=ple->l_unlensed_max; l++) {
-    class_call(spectra_cl_at_l(psp,l,cl_unlensed,cl_md,cl_md_ic),
-               psp->error_message,
+    class_call(harmonic_cl_at_l(phr,l,cl_unlensed,cl_md,cl_md_ic),
+               phr->error_message,
                ple->error_message);
     cl_tt[l] = cl_unlensed[ple->index_lt_tt];
     cl_pp[l] = cl_unlensed[ple->index_lt_pp];
@@ -480,12 +480,12 @@ int lensing_init(
     }
   }
 
-  for (index_md = 0; index_md < psp->md_size; index_md++) {
+  for (index_md = 0; index_md < phr->md_size; index_md++) {
 
-    if (psp->md_size > 1)
+    if (phr->md_size > 1)
       free(cl_md[index_md]);
 
-    if (psp->ic_size[index_md] > 1)
+    if (phr->ic_size[index_md] > 1)
       free(cl_md_ic[index_md]);
 
   }
@@ -825,21 +825,21 @@ int lensing_free(
  * This routine defines indices and allocates tables in the lensing structure
  *
  * @param ppr  Input: pointer to precision structure
- * @param psp  Input: pointer to spectra structure
+ * @param phr  Input: pointer to harmonic structure
  * @param ple  Input/output: pointer to lensing structure
  * @return the error status
  */
 
 int lensing_indices(
                     struct precision * ppr,
-                    struct spectra * psp,
+                    struct harmonic * phr,
                     struct lensing * ple
                     ){
 
   int index_l;
 
   double ** cl_md_ic; /* array with argument
-                         cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*phr->ct_size+index_ct] */
 
   double ** cl_md;    /* array with argument
                          cl_md[index_md][index_ct] */
@@ -849,97 +849,97 @@ int lensing_indices(
 
   /* indices of all Cl types (lensed and unlensed) */
 
-  if (psp->has_tt == _TRUE_) {
+  if (phr->has_tt == _TRUE_) {
     ple->has_tt = _TRUE_;
-    ple->index_lt_tt=psp->index_ct_tt;
+    ple->index_lt_tt=phr->index_ct_tt;
   }
   else {
     ple->has_tt = _FALSE_;
   }
 
-  if (psp->has_ee == _TRUE_) {
+  if (phr->has_ee == _TRUE_) {
     ple->has_ee = _TRUE_;
-    ple->index_lt_ee=psp->index_ct_ee;
+    ple->index_lt_ee=phr->index_ct_ee;
   }
   else {
     ple->has_ee = _FALSE_;
   }
 
-  if (psp->has_te == _TRUE_) {
+  if (phr->has_te == _TRUE_) {
     ple->has_te = _TRUE_;
-    ple->index_lt_te=psp->index_ct_te;
+    ple->index_lt_te=phr->index_ct_te;
   }
   else {
     ple->has_te = _FALSE_;
   }
 
-  if (psp->has_bb == _TRUE_) {
+  if (phr->has_bb == _TRUE_) {
     ple->has_bb = _TRUE_;
-    ple->index_lt_bb=psp->index_ct_bb;
+    ple->index_lt_bb=phr->index_ct_bb;
   }
   else {
     ple->has_bb = _FALSE_;
   }
 
-  if (psp->has_pp == _TRUE_) {
+  if (phr->has_pp == _TRUE_) {
     ple->has_pp = _TRUE_;
-    ple->index_lt_pp=psp->index_ct_pp;
+    ple->index_lt_pp=phr->index_ct_pp;
   }
   else {
     ple->has_pp = _FALSE_;
   }
 
-  if (psp->has_tp == _TRUE_) {
+  if (phr->has_tp == _TRUE_) {
     ple->has_tp = _TRUE_;
-    ple->index_lt_tp=psp->index_ct_tp;
+    ple->index_lt_tp=phr->index_ct_tp;
   }
   else {
     ple->has_tp = _FALSE_;
   }
 
-  if (psp->has_dd == _TRUE_) {
+  if (phr->has_dd == _TRUE_) {
     ple->has_dd = _TRUE_;
-    ple->index_lt_dd=psp->index_ct_dd;
+    ple->index_lt_dd=phr->index_ct_dd;
   }
   else {
     ple->has_dd = _FALSE_;
   }
 
-  if (psp->has_td == _TRUE_) {
+  if (phr->has_td == _TRUE_) {
     ple->has_td = _TRUE_;
-    ple->index_lt_td=psp->index_ct_td;
+    ple->index_lt_td=phr->index_ct_td;
   }
   else {
     ple->has_td = _FALSE_;
   }
 
-  if (psp->has_ll == _TRUE_) {
+  if (phr->has_ll == _TRUE_) {
     ple->has_ll = _TRUE_;
-    ple->index_lt_ll=psp->index_ct_ll;
+    ple->index_lt_ll=phr->index_ct_ll;
   }
   else {
     ple->has_ll = _FALSE_;
   }
 
-  if (psp->has_tl == _TRUE_) {
+  if (phr->has_tl == _TRUE_) {
     ple->has_tl = _TRUE_;
-    ple->index_lt_tl=psp->index_ct_tl;
+    ple->index_lt_tl=phr->index_ct_tl;
   }
   else {
     ple->has_tl = _FALSE_;
   }
 
-  ple->lt_size = psp->ct_size;
+  ple->lt_size = phr->ct_size;
 
   /* number of multipoles */
 
-  ple->l_unlensed_max = psp->l_max_tot;
+  ple->l_unlensed_max = phr->l_max_tot;
 
   ple->l_lensed_max = ple->l_unlensed_max - ppr->delta_l_max;
 
-  for (index_l=0; (index_l < psp->l_size_max) && (psp->l[index_l] <= ple->l_lensed_max); index_l++);
+  for (index_l=0; (index_l < phr->l_size_max) && (phr->l[index_l] <= ple->l_lensed_max); index_l++);
 
-  if (index_l < psp->l_size_max) index_l++; /* one more point in order to be able to interpolate till ple->l_lensed_max */
+  if (index_l < phr->l_size_max) index_l++; /* one more point in order to be able to interpolate till ple->l_lensed_max */
 
   ple->l_size = index_l+1;
 
@@ -947,7 +947,7 @@ int lensing_indices(
 
   for (index_l=0; index_l < ple->l_size; index_l++) {
 
-    ple->l[index_l] = psp->l[index_l];
+    ple->l[index_l] = phr->l[index_l];
 
   }
 
@@ -964,42 +964,42 @@ int lensing_indices(
   /* fill with unlensed cls */
 
   class_alloc(cl_md_ic,
-              psp->md_size*sizeof(double *),
+              phr->md_size*sizeof(double *),
               ple->error_message);
 
   class_alloc(cl_md,
-              psp->md_size*sizeof(double *),
+              phr->md_size*sizeof(double *),
               ple->error_message);
 
-  for (index_md = 0; index_md < psp->md_size; index_md++) {
+  for (index_md = 0; index_md < phr->md_size; index_md++) {
 
-    if (psp->md_size > 1)
+    if (phr->md_size > 1)
 
       class_alloc(cl_md[index_md],
-                  psp->ct_size*sizeof(double),
+                  phr->ct_size*sizeof(double),
                   ple->error_message);
 
-    if (psp->ic_size[index_md] > 1)
+    if (phr->ic_size[index_md] > 1)
 
       class_alloc(cl_md_ic[index_md],
-                  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
+                  phr->ic_ic_size[index_md]*phr->ct_size*sizeof(double),
                   ple->error_message);
   }
 
   for (index_l=0; index_l<ple->l_size; index_l++) {
 
-    class_call(spectra_cl_at_l(psp,ple->l[index_l],&(ple->cl_lens[index_l*ple->lt_size]),cl_md,cl_md_ic),
-               psp->error_message,
+    class_call(harmonic_cl_at_l(phr,ple->l[index_l],&(ple->cl_lens[index_l*ple->lt_size]),cl_md,cl_md_ic),
+               phr->error_message,
                ple->error_message);
 
   }
 
-  for (index_md = 0; index_md < psp->md_size; index_md++) {
+  for (index_md = 0; index_md < phr->md_size; index_md++) {
 
-    if (psp->md_size > 1)
+    if (phr->md_size > 1)
       free(cl_md[index_md]);
 
-    if (psp->ic_size[index_md] > 1)
+    if (phr->ic_size[index_md] > 1)
       free(cl_md_ic[index_md]);
 
   }
@@ -1017,11 +1017,11 @@ int lensing_indices(
   class_alloc(ple->l_max_lt,ple->lt_size*sizeof(double),ple->error_message);
   for (index_lt = 0; index_lt < ple->lt_size; index_lt++) {
     ple->l_max_lt[index_lt]=0.;
-    for (index_md = 0; index_md < psp->md_size; index_md++) {
-      ple->l_max_lt[index_lt]=MAX(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][index_lt]);
+    for (index_md = 0; index_md < phr->md_size; index_md++) {
+      ple->l_max_lt[index_lt]=MAX(ple->l_max_lt[index_lt],phr->l_max_ct[index_md][index_lt]);
 
       if ((ple->has_bb == _TRUE_) && (ple->has_ee == _TRUE_) && (index_lt == ple->index_lt_bb)) {
-        ple->l_max_lt[index_lt]=MAX(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][ple->index_lt_ee]);
+        ple->l_max_lt[index_lt]=MAX(ple->l_max_lt[index_lt],phr->l_max_ct[index_md][ple->index_lt_ee]);
       }
 
     }

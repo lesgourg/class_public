@@ -63,7 +63,7 @@ common_settings = {# which output? transfer functions only
                    'k_per_decade_for_pk':k_per_decade,
                    'k_per_decade_for_bao':k_per_decade,
                    'k_min_tau0':k_min_tau0, # this value controls the minimum k value in the figure
-                   'perturb_sampling_stepsize':'0.05',
+                   'perturbations_sampling_stepsize':'0.05',
                    'P_k_max_1/Mpc':P_k_max_inv_Mpc,
                    'compute damping scale':'yes', # needed to output and plot Silk damping scale
                    'gauge':'newtonian'}

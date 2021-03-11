@@ -195,15 +195,15 @@ extern "C" {
   /* Allocate, define indeces for and free injection tables */
   int injection_init(struct precision * ppr,
                      struct background* pba,
-                     struct thermo* pth);
+                     struct thermodynamics* pth);
 
-  int injection_indices(struct thermo* pth);
+  int injection_indices(struct thermodynamics* pth);
 
-  int injection_free(struct thermo* pth);
+  int injection_free(struct thermodynamics* pth);
 
   /* Main functions */
   int injection_calculate_at_z(struct background* pba,
-                               struct thermo* pth,
+                               struct thermodynamics* pth,
                                double x,
                                double z,
                                double Tmat,
@@ -217,7 +217,7 @@ extern "C" {
                                          double x,
                                          double z);
 
-  int injection_deposition_at_z(struct thermo* pth,
+  int injection_deposition_at_z(struct thermodynamics* pth,
                                 double z);
 
   /* injection functions */

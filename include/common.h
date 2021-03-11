@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.10.8"
+#define _VERSION_ "v3.0.0"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -328,12 +328,12 @@ printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->O
 
 /* Forward-Declare the structs of CLASS */
 struct background;
-struct thermo;
-struct perturbs;
-struct transfers;
+struct thermodynamics;
+struct perturbations;
+struct transfer;
 struct primordial;
-struct spectra;
-struct nonlinear;
+struct harmonic;
+struct fourier;
 struct lensing;
 struct distortions;
 struct output;
