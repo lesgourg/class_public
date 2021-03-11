@@ -4,8 +4,6 @@
 #define __PERTURBATIONS__
 
 #include "thermodynamics.h"
-#include "evolver_ndf15.h"
-#include "evolver_rkck.h"
 
 #define _scalars_ ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars))
 #define _vectors_ ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors))
@@ -229,46 +227,47 @@ struct perturbs
 
   //@{
 
-  short has_source_t;           /**< do we need source for CMB temperature? */
-  short has_source_p;           /**< do we need source for CMB polarization? */
-  short has_source_delta_m;     /**< do we need source for delta of total matter? */
-  short has_source_delta_cb;    /**< do we ALSO need source for delta of ONLY cdm and baryon? */
-  short has_source_delta_tot;   /**< do we need source for delta total? */
-  short has_source_delta_g;     /**< do we need source for delta of gammas? */
-  short has_source_delta_b;     /**< do we need source for delta of baryons? */
-  short has_source_delta_cdm;   /**< do we need source for delta of cold dark matter? */
-  short has_source_delta_dcdm;  /**< do we need source for delta of DCDM? */
-  short has_source_delta_fld;   /**< do we need source for delta of dark energy? */
-  short has_source_delta_scf;   /**< do we need source for delta from scalar field? */
-  short has_source_delta_dr;    /**< do we need source for delta of decay radiation? */
-  short has_source_delta_ur;    /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_t;          /**< do we need source for CMB temperature? */
+  short has_source_p;          /**< do we need source for CMB polarization? */
+  short has_source_delta_m;    /**< do we need source for delta of total matter? */
+  short has_source_delta_cb;   /**< do we ALSO need source for delta of ONLY cdm and baryon? */
+  short has_source_delta_tot;  /**< do we need source for delta total? */
+  short has_source_delta_g;    /**< do we need source for delta of gammas? */
+  short has_source_delta_b;    /**< do we need source for delta of baryons? */
+  short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
   short has_source_delta_idr;   /**< do we need source for delta of interacting dark radiation? */
   short has_source_delta_idm_dr;/**< do we need source for delta of interacting dark matter (with dr)? */
-  short has_source_delta_ncdm;  /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_theta_m;     /**< do we need source for theta of total matter? */
-  short has_source_theta_cb;    /**< do we ALSO need source for theta of ONLY cdm and baryon? */
-  short has_source_theta_tot;   /**< do we need source for theta total? */
-  short has_source_theta_g;     /**< do we need source for theta of gammas? */
-  short has_source_theta_b;     /**< do we need source for theta of baryons? */
-  short has_source_theta_cdm;   /**< do we need source for theta of cold dark matter? */
-  short has_source_theta_dcdm;  /**< do we need source for theta of DCDM? */
-  short has_source_theta_fld;   /**< do we need source for theta of dark energy? */
-  short has_source_theta_scf;   /**< do we need source for theta of scalar field? */
-  short has_source_theta_dr;    /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_ur;    /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_idr;   /**< do we need source for theta of interacting dark radiation? */
-  short has_source_theta_idm_dr;/**< do we need source for theta of interacting dark matter (with dr)? */
-  short has_source_theta_ncdm;  /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_phi;         /**< do we need source for metric fluctuation phi? */
-  short has_source_phi_prime;   /**< do we need source for metric fluctuation phi'? */
-  short has_source_phi_plus_psi;/**< do we need source for metric fluctuation (phi+psi)? */
-  short has_source_psi;         /**< do we need source for metric fluctuation psi? */
-  short has_source_h;           /**< do we need source for metric fluctuation h? */
-  short has_source_h_prime;     /**< do we need source for metric fluctuation h'? */
-  short has_source_eta;         /**< do we need source for metric fluctuation eta? */
-  short has_source_eta_prime;   /**< do we need source for metric fluctuation eta'? */
-  short has_source_H_T_Nb_prime;/**< do we need source for metric fluctuation H_T_Nb'? */
-  short has_source_k2gamma_Nb;  /**< do we need source for metric fluctuation gamma in Nbody gauge? */
+  short has_source_delta_dcdm;  /**< do we need source for delta of DCDM? */
+  short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
+  short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
+  short has_source_delta_dr;   /**< do we need source for delta of decay radiation? */
+  short has_source_delta_ur;   /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_theta_m;    /**< do we need source for theta of total matter? */
+  short has_source_theta_cb;   /**< do we ALSO need source for theta of ONLY cdm and baryon? */
+  short has_source_theta_tot;  /**< do we need source for theta total? */
+  short has_source_theta_g;    /**< do we need source for theta of gammas? */
+  short has_source_theta_b;    /**< do we need source for theta of baryons? */
+  short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
+  short has_source_theta_idr;  /**< do we need source for theta of interacting dark radiation? */
+  short has_source_theta_idm_dr; /**< do we need source for theta of interacting dark matter (with dr)? */
+  short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
+  short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
+  short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
+  short has_source_theta_dr;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_phi;        /**< do we need source for metric fluctuation phi? */
+  short has_source_phi_prime;  /**< do we need source for metric fluctuation phi'? */
+  short has_source_phi_plus_psi; /**< do we need source for metric fluctuation (phi+psi)? */
+  short has_source_psi;        /**< do we need source for metric fluctuation psi? */
+  short has_source_h;          /**< do we need source for metric fluctuation h? */
+  short has_source_h_prime;    /**< do we need source for metric fluctuation h'? */
+  short has_source_eta;        /**< do we need source for metric fluctuation eta? */
+  short has_source_eta_prime;  /**< do we need source for metric fluctuation eta'? */
+  short has_source_H_T_Nb_prime; /**< do we need source for metric fluctuation H_T_Nb'? */
+  short has_source_k2gamma_Nb; /**< do we need source for metric fluctuation gamma in Nbody gauge? */
+
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -900,7 +899,8 @@ extern "C" {
                                   double * y,
                                   double a_prime_over_a,
                                   double * pvecthermo,
-                                  struct perturb_workspace * ppw
+                                  struct perturb_workspace * ppw,
+                                  ErrorMsg error_message
                                   );
 
   int perturb_rsa_idr_delta_and_theta(
@@ -912,7 +912,8 @@ extern "C" {
                                   double * y,
                                   double a_prime_over_a,
                                   double * pvecthermo,
-                                  struct perturb_workspace * ppw
+                                  struct perturb_workspace * ppw,
+                                  ErrorMsg error_message
                                   );
 
 #ifdef __cplusplus
