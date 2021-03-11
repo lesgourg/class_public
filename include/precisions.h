@@ -10,14 +10,24 @@
  */
 class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
 /**
- * Default stepsize in conformal time for the background integration,
- * in units for the conformal Hubble time. dtau = back_integration_stepsize/aH
+ * Number of background integration steps that are stored in the output vector
  */
-class_precision_parameter(back_integration_stepsize,double,7.e-3)
+class_precision_parameter(background_Nloga,int,3000)
+/**
+ * Evolver to be used for thermodynamics (rk, ndf15)
+ */
+class_type_parameter(background_evolver,int,enum evolver_type,ndf15)
 /**
  * Tolerance of the background integration, giving the allowed relative integration error.
+ * (used by both evolvers)
  */
-class_precision_parameter(tol_background_integration,double,1.e-2)
+class_precision_parameter(tol_background_integration,double,1.e-10)
+/**
+ * Only relevant for rk evolver: the default integration step is given
+ * by this number multiplied by the timescale defined in
+ * background_timescale (given by the sampling step)
+ */
+class_precision_parameter(background_integration_stepsize,double,0.5)
 /**
  * Tolerance of the deviation of \f$ \Omega_r \f$ from 1 for which to start integration:
  * The starting point of integration will be chosen,
