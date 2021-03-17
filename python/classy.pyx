@@ -751,6 +751,11 @@ cdef class Class:
                     requested_index_types.append(self.pt.index_tp_delta_m)
                     source_names.append("delta_m")
 
+
+                if self.pt.has_source_delta_cb:
+                    requested_index_types.append(self.pt.index_tp_delta_cb)
+                    source_names.append("delta_cb")
+
                 '''
                 if self.pt.has_source_delta_g:
                     index_type_list.append(self.pt.index_tp_delta_g)
@@ -831,12 +836,12 @@ cdef class Class:
                             index_tp_x,
                             k_NN_size, tau_size, NN_prediction[i, :, :]
                             )
-                if self.pt.has_source_delta_cb:
-                    self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_delta_cb,
-                            k_NN_size, tau_size, NN_prediction[source_names.index("delta_m"), :, :]
-                            )
+                #if self.pt.has_source_delta_cb:
+                #    self.overwrite_source_function(
+                #            index_md, index_ic,
+                #            self.pt.index_tp_delta_cb,
+                #            k_NN_size, tau_size, NN_prediction[source_names.index("delta_m"), :, :]
+                #            )
 
 
                 ############################################################
@@ -3095,6 +3100,8 @@ make        nonlinear_scale_cb(z, z_size)
             indices["p"] = self.pt.index_tp_p
         if self.pt.has_source_delta_m:
             indices["delta_m"] = self.pt.index_tp_delta_m
+        if self.pt.has_source_delta_cb:
+            indices["delta_cb"] = self.pt.index_tp_delta_cb
         if self.pt.has_source_delta_g:
             indices["delta_g"] = self.pt.index_tp_delta_g
         if self.pt.has_source_theta_m:
@@ -3237,6 +3244,7 @@ make        nonlinear_scale_cb(z, z_size)
             "t2_reio":        self.pt.index_tp_t2_reio,
             "phi_plus_psi":   self.pt.index_tp_phi_plus_psi,
             "delta_m":        self.pt.index_tp_delta_m,
+            "delta_cb":       self.pt.index_tp_delta_cb,
             "p":              self.pt.index_tp_p,
         }
         return mapping[name]

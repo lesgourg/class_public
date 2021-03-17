@@ -8,9 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .model import Model
-from . import common
-from .. import utils
+from classynet.models.model import Model
+from classynet.models import common
+from classynet import utils
 
 THESIS_MODE = False
 
@@ -116,8 +116,8 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
 
     tf_cb = tf_master*growth_cb/growth_k0;
     tf_cbnu = tf_master*growth_cbnu/growth_k0;
-    # return tf_cb, tf_cbnu
-    return tf_cbnu
+    return tf_cb, tf_cbnu
+    #return tf_cbnu
 
 
 class Timer:
@@ -215,7 +215,7 @@ class Net_phi_plus_psi(Model):
                 nn.PReLU(),
                 nn.Linear(20 + 100, 300),
                 nn.PReLU(),
-                nn.Linear(300, 2 * n_k),
+                nn.Linear(300, 3*n_k),
                 )
 
         if hp is None:
@@ -267,7 +267,7 @@ class Net_phi_plus_psi(Model):
         Omega_Lambda = 1.0 - Omega_b - Omega_cdm - Omega_k
 
         timer.start("tfacc")
-        approx = TFacc(self.k, z_d, Omega_m, Omega_b, Omega_ncdm, Omega_Lambda, D, H, h, rs_drag, k_eq, a_eq, z)
+        approx_cb, approx = TFacc(self.k, z_d, Omega_m, Omega_b, Omega_ncdm, Omega_Lambda, D, H, h, rs_drag, k_eq, a_eq, z)
 
         # if True:
         #     import matplotlib
@@ -280,6 +280,7 @@ class Net_phi_plus_psi(Model):
         timer.stop("tfacc")
         timer.start("approx normalize")
         approx /= approx[:, [0]]
+        approx_cb /= approx_cb[:,[0]]
         timer.stop("approx normalize")
 
         # approx = fitfunc(Omega_m, Omega_b, Omega_ncdm, 3, Omega_Lambda, h, rs_drag, x["z"], self.k)
@@ -289,7 +290,7 @@ class Net_phi_plus_psi(Model):
         Omega_m_tau = x["raw_Omega_m"]
 
         timer.start("create approx_stack")
-        approx_stack = torch.empty((len(x["tau"]), len(self.k), 2), device=self.k.device)
+        approx_stack = torch.empty((len(x["tau"]), len(self.k), 3), device=self.k.device)
         timer.stop("create approx_stack")
 
         # for some reason this isn't working properly yet
@@ -309,6 +310,10 @@ class Net_phi_plus_psi(Model):
         timer.start("copy delta_m")
         approx_stack[:, :, 1] = approx_delta_m
         timer.stop("copy delta_m")
+
+        approx_delta_cb = -alpha.item() * approx_cb /normalization * \
+                (self.k2 + 3.*Omega_k*(h/2997.9)**2)
+        approx_stack[:, :, 2] = approx_delta_cb
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
         tau = x["tau"]
@@ -454,8 +459,9 @@ class Net_phi_plus_psi(Model):
 
             idx_k_min = torch.searchsorted(self.k, self.k_min)
 
-            p_phipsi = prediction[:, : 0]
+            p_phipsi = prediction[:, :, 0]
             p_dm     = prediction[:, :, 1]
+            p_dcm    = prediction[:, :, 2]
 
             # interpolation parameter
             x = (k_min - self.k[idx_k_min - 1]) / (self.k[idx_k_min] - self.k[idx_k_min - 1])
@@ -464,12 +470,17 @@ class Net_phi_plus_psi(Model):
             p_dm_log = torch.log(-p_dm)
             p_dm_log_interp = x * p_dm_log[:, idx_k_min - 1] + (1 - x) * p_dm_log[:, idx_k_min]
             p_dm_interp = -torch.exp(p_dm_log_interp)
+            
+            # do the same for delta_cb
+            p_dcb_log = torch.log(-p_dcb)
+            p_dcb_log_interp = x * p_dcb_log[:, idx_k_min -1] + (1 - x) * p_dcb_log[:, ixd_k_min]
+            p_dcb_interp = -torch.exp(p_dcb_loginterp)
 
             # similarly for phi+psi (albeit without log)
             p_phipsi_interp = x * p_phipsi[:, idx_k_min - 1] + (1 - x) * p_phipsi[:, idx_k_min]
 
             prediction_eff = prediction[self.k >= self.k_min]
-            prediction_eff = torch.insert(prediction, 0, torch.stack((p_phipsi_interp, p_dm_interp), axis=1), 1)
+            prediction_eff = torch.insert(prediction, 0, torch.stack((p_phipsi_interp, p_dm_interp, p_dcb_interp), axis=1), 1)
 
             truth_eff = truth[self.k >= self.k_min]
             # in the training data, the value for k_min can be found at [idx_k_min - 1] because

@@ -7,8 +7,8 @@ import numpy as np
 import torch
 from tabulate import tabulate
 
-from ..timer import Timer
-from .. import training_dashboard
+from classynet.timer import Timer
+from classynet import training_dashboard
 
 class Phase(enum.Enum):
     Training = 0

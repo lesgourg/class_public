@@ -1,7 +1,7 @@
-from .source_function_plotter import SourceFunctionPlotter
-from .triangle_error_plotter import TrianglePlotter
-from .spectra_plotter import SpectraPlotter
-from .history_plotter import HistoryPlotter
+from classynet.source_function_plotter import SourceFunctionPlotter
+from classynet.triangle_error_plotter import TrianglePlotter
+from classynet.spectra_plotter import SpectraPlotter
+from classynet.history_plotter import HistoryPlotter
 
 class Plotter:
 

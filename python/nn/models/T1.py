@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .model import Model
-from . import common
+from classynet.models.model import Model
+from classynet.models import common
 
 class Net_ST1(Model):
 

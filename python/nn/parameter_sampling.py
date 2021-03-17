@@ -23,7 +23,8 @@ class ParamDomain:
     def load(self, path):
         raise NotImplementedError
 
-OMEGA_NCDM_MIN = 8.147986e-5
+#OMEGA_NCDM_MIN = 8.147986e-5
+OMEGA_NCDM_MIN = 1.70698158e-5
 
 class EllipsoidDomain(ParamDomain):
 
@@ -113,7 +114,7 @@ class EllipsoidDomain(ParamDomain):
         print("fraction of kept points (N_ur only):", ratio_N_ur)
 
         omega_ncdm_large_enough = samples[:, self.index("omega_ncdm")] > OMEGA_NCDM_MIN
-        ratio_ncdm = omega_ncdm_large_enough / len(samples)
+        ratio_ncdm = omega_ncdm_large_enough.sum() / len(samples)
         print("fraction of kept points (omega_ncdm only):", ratio_ncdm)
 
         fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < -1./3.

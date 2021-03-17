@@ -1,12 +1,18 @@
 import os
 # from ..parameter_domain import EllipsoidDomain
-from ..workspace import Workspace, GenerationalWorkspace
-from ..parameter_sampling import DefaultParamDomain, EllipsoidDomain
+from classynet.workspace import Workspace, GenerationalWorkspace
+from classynet.parameter_sampling import DefaultParamDomain, EllipsoidDomain
 
 # from classynet.parameter_domain import EllipsoidDomain
 # from classynet.workspace import Workspace
 import classy
 import numpy as np
+
+import torch
+print("cuda_version:",torch.version.cuda)
+print("available:",torch.cuda.is_available())
+print("backends:", torch.backends.cudnn.enabled)
+print("torch_version:",torch.__version__)
 
 ## Here, all the fixed parameters are specified
 FIXED = {
@@ -14,6 +20,8 @@ FIXED = {
 
     # "N_ur": 2.0328,
     # "m_ncdm": 0.06,
+    "non linear": "halofit",
+    "lensing": "yes",
     "N_ncdm": 1,
     "deg_ncdm": 3,
     "Omega_Lambda": 0,
@@ -31,7 +39,7 @@ FIXED_TRAINING_ONLY = {
     # to avoid interpolation artifacts at the edges
     "k_min_tau0": 1e-4,
     # precision parameters
-    "tol_background_integration":     1.e-3,
+    "tol_background_integration":     1.e-12,
     "tol_perturb_integration":        1.e-6,
     "reionization_optical_depth_tol": 1.e-5,
 }
@@ -45,8 +53,8 @@ FIXED_TRAINING_ONLY = {
 # ## The domain on which the NNs should be trained is specified as a dict: name -> (min, max)
 # DOMAIN = {p: (mu - 5 * sigma, mu + 5 * sigma) for p, (mu, sigma) in PLANCK.items()}
 
-# WORKSPACE_DIR = "/scratch/work/samaras/delete_me/example/"
-WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
+WORKSPACE_DIR = "/scratch/work/stadtmann/CLASSnet_Workspace/CLASSnet_Workspace_1/"
+#WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
 
 # IF THIS IS GONE THEN UNDO IS FINISHED
 generations = {
@@ -62,10 +70,11 @@ generations = {
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
 
 assert isinstance(workspace, Workspace)
-
+'''
 # domain = DefaultParamDomain(workspace.data / "base2018TTTEEE.covmat", sigma=5)
 
 pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
+
 domain = EllipsoidDomain.from_paths(
     bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
     covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
@@ -75,19 +84,20 @@ domain = EllipsoidDomain.from_paths(
 )
 
 # domain.save(workspace.domain_descriptor)
-# domain.sample_save(training_count=10000, validation_count=1000, path=workspace.data / "samples.h5")
+domain.sample_save(training_count=10000, validation_count=1000, path=workspace.data / "samples.h5")
+'''
 # import sys; sys.exit(0)
 
-training, validation = workspace.loader().cosmological_parameters()
+#training, validation = workspace.loader().cosmological_parameters()
+# Generating training data
 
-# # Generating training data
-# workspace.generator().generate_data_for(
-#     fixed=FIXED,
-#     training=training,
-#     validation=validation,
-#     fixed_training_only=FIXED_TRAINING_ONLY,
-#     processes=9)
-# workspace.generator().generate_k_array()
+#workspace.generator().generate_data_for(
+#    fixed=FIXED,
+#    training=training,
+#    validation=validation,
+#    fixed_training_only=FIXED_TRAINING_ONLY,
+#    processes=32)
+#workspace.generator().generate_k_array()
 # import sys; sys.exit(0)
 
 # # Generating training data
@@ -99,13 +109,13 @@ training, validation = workspace.loader().cosmological_parameters()
 #     processes=9)
 # import sys; sys.exit(0)
 
-# workspace.generator().write_manifest(FIXED, training.keys())
+#workspace.generator().write_manifest(FIXED, training.keys())
 
 # workspace.generator().generate_data(FIXED DOMAIN, training=5, validation=2, processes=8)
-# workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=2000, processes=18)
+#workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=1000, processes=32)
 
 # Training: any subset of models can be trained at once
-# workspace.trainer().train_all_models(workers=36)
+workspace.trainer().train_all_models(workers=36)
 
 # from ..models import Net_ST0_Reco, Net_ST0_ISW, Net_ST2_Reco, Net_ST2_Reio
 # workspace.trainer().train_models([
@@ -131,41 +141,41 @@ training, validation = workspace.loader().cosmological_parameters()
 # workspace.trainer().train_model(Net_ST0_ISW, workers=18)
 # import sys; sys.exit(0)
 
-ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
+#ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m","delta_cb"]
 
 # ## Run CLASS for n cosmologies with and without NNs and produce error plots
 # workspace = workspace.sub("fix delta_m")
 # tester = workspace.tester()
 # tester.test(5, seed=1234)
-workspace = workspace.sub("pk_test")
-plotter = workspace.plotter()
-plotter.plot_spectra(include_params=False)
+#workspace = workspace.sub("pk_test")
+#plotter = workspace.plotter()
+#plotter.plot_spectra(include_params=False)
 # plotter.plot_source_function_slice("t2_reco", marker=".", xlim=(1e-5, 1e-3))
 # plotter.plot_source_function_slice_tau("t2_reco")
 # plotter.plot_source_function_slice("t2_reco")
 # plotter.plot_source_functions()
 # plotter.plot_scatter_errors()
 # plotter.plot_training_histories()
-import sys; sys.exit(0)
+#import sys; sys.exit(0)
 
-bm_plotter = workspace.benchmark_plotter()
-bm_plotter.plot_perturbation_module()
-import sys; sys.exit(0)
+#bm_plotter = workspace.benchmark_plotter()
+#bm_plotter.plot_perturbation_module()
+#import sys; sys.exit(0)
 
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
 # plotter.plot_training_histories()
 
-ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
+#ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m", "delta_cb"]
 
 # Compute Cl's with all source functions computed by CLASS _except_ one
-if True:
-    import matplotlib
-    matplotlib.use("agg")
-    for i, select in enumerate(["t0_isw"]):
-        subspace = workspace.sub("only_{}".format(select))
-        cheat = set(ALL_SOURCES) - set([select])
-        subspace.tester().test(1000, cheat=cheat, seed=1337)
-        plotter = subspace.plotter()
-        plotter.plot_spectra(include_params=True)
-        # plotter.plot_source_functions()
+#if True:
+#    import matplotlib
+#    matplotlib.use("agg")
+#    for i, select in enumerate(["t0_isw"]):
+#        subspace = workspace.sub("only_{}".format(select))
+#        cheat = set(ALL_SOURCES) - set([select])
+#        subspace.tester().test(1000, cheat=cheat, seed=1337)
+#        plotter = subspace.plotter()
+#        plotter.plot_spectra(include_params=True)
+#        plotter.plot_source_functions()

@@ -8,9 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .model import Model
-from . import common
-from .. import time_slicing
+from classynet.models.model import Model
+from classynet.models import common
+from classynet import time_slicing
 
 class Net_ST2_Reio(Model):
 

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from classy import Class
 
-from .plotting.plot_source_function import plot_source_function
+from classynet.plotting.plot_source_function import plot_source_function
 
 class SourceFunctionPlotter:
 

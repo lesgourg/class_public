@@ -95,6 +95,7 @@ def generate_source_functions_for(fixed_params, varying_params, directory, proce
     maxima = None
 
     failures = []
+    print(args)
     with multiprocessing.Pool(processes) as pool:
         for exc, (mins, maxs) in tqdm(pool.imap_unordered(generate_source_function, args), total=count):
             if exc:
@@ -147,7 +148,7 @@ def generate_source_function(args):
             "t0_isw", "t0_reco_no_isw", "t0_reio_no_isw",
             "t1",
             "t2", "t2_reco", "t2_reio",
-            "phi_plus_psi", "delta_m"]
+            "phi_plus_psi", "delta_m", "delta_cb"]
 
     # create new hdf5 file
     file = h5.File(path, "w")

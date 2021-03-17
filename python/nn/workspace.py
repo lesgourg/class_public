@@ -6,14 +6,14 @@ from functools import wraps
 import numpy as np
 import h5py as h5
 
-from . import training
-from . import plotter
-from .generate import generator
-from .testing import tester
-from .benchmark import BenchmarkRunner
-from .benchmark_plotter import BenchmarkPlotter
+from classynet import training
+from classynet import plotter
+from classynet.generate import generator
+from classynet.testing import tester
+from classynet.benchmark import BenchmarkRunner
+from classynet.benchmark_plotter import BenchmarkPlotter
 
-from .parameter_sampling import EllipsoidDomain
+from classynet.parameter_sampling import EllipsoidDomain
 
 def create_dir(func):
     @wraps(func)

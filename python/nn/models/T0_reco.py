@@ -10,13 +10,13 @@ import torch.nn.functional as F
 
 import pandas as pd
 
-from .. import pytorch_spline
+from classynet import pytorch_spline
 
-from .model import Model
+from classynet.models.model import Model
 # import classynet.models.common as common
-from . import common
-from .. import utils
-from .. import time_slicing
+from classynet.models import common
+from classynet import utils
+from classynet import time_slicing
 
 PLOT_MODE = False
 

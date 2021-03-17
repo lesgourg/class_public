@@ -7,10 +7,10 @@ import torch.nn.functional as F
 
 import h5py as h5
 
-from .model import Model
-from . import common
-from .. import utils
-from .. import time_slicing
+from classynet.models.model import Model
+from classynet.models import common
+from classynet import utils
+from classynet import time_slicing
 
 class Net_ST0_Reio(Model):
 

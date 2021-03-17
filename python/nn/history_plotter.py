@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .models import ALL_NETWORK_CLASSES
+from classynet.models import ALL_NETWORK_CLASSES
 
 class HistoryPlotter:
 

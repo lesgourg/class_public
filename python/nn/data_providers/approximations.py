@@ -6,7 +6,7 @@ import scipy.special
 import h5py as h5
 import scipy.interpolate
 
-from ..dependency_resolution import Graph, Evaluator
+from classynet.dependency_resolution import Graph, Evaluator
 
 # maxima values of spherical bessel
 J1_MAX_VALUE = 0.436181727

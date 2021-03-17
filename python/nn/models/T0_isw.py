@@ -7,8 +7,8 @@ import torch.nn.functional as F
 
 import h5py as h5
 
-from . import common
-from .model import Model
+from classynet.models import common
+from classynet.models.model import Model
 
 class Net_ST0_ISW(Model):
 

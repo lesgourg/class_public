@@ -8,7 +8,7 @@ from tqdm import tqdm
 import classy
 from classy import Class
 
-from ..generate.generate_cosmological_parameters import sample_cosmological_parameters
+from classynet.generate.generate_cosmological_parameters import sample_cosmological_parameters
 
 class Tester:
     def __init__(self, workspace):

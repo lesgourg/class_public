@@ -4,7 +4,7 @@ import os
 
 import classy
 
-from . import utils
+import utils
 
 class BenchmarkRunner:
 
