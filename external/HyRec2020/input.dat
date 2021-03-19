@@ -20,7 +20,7 @@
 0.
 0.
 0.
-1
+0
 0.
 
 1.
@@ -29,9 +29,9 @@
 
 =====================================================================
 Input parameter file for Hyrec (default values given as examples).
-The parameters have to be entered in the order shown, and 
+The parameters have to be entered in the order shown, and
 correspond to the following inputs.
-All parameters must be present 
+All parameters must be present
 =====================================================================
 
 0.70     = h                         H0/(100 km/s/Mpc)
@@ -44,10 +44,11 @@ All parameters must be present
 0.06     = mnu1                      mass of the first neutrino    -- Massive ones should come first
 0.       = mnu2                      mass of the second neutrino
 0.       = mnu3                      mass of the third neutirno
-0.245    = Y_He                      Helium mass fraction 
+0.245    = Y_He                      Helium mass fraction
 3.046    = Neff                      total effective  number of neutrinos (massive + massless)
 
 1.       = alpha(rec)/alpha(today)   ratio of fine structure constant at recombination to today's value
+                                     If it's not 1, a smaller timestep might be needed. Decrease timestep in history.h if needed.
 1.       = me(rec)/me(today)         ratio of electron mass at recombination to today's value
 
 0.       = pann = f<sigma v>/m_DM    dark matter annihilation parameter, in cm^3/s/GeV
@@ -57,9 +58,9 @@ All parameters must be present
 0.       = ann_zmin
 0.       = ann_var
 0.       = ann_z_halo
-1        = on_the_spot               1 for on-the-spot approximation. Should be an integer (without .)
+0        = on_the_spot               1 for on-the-spot approximation. Should be an integer (without .)
 0.       = decay                     DM decay, in 1/s
 
 1.       = Mpbh                      primordial black hole mass in solar masses
-0.       = fpbh                      fraction of dark matter made of PBHs 
+0.       = fpbh                      fraction of dark matter made of PBHs
 

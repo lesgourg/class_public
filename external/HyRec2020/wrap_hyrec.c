@@ -122,7 +122,7 @@ int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_
 
   double Trad_phys = Trad*kBoltz/phy->data->cosmo->fsR/phy->data->cosmo->fsR/phy->data->cosmo->meR;
 
-  if (Trad_phys <= TR_MIN || Tmat/Trad <= TM_TR_MIN) { model = PEEBLES; }
+  if (Trad_phys <= TR_MIN || Tmat/Trad <= T_RATIO_MIN) { model = PEEBLES; }
   else { model = MODEL; }
 
   /** - convert to correct units, and retrieve derivative */
