@@ -64,8 +64,8 @@
 #define TR_MIN 0.004                                /* Minimum Tr in eV */
 #define TR_MAX 0.4                                  /* Maximum Tr in eV */
 #define NTR    100                                  /* Number of Tr values */
-#define TM_TR_MIN 0.1                               /* Same thing for ratio Tm/Tr*/
-#define TM_TR_MAX 1.0
+#define T_RATIO_MIN 0.1                             /* T_RATIO is min(Tm/Tr, Tr/Tm) */
+#define T_RATIO_MAX 1.0
 #define NTM 40
 
 /************* CORRECTION FUNCTION AND ITS FIRST DERIVATIVE FOR SWIFT MODE *****/
@@ -102,10 +102,10 @@
 typedef struct {
   /* Tables of effective rates */
   double logTR_tab[NTR];
-  double TM_TR_tab[NTM];
-  double **logAlpha_tab[2];
+  double T_RATIO_tab[NTM];
+  double **logAlpha_tab[4];
   double logR2p2s_tab[NTR];
-  double DlogTR, DTM_TR;
+  double DlogTR, DT_RATIO;
 
   /* Tables of 2-photon rates */
   double Eb_tab[NVIRT];       /* Energies of the virtual levels in eV */
