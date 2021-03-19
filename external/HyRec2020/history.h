@@ -22,7 +22,6 @@
 
 #define DXHEII_MAX       1e-5       /* If xHeII - xHeII(Saha) < DXEHII_MAX, use post-Saha expansion for Helium. Lower value = higher accuracy. */
 
-#define DXHII_MAX_FULL   3e-4
 #define DXHII_MAX        3e-4       /* If xHII - xHII(Saha) < DXHII_MAX, use post-Saha expansion for Hydrogen. Switch to ODE integration after that.
                                     IMPORTANT: do not set to a lower value unless using a smaller time-step */
 

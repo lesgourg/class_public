@@ -151,14 +151,16 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
   /* Allocate memory */
   atomic->logAlpha_tab[0] = create_2D_array(NTM, NTR, error, error_message);
   atomic->logAlpha_tab[1] = create_2D_array(NTM, NTR, error, error_message);
+  atomic->logAlpha_tab[2] = create_2D_array(NTM, NTR, error, error_message);
+  atomic->logAlpha_tab[3] = create_2D_array(NTM, NTR, error, error_message);
 
   maketab(log(TR_MIN), log(TR_MAX), NTR, atomic->logTR_tab);
-  maketab(TM_TR_MIN, TM_TR_MAX, NTM, atomic->TM_TR_tab);
+  maketab(T_RATIO_MIN, T_RATIO_MAX, NTM, atomic->T_RATIO_tab);
   atomic->DlogTR = atomic->logTR_tab[1] - atomic->logTR_tab[0];
-  atomic->DTM_TR = atomic->TM_TR_tab[1] - atomic->TM_TR_tab[0];
+  atomic->DT_RATIO = atomic->T_RATIO_tab[1] - atomic->T_RATIO_tab[0];
 
   for (i = 0; i < NTR; i++) {
-    for (j = 0; j < NTM; j++) for (l = 0; l <= 1; l++) {
+    for (j = 0; j < NTM; j++) for (l = 0; l <= 3; l++) {
       if( fscanf(fA, "%le", &(atomic->logAlpha_tab[l][j][i])) != 1){
         sprintf(sub_message, "in allocate_and_read_atomic: could not read file %s completely -- The file might be corrupted\n", alpha_file);
         strcat(error_message, sub_message);
@@ -328,28 +330,28 @@ INPUT TEMPERATURE ASSUMED TO BE ALREADY RESCALED FOR VALUES OF alpha_fs and me
 
 void interpolate_rates(double Alpha[2], double DAlpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR,
                        HYREC_ATOMIC *atomic, double fsR, double meR, int *error, char error_message[SIZE_ErrorM]) {
-  unsigned l, k;
+  unsigned l, k, i;
   long iTM, iTR;
   double frac1, frac2;
-  double logTR;
+  double logTR, T_RATIO;
   double coeff1[4], coeff2[4], temp[4];
   double Alpha_eq[2];
   char sub_message[128];
 
   /* Check that TM/TR is in range */
-  if (TM_TR < TM_TR_MIN) {
+  if (TM_TR < T_RATIO_MIN) {
     sprintf(sub_message, "in interpolate_rates: TM/TR = %f is out of range.\n", TM_TR);
     strcat(error_message, sub_message);
     *error = 1;
     return;
   }
-  /* For now if TM > TR evaluate everything at Tm = Tr = (Tm + Tr)/2 */
-  /* This is an ugly fix due to my delaying in extending the effective rate tables beyond TM = TR */
-  /* Will fix soon! */
 
+  /* T_RATIO is defined to be min(TM_TR, TR_TM) */
   if (TM_TR > 1.) {
-    TR   *= (1.+TM_TR)/2.;
-    TM_TR = 1.;
+    T_RATIO = 1./TM_TR; i = 2;
+  }
+  else {
+    T_RATIO = TM_TR; i = 0;
   }
 
   /* Check if log(TR) is in the range tabulated */
@@ -395,11 +397,11 @@ void interpolate_rates(double Alpha[2], double DAlpha[2], double Beta[2], double
 
   /**** Effective recombination coefficients Alpha(Tm, Tr) ****/
 
-  /* Identify location to interpolate in TM/TR */
-  iTM = (long)floor((TM_TR - TM_TR_MIN)/atomic->DTM_TR);
+  /* Identify location to interpolate in T_RATIO */
+  iTM = (long)floor((T_RATIO - T_RATIO_MIN)/atomic->DT_RATIO);
   if (iTM < 1) iTM = 1;
   if (iTM > NTM-3) iTM = NTM-3;
-  frac1 = (TM_TR - TM_TR_MIN)/atomic->DTM_TR - iTM;
+  frac1 = (T_RATIO - T_RATIO_MIN)/atomic->DT_RATIO - iTM;
   coeff1[0] = frac1*(frac1-1.)*(2.-frac1)/6.;
   coeff1[1] = (1.+frac1)*(1.-frac1)*(2.-frac1)/2.;
   coeff1[2] = (1.+frac1)*frac1*(2.-frac1)/2.;
@@ -408,10 +410,10 @@ void interpolate_rates(double Alpha[2], double DAlpha[2], double Beta[2], double
   for (l = 0; l <= 1; l++) {
     /* effective recombination coefficient to each level */
     for (k = 0; k < 4; k++) {
-      temp[k] = atomic->logAlpha_tab[l][iTM-1+k][iTR-1]*coeff2[0]
-                + atomic->logAlpha_tab[l][iTM-1+k][iTR]*coeff2[1]
-                + atomic->logAlpha_tab[l][iTM-1+k][iTR+1]*coeff2[2]
-                + atomic->logAlpha_tab[l][iTM-1+k][iTR+2]*coeff2[3];
+      temp[k] = atomic->logAlpha_tab[l+i][iTM-1+k][iTR-1]*coeff2[0]
+                + atomic->logAlpha_tab[l+i][iTM-1+k][iTR]*coeff2[1]
+                + atomic->logAlpha_tab[l+i][iTM-1+k][iTR+1]*coeff2[2]
+                + atomic->logAlpha_tab[l+i][iTM-1+k][iTR+2]*coeff2[3];
     }
 
     Alpha[l] = square(fsR/meR)* exp(temp[0]*coeff1[0]+temp[1]*coeff1[1]
@@ -452,11 +454,15 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
   interpolate_rates(Alpha, DAlpha, Beta, &R2p2s, TR, TM/TR, atomic, fsR, meR, error, data->error_message);
 
   RLya = LYA_FACT(fsR, meR) *H/nH/(1.-xHII);   // 8 PI H/(3 nH x1s lambda_Lya^3)
-  DK_K_fid = rec_interp1d(fit->swift_func[0][0], 10., fit->swift_func[1], DKK_SIZE, TR/kBoltz, error, data->error_message);
 
-  for (i = 0; i < 3; i++) {
-    DK_K_fid = DK_K_fid + diff[i]*rec_interp1d(fit->swift_func[0][0], 10., fit->swift_func[i+2],
+  if (TR/kBoltz > fit->swift_func[0][DKK_SIZE-1]) DK_K = 0.;
+  else {
+    DK_K_fid = rec_interp1d(fit->swift_func[0][0], 10., fit->swift_func[1], DKK_SIZE, TR/kBoltz, error, data->error_message);
+
+    for (i = 0; i < 3; i++) {
+      DK_K_fid = DK_K_fid + diff[i]*rec_interp1d(fit->swift_func[0][0], 10., fit->swift_func[i+2],
                                                    DKK_SIZE, TR/kBoltz, error, data->error_message);
+    }
   }
   DK_K = DK_K_fid;
   fitted_RLya = RLya / (1.+DK_K);
@@ -1063,7 +1069,7 @@ double rec_dxHIIdlna(HYREC_DATA *data, int model, double xe, double xHII, double
     else {
       if (model == FULL) result = rec_HMLA_2photon_dxHIIdlna(data, xe, xHII, nH, H, TM, TR, iz, z);
       else if (model == SWIFT) {
-        if (TR/kBoltz < fit->swift_func[0][0]) result = rec_HMLA_dxHIIdlna(data, xe, xHII, nH, H, TM, TR);
+        if (TR/kBoltz/cosmo->fsR/cosmo->fsR/cosmo->meR < fit->swift_func[0][0]) result = rec_HMLA_dxHIIdlna(data, xe, xHII, nH, H, TM, TR);
         else result = rec_swift_hyrec_dxHIIdlna(data, xe, xHII, nH, H, TM, TR, z);
       }
     }
