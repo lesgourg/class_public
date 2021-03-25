@@ -399,8 +399,6 @@ int input_read_from_file(struct file_content * pfc,
   /** - Define local variables */
   int input_verbose = 0;
   int has_shooting;
-  int flag = _FALSE_;
-  int i;
 
   /** Set default values
       Before getting into the assignment of parameters and the shooting, we want
@@ -431,16 +429,13 @@ int input_read_from_file(struct file_content * pfc,
                errmsg);
   }
 
-  /** Read the 'write_warnings' flag. This is the correct place to do it,
-      since we want it to happen after all the shooting business */
-  class_read_flag_or_deprecated("write_warnings","write warnings",flag);
-  /* Print warnings for unread parameters */
-  if (flag == _TRUE_){
-    for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _FALSE_)
-        fprintf(stdout,"[WARNING: input line not used: '%s=%s']\n",pfc->name[i],pfc->value[i]);
-    }
-  }
+  /** Write info on the read/unread parameters. This is the correct place to do it,
+      since we want it to happen after all the shooting business,
+      and after the final reading of all parameters */
+  class_call(input_write_info(pfc,pop,
+                              errmsg),
+             errmsg,
+             errmsg);
 
   if (pfo->has_pk_eq == _TRUE_) {
 
@@ -4962,10 +4957,6 @@ int input_read_parameters_output(struct file_content * pfc,
   int int1;
   double * pointer1;
   int i;
-  FILE * param_output;
-  FILE * param_unused;
-  char param_output_name[_LINE_LENGTH_MAX_];
-  char param_unused_name[_LINE_LENGTH_MAX_];
 
   /** 1) Output for external files */
   /** 1.a) File name */
@@ -5047,12 +5038,6 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("write_distortions","write distortions",pop->write_distortions);
 
-  /** 1.l) Input/precision parameters */
-  /* Read */
-  flag1 = _FALSE_;
-  class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
-
-
   /** 2) Verbosity */
   /* Read */
   class_read_int("background_verbose",pba->background_verbose);
@@ -5067,12 +5052,49 @@ int input_read_parameters_output(struct file_content * pfc,
   class_read_int("distortions_verbose",psd->distortions_verbose);
   class_read_int("output_verbose",pop->output_verbose);
 
+  return _SUCCESS_;
 
-  /**
-   * This must be the very LAST entry of read_parameters,
-   * since it relies on the pfc->read flags being set to _TRUE_ or _FALSE_
-   * */
-  /* Set the parameters.ini and unused_parameters files */
+}
+
+/**
+ * Write the info related to the used and unused parameters
+ * Additionally, write the warnings for unused parameters
+ *
+ * @param pfc     Input: pointer to local structure
+ * @param pop     Input: pointer to output structure
+ * @param errmsg  Input: Error message
+ * @return the error status
+ */
+
+int input_write_info(struct file_content * pfc,
+                     struct output * pop,
+                     ErrorMsg errmsg){
+
+  /** Summary: */
+
+  /** Define local variables */
+  int i;
+  int flag1, flag2;
+  FILE * param_output;
+  FILE * param_unused;
+  char param_output_name[_LINE_LENGTH_MAX_];
+  char param_unused_name[_LINE_LENGTH_MAX_];
+
+  /* We want to read both flags at once, such that the pfc->read is set correctly */
+  flag1 = _FALSE_;
+  flag2 = _FALSE_;
+  class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
+  class_read_flag_or_deprecated("write_warnings","write warnings",flag2);
+
+  /* Now that all variables are read, we can print the warnings */
+  if (flag2 == _TRUE_){
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _FALSE_)
+        fprintf(stdout,"[WARNING: input line not used: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+    }
+  }
+
+  /* Finally, since all variables are read, we can also print the parameters.ini and unused_parameters files */
   if (flag1 == _TRUE_) {
     sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
     class_open(param_output,param_output_name,"w",errmsg);
