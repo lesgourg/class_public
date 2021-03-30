@@ -51,17 +51,21 @@ class Generator:
         import glob
         import numpy as np
         import h5py as h5
-        from tqdm import tqdm
+        #from tqdm import tqdm
         import matplotlib.pyplot as plt
 
         files = glob.glob(str(self.workspace.training_data / "sources_*.h5"))
 
         print("Creating standard k array...")
         ks = []
-        for fn in tqdm(files):
+        #for fn in tqdm(files):
+        i=0
+        for fn in files:
+            print("{}/{}".format(i,len(files)))
             with h5.File(fn, "r") as f:
                 k = f["sampling/k"][()]
                 ks.append(k)
+            i+=1
 
         k_mins = np.array([k[0] for k in ks])
         k_maxs = np.array([k[-1] for k in ks])

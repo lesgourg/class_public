@@ -1,8 +1,7 @@
 import os
 import numpy as np
 import scipy.stats as ss
-# from pyDOE import lhs
-from lhs import lhs, lhs_float
+from classynet.lhs import lhs, lhs_float
 from tabulate import tabulate
 import json
 import h5py as h5

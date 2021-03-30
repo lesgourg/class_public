@@ -4,7 +4,7 @@ import os
 
 import classy
 
-import utils
+import classynet.utils
 
 class BenchmarkRunner:
 

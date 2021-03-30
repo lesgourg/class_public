@@ -8,7 +8,7 @@ import json
 
 import numpy as np
 import h5py as h5
-from tqdm import tqdm
+#from tqdm import tqdm
 
 import classy
 from classy import Class
@@ -97,7 +97,12 @@ def generate_source_functions_for(fixed_params, varying_params, directory, proce
     failures = []
     print(args)
     with multiprocessing.Pool(processes) as pool:
-        for exc, (mins, maxs) in tqdm(pool.imap_unordered(generate_source_function, args), total=count):
+        #for exc, (mins, maxs) in tqdm(pool.imap_unordered(generate_source_function, args), total=count):
+        i=0
+        for exc, (mins, maxs) in pool.imap_unordered(generate_source_function, args):
+            print("{}/{}".format(i,count))
+            i+=1
+
             if exc:
                 print("WARNING: CLASS failure:", exc)
                 failures.append(exc)

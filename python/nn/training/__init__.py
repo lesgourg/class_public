@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-import classynet.current_transformer
+from classynet import current_transformer
 from classynet.dataset import SourceFileDataset
 from classynet.models import ALL_NETWORK_CLASSES
 from classynet.training.multi_trainer import MultiTrainer

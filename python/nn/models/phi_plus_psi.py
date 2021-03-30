@@ -336,7 +336,7 @@ class Net_phi_plus_psi(Model):
         correction = self.net_merge_corr(y)
         timer.stop("net_merge_corr")
 
-        correction = correction.view(len(tau), -1, 2)
+        correction = correction.view(len(tau), -1, 3)
 
         # TODO CHANGE IF NORMALIZATION CHANGES!
         tau = self.current_tau = 10**tau
@@ -527,4 +527,4 @@ class Net_phi_plus_psi(Model):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: np.exp(-epoch / 5))
 
     def source_functions(self):
-        return ["phi_plus_psi", "delta_m"]
+        return ["phi_plus_psi", "delta_m", "delta_cb"]
