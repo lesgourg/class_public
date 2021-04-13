@@ -25,8 +25,6 @@ class CubeDomain(ParameterDomain):
 
 class EllipsoidDomain(ParameterDomain):
 
-    # TODO don't hardcode
-    # delta_chi2 of 5 for df = 9
     def __init__(self, fields, bestfit, covmat, delta_chi2=41.70122440330078):
         """
         `fields` is a list of strings giving the names (and their order) of the

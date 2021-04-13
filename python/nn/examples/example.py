@@ -66,7 +66,7 @@ FIXED_TRAINING_ONLY = {
 
 #WORKSPACE_DIR = "/scratch/work/stadtmann/CLASSnet_Workspace/CLASSnet_Workspace_1/"
 #WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
-WORKSPACE_DIR = os.path.expanduser("/hpcwork/cr415089/CLASSnet_Workspace_1/")
+WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
 
 
 # IF THIS IS GONE THEN UNDO IS FINISHED
@@ -87,21 +87,21 @@ assert isinstance(workspace, Workspace)
 # domain = DefaultParamDomain(workspace.data / "base2018TTTEEE.covmat", sigma=5)
 
 pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
-'''
-domain = EllipsoidDomain.from_paths(
-    bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
-    covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
-    pnames         = pnames,
-    sigma_train    = 6,
-    sigma_validate = 5,
-)
 
-# domain.save(workspace.domain_descriptor)
-domain.sample_save(training_count=100, validation_count=100, path=workspace.data / "samples.h5")
-'''
+#domain = EllipsoidDomain.from_paths(
+#    bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
+#    covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
+#    pnames         = pnames,
+#    sigma_train    = 6,
+#    sigma_validate = 5,
+#)
+
+#domain.save(workspace.domain_descriptor)
+#domain.sample_save(training_count=100, validation_count=100, path=workspace.data / "samples.h5")
+
 # import sys; sys.exit(0)
 
-training, validation = workspace.loader().cosmological_parameters()
+#training, validation = workspace.loader().cosmological_parameters()
 # Generating training data
 
 #workspace.generator().generate_data_for(
@@ -124,14 +124,14 @@ training, validation = workspace.loader().cosmological_parameters()
 
 #workspace.generator().write_manifest(FIXED, training.keys())
 
-# workspace.generator().generate_data(FIXED DOMAIN, training=5, validation=2, processes=8)
-#workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=1000, processes=32)
+# workspace.generator().generate_data_old(FIXED DOMAIN, training=5, validation=2, processes=8)
+#workspace.generator().generate_data_old(FIXED, DOMAIN, training=10000, validation=1000, processes=32)
 
 # Training: any subset of models can be trained at once
 #workspace.trainer().train_all_models(workers=36)
 
-from classynet.models import Net_ST0_Reco, Net_ST0_Reio, Net_ST0_ISW, Net_ST1, Net_ST2_Reco, Net_ST2_Reio, Net_phi_plus_psi
-workspace.trainer().train_models([
+#from classynet.models import Net_ST0_Reco, Net_ST0_Reio, Net_ST0_ISW, Net_ST1, Net_ST2_Reco, Net_ST2_Reio, Net_phi_plus_psi
+#workspace.trainer().train_models([
     #Net_phi_plus_psi,
     #Net_ST0_Reco,
     #Net_ST0_Reio,
@@ -139,11 +139,11 @@ workspace.trainer().train_models([
     #Net_ST1,
     #Net_ST2_Reco,
     #Net_ST2_Reio,
-], 8)
+#], 8)
 
 # from ..models import Net_ST0_Reco
 # workspace.trainer().train_model(Net_ST0_Reco, workers=36)
-import sys; sys.exit(0)
+#import sys; sys.exit(0)
 
 # from ..models import Net_ST2_Reco
 # workspace.trainer().train_model(Net_ST2_Reco, workers=36)
@@ -182,7 +182,7 @@ import sys; sys.exit(0)
 
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
-# plotter.plot_training_histories()
+#plotter.plot_training_histories()
 
 #ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m", "delta_cb"]
 

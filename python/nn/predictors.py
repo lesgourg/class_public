@@ -93,6 +93,8 @@ class BasePredictor:
             return 4. / 3.
         elif quantity == "delta_m":
             return -6. / 5.
+        elif quantity == "delta_cb":
+            return -6. / 5.
         else:
             return 0
 
@@ -151,6 +153,35 @@ class BasePredictor:
             # plt.show()
 
             result[k < k_th] = replacement
+        
+        elif quantity == "delta_cb":
+            S = result
+            assert S.shape == (len(k), len(tau))
+            #print("INFO: delta_m")
+            k_th = 5e-4
+            fit_mask = (k > k_th) & (k < 1e-3)
+            from scipy.optimize import leastsq
+            Omega_k = raw_inputs["cosmos/Omega_k"]
+            h = raw_inputs["cosmos/h"]
+            def get_factor(k):
+                return k[:, None]**2 + 3 * Omega_k * (h / 2997.9)**2
+            slope = S[fit_mask].sum(axis=0) / get_factor(k[fit_mask]).sum(axis=0)
+            # slope = S[fit_mask][0] / get_factor(k[fit_mask])[0]
+            replacement = slope * get_factor(k[k < k_th])
+
+            # import matplotlib; matplotlib.use("qt4agg")
+            # import matplotlib.pyplot as plt
+            # plt.loglog(k, -S[:, -1], label="prediction", color="g")
+            # plt.loglog(k[k < k_th], -replacement[:, -1], label="replacement", ls="-.")
+            # plt.axvspan(k[fit_mask][0], k[fit_mask][-1], color="yellow", alpha=0.4)
+            # # plt.loglog(k < k_th], -replacement[:, -1], label="replacement", ls="-.", c="r")
+            # plt.legend()
+            # plt.grid()
+            # plt.show()
+
+            result[k < k_th] = replacement
+
+
 
 
         # i_tau = 120
@@ -233,7 +264,7 @@ class BasePredictor:
         return k, result
 
     def predict_all(self, tau):
-        return self.predict_many(["t0", "t1", "t2", "phi_plus_psi", "delta_m"], tau)
+        return self.predict_many(["t0", "t1", "t2", "phi_plus_psi", "delta_m", "delta_cb"], tau)
 
     def untransform(self, quantity, value, raw_inputs):
         start = perf_counter()
@@ -557,8 +588,9 @@ def load_models(workspace, classes, k, device):
     rules = {
             "t0":           (("t0_reco_no_isw", "t0_reio_no_isw", "t0_isw"), sum, False),
             "t2":           (("t2_reco", "t2_reio"), sum, False),
-            "phi_plus_psi": ((("phi_plus_psi", "delta_m"),), Channel(0), False),
-            "delta_m":      ((("phi_plus_psi", "delta_m"),), Channel(1), False),
+            "phi_plus_psi": ((("phi_plus_psi", "delta_m", "delta_cb"),), Channel(0), False),
+            "delta_m":      ((("phi_plus_psi", "delta_m", "delta_cb"),), Channel(1), False),
+            "delta_cb":     ((("phi_plus_psi", "delta_m", "delta_cb"),), Channel(2), False),
             }
 
     return model_dict, rules

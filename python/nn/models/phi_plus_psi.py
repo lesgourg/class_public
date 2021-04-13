@@ -48,6 +48,12 @@ def fitfunc_old(k, keq, Omega_b, Omega0_cdm, h, rs_drag):
 
 
 def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, hubble, rs_drag, keq, a_eq, redshift):
+    temporary_dictionary = {"kk":kk,"z_d":z_d,"Omega_matter":Omega_matter, "Omega_baryon":Omega_baryon, "Omega_ncdm":Omega_ncdm, "Omega_lambda": Omega_lambda,"D":D,"H": H,"hubble":hubble, "rs_drag":rs_drag, "keq":keq, "a_eq":a_eq,"redshift": redshift}
+    temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"w")
+    for key in temporary_dictionary:
+        temporary_file.create_dataset(key,data=temporary_dictionary[key])
+    temporary_file.close()
+
     theta_cmb = 2.7255/2.7
 
     kk = kk[None, :]
@@ -228,7 +234,6 @@ class Net_phi_plus_psi(Model):
 
     def forward(self, x):
         timer = Timer()
-
         timer.start("forward")
 
         ## to be used in loss function to subsample tau
@@ -246,6 +251,7 @@ class Net_phi_plus_psi(Model):
         tau_md = raw_tau[index_MD]
         D_md = x["D"][index_MD]
         alpha = tau_md**2 / 7.8 / D_md
+        
 
         N_ur = x["raw_cosmos/N_ur"][0]
         # perform correction for N_ur != 0
@@ -289,6 +295,13 @@ class Net_phi_plus_psi(Model):
         D_tau = x["raw_D"]
         Omega_m_tau = x["raw_Omega_m"]
 
+
+        temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"a")
+        temporary_file.create_dataset("alpha",data=alpha.item())
+        temporary_file.create_dataset("Omega_k",data=Omega_k)
+        temporary_file.create_dataset("h", data=h)
+        temporary_file.close()
+
         timer.start("create approx_stack")
         approx_stack = torch.empty((len(x["tau"]), len(self.k), 3), device=self.k.device)
         timer.stop("create approx_stack")
@@ -301,18 +314,19 @@ class Net_phi_plus_psi(Model):
 
         # divide approximation by the SAME normalization constant as delta_m
         # TODO IMPORTANT WARNING DANGER do not hardcode this!
-        normalization = 144534.5036053507
+        
+        #normalization = 144534.5036053507
         timer.start("approx_delta_m")
-        approx_delta_m = -alpha.item() * approx / normalization * \
-            (self.k2 + 3.*Omega_k*(h/2997.9)**2)
+        approx_delta_m = -alpha.item() * approx * \
+                (self.k2 + 3.*Omega_k*(h/2997.9)**2)#/normalization
         timer.stop("approx_delta_m")
 
         timer.start("copy delta_m")
         approx_stack[:, :, 1] = approx_delta_m
         timer.stop("copy delta_m")
 
-        approx_delta_cb = -alpha.item() * approx_cb /normalization * \
-                (self.k2 + 3.*Omega_k*(h/2997.9)**2)
+        approx_delta_cb = -alpha.item() * approx_cb * \
+                (self.k2 + 3.*Omega_k*(h/2997.9)**2)#/normalization
         approx_stack[:, :, 2] = approx_delta_cb
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
@@ -340,6 +354,12 @@ class Net_phi_plus_psi(Model):
 
         # TODO CHANGE IF NORMALIZATION CHANGES!
         tau = self.current_tau = 10**tau
+
+        temporary_file=h5.File(os.path.expanduser("~/approx_and_correction.h5"),"w")
+        temporary_file.create_dataset("approx_stack",data=approx_stack)
+        temporary_file.create_dataset("correction",data=correction)
+        temporary_file.create_dataset("k_approx",data=self.k)
+        temporary_file.close()
 
         timer.start("compute result")
         result = (1. + correction) * approx_stack
@@ -406,6 +426,7 @@ class Net_phi_plus_psi(Model):
         # weight = self.loss_weight[None, :, None]**2
         def loss(prediction, truth):
             nonlocal iterations
+            print("using custom loss for phi+psi")
 
             do_plot = False
             if do_plot and iterations % 1000 == 0:

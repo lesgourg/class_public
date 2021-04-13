@@ -142,6 +142,10 @@ class CanonicalTargetTransformer(TargetTransformer):
         if "delta_m" in targets:
             delta_m = targets["delta_m"]
             targets["delta_m"] = self._transform_delta_m(delta_m)
+        if "delta_cb" in targets:
+            deta_cb = targets["delta_cb"]
+            #transform like delta_m
+            targets["deta_cb"] = self._transform_delta_m(delta_cb)
 
         return targets
 
@@ -161,6 +165,9 @@ class CanonicalTargetTransformer(TargetTransformer):
         if "delta_m" in targets:
             delta_m = targets["delta_m"]
             targets["delta_m"] = self._untransform_delta_m(delta_m)
+        if "delta_cb" in targets:
+            delta_cb = targets["delta_cb"]
+            targets["delta_cb"] = self._untransform_delta_m(delta_cb)
 
         return targets
 
@@ -386,4 +393,7 @@ class AbsMaxNormalizer(Normalizer, TargetTransformer):
         # to match grad(phi, tau))
         if key == "phi_prime":
             key = "phi"
-        return value * self.abs_maxima[key]
+        if key =="delta_m" or key=="delta_cb":
+            return value
+        else:
+            return value * self.abs_maxima[key]

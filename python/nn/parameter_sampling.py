@@ -168,6 +168,8 @@ class EllipsoidDomain(ParamDomain):
             return False, 1002
         if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
             return False, 1003
+        if parameters["N_ur"]<0:
+            return False, 1004
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
         sigma = self.sigma_validate if validate else self.sigma_train
         inside, delta_chi2 = is_inside_ellipsoid(self.inv_covmat, cosmo_params,

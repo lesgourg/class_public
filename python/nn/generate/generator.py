@@ -1,12 +1,12 @@
 import json
-from . import generate_data
+#from . import generate_data
 from .generate_sources_files import generate_data, generate_parameters_and_data
 
 class Generator:
     def __init__(self, workspace):
         self.workspace = workspace
 
-    def generate_data(self, fixed, domain, training, validation, processes=None):
+    def generate_data_old(self, fixed, domain, training, validation, processes=None):
         self.write_manifest(fixed, domain.keys())
 
         generate_parameters_and_data(
