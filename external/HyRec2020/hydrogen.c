@@ -257,6 +257,8 @@ Free the memory for rate tables.
 void free_atomic(HYREC_ATOMIC *atomic){
   free_2D_array(atomic->logAlpha_tab[0], NTM);
   free_2D_array(atomic->logAlpha_tab[1], NTM);
+  free_2D_array(atomic->logAlpha_tab[2], NTM);
+  free_2D_array(atomic->logAlpha_tab[3], NTM);
 }
 
 
