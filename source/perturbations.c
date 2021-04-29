@@ -871,6 +871,21 @@ int perturbations_init(
 }
 
 /**
+ * Free all memory space allocated by input.
+ *
+ * Called by perturbations_free(), during shooting and if shooting failed
+ *
+ * @param ppt Input: perturbation structure with input pointers to be freed
+ * @return the error status
+ */
+
+int perturbations_free_input(struct perturbations* ppt) {
+  free(ppt->alpha_idm_dr);
+  free(ppt->beta_idr);
+  return _SUCCESS_;
+}
+
+/**
  * Free all memory space allocated by perturbations_init().
  *
  * To be called at the end of each run, only when no further calls to
@@ -886,6 +901,8 @@ int perturbations_free(
 
   int index_md,index_ic,index_tp;
   int filenum;
+
+  perturbations_free_input(ppt);
 
   if (ppt->has_perturbations == _TRUE_) {
 
@@ -929,12 +946,6 @@ int perturbations_free(
     free(ppt->sources);
     free(ppt->late_sources);
     free(ppt->ddlate_sources);
-
-    if (ppt->alpha_idm_dr != NULL)
-      free(ppt->alpha_idm_dr);
-
-    if (ppt->beta_idr != NULL)
-      free(ppt->beta_idr);
 
     /** Stuff related to perturbations output: */
 

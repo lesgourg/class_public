@@ -731,6 +731,10 @@ int input_shooting(struct file_content * pfc,
 
     /** Set status of shooting */
     pba->shooting_failed = shooting_failed;
+    if (pba->shooting_failed == _TRUE_) {
+      background_free_input(pba);
+      perturbations_free_input(ppt);
+    }
 
     /* all parameters read in fzw must be considered as read in pfc. At the same
        time the parameters read before in pfc (like theta_s,...) must still be
@@ -1165,6 +1169,7 @@ int input_get_guess(double *xguess,
 
   /** - Deallocate everything allocated by input_read_parameters */
   background_free_input(&ba);
+  perturbations_free_input(&pt);
 
   return _SUCCESS_;
 
@@ -1267,7 +1272,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call(background_init(&pr,&ba), ba.error_message, errmsg);
+    class_call_except(background_init(&pr,&ba), ba.error_message, errmsg, background_free_input(&ba);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -1277,14 +1282,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     th.hyrec_verbose = 0;
-    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba));
+    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
        if (input_verbose>2)
          printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
-    class_call_except(perturbations_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba));
+    class_call_except(perturbations_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
@@ -1384,6 +1389,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pfzw->fc.read[i] = _FALSE_;
   }
 
+  /** Free pointers allocated on input if neccessary */
+  if (pfzw->required_computation_stage < cs_perturbations) {
+    /** Some pointers in ppt may not be allocated if has_perturbations is _FALSE_, but this is handled in perturbations_free_input as neccessary. */
+    perturbations_free_input(&pt);
+  }
+  if (pfzw->required_computation_stage < cs_background) {
+    background_free_input(&ba);
+  }
   return _SUCCESS_;
 
 }
@@ -1667,16 +1680,6 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_perturbations = _TRUE_;
       psd->has_distortions=_TRUE_;
       pth->compute_damping_scale=_TRUE_;
-    }
-
-    /* The following lines make sure that if perturbations are not computed, idm_dr and idr parameters are still freed */
-    if(ppt->has_perturbations == _FALSE_) {
-
-      if (ppt->alpha_idm_dr != NULL)
-        free(ppt->alpha_idm_dr);
-
-      if (ppt->beta_idr != NULL)
-        free(ppt->beta_idr);
     }
 
     /* Test */
@@ -2747,10 +2750,6 @@ int input_read_parameters_species(struct file_content * pfc,
         class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
       }
-    }
-    else {
-      ppt->alpha_idm_dr = NULL;
-      ppt->beta_idr = NULL;
     }
   }
 
@@ -5347,6 +5346,9 @@ int input_default_params(struct background *pba,
   pth->m_idm_dr = 1.e11;
   /** 7.2.d) Approximation mode of idr */
   ppt->idr_nature=idr_free_streaming;
+  /** 7.2.g, 7.2.h) */
+  ppt->alpha_idm_dr = NULL;
+  ppt->beta_idr = NULL;
 
   /* ** ADDITIONAL SPECIES ** */
 
