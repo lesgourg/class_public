@@ -2395,17 +2395,35 @@ int input_read_parameters_species(struct file_content * pfc,
 
     /** 5.h) Quadrature modes, 0 is qm_auto */
     /* Read */
-    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm); //Deprecated parameter, still read to keep compatibility
-    class_read_list_of_integers_or_default("ncdm_quadrature_strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
+    class_call(parser_read_list_of_integers(pfc, "Quadrature strategy", &entries_read, &(pba->ncdm_quadrature_strategy), &flag1, errmsg),
+               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+    if (flag1 == _TRUE_) {
+      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Quadrature strategy, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+    }
+    else {
+      class_read_list_of_integers_or_default("ncdm_quadrature_strategy", pba->ncdm_quadrature_strategy, 0, N_ncdm);
+    }
 
     /** 5.h.1) qmax, if relevant */
     /* Read */
-    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm); //Deprecated parameter, still read to keep compatibility
-    class_read_list_of_doubles_or_default("ncdm_maximum_q",pba->ncdm_qmax,15,N_ncdm);
+    class_call(parser_read_list_of_doubles(pfc, "Maximum_q", &entries_read, &(pba->ncdm_qmax), &flag1, errmsg),
+               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+    if (flag1 == _TRUE_) {
+      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Maximum_q, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+    }
+    else {
+      class_read_list_of_doubles_or_default("ncdm_maximum_q", pba->ncdm_qmax, 15, N_ncdm);
+    }
 
     /** 5.h.2) Number of momentum bins */
-    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,150,N_ncdm); //Deprecated parameter, still read to keep compatibility
-    class_read_list_of_integers_or_default("ncdm_N_momentum_bins",pba->ncdm_input_q_size,150,N_ncdm);
+    class_call(parser_read_list_of_integers(pfc, "Number of momentum bins", &entries_read, &(pba->ncdm_input_q_size), &flag1, errmsg),
+               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+    if (flag1 == _TRUE_) {
+      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Number of momentum bins, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+    }
+    else {
+      class_read_list_of_integers_or_default("ncdm_N_momentum_bins", pba->ncdm_input_q_size, 150, N_ncdm);
+    }
 
     /** Last step of 5) (i.e. NCDM) -- Calculate the masses and momenta */
     class_call(background_ncdm_init(ppr,pba),
