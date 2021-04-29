@@ -1880,9 +1880,21 @@ int input_read_parameters_general(struct file_content * pfc,
       class_test(ppt->has_cl_cmb_lensing_potential == _TRUE_,
                  errmsg,
                  "Inconsistency: you want C_l's for cmb lensing potential, but no scalar modes\n");
+      class_test(ppt->has_cl_number_count == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want C_l's for number count, but no scalar modes\n");
+      class_test(ppt->has_cl_lensing_potential == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want C_l's for cosmic shear, but no scalar modes\n");
       class_test(ppt->has_pk_matter == _TRUE_,
                  errmsg,
                  "Inconsistency: you want P(k) of matter, but no scalar modes\n");
+      class_test(ppt->has_density_transfers == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want density transfer functions, but no scalar modes\n");
+      class_test(ppt->has_velocity_transfers == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want density transfer functions, but no scalar modes\n");
     }
 
     /** 3.b) List of initial conditions for scalars */

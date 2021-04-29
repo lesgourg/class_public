@@ -900,7 +900,7 @@ int harmonic_compute_cl(
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,phr->ic_size[index_md]);
 
-  if (ppt->has_cl_number_count == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     class_alloc(transfer_ic1_nc,phr->d_size*sizeof(double),phr->error_message);
     class_alloc(transfer_ic2_nc,phr->d_size*sizeof(double),phr->error_message);
   }
@@ -963,7 +963,7 @@ int harmonic_compute_cl(
       }
     }
 
-    if (ppt->has_cl_number_count == _TRUE_) {
+    if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
 
       for (index_d1=0; index_d1<phr->d_size; index_d1++) {
 
@@ -1267,7 +1267,7 @@ int harmonic_compute_cl(
     }
   }
 
-  if (ppt->has_cl_number_count == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     free(transfer_ic1_nc);
     free(transfer_ic2_nc);
   }

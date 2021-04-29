@@ -1218,6 +1218,10 @@ int fourier_init(
   struct fourier_workspace nw;
   struct fourier_workspace * pnw;
 
+  /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
+        from the perturbations structure to the fourier structure */
+  pfo->has_pk_matter = ppt->has_pk_matter;
+
   /** - preliminary tests */
 
   /** --> This module only makes sense for dealing with scalar
@@ -1231,8 +1235,6 @@ int fourier_init(
   }
 
   /** --> Nothing to be done if we don't want the matter power spectrum */
-
-  pfo->has_pk_matter = ppt->has_pk_matter;
 
   if ((pfo->has_pk_matter == _FALSE_) && (pfo->method == nl_none)) {
     if (pfo->fourier_verbose > 0)

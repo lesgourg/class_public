@@ -122,7 +122,7 @@ CLASS_INPUT['Output_spectra'] = (
      {'output': 'tCl pCl lCl'},
      {'output': 'mPk tCl lCl', 'P_k_max_1/Mpc': 2},
      {'output': 'nCl sCl'},
-     {'output': 'tCl pCl lCl nCl sCl'}],
+     {'output': 'tCl pCl nCl sCl'}],
     'power')
 
 CLASS_INPUT['Nonlinear'] = (
@@ -431,10 +431,14 @@ class TestClass(unittest.TestCase):
             if 'output' not in list(self.scenario.keys()):
                 should_fail = True
 
-        # If we ask for Cl's of lensing potential, we must have scalar modes.
-        if 'output' in list(self.scenario.keys()) and 'lCl' in self.scenario['output'].split():
-            if 'modes' in list(self.scenario.keys()) and self.scenario['modes'].find('s') == -1:
-                should_fail = True
+        # If we ask for Cl's of lensing potential, number counts or cosmic shear, we must have scalar modes.
+        # The same applies to density and velocity transfer functions and the matter power spectrum:
+        if 'output' in self.scenario and 'modes' in self.scenario and self.scenario['modes'].find('s') == -1:
+            requested_output_types = set(self.scenario['output'].split())
+            for scalar_output_type in ['lCl', 'nCl', 'dCl', 'sCl', 'mPk', 'dTk', 'mTk', 'vTk']:
+                if scalar_output_type in requested_output_types:
+                    should_fail = True
+                    break
 
         # If we specify initial conditions (for scalar modes), we must have
         # perturbations and scalar modes.
