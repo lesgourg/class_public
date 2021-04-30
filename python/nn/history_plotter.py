@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import h5py as h5
 from classynet.models import ALL_NETWORK_CLASSES
 
 class HistoryPlotter:
@@ -26,4 +26,12 @@ class HistoryPlotter:
         print("Saving history to {}".format(fig_path))
         fig.savefig(fig_path, dpi=200, bbox_inches="tight")
         plt.close(fig)
+        
+        h5_path = self.workspace.plots / "history_{}.h5".format(name)
+        print("Saving history as txt file to {}".format(h5_path))
+        h5_file=h5.File(h5_path, "w")
+        h5_file.create_dataset("epoch",data=epoch)
+        h5_file.create_dataset("loss",data=loss)
+        h5_file.create_dataset("val_loss",data=val_loss)
+        h5_file.close()
 

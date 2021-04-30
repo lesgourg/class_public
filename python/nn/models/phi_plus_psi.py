@@ -48,11 +48,11 @@ def fitfunc_old(k, keq, Omega_b, Omega0_cdm, h, rs_drag):
 
 
 def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, hubble, rs_drag, keq, a_eq, redshift):
-    temporary_dictionary = {"kk":kk,"z_d":z_d,"Omega_matter":Omega_matter, "Omega_baryon":Omega_baryon, "Omega_ncdm":Omega_ncdm, "Omega_lambda": Omega_lambda,"D":D,"H": H,"hubble":hubble, "rs_drag":rs_drag, "keq":keq, "a_eq":a_eq,"redshift": redshift}
-    temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"w")
-    for key in temporary_dictionary:
-        temporary_file.create_dataset(key,data=temporary_dictionary[key])
-    temporary_file.close()
+    #temporary_dictionary = {"kk":kk,"z_d":z_d,"Omega_matter":Omega_matter, "Omega_baryon":Omega_baryon, "Omega_ncdm":Omega_ncdm, "Omega_lambda": Omega_lambda,"D":D,"H": H,"hubble":hubble, "rs_drag":rs_drag, "keq":keq, "a_eq":a_eq,"redshift": redshift}
+    #temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"w")
+    #for key in temporary_dictionary:
+    #    temporary_file.create_dataset(key,data=temporary_dictionary[key])
+    #temporary_file.close()
 
     theta_cmb = 2.7255/2.7
 
@@ -296,11 +296,11 @@ class Net_phi_plus_psi(Model):
         Omega_m_tau = x["raw_Omega_m"]
 
 
-        temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"a")
-        temporary_file.create_dataset("alpha",data=alpha.item())
-        temporary_file.create_dataset("Omega_k",data=Omega_k)
-        temporary_file.create_dataset("h", data=h)
-        temporary_file.close()
+        #temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"a")
+        #temporary_file.create_dataset("alpha",data=alpha.item())
+        #temporary_file.create_dataset("Omega_k",data=Omega_k)
+        #temporary_file.create_dataset("h", data=h)
+        #temporary_file.close()
 
         timer.start("create approx_stack")
         approx_stack = torch.empty((len(x["tau"]), len(self.k), 3), device=self.k.device)
@@ -355,11 +355,11 @@ class Net_phi_plus_psi(Model):
         # TODO CHANGE IF NORMALIZATION CHANGES!
         tau = self.current_tau = 10**tau
 
-        temporary_file=h5.File(os.path.expanduser("~/approx_and_correction.h5"),"w")
-        temporary_file.create_dataset("approx_stack",data=approx_stack)
-        temporary_file.create_dataset("correction",data=correction)
-        temporary_file.create_dataset("k_approx",data=self.k)
-        temporary_file.close()
+        #temporary_file=h5.File(os.path.expanduser("~/approx_and_correction.h5"),"w")
+        #temporary_file.create_dataset("approx_stack",data=approx_stack)
+        #temporary_file.create_dataset("correction",data=correction)
+        #temporary_file.create_dataset("k_approx",data=self.k)
+        #temporary_file.close()
 
         timer.start("compute result")
         result = (1. + correction) * approx_stack

@@ -143,10 +143,9 @@ class CanonicalTargetTransformer(TargetTransformer):
             delta_m = targets["delta_m"]
             targets["delta_m"] = self._transform_delta_m(delta_m)
         if "delta_cb" in targets:
-            deta_cb = targets["delta_cb"]
+            delta_cb = targets["delta_cb"]
             #transform like delta_m
             targets["deta_cb"] = self._transform_delta_m(delta_cb)
-
         return targets
 
     def untransform_targets(self, targets, inputs=None):
@@ -386,7 +385,10 @@ class AbsMaxNormalizer(Normalizer, TargetTransformer):
         Normalizer.__init__(self, maxima, minima)
 
     def transform_target(self, key, value, *args, **kwargs):
-        return value / self.abs_maxima[key]
+        if key == "delta_m" or key=="delta_cb":
+            return value
+        else:
+            return value / self.abs_maxima[key]
 
     def untransform_target(self, key, value, *args, **kwargs):
         # phi_prime has the same normalization as phi (because it has been fit
@@ -395,5 +397,6 @@ class AbsMaxNormalizer(Normalizer, TargetTransformer):
             key = "phi"
         if key =="delta_m" or key=="delta_cb":
             return value
+
         else:
             return value * self.abs_maxima[key]

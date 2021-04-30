@@ -50,7 +50,7 @@ class Tester:
         cosmo_params = [{k: v[i] for k, v in params.items()} for i in selection]
 
         # TODO TODO TODO REMOVE THIS LINE!!!!!
-        cosmo_params = sorted(cosmo_params, key=lambda item: np.abs(item["Omega_k"] - (-0.011)))
+        # cosmo_params = sorted(cosmo_params, key=lambda item: np.abs(item["Omega_k"] - (-0.011))) # removed this line, but unsure if more is required to compensate
         # TODO TODO TODO REMOVE THIS LINE!!!!!
 
         # params = sample_cosmological_parameters(self.domain, count)

@@ -2417,7 +2417,7 @@ cdef class Class:
                 value = self.sd.sd_parameter_table[1]
             elif name == 'mu_sd':
                 value = self.sd.sd_parameter_table[2]
-            elif name == 'network_delta_chi_sqared':
+            elif name == 'network_delta_chi_squared':
                 value = self.pt.network_deltachisquared
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
