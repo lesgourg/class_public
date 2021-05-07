@@ -3030,7 +3030,7 @@ int input_read_parameters_injection(struct file_content * pfc,
 
   /* Complete set of parameters */
   if(pin->DM_annihilation_mass > 0 && pin->DM_annihilation_cross_section > 0.){
-    pin->DM_annihilation_efficiency = pin->DM_annihilation_cross_section*1.e-6/(pin->DM_annihilation_mass*_eV_*1.e9);
+    pin->DM_annihilation_efficiency = pin->DM_annihilation_cross_section*1.e-6/(pin->DM_annihilation_mass*_eV_*1.e9)*pow(pin->DM_annihilation_fraction,2);
   }
 
   if(pin->DM_annihilation_efficiency > 0){
