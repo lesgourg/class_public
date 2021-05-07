@@ -31,7 +31,7 @@ int distortions_init(struct precision * ppr,
                      struct primordial * ppm,
                      struct distortions * psd) {
 
-  if(psd->has_distortions == _FALSE_){
+  if (psd->has_distortions == _FALSE_) {
     if (psd->distortions_verbose > 0)
       printf("No distortions requested. Distortions module skipped.\n");
     return _SUCCESS_;
@@ -49,7 +49,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  if(psd->sd_branching_approx == bra_exact){
+  if (psd->sd_branching_approx == bra_exact) {
     /** Set/Check the distortions detector */
     class_call(distortions_set_detector(ppr,psd),
                psd->error_message,
@@ -96,7 +96,7 @@ int distortions_free(struct distortions * psd) {
   /** Define local variables */
   int index_type;
 
-  if(psd->has_distortions == _TRUE_){
+  if (psd->has_distortions == _TRUE_) {
     /** Delete lists */
     free(psd->z);
     free(psd->z_weights);
@@ -104,7 +104,7 @@ int distortions_free(struct distortions * psd) {
     free(psd->x_weights);
 
     /** Delete noise file */
-    if(psd->has_detector_file == _TRUE_){
+    if (psd->has_detector_file == _TRUE_) {
       free(psd->delta_Ic_array);
     }
 
@@ -211,23 +211,23 @@ int distortions_set_detector(struct precision * ppr,
 
   has_detector_noise_file = _FALSE_;
 
-  if(psd->has_user_defined_name == _FALSE_){
+  if (psd->has_user_defined_name == _FALSE_) {
     /* The user wants the default */
-    if(psd->has_user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_){
-      if(psd->distortions_verbose > 0){
+    if (psd->has_user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_) {
+      if (psd->distortions_verbose > 0) {
         printf(" -> Using the default (%s) detector\n",psd->sd_detector_name);
       }
       return _SUCCESS_; // Nothing more to do
     }
     /* The user wants a new detector with specified settings, but without name */
-    else{
+    else {
       /* Generate a custom name for this custom detector, so we can check if it has already been defined */
-      if(psd->has_detector_file == _TRUE_){
+      if (psd->has_detector_file == _TRUE_) {
         sprintf(psd->sd_detector_name,
                 "Custom__%.80s__Detector",
                 psd->sd_detector_file_name);
       }
-      else{
+      else {
         sprintf(psd->sd_detector_name,
                 "Custom__%7.2e_%7.2e_%7.2e_%i_%7.2e__Detector",
                 psd->sd_detector_nu_min,psd->sd_detector_nu_max,psd->sd_detector_nu_delta,psd->sd_detector_bin_number,psd->sd_detector_delta_Ic);
@@ -249,30 +249,30 @@ int distortions_set_detector(struct precision * ppr,
         left++;
     }
     if (left[0] > 39) {
-      if(sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6){
+      if (sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6) {
         has_detector_noise_file = _TRUE_;
-        if(sscanf(line,"%s %s",detector_name,detector_noise_file_name) != 2){
+        if (sscanf(line,"%s %s",detector_name,detector_noise_file_name) != 2) {
           class_stop(psd->error_message,
                      "Could not read line %i in file '%s'\n",headlines,psd->sd_detector_list_file);
         }
       }
-      else{
+      else {
         has_detector_noise_file = _FALSE_;
       }
 
       /* Detector has been found */
-      if(strcmp(psd->sd_detector_name,detector_name)==0){
-        if(psd->distortions_verbose > 0){
+      if (strcmp(psd->sd_detector_name,detector_name)==0) {
+        if (psd->distortions_verbose > 0){
           printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->has_user_defined_detector?"TRUE":"FALSE"));
         }
         found_detector = _TRUE_;
 
-        if(has_detector_noise_file == _TRUE_){
+        if (has_detector_noise_file == _TRUE_) {
           if (psd->distortions_verbose > 1){
             printf(" -> Properties:    Noise file name = %s \n",
                         detector_noise_file_name);
           }
-          if(psd->has_detector_file == _TRUE_){
+          if (psd->has_detector_file == _TRUE_) {
             class_test(strcmp(psd->sd_detector_file_name,detector_noise_file_name) != 0,
                        psd->error_message,
                        "Noise file path (sd_detector_file_name) disagrees between stored detector '%s' and input ->  %s (input) vs %s (stored)",
@@ -285,13 +285,13 @@ int distortions_set_detector(struct precision * ppr,
           sprintf(psd->sd_detector_file_name, "%s", detector_noise_file_name);
           psd->has_detector_file = has_detector_noise_file;
         }
-        else{
-          if (psd->distortions_verbose > 1){
+        else {
+          if (psd->distortions_verbose > 1) {
             printf(" -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
                         nu_min, nu_max, nu_delta, N_bins, delta_Ic);
           }
           /* If the user has defined the detector, check that their and our definitions agree */
-          if(psd->has_user_defined_detector == _TRUE_){
+          if (psd->has_user_defined_detector == _TRUE_) {
             class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
                        psd->error_message,
                        "Minimal frequency (sd_detector_nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
@@ -333,21 +333,27 @@ int distortions_set_detector(struct precision * ppr,
 
   /* If the detector has not been found, either the user has specified the settings and we create a new one,
    * or the user hasn't specified the settings and we have to stop */
-  if(found_detector == _FALSE_){
-    if(psd->has_user_defined_detector==_TRUE_ || psd->has_detector_file==_TRUE_){
-      if(psd->distortions_verbose > 0){
+  if (found_detector == _FALSE_) {
+    if (psd->has_user_defined_detector==_TRUE_ || psd->has_detector_file==_TRUE_) {
+      if (psd->distortions_verbose > 0) {
         printf(" -> Generating detector '%s' \n",psd->sd_detector_name);
       }
       class_call(distortions_generate_detector(ppr,psd),
                  psd->error_message,
                  psd->error_message);
     }
-    else{
+    else {
       class_stop(psd->error_message,
                  "You asked for detector '%s', but it was not in the database '%s'.\nPlease check the name of your detector, or specify its properties if you want to create a new one",
                  psd->sd_detector_name,
                  psd->sd_detector_list_file);
     }
+  }
+
+  if (psd->has_detector_file ==_TRUE_) {
+    class_call(distortions_read_detector_noisefile(ppr,psd),
+               psd->error_message,
+               psd->error_message);
   }
 
   return _SUCCESS_;
@@ -371,7 +377,7 @@ int distortions_generate_detector(struct precision * ppr,
 
 
   /* Test first whether or not python exists*/
-  if(psd->distortions_verbose > 0){
+  if (psd->distortions_verbose > 0) {
     printf(" -> Testing python\n");
   }
   is_success = system("python --version");
@@ -380,11 +386,11 @@ int distortions_generate_detector(struct precision * ppr,
              "The command 'python --version' failed.\nPlease install a valid version of python.");
 
   /* Then activate the PCA generator*/
-  if(psd->distortions_verbose > 0){
+  if (psd->distortions_verbose > 0) {
     printf(" -> Executing the PCA generator\n");
   }
 
-  if(psd->has_detector_file == _TRUE_){
+  if (psd->has_detector_file == _TRUE_) {
     sprintf(temporary_string,"python %s %s %s %s %.10e %.10e %i %i %.10e %.10e %.10e",
             psd->sd_PCA_file_generator,
             psd->sd_detector_name,
@@ -399,7 +405,7 @@ int distortions_generate_detector(struct precision * ppr,
             psd->x_to_nu);
 
   }
-  else{
+  else {
     sprintf(temporary_string,"python %s %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
             psd->sd_PCA_file_generator,
             psd->sd_detector_name,
@@ -420,6 +426,76 @@ int distortions_generate_detector(struct precision * ppr,
   class_test(is_success == -1,
              psd->error_message,
              "The command 'python %s' failed.\nPlease make sure the file exists.",psd->sd_PCA_file_generator);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Reads the external detector noise file containing the
+ * array of frequencies and the detector accuracies
+ * Assumed to be in units of [GHz] and [10^-26 W/m^2/Hz/sr] respectively
+ *
+ * @param ppr        Input: pointer to the precisions structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_read_detector_noisefile(struct precision * ppr,
+                                        struct distortions * psd){
+
+  /** Define local variables */
+  int index_x;
+  double nu_temp,delta_Ic_temp;
+  FILE * infile;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines = 0;
+  int numcols;
+
+  /** Open file */
+  sprintf(psd->sd_detector_noise_file,"%s/%s",ppr->sd_external_path,psd->sd_detector_file_name);
+  class_open(infile, psd->sd_detector_noise_file, "r", psd->error_message);
+
+  /** Read header */
+  psd->br_exact_Nz = 0;
+  while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+        left++;
+    }
+
+    if (left[0] > 39) {
+      /** Read number of lines, infer size of arrays and allocate them */
+      class_test(sscanf(line,"%d %d", &psd->x_size, &numcols) != 2,
+                 psd->error_message,
+                 "could not header (number of lines, number of columns) at line %i in file '%s' \n",headlines,psd->sd_detector_noise_file);
+      class_test(numcols !=2,
+                 psd->error_message,
+                 "Incorrect number of columns in the detector noise file '%s'",psd->sd_detector_noise_file);
+
+      class_alloc(psd->x, psd->x_size*sizeof(double), psd->error_message);
+      class_alloc(psd->delta_Ic_array, psd->x_size*sizeof(double), psd->error_message);
+      break;
+    }
+  }
+
+  /** Read parameters */
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    class_test(fscanf(infile, "%le",
+                      &(nu_temp))!=1,                                                 // [-]
+                      psd->error_message,
+                      "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
+    psd->x[index_x] = nu_temp/psd->x_to_nu;
+    class_test(fscanf(infile, "%le",
+                      &(psd->delta_Ic_array[index_x]))!=1,                            // [-]
+                      psd->error_message,
+                      "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
+    psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;
+  }
+
+  fclose(infile);
 
   return _SUCCESS_;
 }
@@ -494,7 +570,7 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
-  if(psd->sd_branching_approx != bra_exact){
+  if (psd->sd_branching_approx != bra_exact) {
     psd->x_min = ppr->sd_x_min;
     psd->x_max = ppr->sd_x_max;
     psd->x_size = ppr->sd_x_size;
@@ -509,7 +585,7 @@ int distortions_get_xz_lists(struct precision * ppr,
     }
 
   }
-  else if(psd->has_detector_file == _FALSE_){
+  else if (psd->has_detector_file == _FALSE_) {
     psd->x_min = psd->sd_detector_nu_min/psd->x_to_nu;
     psd->x_max = psd->sd_detector_nu_max/psd->x_to_nu;
     psd->x_delta = psd->sd_detector_nu_delta/psd->x_to_nu;
@@ -585,23 +661,23 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   }
 
   /** Calulate branching ratios */
-  if(psd->sd_branching_approx != bra_exact){
+  if (psd->sd_branching_approx != bra_exact) {
     for(index_z=0; index_z<psd->z_size; ++index_z){
       bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
       /* 1) Calculate branching ratios using sharp_sharp transition */
-      if(psd->sd_branching_approx == bra_sharp_sharp){
-        if(psd->z[index_z]>psd->z_th){
+      if (psd->sd_branching_approx == bra_sharp_sharp) {
+        if (psd->z[index_z]>psd->z_th) {
           f_g = 1.;
           f_y = 0.;
           f_mu = 0.;
         }
-        if(psd->z[index_z]<psd->z_th && psd->z[index_z]>psd->z_muy){
+        if (psd->z[index_z]<psd->z_th && psd->z[index_z]>psd->z_muy) {
           f_g = 0.;
           f_y = 0.;
           f_mu = 1.;
         }
-        if(psd->z[index_z]<psd->z_muy){
+        if (psd->z[index_z]<psd->z_muy) {
           f_g = 0.;
           f_y = 1.;
           f_mu = 0.;
@@ -609,27 +685,27 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       }
 
       /* 2) Calculate branching ratios using sharp_soft transition */
-      if(psd->sd_branching_approx == bra_sharp_soft){
+      if (psd->sd_branching_approx == bra_sharp_soft) {
         f_g = 1.-bb_vis;
-        if(psd->z[index_z]>psd->z_muy){
+        if (psd->z[index_z]>psd->z_muy) {
           f_y = 0.;
           f_mu = bb_vis;
         }
-        if(psd->z[index_z]<psd->z_muy){
+        if (psd->z[index_z]<psd->z_muy) {
           f_y = 1.;
           f_mu = 0.;
         }
       }
 
       /* 3) Calculate branching ratios unsing soft_soft transitions */
-      if(psd->sd_branching_approx == bra_soft_soft){
+      if (psd->sd_branching_approx == bra_soft_soft) {
         f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
         f_mu = bb_vis*(1.-exp(-pow((1.0+psd->z[index_z])/(5.8e4),1.88)));
       }
 
       /* 4) Calculate branching ratios unsing soft_soft_cons transitions */
-      if(psd->sd_branching_approx == bra_soft_soft_cons){
+      if (psd->sd_branching_approx == bra_soft_soft_cons) {
         f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
         f_mu = bb_vis*(1.-f_y);
@@ -641,7 +717,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
     }
   }
-  else{
+  else {
     /* 5) Calculate branching ratios according to Chluba & Jeong 2014 */
 
     /* Read and spline data from file branching_ratios.dat */
@@ -838,7 +914,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                psd->error_message,
                psd->error_message);
 
-    if(index_type>=psd->index_type_PCA){
+    if (index_type>=psd->index_type_PCA) {
       /* The S_k are not properly normalized, we have to renormalize here */
       psd->sd_parameter_table[index_type] /= (log(1.+psd->z[1])-log(1.+psd->z[0]));
     }
@@ -862,7 +938,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   }
 
   /** Calculate spectral shapes */
-  if(psd->sd_branching_approx != bra_exact || psd->sd_PCA_size == 0){
+  if (psd->sd_branching_approx != bra_exact || psd->sd_PCA_size == 0) {
     /* If no PCA analysis is required, the shapes have simple analistical form */
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
@@ -874,7 +950,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                                                            (1./2.19229-1./psd->x[index_x]);         // [-]
     }
   }
-  else{
+  else {
     /* If PCA analysis is required, the shapes has to be vectorized. This is done in the external
        file spectral_shapes.dat using generate_PCA_files.py */
 
@@ -919,7 +995,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /* For the details of the calculation see Chluba & Jeong 2014, left column of page 6 */
   psd->epsilon = 0.;
 
-  if(psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0){
+  if (psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0) {
     class_call(array_trapezoidal_integral(psd->sd_shape_table[psd->index_type_g],
                                           psd->x_size,
                                           psd->x_weights,
@@ -958,18 +1034,18 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     psd->DI[index_x] = 0.;
 
     for(index_type=0;index_type<psd->type_size;++index_type){
-      if(index_type==psd->index_type_g){
-        if(psd->include_g_distortion == _TRUE_){
+      if (index_type==psd->index_type_g) {
+        if (psd->include_g_distortion == _TRUE_) {
           g = psd->sd_parameter_table[psd->index_type_g];
           psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
                                                  g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
         }
-        else{
+        else {
           g = 0.;
           psd->sd_table[index_type][index_x] = 0.;
         }
       }
-      else{
+      else {
         psd->sd_table[index_type][index_x] = psd->sd_parameter_table[index_type]*psd->sd_shape_table[index_type][index_x];
       }
 
@@ -983,7 +1059,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
 
   /* Reionization */
-  if(psd->has_SZ_effect == _TRUE_){
+  if (psd->has_SZ_effect == _TRUE_) {
     for(index_x=0;index_x<psd->x_size;++index_x){
       class_call(distortions_add_effects_reio(pba,pth,psd,
                                               5.e0,
@@ -1006,33 +1082,33 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                        psd->sd_parameter_table[psd->index_type_mu]/1.401+
                        psd->epsilon;
 
-  if(psd->include_g_distortion == _TRUE_){
+  if (psd->include_g_distortion == _TRUE_) {
      psd->Drho_over_rho += psd->sd_parameter_table[psd->index_type_g]*4.;
   }
 
   /** Print found parameters */
-  if (psd->distortions_verbose > 1){
+  if (psd->distortions_verbose > 1) {
 
-    if ( psd->distortions_verbose > 3 && psd->include_g_distortion){
+    if ( psd->distortions_verbose > 3 && psd->include_g_distortion == _TRUE_) {
       printf(" -> g-parameter %g (Note, that this does not include contributions from earlier than sd_z_max=%g)\n", psd->sd_parameter_table[psd->index_type_g], ppr->sd_z_max);
     }
 
     if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
       printf(" -> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
     }
-    else{
+    else {
       printf(" -> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
     }
 
     if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
       printf(" -> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
     }
-    else{
+    else {
       printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
     }
 
-    if(psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0){
-       if(psd->distortions_verbose > 2){
+    if (psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0) {
+       if (psd->distortions_verbose > 2) {
          for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
            printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
          }
@@ -1245,7 +1321,7 @@ int distortions_add_effects_reio(struct background * pba,
   /* Calculated according to Chluba et al. 2012 */
     case sd_reio_Chluba:
     /* Low temperature approximation */
-    if(T_e < 10.){
+    if (T_e < 10.) {
       double d[7][3] = {{-2./5., -1./5.,   407./140.},
                         {-8./5., -24./5., -233./35.},
                         {-2./5., -66./5., -10433./140.},
@@ -1303,7 +1379,7 @@ int distortions_add_effects_reio(struct background * pba,
       }
     }
     /* High temperature approximation (not implemented yet) */
-    else{
+    else {
       M_low = 0.;
       D_low = 0.;
       Q_low = 0.;
@@ -1854,16 +1930,16 @@ int distortions_output_sd_titles(struct distortions * psd,
   class_store_columntitle(titles,"Frequency nu [GHz]",_TRUE_);
   class_store_columntitle(titles,"SD_tot",_TRUE_);
   for(index_type=0;index_type<psd->type_size;++index_type){
-    if(index_type==psd->index_type_g){
+    if (index_type==psd->index_type_g) {
       sprintf(temp_title,"SD[g]");
     }
-    if(index_type==psd->index_type_y){
+    if (index_type==psd->index_type_y) {
       sprintf(temp_title,"SD[y]");
     }
-    if(index_type==psd->index_type_mu){
+    if (index_type==psd->index_type_mu) {
       sprintf(temp_title,"SD[mu]");
     }
-    if(index_type>=psd->index_type_PCA){
+    if (index_type>=psd->index_type_PCA) {
       sprintf(temp_title,"SD[e_%i]",(index_type-psd->index_type_PCA));
     }
     class_store_columntitle(titles,temp_title,_TRUE_);
