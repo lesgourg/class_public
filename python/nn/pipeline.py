@@ -145,7 +145,7 @@ class CanonicalTargetTransformer(TargetTransformer):
         if "delta_cb" in targets:
             delta_cb = targets["delta_cb"]
             #transform like delta_m
-            targets["deta_cb"] = self._transform_delta_m(delta_cb)
+            targets["delta_cb"] = self._transform_delta_m(delta_cb)
         return targets
 
     def untransform_targets(self, targets, inputs=None):

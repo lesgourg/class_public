@@ -65,19 +65,29 @@ FIXED_TRAINING_ONLY = {
 # DOMAIN = {p: (mu - 5 * sigma, mu + 5 * sigma) for p, (mu, sigma) in PLANCK.items()}
 
 #WORKSPACE_DIR = "/scratch/work/stadtmann/CLASSnet_Workspace/CLASSnet_Workspace_1/"
+#WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_old/")
 #WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
-WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
-
+WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_2/")
 
 # IF THIS IS GONE THEN UNDO IS FINISHED
+
+#generations = {
+#    "Net_ST0_Reco":     32,
+#    "Net_ST0_Reio":     23,
+#    "Net_ST0_ISW":      23,
+#    "Net_ST1":          22,
+#    "Net_ST2_Reco":     24,
+#    "Net_ST2_Reio":     23,
+#    "Net_phi_plus_psi": 32,
+#}
 generations = {
-    "Net_ST0_Reco":     32,
-    "Net_ST0_Reio":     23,
-    "Net_ST0_ISW":      23,
-    "Net_ST1":          22,
-    "Net_ST2_Reco":     24,
-    "Net_ST2_Reio":     23,
-    "Net_phi_plus_psi": 32,
+    "Net_ST0_Reco":     101,
+    "Net_ST0_Reio":     101,
+    "Net_ST0_ISW":      101,
+    "Net_ST1":          102,
+    "Net_ST2_Reco":     101,
+    "Net_ST2_Reio":     101,
+    "Net_phi_plus_psi": 101,
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -95,9 +105,9 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 #    sigma_train    = 6,
 #    sigma_validate = 5,
 #)
-
+#
 #domain.save(workspace.domain_descriptor)
-#domain.sample_save(training_count=100, validation_count=100, path=workspace.data / "samples.h5")
+#domain.sample_save(training_count=1, validation_count=100, path=workspace.data / "samples.h5")
 
 # import sys; sys.exit(0)
 
@@ -166,7 +176,7 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 # tester = workspace.tester()
 # tester.test(5, seed=1234)
 #workspace = workspace.sub("pk_test")
-#plotter = workspace.plotter()
+plotter = workspace.plotter()
 #plotter.plot_spectra(include_params=False)
 # plotter.plot_source_function_slice("t2_reco", marker=".", xlim=(1e-5, 1e-3))
 # plotter.plot_source_function_slice_tau("t2_reco")
@@ -182,18 +192,38 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
-#plotter.plot_training_histories()
+plotter.plot_training_histories()
 
 #ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m", "delta_cb"]
-
+#interest=[
+        #"t0_reco_no_isw", 
+        #"t0_reio_no_isw", 
+        #"t0_isw", 
+        #"t1",
+        #"t2_reco", 
+        #"t2_reio", 
+        #"phi_plus_psi", 
+        #"delta_m", 
+#        "delta_cb",
+#        ]
 # Compute Cl's with all source functions computed by CLASS _except_ one
+#mode="only"
+#mode="except"
+#nonlinear="halofit"
+#nonlinear="linear"
 #if True:
 #    import matplotlib
 #    matplotlib.use("agg")
-#    for i, select in enumerate(["t0_isw"]):
-#        subspace = workspace.sub("only_{}".format(select))
-#        cheat = set(ALL_SOURCES) - set([select])
-#        subspace.tester().test(1000, cheat=cheat, seed=1337)
+#    for i, select in enumerate(interest):
+#        subspace = workspace.sub("{}_{}".format(mode,select))
+#        if mode == "only":
+#            cheat = set(ALL_SOURCES) - set([select])
+#        elif mode == "except":
+#            cheat=set([select])
+#        else:
+#            raise ValueError("specify mode")
+#        # subspace.tester().test(1000, cheat=cheat, seed=1337)    
+#        subspace.tester().test(96, cheat=cheat, seed=1337,nonlinear=nonlinear)
 #        plotter = subspace.plotter()
-#        plotter.plot_spectra(include_params=True)
-#        plotter.plot_source_functions()
+#        plotter.plot_spectra(include_params=False, suffix=nonlinear)
+#        #plotter.plot_source_functions()

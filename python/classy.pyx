@@ -23,8 +23,6 @@ import cython
 from cython.parallel import prange
 cimport cython
 
-# TODO conditional import?
-# TODO relative import?
 import classynet.workspace
 import classynet.predictors
 
@@ -322,8 +320,18 @@ cdef class Class:
                     else:
                         return True
                 else:
-                    raise ValueError("nn_verbose is not set to valid value: should be integer above 0 but is {}".format(self.pars["nn_verbose"]))
-        
+                    raise ValueError("nn_verbose is not set to valid value: should be integer equal or above 0 but is {}".format(self.pars["nn_verbose"]))
+            else:
+                if not using_nn:
+                    print("##################################")
+                    print("#   NOT USING NEURAL NETWORKS!   #")
+                    print("##################################")
+                    return False
+                else:
+                    print("##################################")
+                    print("#    USING NEURAL NETWORKS!      #")
+                    print("##################################")
+                    return True
 
 
     def can_use_nn(self):
@@ -677,6 +685,7 @@ cdef class Class:
             # TODO remove some of the unused ones here
             double [:, :, :] NN_prediction
             double * c_NN_sources
+            double tau1=0.0
 
 
         if "perturb" in level:
@@ -797,9 +806,46 @@ cdef class Class:
                 self.pt.k_min = k_NN[0]
                 self.pt.k_max = k_NN[-1]
                 self.pt.k_size[index_md] = k_NN_size
-
-                k_max_cl = 0.4
-                # TODO - 1 maybe?
+                # the following part determines k_max_cl similar to the c function perturb_get_k_list in the source/perturbations.c file of ClassFull
+                #first value
+                if self.ba.sgnK == 0:
+                    #K<0 (flat)  : start close to zero */
+                    k_min=self.pr.k_min_tau0/self.ba.conformal_age
+                elif self.ba.sgnK == -1:
+                    # K<0 (open)  : start close to sqrt(-K)
+                    # (in transfer modules, for scalars, this will correspond to q close to zero
+                    # for vectors and tensors, this value is even smaller than the minimum necessary value) */
+                    k_min=np.sqrt(-self.ba.K+pow(self.pr.k_min_tau0/self.ba.conformal_age/self.th.angular_rescaling,2))
+                elif self.ba.sgnK == 1:
+                    # K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+                    k_min = np.sqrt((8.-1.e-4)*self.ba.K)
+                #- --> find k_max (as well as k_max_cmb[ppt->index_md_scalars], k_max_cl[ppt->index_md_scalars]) */
+                k_max_cmb = k_min
+                k_max_cl = k_min
+                if self.pt.has_cls == _TRUE_:
+                    # find k_max_cmb[ppt->index_md_scalars] : */
+                    # choose a k_max_cmb[ppt->index_md_scalars] corresponding to a wavelength on the last
+                    # scattering surface seen today under an angle smaller than
+                    # pi/lmax: this is equivalent to
+                    # k_max_cl[ppt->index_md_scalars]*[comvoving.ang.diameter.distance] > l_max */
+                    k_max_cmb = self.pr.k_max_tau0_over_l_max*self.pt.l_scalar_max/self.ba.conformal_age/self.th.angular_rescaling
+                    k_max_cl = k_max_cmb
+                # find k_max_cl[ppt->index_md_scalars] : */
+                # if we need density/lensing Cl's, we must impose a stronger condition,
+                # such that the minimum wavelength on the shell corresponding
+                # to the center of smallest redshift bin is seen under an
+                # angle smaller than pi/lmax. So we must multiply our previous
+                # k_max_cl[ppt->index_md_scalars] by the ratio tau0/(tau0-tau[center of smallest
+                # redshift bin]). Note that we could do the same with the
+                # lensing potential if we needed a very precise C_l^phi-phi at
+                if self.pt.has_cl_number_count == _TRUE_ or self.pt.has_cl_lensing_potential == _TRUE_:
+                    if background_tau_of_z(&self.ba,self.pt.selection_mean[0],&tau1) == _FAILURE_:
+                        raise CosmoSevereError(self.ba.error_message)
+                    k_max_cl = max(k_max_cl,self.pr.k_max_tau0_over_l_max*self.pt.l_lss_max/(self.ba.conformal_age-tau1))
+                    # to be very accurate we should use angular diameter distance to given redshift instead of comoving radius: would implement corrections depending on curvature
+                
+                # end of c part 
+                
                 k_max_cl_idx = np.searchsorted(k_NN, k_max_cl)
                 # self.pt.k_size_cl[index_md] = k_NN_size
                 self.pt.k_size_cl[index_md] = k_max_cl_idx
@@ -809,7 +855,12 @@ cdef class Class:
                     if self.pars["nn_verbose"]>2:
                         print("pt.k[index_md][pt.k_size_cl[index_md] - 1] =", _k_max_dbg)
 
-
+                #print("NET  k_min: {}".format(k_NN[0]))
+                #print("NET  k_max: {}".format(k_NN[-1]))
+                #print("NET  k_size: {}".format(k_NN_size))
+                #print("NET  k_max_cl_calculated: {}".format(k_max_cl))
+                #print("NET  k_max_cl: {}".format(k_NN[k_max_cl_idx-1]))
+                #print("NET  k_size_cl: {}".format(k_max_cl_idx))
                 timer.end("overwrite k array")
 
                 timer.start("allocate unused source functions")
@@ -1303,7 +1354,6 @@ cdef class Class:
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.nl.method == nl_none):
-            #print("no nonlinear_method called_here")
             if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
         else:

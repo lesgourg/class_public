@@ -11,8 +11,8 @@ class Plotter:
     def plot_training_histories(self):
         HistoryPlotter(self.workspace).plot_and_save()
 
-    def plot_spectra(self, include_params=False):
-        SpectraPlotter(self.workspace).plot(include_params=include_params)
+    def plot_spectra(self, include_params=False,suffix=None):
+        SpectraPlotter(self.workspace).plot(include_params=include_params,suffix=suffix)
 
     def plot_scatter_errors(self):
         TrianglePlotter(self.workspace).plot_and_save()

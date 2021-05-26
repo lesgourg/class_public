@@ -67,7 +67,7 @@ enum possible_gauges {
 /**
  * maximum number and types of selection function (for bins of matter density or cosmic shear)
  */
-#define _SELECTION_NUM_MAX_ 100
+#define _SELECTION_NUM_MAX_ 100 // If this is changed, the definition of selection_mean in python/cclassy.pyd has to be adjusted a swell
 enum selection_type {gaussian,tophat,dirac};
 
 //@}

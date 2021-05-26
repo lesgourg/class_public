@@ -59,6 +59,7 @@ cdef extern from "class.h":
 
     cdef struct precision:
         ErrorMsg error_message
+        double k_max_tau0_over_l_max
         double k_min_tau0
 
     cdef struct background:
@@ -181,6 +182,12 @@ cdef extern from "class.h":
 
         short has_density_transfers
         short has_velocity_transfers
+
+        short has_cl_number_count
+        short has_cl_lensing_potential
+        double selection_mean[100] # 100=_SELECTION_NUM_MAX_ in include_perturbations.h
+        int l_scalar_max
+        short has_cls
 
         int has_pk_matter
         int l_lss_max

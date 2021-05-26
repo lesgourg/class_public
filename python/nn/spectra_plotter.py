@@ -13,7 +13,7 @@ class SpectraPlotter:
     def __init__(self, workspace):
         self.workspace = workspace
 
-    def plot(self, include_params=False):
+    def plot(self, include_params=False,prefix=None,suffix=None):
         print("plotting spectra...")
         self._init()
         stats = self.workspace.loader().stats()
@@ -29,46 +29,55 @@ class SpectraPlotter:
             print("creating color plot for P(k)")
             self._plot_colored(stats, field="pk")
 
-        self._save()
+        self._save(prefix=prefix,suffix=suffix)
         self._close_figs()
 
     def _init(self):
         self.figs = {
-            "tt": plt.subplots(),
+            "tt_raw": plt.subplots(),
             # cosmic variance
-            "tt_cv": plt.subplots(),
-            "ee": plt.subplots(),
-            "ee_cv": plt.subplots(),
-            "ee_abs": plt.subplots(),
-            "te": plt.subplots(),
-            "te_cv": plt.subplots(),
-            "te_abs": plt.subplots(),
+            "tt_cv_raw": plt.subplots(),
+            "ee_raw": plt.subplots(),
+            "ee_cv_raw": plt.subplots(),
+            "ee_abs_raw": plt.subplots(),
+            "te_raw": plt.subplots(),
+            "te_cv_raw": plt.subplots(),
+            "te_abs_raw": plt.subplots(),
             "pk": plt.subplots(),
             "pk_abs": plt.subplots(),
             "delta_m": plt.subplots(),
             "delta_m_abs": plt.subplots(),
+            "pp_raw": plt.subplots(),
+            "pp_lens": plt.subplots(),
+            "tt_lens": plt.subplots(),
+            "ee_lens": plt.subplots(),
+            "te_lens": plt.subplots(),
+            "tt_cv_lens": plt.subplots(),
+            "te_cv_lens": plt.subplots(),
+            "ee_cv_lens": plt.subplots(),
         }
 
         for _, ax in self.figs.values():
             ax.grid()
 
-        for q in ("tt", "tt_cv", "te", "ee", "ee_cv", "ee_abs", "te_abs", "te_cv"):
+        for q in ("tt_raw", "tt_cv_raw", "te_raw", "ee_raw", "ee_cv_raw", "ee_abs_raw", "te_abs_raw", "te_cv_raw","pp_raw","pp_lens","tt_lens","ee_lens","te_lens","ee_cv_lens","te_cv_lens","tt_cv_lens"):
             fig, ax = self.figs[q]
             fig.tight_layout()
+            ax.set_xlim(1.5,4000)
             ax.set_xlabel(r"$\ell$")
 
-        self.figs["tt"][1].set_ylabel(r"$\Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
-        self.figs["tt_cv"][1].set_ylabel(r"$\sqrt{\frac{2\mathrm{min}(\ell, 2000)+1}{2}} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
-        ll1 = r"$\ell (\ell + 1) "
-        self.figs["te"][1].set_ylabel(ll1 + r"\Delta C_\ell^{TE}$")
-        self.figs["ee"][1].set_ylabel(ll1 + r"\Delta C_\ell^{EE}$")
-        self.figs["ee"][1].set_yscale("symlog", linthresh=1e-16)
-        self.figs["te"][1].set_yscale("symlog", linthresh=1e-14)
-        self.figs["ee_cv"][1].set_ylabel(r"$\left \|\Delta C_\ell^{EE} \right \|$ / (cosmic variance)")
-        self.figs["te_cv"][1].set_ylabel(r"$\left \|\Delta C_\ell^{TE} \right \|$ / (cosmic variance)")
-        self.figs["te_abs"][1].set_ylabel(ll1 + r"C_\ell^{TE}$")
-        self.figs["ee_abs"][1].set_ylabel(ll1 + r"C_\ell^{EE}$")
-        self.figs["ee_abs"][1].set_yscale("log")
+        self.figs["tt_raw"][1].set_ylabel(r"$\mathrm{raw} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
+        self.figs["tt_cv_raw"][1].set_ylabel(r"$\mathrm{raw} \sqrt{\frac{2\mathrm{min}(\ell, 2000)+1}{2}} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
+        ll1 = r"\ell (\ell + 1) "
+        self.figs["te_raw"][1].set_ylabel(r"$\mathrm{raw } "+ll1 + r"\Delta C_\ell^{TE}$")
+        self.figs["ee_raw"][1].set_ylabel(r"$\mathrm{raw } "+ll1 + r"\Delta C_\ell^{EE}$")
+        self.figs["ee_raw"][1].set_yscale("symlog", linthresh=1e-16)
+        self.figs["te_raw"][1].set_yscale("symlog", linthresh=1e-14)
+        self.figs["ee_cv_raw"][1].set_ylabel(r"$\mathrm{raw } \left \|\Delta C_\ell^{EE} \right \|$ / (cosmic variance)")
+        self.figs["te_cv_raw"][1].set_ylabel(r"$\mathrm{raw } \left \|\Delta C_\ell^{TE} \right \|$ / (cosmic variance)")
+        self.figs["te_abs_raw"][1].set_ylabel(r"$\mathrm{raw } "+ll1 + r"C_\ell^{TE}$")
+        self.figs["ee_abs_raw"][1].set_ylabel(r"$\mathrm{raw } "+ll1 + r"C_\ell^{EE}$")
+        self.figs["ee_abs_raw"][1].set_yscale("log")
 
         self.figs["pk"][0].tight_layout()
         self.figs["pk"][1].set(
@@ -82,6 +91,18 @@ class SpectraPlotter:
             xlabel=r"$k$ [Mpc${}^{-1}$]",
             ylabel=r"$P_{NN}(k)$",
         )
+
+        self.figs["pp_raw"][1].set_ylabel(r"$\mathrm{raw} \Delta C_\ell^{PP} / C_\ell^{TT, \mathrm{true}}$")
+        self.figs["ee_lens"][1].set_yscale("symlog", linthresh=1e-16)
+        self.figs["te_lens"][1].set_yscale("symlog", linthresh=1e-14)
+        self.figs["pp_lens"][1].set_ylabel(r"$\mathrm{lensed } \Delta C_\ell^{PP} / C_\ell^{PP, \mathrm{true}}$")
+        self.figs["tt_lens"][1].set_ylabel(r"$\mathrm{lensed } \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
+        self.figs["ee_lens"][1].set_ylabel(r"$\mathrm{lensed } "+ll1 + r"\Delta C_\ell^{EE}$")
+        self.figs["te_lens"][1].set_ylabel(r"$\mathrm{lensed } "+ll1 + r"\Delta C_\ell^{EE}$")
+        self.figs["tt_cv_lens"][1].set_ylabel(r"$\mathrm{lensed } \sqrt{\frac{2\mathrm{min}(\ell, 2000)+1}{2}} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
+        self.figs["ee_cv_lens"][1].set_ylabel(r"$\mathrm{lensed } \left \|\Delta C_\ell^{EE} \right \|$ / (cosmic variance)")
+        self.figs["te_cv_lens"][1].set_ylabel(r"$\mathrm{lensed } \left \|\Delta C_\ell^{TE} \right \|$ / (cosmic variance)")
+
 
     def _get_param_bounds(self, data):
         param_names = data[0]["parameters"].keys()
@@ -139,17 +160,27 @@ class SpectraPlotter:
         k_pk_nn   = row["k_pk_nn"]
         pk_nn     = row["pk_nn"]
         ell = cl_true["ell"]
+        cl_lens_true = row["cl_lens_true"]
+        cl_lens_nn = row["cl_lens_nn"]
+        ell_lens = cl_lens_true["ell"]
 
         for _, ax in self.figs.values():
             ax.axhline(0, color="k")
 
         # TT
         tt_relerr = (cl_nn["tt"] - cl_true["tt"]) / cl_true["tt"]
-        self.figs["tt"][1].semilogx(ell, tt_relerr, **LINESTYLE_RED)
+        self.figs["tt_raw"][1].semilogx(ell, tt_relerr, **LINESTYLE_RED)
+        
+        tt_lens_relerr = (cl_lens_nn["tt"] - cl_lens_true["tt"]) / cl_lens_true["tt"]
+        self.figs["tt_lens"][1].semilogx(ell_lens, tt_lens_relerr, **LINESTYLE_RED)
 
         cosmic_variance = np.sqrt(2 / (2 * np.minimum(ell, 2000) + 1))
         tt_relerr_cv = tt_relerr / cosmic_variance
-        self.figs["tt_cv"][1].semilogx(ell, tt_relerr_cv, **LINESTYLE_RED)
+        self.figs["tt_cv_raw"][1].semilogx(ell, tt_relerr_cv, **LINESTYLE_RED)
+
+        cosmic_variance_lens = np.sqrt(2 / (2 * np.minimum(ell_lens, 2000) + 1))
+        tt_lens_relerr_cv = tt_lens_relerr / cosmic_variance_lens
+        self.figs["tt_cv_lens"][1].semilogx(ell_lens, tt_lens_relerr_cv, **LINESTYLE_RED)
 
         def plot_err(ax, qty, style):
             ax.semilogx(ell, ell * (ell + 1) * qty, **style)
@@ -157,12 +188,24 @@ class SpectraPlotter:
         def plot_err_pm(ax, qty, style):
             plot_err(ax, qty, style)
             plot_err(ax, -qty, style)
+            
+        def plot_err_lens(ax, qty, style):
+            ax.semilogx(ell_lens, ell_lens * (ell_lens + 1) * qty, **style)
+
+        def plot_err_pm_lens(ax, qty, style):
+            plot_err_lens(ax, qty, style)
+            plot_err_lens(ax, -qty, style)
+        
+        pp_relerr = (cl_nn["pp"] - cl_true["pp"]) / cl_true["pp"]
+        self.figs["pp_raw"][1].semilogx(ell, pp_relerr, **LINESTYLE_RED)
+        pp_lens_relerr = (cl_lens_nn["pp"] - cl_lens_true["pp"]) / cl_lens_true["pp"]
+        self.figs["pp_lens"][1].semilogx(ell_lens, pp_lens_relerr, **LINESTYLE_RED)
 
         # TE + EE
         for q in ("ee", "te"):
             err = (cl_nn[q] - cl_true[q])
             # err_relmax = err / cl_true[q].max()
-            ax = self.figs[q][1]
+            ax = self.figs[q+"_raw"][1]
 
             # cosmic variance
             cv = np.sqrt(2 / (2 * ell + 1)) * cl_true[q]
@@ -183,20 +226,48 @@ class SpectraPlotter:
 
 
             ###### relative to cosmic variance ####
-            ax = self.figs[q + "_cv"][1]
+            ax = self.figs[q + "_cv_raw"][1]
             ax.loglog(ell, np.abs(err / cv), **LINESTYLE_RED)
+            
+            
+        for q in ("ee", "te"):
+            err_lens = (cl_lens_nn[q] - cl_lens_true[q])
+            # err_relmax = err / cl_true[q].max()
+            ax = self.figs[q+"_lens"][1]
+
+            # cosmic variance
+            cv_lens = np.sqrt(2 / (2 * ell_lens + 1)) * cl_lens_true[q]
+            ll1_cv_lens = ell_lens * (ell_lens + 1) * cv_lens
+            ax.semilogx(ell_lens, ll1_cv_lens, lw=0.4, color="purple")
+            ax.semilogx(ell_lens, -ll1_cv_lens, lw=0.4, color="purple")
+
+            # 1% and 0.1%
+            ls_blue = LINESTYLE_BLUE.copy()
+            ls_blue["alpha"] = 0.4
+            ls_green = LINESTYLE_GREEN.copy()
+            ls_green["alpha"] = 0.4
+            plot_err_pm_lens(ax, cl_lens_true[q] /  100.0, ls_blue)
+            plot_err_pm_lens(ax, cl_lens_true[q] / 1000.0, ls_green)
+
+            # actual error
+            plot_err_lens(ax, err_lens, LINESTYLE_RED)
+
+
+            ###### relative to cosmic variance ####
+            ax = self.figs[q + "_cv_lens"][1]
+            ax.loglog(ell_lens, np.abs(err_lens / cv_lens), **LINESTYLE_RED)
+
 
         # TE + EE absolute
         for q in ("ee", "te"):
-            ax = self.figs[q + "_abs"][1]
+            ax = self.figs[q + "_abs_raw"][1]
             ax.semilogx(ell, ell * (ell + 1) * cl_true[q], **LINESTYLE_GREEN)
             ax.semilogx(ell, ell * (ell + 1) * cl_nn[q], **LINESTYLE_RED)
 
         # P(k)
         # since P_NN(k) and P_true(k) may be sampled on different k grids, we
         # need to interpolate (in this case, onto the k_pk_true)
-        # TODO TODO TODO
-        REINTERP_PK = False
+        REINTERP_PK = True
         if REINTERP_PK:
             pk_spline = CubicSpline(k_pk_nn, pk_nn)
             pk_nn_resampled = pk_spline(k_pk_true)
@@ -217,20 +288,21 @@ class SpectraPlotter:
         self.figs["delta_m_abs"][1].loglog(row["k"], -row["delta_m"], color="g")
         self.figs["delta_m_abs"][1].loglog(row["k_nn"], -row["delta_m_nn"], color="r")
 
-        import scipy.interpolate
-        dm_nn_interp = scipy.interpolate.CubicSpline(row["k_nn"], row["delta_m_nn"])(row["k"])
+        dm_nn_interp = CubicSpline(row["k_nn"], row["delta_m_nn"])(row["k"])
         dm_rel_err = (dm_nn_interp - row["delta_m"]) / row["delta_m"]
         self.figs["delta_m"][1].semilogx(row["k"], dm_rel_err, **LINESTYLE_RED)
         self.figs["delta_m"][1].set_yscale("symlog", linthresh=0.001)
 
-    def _save(self, prefix=None):
+    def _save(self, prefix=None,suffix=None):
+        if suffix!=None and suffix!="":
+            suffix="_"+suffix
         for name, (fig, _) in self.figs.items():
             if not prefix:
-                path = self.workspace.plots / "{}.png".format(name)
+                path = self.workspace.plots / "{}{}.png".format(name,suffix)
             else:
                 dir_path = self.workspace.plots / prefix
                 dir_path.mkdir(parents=True, exist_ok=True)
-                path = dir_path / "{}.png".format(name)
+                path = dir_path / "{}{}.png".format(name,suffix)
 
             print("saving plot to", path)
             fig.savefig(path, dpi=200, bbox_inches="tight")

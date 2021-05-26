@@ -1,6 +1,6 @@
 import multiprocessing
 import random
-
+import copy
 import numpy as np
 from scipy.interpolate import CubicSpline
 
@@ -19,7 +19,7 @@ class Tester:
 
         self.fixed = manifest["fixed"]
 
-    def test(self, count=None, cheat=None, seed=None):
+    def test(self, count=None, cheat=None, seed=None,nonlinear=None):
         """
         test the performance of the trained networks by computing the observables
         (Cl's and P(k)) for `count` cosmological scenarios.
@@ -57,9 +57,10 @@ class Tester:
 
         # class_params = list(map(self.get_class_parameters, cosmo_params))
         # class_params_nn = list(map(self.get_class_parameters_nn, cosmo_params))
-        class_params    = [self.get_class_parameters(p) for p in cosmo_params]
-        class_params_nn = [self.get_class_parameters_nn(p, cheat=cheat) for p in cosmo_params]
-
+        class_params    = [self.get_class_parameters(p,nonlinear=nonlinear) for p in cosmo_params]
+        class_params_nn = [self.get_class_parameters_nn(p, cheat=cheat,nonlinear=nonlinear) for p in cosmo_params]
+        print("class_params",class_params)
+        print("class_params_nn",class_params_nn)
         # for recording cl/pk errors as functions of cosmological parameters
         stats = []
 
@@ -72,15 +73,16 @@ class Tester:
                 print(str(exc))
                 print("continuing...")
                 continue
-            (cl_true, k_pk_true, pk_true, k, dm_true), (cl_nn, k_pk_nn, pk_nn, k_nn, dm_nn) = pair
+            (cl_true, k_pk_true, pk_true, k, dm_true, cl_lens_true), (cl_nn, k_pk_nn, pk_nn, k_nn, dm_nn, cl_lens_nn) = pair
+            print("cltrue-clnn",cl_true["tt"]-cl_nn["tt"])
             counter += 1
             print("PROGRESS: {}".format(counter))
 
-            self.update_stats(stats, cosmo_param_dict, cl_true, k, dm_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn, k_nn, dm_nn)
+            self.update_stats(stats, cosmo_param_dict, cl_true, k, dm_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn, k_nn, dm_nn, cl_lens_true, cl_lens_nn)
 
         self.save_stats(stats)
 
-    def update_stats(self, stats, cosmo_params, cl_true, k, dm_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn, k_nn, dm_nn):
+    def update_stats(self, stats, cosmo_params, cl_true, k, dm_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn, k_nn, dm_nn,cl_lens_true,cl_lens_nn):
         cl_err = {key: cl_nn[key] - cl_true[key] for key in cl_true}
 
         # since P_NN(k) and P_true(k) _may_ be sampled on different k grids, we
@@ -108,22 +110,37 @@ class Tester:
             "k_nn": k_nn,
             "delta_m": dm_true,
             "delta_m_nn": dm_nn,
+            "cl_lens_true":cl_lens_true,
+            "cl_lens_nn":cl_lens_nn,
         }
 
         # stat_dict = {k: v if not isinstance(v, np.ndarray) else list(v) for k, v in stat_dict.items()}
         stats.append(stat_dict)
 
-    def get_class_parameters(self, cosmo_params):
+    def get_class_parameters(self, cosmo_params,nonlinear=None):
         """ add fixed parameters (no nn) """
         params = {}
         params.update(cosmo_params)
         params.update(self.fixed)
+        if nonlinear!= None and "non linear" in params:
+            del params["non linear"]
+        if nonlinear=="halofit":
+            params.update({"non_linear":"halofit"})
+        elif nonlinear=="linear" and "non_linear" in params:
+            del params["non_linear"]
         return params
 
-    def get_class_parameters_nn(self, cosmo_params, cheat=None):
+    def get_class_parameters_nn(self, cosmo_params, cheat=None,nonlinear=None):
         """ add fixed parameters (with nn) """
         params = self.get_class_parameters(cosmo_params)
-        params["neural network path"] = self.workspace
+        params["neural network path"] = str(self.workspace.path.resolve())
+        params["nn_verbose"] = 1
+        if nonlinear!= None and "non linear" in params:
+            del params["non linear"]
+        if nonlinear=="halofit":
+            params.update({"non_linear":"halofit"})
+        elif nonlinear=="linear" and "non_linear" in params:
+            del params["non_linear"]
         # if cheating is enabled, we need to notify classy of the quantities
         if cheat:
             params["nn_cheat"] = cheat
@@ -141,7 +158,7 @@ class Tester:
             params.update({k: v[i] for k, v in cosmo_params.items()})
 
             params_nn = params.copy()
-            params_nn["neural network path"] = self.workspace
+            params_nn["neural network path"] = str(self.workspace.path.resolve())
             # if cheating is enabled, we need to notify classy of the quantities
             if cheat:
                 params_nn["nn_cheat"] = cheat
@@ -177,6 +194,7 @@ class Tester:
         import time
         cosmo = Class()
         cosmo.set(params)
+        print(cosmo.pars)
         start = time.perf_counter()
         report = {}
         cosmo.compute(performance_report=report)
@@ -184,20 +202,24 @@ class Tester:
         elapsed = end - start
         print("running class took {}s".format(elapsed))
         cls = truncate(cosmo.raw_cl())
+        print("l raw:\n",cls["ell"])
+        cls_lens = truncate(cosmo.lensed_cl())
+        print("l lensed:\n",cls_lens["ell"])
         k_pk = self.k_pk(cosmo)
         # TODO remove assertion in release
         assert np.all(k_pk >= cosmo.k_min())
         pk = np.vectorize(cosmo.pk)(k_pk, 0.0)
-
+        
         sources, k, tau = cosmo.get_sources()
 
         # also take delta_m @ today
         k = k.copy()
         delta_m = sources["delta_m"][:, -1].copy()
+        ret = copy.deepcopy(cls), copy.deepcopy(k_pk), copy.deepcopy(pk), copy.deepcopy(k), copy.deepcopy(delta_m), copy.deepcopy(cls_lens)
 
         cosmo.struct_cleanup()
 
-        return cls, k_pk, pk, k, delta_m
+        return ret
 
     def save_stats(self, stats):
         import pickle
