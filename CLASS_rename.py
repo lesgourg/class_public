@@ -54,7 +54,7 @@ exceptions = {"th":[],
 
 prefix_exceptions = {"thermodynamics":[],
                      "perturbations":[],
-                     "nonlinear":["nonlinear_method","nonlinear_scale"],
+                     "nonlinear":["nonlinear_method","nonlinear_scale","nonlinear_min_k_max"],
                      "transfer":[],
                      "spectra":[]}
 

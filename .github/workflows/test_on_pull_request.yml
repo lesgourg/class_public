@@ -36,10 +36,10 @@ jobs:
       run: |
         source venv/bin/activate
         cd main_class/python
-        OMP_NUM_THREADS=16 COMPARE_OUTPUT_REF=1 TEST_LEVEL=2 nosetests -v -a test_scenario test_class.py
+        OMP_NUM_THREADS=16 COMPARE_OUTPUT_REF=1 TEST_LEVEL=2 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
     - name: Upload plots 📤
       if: success() || failure()
       uses: actions/upload-artifact@v2
       with:
           name: BranchVsMasterPlots
-          path: python/faulty_figs
+          path: main_class/python/faulty_figs

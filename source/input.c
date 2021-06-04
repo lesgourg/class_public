@@ -3297,6 +3297,8 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                errmsg,
                errmsg);
   }
+  class_read_double("halofit_min_k_max",ppr->nonlinear_min_k_max);
+  class_read_double("hmcode_min_k_max",ppr->nonlinear_min_k_max);
   /* Compatibility code END */
 
   if (flag1 == _TRUE_) {
@@ -3308,10 +3310,11 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pfo->method=nl_halofit;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
     }
     else if((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pfo->method=nl_HMcode;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->hmcode_min_k_max,ppr->fourier_min_k_max));
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       class_read_int("extrapolation_method",pfo->extrapolation_method);
 

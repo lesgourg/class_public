@@ -57,7 +57,7 @@ jobs:
       run: |
         source venv/bin/activate
         cd main_class/python
-        OMP_NUM_THREADS=32 COMPARE_OUTPUT_GAUGE=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py
+        OMP_NUM_THREADS=32 COMPARE_OUTPUT_GAUGE=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
     - name: Upload plots 📤
       if: success() || failure()
       uses: actions/upload-artifact@v2
