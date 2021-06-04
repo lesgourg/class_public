@@ -473,7 +473,7 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
 
 class_precision_parameter(sigma_k_per_decade,double,80.) /**< logarithmic stepsize controlling the precision of integrals for sigma(R,k) and similar quantitites */
 
-class_precision_parameter(nonlinear_min_k_max,double,1.0) /**< when
+class_precision_parameter(nonlinear_min_k_max,double,5.0) /**< when
                                using an algorithm to compute nonlinear
                                corrections, like halofit or hmcode,
                                k_max must be at least equal to this
