@@ -1,0 +1,1 @@
+{"fixed": {"output": "tCl,pCl,lCl,mPk", "non linear": "halofit", "lensing": "yes", "N_ncdm": 1, "deg_ncdm": 3, "Omega_Lambda": 0, "P_k_max_1/Mpc": 100.0, "l_max_scalars": 3000, "compute damping scale": "yes"}, "cosmological_parameters": ["N_ur", "Omega_k", "h", "omega_b", "omega_cdm", "omega_ncdm", "tau_reio", "w0_fld", "wa_fld"]}

@@ -65,9 +65,9 @@ FIXED_TRAINING_ONLY = {
 # DOMAIN = {p: (mu - 5 * sigma, mu + 5 * sigma) for p, (mu, sigma) in PLANCK.items()}
 
 #WORKSPACE_DIR = "/scratch/work/stadtmann/CLASSnet_Workspace/CLASSnet_Workspace_1/"
-#WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_old/")
 #WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
-WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_2/")
+#WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_2/")
+WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_switching_ST0_Reco_102/")
 
 # IF THIS IS GONE THEN UNDO IS FINISHED
 
@@ -81,10 +81,10 @@ WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_2/")
 #    "Net_phi_plus_psi": 32,
 #}
 generations = {
-    "Net_ST0_Reco":     101,
+    "Net_ST0_Reco":     102,
     "Net_ST0_Reio":     101,
     "Net_ST0_ISW":      101,
-    "Net_ST1":          102,
+    "Net_ST1":          101,
     "Net_ST2_Reco":     101,
     "Net_ST2_Reio":     101,
     "Net_phi_plus_psi": 101,
@@ -98,17 +98,16 @@ assert isinstance(workspace, Workspace)
 
 pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
 
-#domain = EllipsoidDomain.from_paths(
-#    bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
-#    covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
-#    pnames         = pnames,
-#    sigma_train    = 6,
-#    sigma_validate = 5,
-#)
-#
-#domain.save(workspace.domain_descriptor)
-#domain.sample_save(training_count=1, validation_count=100, path=workspace.data / "samples.h5")
+domain = EllipsoidDomain.from_paths(
+    bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
+    covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
+    pnames         = pnames,
+    sigma_train    = 6,
+    sigma_validate = 5,
+)
 
+#domain.save(workspace.domain_descriptor)
+domain.sample_save(training_count=1, validation_count=1000, path=workspace.data / "samples.h5")
 # import sys; sys.exit(0)
 
 #training, validation = workspace.loader().cosmological_parameters()
@@ -122,7 +121,7 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 #    processes=1)
 #workspace.generator().generate_k_array()
 # import sys; sys.exit(0)
-
+'''
 # # Generating training data
 # workspace.generator().generate_data_for(
 #     fixed=FIXED,
@@ -192,10 +191,10 @@ plotter = workspace.plotter()
 
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
-plotter.plot_training_histories()
+#plotter.plot_training_histories()
 
-#ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m", "delta_cb"]
-#interest=[
+ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m", "delta_cb"]
+interest=[
         #"t0_reco_no_isw", 
         #"t0_reio_no_isw", 
         #"t0_isw", 
@@ -204,26 +203,32 @@ plotter.plot_training_histories()
         #"t2_reio", 
         #"phi_plus_psi", 
         #"delta_m", 
-#        "delta_cb",
-#        ]
+        "delta_cb",
+        ]
+ylim1 = {"tt":0.02,"ee":0.02,"te":1e-12,"pp":0.02}
+ylim2 = {"tt":0.01,"ee":0.01,"te":5e-13,"pp":0.01}
+ylim3 = {"tt":0.005,"ee":0.005,"te":1e-13,"pp":0.005}
 # Compute Cl's with all source functions computed by CLASS _except_ one
 #mode="only"
-#mode="except"
-#nonlinear="halofit"
+mode="except"
+nonlinear="halofit"
 #nonlinear="linear"
-#if True:
-#    import matplotlib
-#    matplotlib.use("agg")
-#    for i, select in enumerate(interest):
-#        subspace = workspace.sub("{}_{}".format(mode,select))
-#        if mode == "only":
-#            cheat = set(ALL_SOURCES) - set([select])
-#        elif mode == "except":
-#            cheat=set([select])
-#        else:
-#            raise ValueError("specify mode")
-#        # subspace.tester().test(1000, cheat=cheat, seed=1337)    
-#        subspace.tester().test(96, cheat=cheat, seed=1337,nonlinear=nonlinear)
-#        plotter = subspace.plotter()
-#        plotter.plot_spectra(include_params=False, suffix=nonlinear)
-#        #plotter.plot_source_functions()
+if True:
+    import matplotlib
+    matplotlib.use("agg")
+    for i, select in enumerate(interest):
+        subspace = workspace.sub("{}_{}".format(mode,select))
+        if mode == "only":
+            cheat = set(ALL_SOURCES) - set([select])
+        elif mode == "except":
+            cheat=set([select])
+        else:
+            raise ValueError("specify mode")
+        # subspace.tester().test(1000, cheat=cheat, seed=1337)    
+        subspace.tester().test(96, cheat=cheat, seed=1337,nonlinear=nonlinear)
+        plotter = subspace.plotter()
+        plotter.plot_spectra(include_params=False, suffix=nonlinear,ylim=ylim1)
+        plotter.plot_spectra(include_params=False, suffix=nonlinear,ylim=ylim2)
+        plotter.plot_spectra(include_params=False, suffix=nonlinear,ylim=ylim3)
+        #plotter.plot_source_functions()
+'''
