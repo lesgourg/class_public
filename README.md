@@ -107,8 +107,10 @@ https://github.com/lesgourg/class_public/wiki/Public-Contributing
 Using the code
 --------------
 
-You can use CLASS freely, provided that in your publications, you cite
-at least the paper `CLASS II: Approximation schemes <http://arxiv.org/abs/1104.2933>`. Feel free to cite more CLASS papers!
+You can use CLASS freely, but it is expected that in your publications, you cite
+at least the paper `CLASS II: Approximation schemes
+<http://arxiv.org/abs/1104.2933>`. (See COPYING, LICENSE and AUTHORS
+for formal details.) Feel free to cite more CLASS papers!
 
 Support
 -------
