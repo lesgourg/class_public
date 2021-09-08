@@ -61,15 +61,15 @@
  */
 
 int fourier_pk_at_z(
-                      struct background * pba,
-                      struct fourier *pfo,
-                      enum linear_or_logarithmic mode,
-                      enum pk_outputs pk_output,
-                      double z,
-                      int index_pk,
-                      double * out_pk, // array out_pk[index_k]
-                      double * out_pk_ic // array out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-                      ) {
+                    struct background * pba,
+                    struct fourier *pfo,
+                    enum linear_or_logarithmic mode,
+                    enum pk_outputs pk_output,
+                    double z,
+                    int index_pk,
+                    double * out_pk, // array out_pk[index_k]
+                    double * out_pk_ic // array out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+                    ) {
   double tau;
   double ln_tau;
   int index_k;
@@ -289,28 +289,28 @@ int fourier_pk_at_z(
  */
 
 int fourier_pks_at_z(
-                       struct background * pba,
-                       struct fourier * pfo,
-                       enum linear_or_logarithmic mode,
-                       enum pk_outputs pk_output,
-                       double z,
-                       double * out_pk,      // array out_pk[index_k]
-                       double * out_pk_ic,   // array out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-                       double * out_pk_cb,   // array out_pk_cb[index_k]
-                       double * out_pk_cb_ic // array out_pk_cb_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-                       ) {
+                     struct background * pba,
+                     struct fourier * pfo,
+                     enum linear_or_logarithmic mode,
+                     enum pk_outputs pk_output,
+                     double z,
+                     double * out_pk,      // array out_pk[index_k]
+                     double * out_pk_ic,   // array out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+                     double * out_pk_cb,   // array out_pk_cb[index_k]
+                     double * out_pk_cb_ic // array out_pk_cb_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+                     ) {
 
   if (pfo->has_pk_cb == _TRUE_) {
 
     class_call(fourier_pk_at_z(pba,
-                                 pfo,
-                                 mode,
-                                 pk_output,
-                                 z,
-                                 pfo->index_pk_cb,
-                                 out_pk_cb,
-                                 out_pk_cb_ic
-                                 ),
+                               pfo,
+                               mode,
+                               pk_output,
+                               z,
+                               pfo->index_pk_cb,
+                               out_pk_cb,
+                               out_pk_cb_ic
+                               ),
                pfo->error_message,
                pfo->error_message);
   }
@@ -318,14 +318,14 @@ int fourier_pks_at_z(
   if (pfo->has_pk_m == _TRUE_) {
 
     class_call(fourier_pk_at_z(pba,
-                                 pfo,
-                                 mode,
-                                 pk_output,
-                                 z,
-                                 pfo->index_pk_m,
-                                 out_pk,
-                                 out_pk_ic
-                                 ),
+                               pfo,
+                               mode,
+                               pk_output,
+                               z,
+                               pfo->index_pk_m,
+                               out_pk,
+                               out_pk_ic
+                               ),
                pfo->error_message,
                pfo->error_message);
   }
@@ -376,16 +376,16 @@ int fourier_pks_at_z(
  */
 
 int fourier_pk_at_k_and_z(
-                            struct background * pba,
-                            struct primordial * ppm,
-                            struct fourier *pfo,
-                            enum pk_outputs pk_output,
-                            double k,
-                            double z,
-                            int index_pk,
-                            double * out_pk, // number *out_pk_l
-                            double * out_pk_ic // array out_pk_ic_l[index_ic_ic]
-                            ) {
+                          struct background * pba,
+                          struct primordial * ppm,
+                          struct fourier *pfo,
+                          enum pk_outputs pk_output,
+                          double k,
+                          double z,
+                          int index_pk,
+                          double * out_pk, // number *out_pk_l
+                          double * out_pk_ic // array out_pk_ic_l[index_ic_ic]
+                          ) {
 
   double * out_pk_at_z;
   double * out_pk_ic_at_z = NULL;
@@ -448,14 +448,14 @@ int fourier_pk_at_k_and_z(
       /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation, and then convert to linear format) */
 
       class_call(fourier_pk_at_z(pba,
-                                   pfo,
-                                   logarithmic,
-                                   pk_output,
-                                   z,
-                                   index_pk,
-                                   out_pk_at_z,
-                                   out_pk_ic_at_z
-                                   ),
+                                 pfo,
+                                 logarithmic,
+                                 pk_output,
+                                 z,
+                                 index_pk,
+                                 out_pk_at_z,
+                                 out_pk_ic_at_z
+                                 ),
                  pfo->error_message,
                  pfo->error_message);
 
@@ -579,14 +579,14 @@ int fourier_pk_at_k_and_z(
       /** --> First, get P(k) at the right z (in linear format) */
 
       class_call(fourier_pk_at_z(pba,
-                                   pfo,
-                                   linear,
-                                   pk_output,
-                                   z,
-                                   index_pk,
-                                   out_pk_at_z,
-                                   out_pk_ic_at_z
-                                   ),
+                                 pfo,
+                                 linear,
+                                 pk_output,
+                                 z,
+                                 index_pk,
+                                 out_pk_at_z,
+                                 out_pk_ic_at_z
+                                 ),
                  pfo->error_message,
                  pfo->error_message);
 
@@ -674,45 +674,45 @@ int fourier_pk_at_k_and_z(
  */
 
 int fourier_pks_at_k_and_z(
-                             struct background * pba,
-                             struct primordial * ppm,
-                             struct fourier *pfo,
-                             enum pk_outputs pk_output,
-                             double k,
-                             double z,
-                             double * out_pk, // number P_m(k)
-                             double * out_pk_ic, // array P_m_ic(k) of index [index_ic1_ic2]
-                             double * out_pk_cb, // number P_cb(k)
-                             double * out_pk_cb_ic // array P__cb_ic(k)of index [index_ic1_ic2]
-                             ) {
+                           struct background * pba,
+                           struct primordial * ppm,
+                           struct fourier *pfo,
+                           enum pk_outputs pk_output,
+                           double k,
+                           double z,
+                           double * out_pk, // number P_m(k)
+                           double * out_pk_ic, // array P_m_ic(k) of index [index_ic1_ic2]
+                           double * out_pk_cb, // number P_cb(k)
+                           double * out_pk_cb_ic // array P__cb_ic(k)of index [index_ic1_ic2]
+                           ) {
 
   if (pfo->has_pk_cb == _TRUE_) {
 
     class_call(fourier_pk_at_k_and_z(pba,
-                                       ppm,
-                                       pfo,
-                                       pk_output,
-                                       k,
-                                       z,
-                                       pfo->index_pk_cb,
-                                       out_pk_cb,
-                                       out_pk_cb_ic
-                                       ),
+                                     ppm,
+                                     pfo,
+                                     pk_output,
+                                     k,
+                                     z,
+                                     pfo->index_pk_cb,
+                                     out_pk_cb,
+                                     out_pk_cb_ic
+                                     ),
                pfo->error_message,
                pfo->error_message);
   }
   if (pfo->has_pk_m == _TRUE_) {
 
     class_call(fourier_pk_at_k_and_z(pba,
-                                       ppm,
-                                       pfo,
-                                       pk_output,
-                                       k,
-                                       z,
-                                       pfo->index_pk_m,
-                                       out_pk,
-                                       out_pk_ic
-                                       ),
+                                     ppm,
+                                     pfo,
+                                     pk_output,
+                                     k,
+                                     z,
+                                     pfo->index_pk_m,
+                                     out_pk,
+                                     out_pk_ic
+                                     ),
                pfo->error_message,
                pfo->error_message);
   }
@@ -746,20 +746,20 @@ int fourier_pks_at_k_and_z(
  */
 
 int fourier_pks_at_kvec_and_zvec(
-                                   struct background * pba,
-                                   struct fourier * pfo,
-                                   enum pk_outputs pk_output,
-                                   double * kvec, // kvec[index_kvec]
-                                   int kvec_size,
-                                   double * zvec, // zvec[index_zvec]
-                                   int zvec_size,
-                                   double * out_pk,   // output_pk[index_zvec*kvec_size+index_kvec],
-                                                      // already allocated
-                                                      //(or NULL if user knows there is no _m output)
-                                   double * out_pk_cb // output_pk[index_zvec*kvec_size+index_kvec],
-                                                      //already allocated
-                                                      //(or NULL if user knows there is no _cb output)
-                                  ) {
+                                 struct background * pba,
+                                 struct fourier * pfo,
+                                 enum pk_outputs pk_output,
+                                 double * kvec, // kvec[index_kvec]
+                                 int kvec_size,
+                                 double * zvec, // zvec[index_zvec]
+                                 int zvec_size,
+                                 double * out_pk,   // output_pk[index_zvec*kvec_size+index_kvec],
+                                                    // already allocated
+                                                    //(or NULL if user knows there is no _m output)
+                                 double * out_pk_cb // output_pk[index_zvec*kvec_size+index_kvec],
+                                                    //already allocated
+                                                    //(or NULL if user knows there is no _cb output)
+                                 ) {
 
   /** Summary: */
 
@@ -797,25 +797,25 @@ int fourier_pks_at_kvec_and_zvec(
 
     if (pfo->has_pk_m == _TRUE_) {
       class_call(fourier_pk_at_z(pba,
-                                   pfo,
-                                   logarithmic,
-                                   pk_output,
-                                   zvec[index_zvec],
-                                   pfo->index_pk_m,
-                                   &(ln_pk_table[index_zvec * pfo->k_size]),
-                                   NULL),
+                                 pfo,
+                                 logarithmic,
+                                 pk_output,
+                                 zvec[index_zvec],
+                                 pfo->index_pk_m,
+                                 &(ln_pk_table[index_zvec * pfo->k_size]),
+                                 NULL),
                  pfo->error_message,
                  pfo->error_message);
     }
     if (pfo->has_pk_cb == _TRUE_) {
       class_call(fourier_pk_at_z(pba,
-                                   pfo,
-                                   logarithmic,
-                                   pk_output,
-                                   zvec[index_zvec],
-                                   pfo->index_pk_cb,
-                                   &(ln_pk_cb_table[index_zvec * pfo->k_size]),
-                                   NULL),
+                                 pfo,
+                                 logarithmic,
+                                 pk_output,
+                                 zvec[index_zvec],
+                                 pfo->index_pk_cb,
+                                 &(ln_pk_cb_table[index_zvec * pfo->k_size]),
+                                 NULL),
                  pfo->error_message,
                  pfo->error_message);
     }
@@ -954,15 +954,15 @@ int fourier_pks_at_kvec_and_zvec(
  */
 
 int fourier_pk_tilt_at_k_and_z(
-                                  struct background * pba,
-                                  struct primordial * ppm,
-                                  struct fourier * pfo,
-                                  enum pk_outputs pk_output,
-                                  double k,
-                                  double z,
-                                  int index_pk,
-                                  double * pk_tilt
-                                  ) {
+                               struct background * pba,
+                               struct primordial * ppm,
+                               struct fourier * pfo,
+                               enum pk_outputs pk_output,
+                               double k,
+                               double z,
+                               int index_pk,
+                               double * pk_tilt
+                               ) {
 
   double dlnk;
   double out_pk1,out_pk2;
@@ -974,26 +974,26 @@ int fourier_pk_tilt_at_k_and_z(
   dlnk = pfo->ln_k[pfo->k_size-1] - pfo->ln_k[pfo->k_size-2];
 
   class_call(fourier_pk_at_k_and_z(pba,
-                                     ppm,
-                                     pfo,
-                                     pk_output,
-                                     k/(1.+dlnk),
-                                     z,
-                                     index_pk,
-                                     &out_pk1,
-                                     NULL),
+                                   ppm,
+                                   pfo,
+                                   pk_output,
+                                   k/(1.+dlnk),
+                                   z,
+                                   index_pk,
+                                   &out_pk1,
+                                   NULL),
              pfo->error_message,
              pfo->error_message);
 
   class_call(fourier_pk_at_k_and_z(pba,
-                                     ppm,
-                                     pfo,
-                                     pk_output,
-                                     k*(1.+dlnk),
-                                     z,
-                                     index_pk,
-                                     &out_pk2,
-                                     NULL),
+                                   ppm,
+                                   pfo,
+                                   pk_output,
+                                   k*(1.+dlnk),
+                                   z,
+                                   index_pk,
+                                   &out_pk2,
+                                   NULL),
              pfo->error_message,
              pfo->error_message);
 
@@ -1028,15 +1028,15 @@ int fourier_pk_tilt_at_k_and_z(
  */
 
 int fourier_sigmas_at_z(
-                          struct precision * ppr,
-                          struct background * pba,
-                          struct fourier * pfo,
-                          double R,
-                          double z,
-                          int index_pk,
-                          enum out_sigmas sigma_output,
-                          double * result
-                          ) {
+                        struct precision * ppr,
+                        struct background * pba,
+                        struct fourier * pfo,
+                        double R,
+                        double z,
+                        int index_pk,
+                        enum out_sigmas sigma_output,
+                        double * result
+                        ) {
 
   double * out_pk;
   double * ddout_pk;
@@ -1049,13 +1049,13 @@ int fourier_sigmas_at_z(
   /** - get P(k,z) as a function of k, for the right z */
 
   class_call(fourier_pk_at_z(pba,
-                               pfo,
-                               logarithmic,
-                               pk_linear,
-                               z,
-                               index_pk,
-                               out_pk,
-                               NULL),
+                             pfo,
+                             logarithmic,
+                             pk_linear,
+                             z,
+                             index_pk,
+                             out_pk,
+                             NULL),
              pfo->error_message,
              pfo->error_message);
 
@@ -1074,13 +1074,13 @@ int fourier_sigmas_at_z(
   /** - calll the function computing the sigmas */
 
   class_call(fourier_sigmas(pfo,
-                              R,
-                              out_pk,
-                              ddout_pk,
-                              pfo->k_size,
-                              ppr->sigma_k_per_decade,
-                              sigma_output,
-                              result),
+                            R,
+                            out_pk,
+                            ddout_pk,
+                            pfo->k_size,
+                            ppr->sigma_k_per_decade,
+                            sigma_output,
+                            result),
              pfo->error_message,
              pfo->error_message);
 
@@ -1104,12 +1104,12 @@ int fourier_sigmas_at_z(
  */
 
 int fourier_k_nl_at_z(
-                        struct background *pba,
-                        struct fourier * pfo,
-                        double z,
-                        double * k_nl,
-                        double * k_nl_cb
-                        ) {
+                      struct background *pba,
+                      struct fourier * pfo,
+                      double z,
+                      double * k_nl,
+                      double * k_nl_cb
+                      ) {
 
   double tau;
 
@@ -1190,13 +1190,13 @@ int fourier_k_nl_at_z(
  */
 
 int fourier_init(
-                   struct precision *ppr,
-                   struct background *pba,
-                   struct thermodynamics *pth,
-                   struct perturbations *ppt,
-                   struct primordial *ppm,
-                   struct fourier *pfo
-                   ) {
+                 struct precision *ppr,
+                 struct background *pba,
+                 struct thermodynamics *pth,
+                 struct perturbations *ppt,
+                 struct primordial *ppm,
+                 struct fourier *pfo
+                 ) {
 
   int index_ncdm;
   int index_k;
@@ -1218,6 +1218,10 @@ int fourier_init(
   struct fourier_workspace nw;
   struct fourier_workspace * pnw;
 
+  /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
+        from the perturbations structure to the fourier structure */
+  pfo->has_pk_matter = ppt->has_pk_matter;
+
   /** - preliminary tests */
 
   /** --> This module only makes sense for dealing with scalar
@@ -1231,8 +1235,6 @@ int fourier_init(
   }
 
   /** --> Nothing to be done if we don't want the matter power spectrum */
-
-  pfo->has_pk_matter = ppt->has_pk_matter;
 
   if ((pfo->has_pk_matter == _FALSE_) && (pfo->method == nl_none)) {
     if (pfo->fourier_verbose > 0)
@@ -1260,7 +1262,12 @@ int fourier_init(
 
   /** - define indices in fourier structure (and allocate some arrays in the structure) */
 
-  class_call(fourier_indices(ppr,pba,ppt,ppm,pfo),
+  class_call(fourier_indices(
+                             ppr,
+                             pba,
+                             ppt,
+                             ppm,
+                             pfo),
              pfo->error_message,
              pfo->error_message);
 
@@ -1288,16 +1295,16 @@ int fourier_init(
       /** --> get the linear power spectrum for this time and this type */
 
       class_call(fourier_pk_linear(
-                                     pba,
-                                     ppt,
-                                     ppm,
-                                     pfo,
-                                     index_pk,
-                                     index_tau_sources,
-                                     pfo->k_size,
-                                     &(pfo->ln_pk_l[index_pk][index_tau * pfo->k_size]),
-                                     &(pfo->ln_pk_ic_l[index_pk][index_tau * pfo->k_size * pfo->ic_ic_size])
-                                     ),
+                                   pba,
+                                   ppt,
+                                   ppm,
+                                   pfo,
+                                   index_pk,
+                                   index_tau_sources,
+                                   pfo->k_size,
+                                   &(pfo->ln_pk_l[index_pk][index_tau * pfo->k_size]),
+                                   &(pfo->ln_pk_ic_l[index_pk][index_tau * pfo->k_size * pfo->ic_ic_size])
+                                   ),
                  pfo->error_message,
                  pfo->error_message);
 
@@ -1338,13 +1345,13 @@ int fourier_init(
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
 
     class_call(fourier_sigmas_at_z(ppr,
-                                     pba,
-                                     pfo,
-                                     8./pba->h,
-                                     0.,
-                                     index_pk,
-                                     out_sigma,
-                                     &(pfo->sigma8[index_pk])),
+                                   pba,
+                                   pfo,
+                                   8./pba->h,
+                                   0.,
+                                   index_pk,
+                                   out_sigma,
+                                   &(pfo->sigma8[index_pk])),
                pfo->error_message,
                pfo->error_message);
   }
@@ -1443,16 +1450,16 @@ int fourier_init(
 
         /* get P_L(k) at this time */
         class_call(fourier_pk_linear(
-                                       pba,
-                                       ppt,
-                                       ppm,
-                                       pfo,
-                                       index_pk,
-                                       index_tau,
-                                       pfo->k_size_extra,
-                                       lnpk_l[index_pk],
-                                       NULL
-                                       ),
+                                     pba,
+                                     ppt,
+                                     ppm,
+                                     pfo,
+                                     index_pk,
+                                     index_tau,
+                                     pfo->k_size_extra,
+                                     lnpk_l[index_pk],
+                                     NULL
+                                     ),
                    pfo->error_message,
                    pfo->error_message);
 
@@ -1475,18 +1482,18 @@ int fourier_init(
           if (pfo->method == nl_halofit) {
 
             class_call(fourier_halofit(
-                                         ppr,
-                                         pba,
-                                         ppt,
-                                         ppm,
-                                         pfo,
-                                         index_pk,
-                                         pfo->tau[index_tau],
-                                         pk_nl[index_pk],
-                                         lnpk_l[index_pk],
-                                         ddlnpk_l[index_pk],
-                                         &(pfo->k_nl[index_pk][index_tau]),
-                                         &nl_corr_not_computable_at_this_k),
+                                       ppr,
+                                       pba,
+                                       ppt,
+                                       ppm,
+                                       pfo,
+                                       index_pk,
+                                       pfo->tau[index_tau],
+                                       pk_nl[index_pk],
+                                       lnpk_l[index_pk],
+                                       ddlnpk_l[index_pk],
+                                       &(pfo->k_nl[index_pk][index_tau]),
+                                       &nl_corr_not_computable_at_this_k),
                        pfo->error_message,
                        pfo->error_message);
 
@@ -1498,31 +1505,31 @@ int fourier_init(
             /* (preliminary step: fill table of sigma's, only for _cb if there is both _cb and _m) */
             if (index_pk == 0) {
               class_call(fourier_hmcode_fill_sigtab(ppr,
-                                                      pba,
-                                                      ppt,
-                                                      ppm,
-                                                      pfo,
-                                                      index_tau,
-                                                      lnpk_l[index_pk],
-                                                      ddlnpk_l[index_pk],
-                                                      pnw),
+                                                    pba,
+                                                    ppt,
+                                                    ppm,
+                                                    pfo,
+                                                    index_tau,
+                                                    lnpk_l[index_pk],
+                                                    ddlnpk_l[index_pk],
+                                                    pnw),
                          pfo->error_message, pfo->error_message);
             }
 
             class_call(fourier_hmcode(ppr,
-                                        pba,
-                                        ppt,
-                                        ppm,
-                                        pfo,
-                                        index_pk,
-                                        index_tau,
-                                        pfo->tau[index_tau],
-                                        pk_nl[index_pk],
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        &(pfo->k_nl[index_pk][index_tau]),
-                                        &nl_corr_not_computable_at_this_k,
-                                        pnw),
+                                      pba,
+                                      ppt,
+                                      ppm,
+                                      pfo,
+                                      index_pk,
+                                      index_tau,
+                                      pfo->tau[index_tau],
+                                      pk_nl[index_pk],
+                                      lnpk_l,
+                                      ddlnpk_l,
+                                      &(pfo->k_nl[index_pk][index_tau]),
+                                      &nl_corr_not_computable_at_this_k,
+                                      pnw),
                        pfo->error_message,
                        pfo->error_message);
           }
@@ -1555,7 +1562,7 @@ int fourier_init(
               /* redshift (remeber that a in the code stands for (a/a_0)) */
               z = 1./a-1.;
               fprintf(stdout,
-                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
+                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or fourier_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
 
               free(pvecback);
             }
@@ -1645,8 +1652,8 @@ int fourier_init(
  */
 
 int fourier_free(
-                   struct fourier *pfo
-                   ) {
+                 struct fourier *pfo
+                 ) {
   int index_pk;
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
@@ -1715,12 +1722,12 @@ int fourier_free(
 */
 
 int fourier_indices(
-                      struct precision *ppr,
-                      struct background *pba,
-                      struct perturbations * ppt,
-                      struct primordial * ppm,
-                      struct fourier * pfo
-                      ) {
+                    struct precision *ppr,
+                    struct background *pba,
+                    struct perturbations * ppt,
+                    struct primordial * ppm,
+                    struct fourier * pfo
+                    ) {
 
   int index_ic1_ic2;
   int index_pk;
@@ -1845,10 +1852,10 @@ int fourier_indices(
 */
 
 int fourier_get_k_list(
-                           struct precision *ppr,
-                           struct perturbations * ppt,
-                           struct fourier * pfo
-                         ) {
+                       struct precision *ppr,
+                       struct perturbations * ppt,
+                       struct fourier * pfo
+                       ) {
 
   double k=0;
   double k_max,exponent;
@@ -1906,9 +1913,9 @@ int fourier_get_k_list(
 */
 
 int fourier_get_tau_list(
-                           struct perturbations * ppt,
-                           struct fourier * pfo
-                           ) {
+                         struct perturbations * ppt,
+                         struct fourier * pfo
+                         ) {
 
   int index_tau;
 
@@ -1956,16 +1963,16 @@ int fourier_get_tau_list(
  */
 
 int fourier_get_source(
-                         struct background * pba,
-                         struct perturbations * ppt,
-                         struct fourier * pfo,
-                         int index_k,
-                         int index_ic,
-                         int index_tp,
-                         int index_tau,
-                         double ** sources,
-                         double * source
-                         ) {
+                       struct background * pba,
+                       struct perturbations * ppt,
+                       struct fourier * pfo,
+                       int index_k,
+                       int index_ic,
+                       int index_tp,
+                       int index_tau,
+                       double ** sources,
+                       double * source
+                       ) {
 
   double k,k_max,k_previous;
   double source_max,source_previous;
@@ -2109,16 +2116,16 @@ int fourier_get_source(
  */
 
 int fourier_pk_linear(
-                        struct background *pba,
-                        struct perturbations *ppt,
-                        struct primordial *ppm,
-                        struct fourier *pfo,
-                        int index_pk,
-                        int index_tau,
-                        int k_size,
-                        double * lnpk,    //lnpk[index_k]
-                        double * lnpk_ic  //lnpk[index_k * pfo->ic_ic_size + index_ic1_ic2]
-                        ) {
+                      struct background *pba,
+                      struct perturbations *ppt,
+                      struct primordial *ppm,
+                      struct fourier *pfo,
+                      int index_pk,
+                      int index_tau,
+                      int k_size,
+                      double * lnpk,    //lnpk[index_k]
+                      double * lnpk_ic  //lnpk[index_k * pfo->ic_ic_size + index_ic1_ic2]
+                      ) {
 
   int index_k;
   int index_tp;
@@ -2175,14 +2182,14 @@ int fourier_pk_linear(
       index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
 
       class_call(fourier_get_source(pba,
-                                      ppt,
-                                      pfo,
-                                      index_k,
-                                      index_ic1,
-                                      index_tp,
-                                      index_tau,
-                                      ppt->sources[pfo->index_md_scalars],
-                                      &source_ic1),
+                                    ppt,
+                                    pfo,
+                                    index_k,
+                                    index_ic1,
+                                    index_tp,
+                                    index_tau,
+                                    ppt->sources[pfo->index_md_scalars],
+                                    &source_ic1),
                  pfo->error_message,
                  pfo->error_message);
 
@@ -2208,26 +2215,26 @@ int fourier_pk_linear(
         if (pfo->is_non_zero[index_ic1_ic2] == _TRUE_) {
 
           class_call(fourier_get_source(pba,
-                                          ppt,
-                                          pfo,
-                                          index_k,
-                                          index_ic1,
-                                          index_tp,
-                                          index_tau,
-                                          ppt->sources[pfo->index_md_scalars],
-                                          &source_ic1),
+                                        ppt,
+                                        pfo,
+                                        index_k,
+                                        index_ic1,
+                                        index_tp,
+                                        index_tau,
+                                        ppt->sources[pfo->index_md_scalars],
+                                        &source_ic1),
                      pfo->error_message,
                      pfo->error_message);
 
           class_call(fourier_get_source(pba,
-                                          ppt,
-                                          pfo,
-                                          index_k,
-                                          index_ic2,
-                                          index_tp,
-                                          index_tau,
-                                          ppt->sources[pfo->index_md_scalars],
-                                          &source_ic2),
+                                        ppt,
+                                        pfo,
+                                        index_k,
+                                        index_ic2,
+                                        index_tp,
+                                        index_tau,
+                                        ppt->sources[pfo->index_md_scalars],
+                                        &source_ic2),
                      pfo->error_message,
                      pfo->error_message);
 
@@ -2280,15 +2287,15 @@ int fourier_pk_linear(
  */
 
 int fourier_sigmas(
-                     struct fourier * pfo,
-                     double R,
-                     double * lnpk_l,
-                     double * ddlnpk_l,
-                     int k_size,
-                     double k_per_decade,
-                     enum out_sigmas sigma_output,
-                     double * result
-                     ) {
+                   struct fourier * pfo,
+                   double R,
+                   double * lnpk_l,
+                   double * ddlnpk_l,
+                   int k_size,
+                   double k_per_decade,
+                   enum out_sigmas sigma_output,
+                   double * result
+                   ) {
   double pk, lnpk;
 
   double * array_for_sigma;
@@ -2456,14 +2463,14 @@ int fourier_sigmas(
  */
 
 int fourier_sigma_at_z(
-                         struct background * pba,
-                         struct fourier * pfo,
-                         double R,
-                         double z,
-                         int index_pk,
-                         double k_per_decade,
-                         double * result
-                         ) {
+                       struct background * pba,
+                       struct fourier * pfo,
+                       double R,
+                       double z,
+                       int index_pk,
+                       double k_per_decade,
+                       double * result
+                       ) {
 
   double * out_pk;
   double * ddout_pk;
@@ -2476,13 +2483,13 @@ int fourier_sigma_at_z(
   /** - get P(k,z) as a function of k, for the right z */
 
   class_call(fourier_pk_at_z(pba,
-                               pfo,
-                               logarithmic,
-                               pk_linear,
-                               z,
-                               index_pk,
-                               out_pk,
-                               NULL),
+                             pfo,
+                             logarithmic,
+                             pk_linear,
+                             z,
+                             index_pk,
+                             out_pk,
+                             NULL),
              pfo->error_message,
              pfo->error_message);
 
@@ -2501,13 +2508,13 @@ int fourier_sigma_at_z(
   /** - calll the function computing the sigmas */
 
   class_call(fourier_sigmas(pfo,
-                              R,
-                              out_pk,
-                              ddout_pk,
-                              pfo->k_size,
-                              k_per_decade,
-                              out_sigma,
-                              result),
+                            R,
+                            out_pk,
+                            ddout_pk,
+                            pfo->k_size,
+                            k_per_decade,
+                            out_sigma,
+                            result),
              pfo->error_message,
              pfo->error_message);
 
@@ -2545,19 +2552,19 @@ int fourier_sigma_at_z(
  */
 
 int fourier_halofit(
-                      struct precision *ppr,
-                      struct background *pba,
-                      struct perturbations *ppt,
-                      struct primordial *ppm,
-                      struct fourier *pfo,
-                      int index_pk,
-                      double tau,
-                      double *pk_nl,
-                      double *lnpk_l,
-                      double *ddlnpk_l,
-                      double *k_nl,
-                      short * nl_corr_not_computable_at_this_k
-                      ) {
+                    struct precision *ppr,
+                    struct background *pba,
+                    struct perturbations *ppt,
+                    struct primordial *ppm,
+                    struct fourier *pfo,
+                    int index_pk,
+                    double tau,
+                    double *pk_nl,
+                    double *lnpk_l,
+                    double *ddlnpk_l,
+                    double *k_nl,
+                    short * nl_corr_not_computable_at_this_k
+                    ) {
 
   double Omega_m,Omega_v,fnu,w, dw_over_da_fld, integral_fld;
 
@@ -2747,18 +2754,18 @@ int fourier_halofit(
   R=sqrt(-log(ppr->halofit_sigma_precision))/integrand_array[(integrand_size-1)*ia_size + index_ia_k];
 
   class_call(fourier_halofit_integrate(
-                                         pfo,
-                                         integrand_array,
-                                         integrand_size,
-                                         ia_size,
-                                         index_ia_k,
-                                         index_ia_pk,
-                                         index_ia_sum,
-                                         index_ia_ddsum,
-                                         R,
-                                         halofit_integral_one,
-                                         &sum1
-                                         ),
+                                       pfo,
+                                       integrand_array,
+                                       integrand_size,
+                                       ia_size,
+                                       index_ia_k,
+                                       index_ia_pk,
+                                       index_ia_sum,
+                                       index_ia_ddsum,
+                                       R,
+                                       halofit_integral_one,
+                                       &sum1
+                                       ),
              pfo->error_message,
              pfo->error_message);
 
@@ -2805,18 +2812,18 @@ int fourier_halofit(
 
   /* corresponding value of sigma_R */
   class_call(fourier_halofit_integrate(
-                                         pfo,
-                                         integrand_array,
-                                         integrand_size,
-                                         ia_size,
-                                         index_ia_k,
-                                         index_ia_pk,
-                                         index_ia_sum,
-                                         index_ia_ddsum,
-                                         R,
-                                         halofit_integral_one,
-                                         &sum1
-                                         ),
+                                       pfo,
+                                       integrand_array,
+                                       integrand_size,
+                                       ia_size,
+                                       index_ia_k,
+                                       index_ia_pk,
+                                       index_ia_sum,
+                                       index_ia_ddsum,
+                                       R,
+                                       halofit_integral_one,
+                                       &sum1
+                                       ),
              pfo->error_message,
              pfo->error_message);
 
@@ -2835,18 +2842,18 @@ int fourier_halofit(
     counter ++;
 
     class_call(fourier_halofit_integrate(
-                                           pfo,
-                                           integrand_array,
-                                           integrand_size,
-                                           ia_size,
-                                           index_ia_k,
-                                           index_ia_pk,
-                                           index_ia_sum,
-                                           index_ia_ddsum,
-                                           rmid,
-                                           halofit_integral_one,
-                                           &sum1
-                                           ),
+                                         pfo,
+                                         integrand_array,
+                                         integrand_size,
+                                         ia_size,
+                                         index_ia_k,
+                                         index_ia_pk,
+                                         index_ia_sum,
+                                         index_ia_ddsum,
+                                         rmid,
+                                         halofit_integral_one,
+                                         &sum1
+                                         ),
                pfo->error_message,
                pfo->error_message);
 
@@ -2878,34 +2885,34 @@ int fourier_halofit(
   /* evaluate all the other integrals at R=rmid */
 
   class_call(fourier_halofit_integrate(
-                                         pfo,
-                                         integrand_array,
-                                         integrand_size,
-                                         ia_size,
-                                         index_ia_k,
-                                         index_ia_pk,
-                                         index_ia_sum,
-                                         index_ia_ddsum,
-                                         rmid,
-                                         halofit_integral_two,
-                                         &sum2
-                                         ),
+                                       pfo,
+                                       integrand_array,
+                                       integrand_size,
+                                       ia_size,
+                                       index_ia_k,
+                                       index_ia_pk,
+                                       index_ia_sum,
+                                       index_ia_ddsum,
+                                       rmid,
+                                       halofit_integral_two,
+                                       &sum2
+                                       ),
              pfo->error_message,
              pfo->error_message);
 
   class_call(fourier_halofit_integrate(
-                                         pfo,
-                                         integrand_array,
-                                         integrand_size,
-                                         ia_size,
-                                         index_ia_k,
-                                         index_ia_pk,
-                                         index_ia_sum,
-                                         index_ia_ddsum,
-                                         rmid,
-                                         halofit_integral_three,
-                                         &sum3
-                                         ),
+                                       pfo,
+                                       integrand_array,
+                                       integrand_size,
+                                       ia_size,
+                                       index_ia_k,
+                                       index_ia_pk,
+                                       index_ia_sum,
+                                       index_ia_ddsum,
+                                       rmid,
+                                       halofit_integral_three,
+                                       &sum3
+                                       ),
              pfo->error_message,
              pfo->error_message);
 
@@ -3011,18 +3018,18 @@ int fourier_halofit(
  */
 
 int fourier_halofit_integrate(
-                                struct fourier *pfo,
-                                double * integrand_array,
-                                int integrand_size,
-                                int ia_size,
-                                int index_ia_k,
-                                int index_ia_pk,
-                                int index_ia_sum,
-                                int index_ia_ddsum,
-                                double R,
-                                enum halofit_integral_type type,
-                                double * sum
-                                ) {
+                              struct fourier *pfo,
+                              double * integrand_array,
+                              int integrand_size,
+                              int ia_size,
+                              int index_ia_k,
+                              int index_ia_pk,
+                              int index_ia_sum,
+                              int index_ia_ddsum,
+                              double R,
+                              enum halofit_integral_type type,
+                              double * sum
+                              ) {
 
   double k,pk,x2,integrand;
   int index_k;
@@ -3089,21 +3096,21 @@ int fourier_halofit_integrate(
  */
 
 int fourier_hmcode(
-                     struct precision *ppr,
-                     struct background *pba,
-                     struct perturbations *ppt,
-                     struct primordial *ppm,
-                     struct fourier *pfo,
-                     int index_pk,
-                     int index_tau,
-                     double tau,
-                     double *pk_nl,
-                     double **lnpk_l,
-                     double **ddlnpk_l,
-                     double *k_nl,
-                     short * nl_corr_not_computable_at_this_k,
-                     struct fourier_workspace * pnw
-                     ) {
+                   struct precision *ppr,
+                   struct background *pba,
+                   struct perturbations *ppt,
+                   struct primordial *ppm,
+                   struct fourier *pfo,
+                   int index_pk,
+                   int index_tau,
+                   double tau,
+                   double *pk_nl,
+                   double **lnpk_l,
+                   double **ddlnpk_l,
+                   double *k_nl,
+                   short * nl_corr_not_computable_at_this_k,
+                   struct fourier_workspace * pnw
+                   ) {
 
   /* integers */
   int index_mass, i, ng, nsig;
@@ -3208,32 +3215,32 @@ int fourier_hmcode(
   /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h) and write them into pfo structure */
 
   class_call(fourier_sigmas(pfo,
-                              8./pba->h,
-                              lnpk_l[index_pk],ddlnpk_l[index_pk],
-                              pfo->k_size_extra,
-                              ppr->sigma_k_per_decade,
-                              out_sigma,
-                              &sigma8),
+                            8./pba->h,
+                            lnpk_l[index_pk],ddlnpk_l[index_pk],
+                            pfo->k_size_extra,
+                            ppr->sigma_k_per_decade,
+                            out_sigma,
+                            &sigma8),
              pfo->error_message,
              pfo->error_message);
 
   class_call(fourier_sigmas(pfo,
-                              0.,
-                              lnpk_l[index_pk],ddlnpk_l[index_pk],
-                              pfo->k_size_extra,
-                              ppr->sigma_k_per_decade,
-                              out_sigma_disp,
-                              &sigma_disp),
+                            0.,
+                            lnpk_l[index_pk],ddlnpk_l[index_pk],
+                            pfo->k_size_extra,
+                            ppr->sigma_k_per_decade,
+                            out_sigma_disp,
+                            &sigma_disp),
              pfo->error_message,
              pfo->error_message);
 
   class_call(fourier_sigmas(pfo,
-                              100./pba->h,
-                              lnpk_l[index_pk],ddlnpk_l[index_pk],
-                              pfo->k_size_extra,
-                              ppr->sigma_k_per_decade,
-                              out_sigma_disp,
-                              &sigma_disp100),
+                            100./pba->h,
+                            lnpk_l[index_pk],ddlnpk_l[index_pk],
+                            pfo->k_size_extra,
+                            ppr->sigma_k_per_decade,
+                            out_sigma_disp,
+                            &sigma_disp100),
              pfo->error_message,
              pfo->error_message);
 
@@ -3353,12 +3360,12 @@ int fourier_hmcode(
     counter ++;
 
     class_call(fourier_sigmas(pfo,
-                                r_nl,
-                                lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
-                                pfo->k_size_extra,
-                                ppr->sigma_k_per_decade,
-                                out_sigma,
-                                &sigma_nl),
+                              r_nl,
+                              lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
+                              pfo->k_size_extra,
+                              ppr->sigma_k_per_decade,
+                              out_sigma,
+                              &sigma_nl),
                pfo->error_message, pfo->error_message);
 
     diff = sigma_nl - delta_c;
@@ -3398,12 +3405,12 @@ int fourier_hmcode(
   /* call sigma_prime function at r_nl to find the effective spectral index n_eff */
 
   class_call(fourier_sigmas(pfo,
-                              r_nl,
-                              lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
-                              pfo->k_size_extra,
-                              ppr->sigma_k_per_decade,
-                              out_sigma_prime,
-                              &sigma_prime),
+                            r_nl,
+                            lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
+                            pfo->k_size_extra,
+                            ppr->sigma_k_per_decade,
+                            out_sigma_prime,
+                            &sigma_prime),
              pfo->error_message,
              pfo->error_message);
 
@@ -3476,16 +3483,16 @@ int fourier_hmcode(
     for (index_mass=0; index_mass<index_cut; index_mass++){ //Calculates the integrand for the ph1 integral at all nu values
       //get the nu^eta-value of the window
       class_call(fourier_hmcode_window_nfw(
-                                             pfo,
-                                             pow(nu_arr[index_mass], eta)*pfo->k[index_k],
-                                             r_virial[index_mass],
-                                             conc[index_mass],
-                                             &window_nfw),
+                                           pfo,
+                                           pow(nu_arr[index_mass], eta)*pfo->k[index_k],
+                                           r_virial[index_mass],
+                                           conc[index_mass],
+                                           &window_nfw),
                  pfo->error_message, pfo->error_message);
       //get the value of the halo mass function
       class_call(fourier_hmcode_halomassfunction(
-                                                   nu_arr[index_mass],
-                                                   &gst),
+                                                 nu_arr[index_mass],
+                                                 &gst),
                  pfo->error_message, pfo->error_message);
 
       p1h_integrand[index_mass*index_ncol+index_nu] = nu_arr[index_mass];
@@ -3590,11 +3597,11 @@ int fourier_hmcode(
  */
 
 int fourier_hmcode_workspace_init(
-                                    struct precision *ppr,
-                                    struct background *pba,
-                                    struct fourier *pfo,
-                                    struct fourier_workspace * pnw
-                                    ){
+                                  struct precision *ppr,
+                                  struct background *pba,
+                                  struct fourier *pfo,
+                                  struct fourier_workspace * pnw
+                                  ){
 
   int ng;
   int index_pk;
@@ -3642,9 +3649,9 @@ int fourier_hmcode_workspace_init(
  */
 
 int fourier_hmcode_workspace_free(
-                                    struct fourier *pfo,
-                                    struct fourier_workspace * pnw
-                                    ) {
+                                  struct fourier *pfo,
+                                  struct fourier_workspace * pnw
+                                  ) {
   int index_pk;
 
   free(pnw->rtab);
@@ -3681,11 +3688,11 @@ int fourier_hmcode_workspace_free(
  */
 
 int fourier_hmcode_dark_energy_correction(
-                                            struct precision *ppr,
-                                            struct background *pba,
-                                            struct fourier *pfo,
-                                            struct fourier_workspace * pnw
-                                            ) {
+                                          struct precision *ppr,
+                                          struct background *pba,
+                                          struct fourier *pfo,
+                                          struct fourier_workspace * pnw
+                                          ) {
 
   int last_index;
   double * pvecback;
@@ -3744,8 +3751,8 @@ int fourier_hmcode_dark_energy_correction(
  */
 
 int fourier_hmcode_baryonic_feedback(
-                                       struct fourier *pfo
-                                       ) {
+                                     struct fourier *pfo
+                                     ) {
 
   switch (pfo->feedback) {
 
@@ -3812,16 +3819,16 @@ int fourier_hmcode_baryonic_feedback(
  */
 
 int fourier_hmcode_fill_sigtab(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct perturbations * ppt,
-                                 struct primordial * ppm,
-                                 struct fourier * pfo,
-                                 int index_tau,
-                                 double *lnpk_l,
-                                 double *ddlnpk_l,
-                                 struct fourier_workspace * pnw
-                                 ) {
+                               struct precision * ppr,
+                               struct background * pba,
+                               struct perturbations * ppt,
+                               struct primordial * ppm,
+                               struct fourier * pfo,
+                               int index_tau,
+                               double *lnpk_l,
+                               double *ddlnpk_l,
+                               struct fourier_workspace * pnw
+                               ) {
 
   double r;
   double rmin, rmax;
@@ -3848,13 +3855,13 @@ int fourier_hmcode_fill_sigtab(
     r=exp(log(rmin)+log(rmax/rmin)*i/(nsig-1));
 
     class_call(fourier_sigmas(pfo,
-                                r,
-                                lnpk_l,
-                                ddlnpk_l,
-                                pfo->k_size_extra,
-                                ppr->sigma_k_per_decade,
-                                out_sigma,
-                                &sig),
+                              r,
+                              lnpk_l,
+                              ddlnpk_l,
+                              pfo->k_size_extra,
+                              ppr->sigma_k_per_decade,
+                              out_sigma,
+                              &sig),
                pfo->error_message,
                pfo->error_message);
 
@@ -3905,11 +3912,11 @@ int fourier_hmcode_fill_sigtab(
  */
 
 int fourier_hmcode_fill_growtab(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct fourier * pfo,
-                                  struct fourier_workspace * pnw
-                                  ){
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct fourier * pfo,
+                                struct fourier_workspace * pnw
+                                ){
 
   double z, ainit, amax, scalefactor, tau_growth;
   int index_scalefactor, last_index, ng;
@@ -3967,14 +3974,14 @@ int fourier_hmcode_fill_growtab(
  */
 
 int fourier_hmcode_growint(
-                             struct precision * ppr,
-                             struct background * pba,
-                             struct fourier * pfo,
-                             double a,
-                             double w0,
-                             double wa,
-                             double * growth
-                             ){
+                           struct precision * ppr,
+                           struct background * pba,
+                           struct fourier * pfo,
+                           double a,
+                           double w0,
+                           double wa,
+                           double * growth
+                           ){
 
   double z, ainit, amax, scalefactor, gamma, X_de, Hubble2, Omega_m;
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
@@ -4074,12 +4081,12 @@ int fourier_hmcode_growint(
  */
 
 int fourier_hmcode_window_nfw(
-                                struct fourier * pfo,
-                                double k,
-                                double rv,
-                                double c,
-                                double *window_nfw
-                                ){
+                              struct fourier * pfo,
+                              double k,
+                              double rv,
+                              double c,
+                              double *window_nfw
+                              ){
   double si1, si2, ci1, ci2, ks;
   double p1, p2, p3;
 
@@ -4132,9 +4139,9 @@ int fourier_hmcode_window_nfw(
  */
 
 int fourier_hmcode_halomassfunction(
-                                      double nu,
-                                      double * hmf
-                                      ){
+                                    double nu,
+                                    double * hmf
+                                    ){
 
   double p, q, A;
 
@@ -4160,13 +4167,13 @@ int fourier_hmcode_halomassfunction(
  */
 
 int fourier_hmcode_sigma8_at_z(
-                                 struct background *pba,
-                                 struct fourier * pfo,
-                                 double z,
-                                 double * sigma_8,
-                                 double * sigma_8_cb,
-                                 struct fourier_workspace * pnw
-                                 ) {
+                               struct background *pba,
+                               struct fourier * pfo,
+                               double z,
+                               double * sigma_8,
+                               double * sigma_8_cb,
+                               struct fourier_workspace * pnw
+                               ) {
 
   double tau;
 
@@ -4238,13 +4245,13 @@ int fourier_hmcode_sigma8_at_z(
  */
 
 int fourier_hmcode_sigmadisp_at_z(
-                                    struct background *pba,
-                                    struct fourier * pfo,
-                                    double z,
-                                    double * sigma_disp,
-                                    double * sigma_disp_cb,
-                                    struct fourier_workspace * pnw
-                                    ) {
+                                  struct background *pba,
+                                  struct fourier * pfo,
+                                  double z,
+                                  double * sigma_disp,
+                                  double * sigma_disp_cb,
+                                  struct fourier_workspace * pnw
+                                  ) {
 
   double tau;
 
@@ -4315,13 +4322,13 @@ int fourier_hmcode_sigmadisp_at_z(
  */
 
 int fourier_hmcode_sigmadisp100_at_z(
-                                       struct background *pba,
-                                       struct fourier * pfo,
-                                       double z,
-                                       double * sigma_disp_100,
-                                       double * sigma_disp_100_cb,
-                                       struct fourier_workspace * pnw
-                                       ) {
+                                     struct background *pba,
+                                     struct fourier * pfo,
+                                     double z,
+                                     double * sigma_disp_100,
+                                     double * sigma_disp_100_cb,
+                                     struct fourier_workspace * pnw
+                                     ) {
 
   double tau;
 
@@ -4391,13 +4398,13 @@ int fourier_hmcode_sigmadisp100_at_z(
  */
 
 int fourier_hmcode_sigmaprime_at_z(
-                                     struct background *pba,
-                                     struct fourier * pfo,
-                                     double z,
-                                     double * sigma_prime,
-                                     double * sigma_prime_cb,
-                                     struct fourier_workspace * pnw
-                                     ) {
+                                   struct background *pba,
+                                   struct fourier * pfo,
+                                   double z,
+                                   double * sigma_prime,
+                                   double * sigma_prime_cb,
+                                   struct fourier_workspace * pnw
+                                   ) {
 
   double tau;
 

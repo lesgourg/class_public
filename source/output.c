@@ -64,10 +64,10 @@ int output_total_cl_at_l(
     }
 
     class_call(harmonic_cl_at_l(phr,
-                               (double)l,
-                               cl,
-                               cl_md,
-                               cl_md_ic),
+                                (double)l,
+                                cl,
+                                cl_md,
+                                cl_md_ic),
                phr->error_message,
                pop->error_message);
 
@@ -828,14 +828,14 @@ int output_pk(
       /** - third, compute P(k) for each k */
 
       class_call(fourier_pk_at_z(pba,
-                                   pfo,
-                                   logarithmic,
-                                   pk_output,
-                                   pop->z_pk[index_z],
-                                   index_pk,
-                                   ln_pk,
-                                   ln_pk_ic
-                                   ),
+                                 pfo,
+                                 logarithmic,
+                                 pk_output,
+                                 pop->z_pk[index_z],
+                                 index_pk,
+                                 ln_pk,
+                                 ln_pk_ic
+                                 ),
                  pfo->error_message,
                  pop->error_message);
 
@@ -967,12 +967,12 @@ int output_tk(
     /** - second, open only the relevant files, and write a heading in each of them */
 
     class_call(perturbations_output_data(pba,
-                                      ppt,
-                                      pop->output_format,
-                                      pop->z_pk[index_z],
-                                      number_of_titles,
-                                      data
-                                      ),
+                                         ppt,
+                                         pop->output_format,
+                                         pop->z_pk[index_z],
+                                         number_of_titles,
+                                         data
+                                         ),
                ppt->error_message,
                pop->error_message);
 

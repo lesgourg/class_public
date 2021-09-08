@@ -448,6 +448,10 @@ extern "C" {
                                    struct output *pop,
                                    ErrorMsg errmsg);
 
+  int input_write_info(struct file_content * pfc,
+                       struct output * pop,
+                       ErrorMsg errmsg);
+
   /* Set default parameters */
 
   int input_default_params(struct background *pba,

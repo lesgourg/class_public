@@ -1,0 +1,148 @@
+name: Nosetests and Valgrind
+
+# To run this workflow on other branches than devel, uncomment line 4 and comment line 5-7.
+#on: [push]
+on:
+  schedule:
+    - cron: '0 20 * * *'  # Daily at UTC 20:00
+
+jobs:
+  iftest:
+    runs-on: [self-hosted]
+    outputs:
+      should_run: ${{ steps.store_output.outputs.SHOULD_RUN }}
+    steps:
+    - name: Store output
+      id: store_output
+      env:
+        SHA_LAST_SUCCESS: ${{ secrets.SHA_LAST_SUCCESS }}
+      run: |
+        if [ "$SHA_LAST_SUCCESS" == "${{ github.sha }}" ]; then
+          echo "::set-output name=SHOULD_RUN::0"
+        else
+          echo "::set-output name=SHOULD_RUN::1"
+        fi
+
+  conclude:
+    runs-on: [self-hosted]
+    needs: [nose_tests_lvl3, valgrind-wide-and-shallow, valgrind-narrow-and-deep]
+    steps:
+    - name: Store current SHA as secret
+      uses: hmanzur/actions-set-secret@v2.0.0
+      with:
+        name: 'SHA_LAST_SUCCESS'
+        value: ${{ github.sha }}
+        repository: lesgourg/class
+        token: ${{ secrets.REPO_ACCESS_TOKEN }}
+
+  nose_tests_lvl3:
+    runs-on: [self-hosted]
+    needs: iftest
+    if: needs.iftest.outputs.should_run > 0
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create or update virtual Python environment
+      run: |
+        rm -f venv/bin/python
+        virtualenv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install numpy scipy pandas matplotlib cython nose parameterized
+    - name: make
+      run: cd main_class && make -j
+    - name: Testing 🤖
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        OMP_NUM_THREADS=32 COMPARE_OUTPUT_GAUGE=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
+    - name: Upload plots 📤
+      if: success() || failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ComparePlots
+        path: main_class/python/faulty_figs
+
+  valgrind-wide-and-shallow:
+    runs-on: [self-hosted]
+    needs: iftest
+    if: needs.iftest.outputs.should_run > 0
+    timeout-minutes: 1440
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create or update virtual Python environment
+      run: |
+        rm -f venv/bin/python
+        virtualenv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install numpy scipy pandas matplotlib cython nose parameterized
+    - name: make
+      run: cd main_class && make OMPFLAG="" -j
+    - name: Generate input files
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        TEST_LEVEL=3 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
+    - name: Valgrind 🤖
+      run: |
+        cd main_class/python/faulty_figs
+        rm -rf output && mkdir output
+        rm -rf valgrind_output && mkdir valgrind_output
+        cp ../../class .
+        find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 32 bash -c ': \
+          && printf "\nk_step_sub = 10.0\nk_step_super = 0.4\nk_per_decade_for_pk = 2\nk_per_decade_for_bao = 5\n" >> {}'
+        find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 32 bash -c ': \
+          && (valgrind --track-origins=yes --show-leak-kinds=all --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
+          || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
+    - name: Upload errors 📤
+      if: success() || failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ValgrindOutputWideShallow
+        path: main_class/python/faulty_figs/valgrind_output
+
+  valgrind-narrow-and-deep:
+    runs-on: [self-hosted]
+    needs: iftest
+    if: needs.iftest.outputs.should_run > 0
+    timeout-minutes: 1440
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create or update virtual Python environment
+      run: |
+        rm -f venv/bin/python
+        virtualenv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install numpy scipy pandas matplotlib cython nose parameterized
+    - name: make
+      run: cd main_class && make OMPFLAG="" -j
+    - name: Generate input files
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        TEST_LEVEL=1 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
+    - name: Valgrind 🤖
+      run: |
+        cd main_class/python/faulty_figs
+        rm -rf output && mkdir output
+        rm -rf valgrind_output && mkdir valgrind_output
+        cp ../../class .
+        find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 32 bash -c ': \
+          && (valgrind --track-origins=yes --show-leak-kinds=all --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
+          || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
+    - name: Upload errors 📤
+      if: success() || failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ValgrindOutputNarrowDeep
+        path: main_class/python/faulty_figs/valgrind_output

@@ -117,7 +117,7 @@ cdef class Class:
     property Omega_nu:
         def __get__(self):
             return self.ba.Omega0_ncdm_tot
-    property fourier_method:
+    property nonlinear_method:
         def __get__(self):
             return self.fo.method
 
@@ -1043,7 +1043,7 @@ cdef class Class:
             z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
             z_max_requested = z[0]
             if ((self.fo.tau_size - self.fo.ln_tau_size) < self.fo.index_tau_min_nl):
-                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the input parameter 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or increase the precision parameters 'halofit_min_k_max' and/or 'hmcode_min_k_max', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
+                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the input parameter 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or increase the precision parameter 'fourier_min_k_max', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
 
         # get list of k
 
@@ -1963,9 +1963,9 @@ cdef class Class:
             derived[name] = value
         return derived
 
-    def fourier_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
-        fourier_scale(z, z_size)
+        nonlinear_scale(z, z_size)
 
         Return the nonlinear scale for all the redshift specified in z, of size
         z_size
@@ -1988,10 +1988,10 @@ cdef class Class:
 
         return k_nl
 
-    def fourier_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    def nonlinear_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
 
-make        fourier_scale_cb(z, z_size)
+make        nonlinear_scale_cb(z, z_size)
 
         Return the nonlinear scale for all the redshift specified in z, of size
 

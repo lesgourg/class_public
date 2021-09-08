@@ -1,0 +1,40 @@
+name: Build and light test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: [self-hosted]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: make
+      run: cd main_class && make -j class
+    - name: run class
+      run: cd main_class && ./class explanatory.ini
+
+  nose_tests_lvl1:
+    runs-on: [self-hosted]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create or update virtual Python environment
+      run: |
+        rm -f venv/bin/python
+        virtualenv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install numpy scipy pandas matplotlib cython nose parameterized
+    - name: make classy
+      run: source venv/bin/activate && cd main_class && make -j
+    - name: Testing 🤖
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        OMP_NUM_THREADS=16 TEST_LEVEL=1 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture

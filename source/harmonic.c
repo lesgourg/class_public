@@ -35,12 +35,12 @@
  */
 
 int harmonic_cl_at_l(
-                    struct harmonic * phr,
-                    double l,
-                    double * cl_tot,    /* array with argument cl_tot[index_ct] (must be already allocated) */
-                    double * * cl_md,   /* array with argument cl_md[index_md][index_ct] (must be already allocated only if several modes) */
-                    double * * cl_md_ic /* array with argument cl_md_ic[index_md][index_ic1_ic2*phr->ct_size+index_ct] (must be already allocated for a given mode only if several ic's) */
-                    ) {
+                     struct harmonic * phr,
+                     double l,
+                     double * cl_tot,    /* array with argument cl_tot[index_ct] (must be already allocated) */
+                     double * * cl_md,   /* array with argument cl_md[index_md][index_ct] (must be already allocated only if several modes) */
+                     double * * cl_md_ic /* array with argument cl_md_ic[index_md][index_ic1_ic2*phr->ct_size+index_ct] (must be already allocated for a given mode only if several ic's) */
+                     ) {
 
   /** Summary: */
 
@@ -260,14 +260,14 @@ int harmonic_cl_at_l(
  */
 
 int harmonic_init(
-                 struct precision * ppr,
-                 struct background * pba,
-                 struct perturbations * ppt,
-                 struct primordial * ppm,
-                 struct fourier * pfo,
-                 struct transfer * ptr,
-                 struct harmonic * phr
-                 ) {
+                  struct precision * ppr,
+                  struct background * pba,
+                  struct perturbations * ppt,
+                  struct primordial * ppm,
+                  struct fourier * pfo,
+                  struct transfer * ptr,
+                  struct harmonic * phr
+                  ) {
 
   /** Summary: */
 
@@ -328,8 +328,8 @@ int harmonic_init(
  */
 
 int harmonic_free(
-                 struct harmonic * phr
-                 ) {
+                  struct harmonic * phr
+                  ) {
 
   int index_md;
 
@@ -374,12 +374,12 @@ int harmonic_free(
  */
 
 int harmonic_indices(
-                    struct background * pba,
-                    struct perturbations * ppt,
-                    struct transfer * ptr,
-                    struct primordial * ppm,
-                    struct harmonic * phr
-                    ){
+                     struct background * pba,
+                     struct perturbations * ppt,
+                     struct transfer * ptr,
+                     struct primordial * ppm,
+                     struct harmonic * phr
+                     ){
 
   int index_ct;
   int index_md;
@@ -660,12 +660,12 @@ int harmonic_indices(
  */
 
 int harmonic_cls(
-                struct background * pba,
-                struct perturbations * ppt,
-                struct transfer * ptr,
-                struct primordial * ppm,
-                struct harmonic * phr
-                ) {
+                 struct background * pba,
+                 struct perturbations * ppt,
+                 struct transfer * ptr,
+                 struct primordial * ppm,
+                 struct harmonic * phr
+                 ) {
 
   /** Summary: */
 
@@ -774,19 +774,19 @@ int harmonic_cls(
 #pragma omp flush(abort)
 
               class_call_parallel(harmonic_compute_cl(pba,
-                                                     ppt,
-                                                     ptr,
-                                                     ppm,
-                                                     phr,
-                                                     index_md,
-                                                     index_ic1,
-                                                     index_ic2,
-                                                     index_l,
-                                                     cl_integrand_num_columns,
-                                                     cl_integrand,
-                                                     primordial_pk,
-                                                     transfer_ic1,
-                                                     transfer_ic2),
+                                                      ppt,
+                                                      ptr,
+                                                      ppm,
+                                                      phr,
+                                                      index_md,
+                                                      index_ic1,
+                                                      index_ic2,
+                                                      index_l,
+                                                      cl_integrand_num_columns,
+                                                      cl_integrand,
+                                                      primordial_pk,
+                                                      transfer_ic1,
+                                                      transfer_ic2),
                                   phr->error_message,
                                   phr->error_message);
 
@@ -868,21 +868,21 @@ int harmonic_cls(
  */
 
 int harmonic_compute_cl(
-                       struct background * pba,
-                       struct perturbations * ppt,
-                       struct transfer * ptr,
-                       struct primordial * ppm,
-                       struct harmonic * phr,
-                       int index_md,
-                       int index_ic1,
-                       int index_ic2,
-                       int index_l,
-                       int cl_integrand_num_columns,
-                       double * cl_integrand,
-                       double * primordial_pk,
-                       double * transfer_ic1,
-                       double * transfer_ic2
-                       ) {
+                        struct background * pba,
+                        struct perturbations * ppt,
+                        struct transfer * ptr,
+                        struct primordial * ppm,
+                        struct harmonic * phr,
+                        int index_md,
+                        int index_ic1,
+                        int index_ic2,
+                        int index_l,
+                        int cl_integrand_num_columns,
+                        double * cl_integrand,
+                        double * primordial_pk,
+                        double * transfer_ic1,
+                        double * transfer_ic2
+                        ) {
 
   int index_q;
   int index_tt;
@@ -900,7 +900,7 @@ int harmonic_compute_cl(
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,phr->ic_size[index_md]);
 
-  if (ppt->has_cl_number_count == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     class_alloc(transfer_ic1_nc,phr->d_size*sizeof(double),phr->error_message);
     class_alloc(transfer_ic2_nc,phr->d_size*sizeof(double),phr->error_message);
   }
@@ -963,7 +963,7 @@ int harmonic_compute_cl(
       }
     }
 
-    if (ppt->has_cl_number_count == _TRUE_) {
+    if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
 
       for (index_d1=0; index_d1<phr->d_size; index_d1++) {
 
@@ -1267,7 +1267,7 @@ int harmonic_compute_cl(
     }
   }
 
-  if (ppt->has_cl_number_count == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     free(transfer_ic1_nc);
     free(transfer_ic2_nc);
   }
@@ -1295,29 +1295,29 @@ int harmonic_compute_cl(
  */
 
 int harmonic_pk_at_z(
-                    struct background * pba,
-                    struct harmonic * phr,
-                    enum linear_or_logarithmic mode,
-                    double z,
-                    double * output_tot,    /* array with argument output_tot[index_k] (must be already allocated) */
-                    double * output_ic,     /* array with argument output_tot[index_k * phr->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
-                    double * output_cb_tot, /* same as output_tot for the baryon+CDM only */
-                    double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
-                    ) {
+                     struct background * pba,
+                     struct harmonic * phr,
+                     enum linear_or_logarithmic mode,
+                     double z,
+                     double * output_tot,    /* array with argument output_tot[index_k] (must be already allocated) */
+                     double * output_ic,     /* array with argument output_tot[index_k * phr->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
+                     double * output_cb_tot, /* same as output_tot for the baryon+CDM only */
+                     double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
+                     ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_pk_at_z() which is deprecated since v2.8. It will soon be removed. Use fourier_pk_at_z() instead.\n");
 
   class_call(fourier_pks_at_z(
-                                pba,
-                                phr->pfo,
-                                mode,
-                                pk_linear,
-                                z,
-                                output_tot,
-                                output_ic,
-                                output_cb_tot,
-                                output_cb_ic
-                                ),
+                              pba,
+                              phr->pfo,
+                              mode,
+                              pk_linear,
+                              z,
+                              output_tot,
+                              output_ic,
+                              output_cb_tot,
+                              output_cb_ic
+                              ),
              phr->pfo->error_message,
              phr->error_message);
 
@@ -1343,30 +1343,30 @@ int harmonic_pk_at_z(
  */
 
 int harmonic_pk_at_k_and_z(
-                          struct background * pba,
-                          struct primordial * ppm,
-                          struct harmonic * phr,
-                          double k,
-                          double z,
-                          double * pk_tot,    /* pointer to a single number (must be already allocated) */
-                          double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2]
-                                                 (must be already allocated only if several initial conditions) */
-                          double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
-                          double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
-                          ) {
+                           struct background * pba,
+                           struct primordial * ppm,
+                           struct harmonic * phr,
+                           double k,
+                           double z,
+                           double * pk_tot,    /* pointer to a single number (must be already allocated) */
+                           double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2]
+                                                  (must be already allocated only if several initial conditions) */
+                           double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
+                           double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
+                           ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_pk_at_k_and_z() which is deprecated since v2.8. It will soon be removed. Use fourier_pk_linear_at_k_and_z() instead.\n");
 
   class_call(fourier_pks_at_k_and_z(pba,
-                                      ppm,
-                                      phr->pfo,
-                                      pk_linear,
-                                      k,
-                                      z,
-                                      pk_tot,
-                                      pk_ic,
-                                      pk_cb_tot,
-                                      pk_cb_ic),
+                                    ppm,
+                                    phr->pfo,
+                                    pk_linear,
+                                    k,
+                                    z,
+                                    pk_tot,
+                                    pk_ic,
+                                    pk_cb_tot,
+                                    pk_cb_ic),
              phr->pfo->error_message,
              phr->error_message);
 
@@ -1388,26 +1388,26 @@ int harmonic_pk_at_k_and_z(
  */
 
 int harmonic_pk_nl_at_z(
-                       struct background * pba,
-                       struct harmonic * phr,
-                       enum linear_or_logarithmic mode,
-                       double z,
-                       double * output_tot,   /* array with argument output_tot[index_k] (must be already allocated) */
-                       double * output_cb_tot
-                       ) {
+                        struct background * pba,
+                        struct harmonic * phr,
+                        enum linear_or_logarithmic mode,
+                        double z,
+                        double * output_tot,   /* array with argument output_tot[index_k] (must be already allocated) */
+                        double * output_cb_tot
+                        ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_pk_nl_at_z() which is deprecated since v2.8. It will soon be removed. Use fourier_pk_at_z() instead.\n");
 
   class_call(fourier_pks_at_z(pba,
-                                phr->pfo,
-                                mode,
-                                pk_nonlinear,
-                                z,
-                                output_tot,
-                                NULL,
-                                output_cb_tot,
-                                NULL
-                                ),
+                              phr->pfo,
+                              mode,
+                              pk_nonlinear,
+                              z,
+                              output_tot,
+                              NULL,
+                              output_cb_tot,
+                              NULL
+                              ),
              phr->pfo->error_message,
              phr->error_message);
 
@@ -1431,28 +1431,28 @@ int harmonic_pk_nl_at_z(
  */
 
 int harmonic_pk_nl_at_k_and_z(
-                             struct background * pba,
-                             struct primordial * ppm,
-                             struct harmonic * phr,
-                             double k,
-                             double z,
-                             double * pk_tot,   /* pointer to a single number (must be already allocated) */
-                             double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
-                             ) {
+                              struct background * pba,
+                              struct primordial * ppm,
+                              struct harmonic * phr,
+                              double k,
+                              double z,
+                              double * pk_tot,   /* pointer to a single number (must be already allocated) */
+                              double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
+                              ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_pk_nl_at_k_and_z() which is deprecated since v2.8. It will soon be removed. Use fourier_pk_at_k_and_z() instead.\n");
 
   class_call(fourier_pks_at_k_and_z(pba,
-                                      ppm,
-                                      phr->pfo,
-                                      pk_nonlinear,
-                                      k,
-                                      z,
-                                      pk_tot,
-                                      NULL,
-                                      pk_cb_tot,
-                                      NULL
-                                      ),
+                                    ppm,
+                                    phr->pfo,
+                                    pk_nonlinear,
+                                    k,
+                                    z,
+                                    pk_tot,
+                                    NULL,
+                                    pk_cb_tot,
+                                    NULL
+                                    ),
              phr->pfo->error_message,
              phr->error_message);
 
@@ -1480,18 +1480,18 @@ int harmonic_pk_nl_at_k_and_z(
  */
 
 int harmonic_fast_pk_at_kvec_and_zvec(
-                                     struct background * pba,
-                                     struct harmonic * phr,
-                                       double * kvec,
-                                     int kvec_size,
-                                     double * zvec,
-                                     int zvec_size,
-                                     double * pk_tot_out, // pk_tot_out[index_zvec*kvec_size+index_kvec],
-                                                          // already allocated
-                                                          //(or NULL if user knows there is no _m output)
-                                     double * pk_cb_tot_out, // idem
-                                     int nonlinear
-                                     ) {
+                                      struct background * pba,
+                                      struct harmonic * phr,
+                                      double * kvec,
+                                      int kvec_size,
+                                      double * zvec,
+                                      int zvec_size,
+                                      double * pk_tot_out, // pk_tot_out[index_zvec*kvec_size+index_kvec],
+                                                           // already allocated
+                                                           //(or NULL if user knows there is no _m output)
+                                      double * pk_cb_tot_out, // idem
+                                      int nonlinear
+                                      ) {
   enum pk_outputs pk_output;
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_fast_pks_at_kvec_and_zvec() which is deprecated since v2.8. It will soon be removed. Use fourier_pk_at_kvec_and_zvec() instead.\n");
@@ -1502,15 +1502,15 @@ int harmonic_fast_pk_at_kvec_and_zvec(
     pk_output = pk_linear;
 
   class_call(fourier_pks_at_kvec_and_zvec(
-                                            pba,
-                                            phr->pfo,
-                                            pk_output,
-                                            kvec,
-                                            kvec_size,
-                                            zvec,
-                                            zvec_size,
-                                            pk_tot_out,
-                                            pk_cb_tot_out),
+                                          pba,
+                                          phr->pfo,
+                                          pk_output,
+                                          kvec,
+                                          kvec_size,
+                                          zvec,
+                                          zvec_size,
+                                          pk_tot_out,
+                                          pk_cb_tot_out),
              phr->pfo->error_message,
              phr->error_message);
 
@@ -1533,25 +1533,25 @@ int harmonic_fast_pk_at_kvec_and_zvec(
  */
 
 int harmonic_sigma(
-                  struct background * pba,
-                  struct primordial * ppm,
-                  struct harmonic * phr,
-                  double R,
-                  double z,
-                  double * sigma
-                  ) {
+                   struct background * pba,
+                   struct primordial * ppm,
+                   struct harmonic * phr,
+                   double R,
+                   double z,
+                   double * sigma
+                   ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_sigma() which is deprecated since v2.8. It will soon be removed. Use fourier_sigmas_at_z() instead.\n");
 
   if (phr->pfo->has_pk_m) {
 
     class_call(fourier_sigma_at_z(pba,
-                                    phr->pfo,
-                                    R,
-                                    z,
-                                    phr->pfo->index_pk_m,
-                                    80., // hardcoded, yes, but the function is deprecated...
-                                    sigma),
+                                  phr->pfo,
+                                  R,
+                                  z,
+                                  phr->pfo->index_pk_m,
+                                  80., // hardcoded, yes, but the function is deprecated...
+                                  sigma),
                phr->pfo->error_message,
                phr->error_message);
 
@@ -1576,25 +1576,25 @@ int harmonic_sigma(
  */
 
 int harmonic_sigma_cb(
-                     struct background * pba,
-                     struct primordial * ppm,
-                     struct harmonic * phr,
-                     double R,
-                     double z,
-                     double * sigma_cb
-                     ) {
+                      struct background * pba,
+                      struct primordial * ppm,
+                      struct harmonic * phr,
+                      double R,
+                      double z,
+                      double * sigma_cb
+                      ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function harmonic_sigma_cb() which is deprecated since v2.8. It will soon be removed. Use fourier_sigmas_at_z() instead.\n");
 
   if (phr->pfo->has_pk_cb) {
 
     class_call(fourier_sigma_at_z(pba,
-                                    phr->pfo,
-                                    R,
-                                    z,
-                                    phr->pfo->index_pk_cb,
-                                    80., // hardcoded, yes, but the function is deprecated...
-                                    sigma_cb),
+                                  phr->pfo,
+                                  R,
+                                  z,
+                                  phr->pfo->index_pk_cb,
+                                  80., // hardcoded, yes, but the function is deprecated...
+                                  sigma_cb),
                phr->pfo->error_message,
                phr->error_message);
   }
@@ -1616,11 +1616,11 @@ int harmonic_sigma_cb(
  */
 
 int harmonic_tk_at_z(
-                    struct background * pba,
-                    struct harmonic * phr,
-                    double z,
-                    double * output /* array with argument output[(index_k*phr->ic_size[index_md]+index_ic)*phr->tr_size+index_tr] (must be already allocated) */
-                    ) {
+                     struct background * pba,
+                     struct harmonic * phr,
+                     double z,
+                     double * output /* array with argument output[(index_k*phr->ic_size[index_md]+index_ic)*phr->tr_size+index_tr] (must be already allocated) */
+                     ) {
 
 
   class_stop(phr->error_message,
@@ -1643,12 +1643,12 @@ int harmonic_tk_at_z(
  */
 
 int harmonic_tk_at_k_and_z(
-                          struct background * pba,
-                          struct harmonic * phr,
-                          double k,
-                          double z,
-                          double * output  /* array with argument output[index_ic*phr->tr_size+index_tr] (must be already allocated) */
-                          ) {
+                           struct background * pba,
+                           struct harmonic * phr,
+                           double k,
+                           double z,
+                           double * output  /* array with argument output[index_ic*phr->tr_size+index_tr] (must be already allocated) */
+                           ) {
 
   class_stop(phr->error_message,
              "The function harmonic_tk_at_k_and_z() is obsolete, use instead perturbations_sources_at_tau(), it does the same provided that you interpolate its output at some wavenumber k");

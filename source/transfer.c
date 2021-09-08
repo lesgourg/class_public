@@ -293,16 +293,18 @@ int transfer_init(
              ptr->error_message);
 
   /** - precompute window function for integrated nCl/sCl quantities*/
-  double* window;
-  class_call(transfer_precompute_selection(ppr,
-                                           pba,
-                                           ppt,
-                                           ptr,
-                                           tau_rec,
-                                           tau_size_max,
-                                           &(window)),
-             ptr->error_message,
-             ptr->error_message);
+  double* window = NULL;
+  if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_number_count == _TRUE_)) {
+    class_call(transfer_precompute_selection(ppr,
+                                            pba,
+                                            ppt,
+                                            ptr,
+                                            tau_rec,
+                                            tau_size_max,
+                                            &(window)),
+              ptr->error_message,
+              ptr->error_message);
+  }
 
   /* (a.3.) workspace, allocated in a parallel zone since in openmp
      version there is one workspace per thread */
