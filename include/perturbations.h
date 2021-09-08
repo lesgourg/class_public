@@ -694,7 +694,7 @@ extern "C" {
                                       struct perturbations *ppt,
                                       int index_ic,
                                       char first_line[_LINE_LENGTH_MAX_],
-                                      FileName ic_suffix
+                                      char ic_suffix[_SUFFIXNAMESIZE_]
                                       );
 
   int perturbations_init(

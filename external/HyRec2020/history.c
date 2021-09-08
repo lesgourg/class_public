@@ -391,7 +391,7 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dx
   int *error = &data->error;
 
   double xH1, xH1_p, xH1_m, xHeIISaha, dxHeIISaha_dlna, DdxHeIIdlna_Dxe, dxHeIIdlna, z_out, Dxe, DLNA;
-  char sub_message[128];
+  char sub_message[SIZE_ErrorM];
   double H;
   if (flag==10) DLNA = cosmo->dlna;
   else DLNA = cosmo->dlna/10.;
