@@ -52,6 +52,10 @@ struct thermorecfast {
   double Bfact;
   double CT;
 
+  /* Varying fundamental constants (fs = fine structure = alpha, me =
+     effective electron mass) */
+  double fsR, meR;
+
   enum recfast_photoion_modes photoion_mode;
 
   ErrorMsg error_message;

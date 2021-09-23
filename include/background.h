@@ -18,6 +18,11 @@ enum spatial_curvature {flat,open,closed};
 
 enum equation_of_state {CLP,EDE};
 
+
+/** list of possible parametrizations of the varying fundamental constants */
+
+enum varconst_dependence {varconst_none,varconst_instant};
+
 /** list of formats for the vector of background quantities */
 
 enum vecback_format {short_info, normal_info, long_info};
@@ -116,6 +121,10 @@ struct background
   double phi_ini_scf;      /**< \f$ \phi(t_0) \f$: scalar field initial value */
   double phi_prime_ini_scf;/**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
   int scf_parameters_size; /**< size of scf_parameters */
+  double varconst_alpha; /**< finestructure constant for varying fundamental constants */
+  double varconst_me; /**< electron mass for varying fundamental constants */
+  enum varconst_dependence varconst_dep; /**< dependence of the varying fundamental constants as a function of time */
+  double varconst_transition_redshift; /**< redshift of transition between varied fundamental constants and normal fundamental constants in the 'varconst_instant' case*/
 
   //@}
 
@@ -197,6 +206,9 @@ struct background
 
   int index_bg_D;             /**< scale independent growth factor D(a) for CDM perturbations */
   int index_bg_f;             /**< corresponding velocity growth factor [dlnD]/[dln a] */
+
+  int index_bg_varc_alpha;    /**< value of fine structure constant in varying fundamental constants */
+  int index_bg_varc_me;      /**< value of effective electron mass in varying fundamental constants */
 
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
@@ -280,6 +292,7 @@ struct background
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
   short has_idr;       /**< presence of interacting dark radiation? */
   short has_curvature; /**< presence of global spatial curvature? */
+  short has_varconst; /**< presence of varying fundamental constants? */
 
   //@}
 
@@ -407,6 +420,13 @@ extern "C" {
                        double * w_fld,
                        double * dw_over_da_fld,
                        double * integral_fld);
+
+  int background_varconst_of_z(
+                               struct background* pba,
+                               double z,
+                               double* alpha,
+                               double* me
+                               );
 
   int background_init(
                       struct precision *ppr,

@@ -626,6 +626,17 @@ int background_functions(
     /** - velocity growth factor */
     pvecback[pba->index_bg_f] = pvecback_B[pba->index_bi_D_prime]/( pvecback_B[pba->index_bi_D]*a*pvecback[pba->index_bg_H]);
 
+    /**- Varying fundamental constants */
+    if (pba->has_varconst == _TRUE_) {
+      class_call(background_varconst_of_z(pba,
+                                          1./a-1.,
+                                          &(pvecback[pba->index_bg_varc_alpha]),
+                                          &(pvecback[pba->index_bg_varc_me])
+                                          ),
+                 pba->error_message,
+                 pba->error_message);
+    }
+
     /* one can put other variables here */
     /*  */
     /*  */
@@ -736,6 +747,49 @@ int background_w_fld(
       far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
       Recfast does not assume anything */
 
+  return _SUCCESS_;
+}
+
+/**
+ * Single place where the variation of fundamental constants is
+ * defined. Parameters of the function are passed through the
+ * background structure. Generalisation to arbitrary functions should
+ * be simple.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param z              Input: current value of redhsift
+ * @param alpha          Output: fine structure constant relative to its current value
+ * @param me             Output: effective electron mass relative to its current value
+ * @return the error status
+ */
+
+int background_varconst_of_z(
+                             struct background* pba,
+                             double z,
+                             double* alpha,
+                             double* me
+                             ){
+
+  switch(pba->varconst_dep){
+
+    case varconst_none:
+      *alpha = 1.;
+      *me = 1.;
+      break;
+
+    case varconst_instant:
+      if(z>pba->varconst_transition_redshift){
+        *alpha = pba->varconst_alpha;
+        *me = pba->varconst_me;
+      }
+      else{
+        *alpha = 1.;
+        *me = 1.;
+      }
+      break;
+
+    /* Implement here your arbitrary model of varying fundamental constants! */
+  }
   return _SUCCESS_;
 }
 
@@ -1072,6 +1126,12 @@ int background_indices(
 
   /* -> velocity growth factor in dust universe */
   class_define_index(pba->index_bg_f,_TRUE_,index_bg,1);
+
+  /* -> varying fundamental constant -- alpha (fine structure) */
+  class_define_index(pba->index_bg_varc_alpha,pba->has_varconst,index_bg,1);
+
+  /* -> varying fundamental constant -- me (effective electron mass) */
+  class_define_index(pba->index_bg_varc_me,pba->has_varconst,index_bg,1);
 
   /* -> put here additional quantities describing background */
   /*    */
@@ -1711,6 +1771,19 @@ int background_checks(
                pba->error_message,
                "Your choice for w(a--->0)=%g is suspicious, since it is bigger than -1/3 there cannot be radiation domination at early times\n",
                w_fld);
+  }
+
+  /* Varying fundamental constants */
+  if (pba->has_varconst == _TRUE_) {
+    class_test(pba->varconst_alpha <= 0,
+               pba->error_message,
+               "incorrect fine structure constant before transition");
+    class_test(pba->varconst_me <= 0,
+               pba->error_message,
+               "incorrect effective electron mass before transition");
+    class_test(pba->varconst_transition_redshift < 0,
+               pba->error_message,
+               "incorrect transition redshift");
   }
 
   /** - in verbose mode, send to standard output some additional information on non-obvious background parameters */
@@ -2371,6 +2444,9 @@ int background_output_titles(
   class_store_columntitle(titles,"gr.fac. D",_TRUE_);
   class_store_columntitle(titles,"gr.fac. f",_TRUE_);
 
+  class_store_columntitle(titles,"rel. alpha",pba->has_varconst);
+  class_store_columntitle(titles,"rel. m_e",pba->has_varconst);
+
   return _SUCCESS_;
 }
 
@@ -2440,6 +2516,9 @@ int background_output_data(
 
     class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
+
+    class_store_double(dataptr,pvecback[pba->index_bg_varc_alpha],pba->has_varconst,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_varc_me],pba->has_varconst,storeidx);
   }
 
   return _SUCCESS_;
