@@ -489,7 +489,7 @@ int distortions_read_detector_noisefile(struct precision * ppr,
                       "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->x[index_x] = nu_temp/psd->x_to_nu;
     class_test(fscanf(infile, "%le",
-                      &(psd->delta_Ic_array[index_x]))!=1,                            // [-]
+                      &(delta_Ic_temp))!=1,                            // [-]
                       psd->error_message,
                       "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;

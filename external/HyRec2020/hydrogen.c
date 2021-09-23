@@ -434,7 +434,7 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
   int *error = &data->error;
   double fsR = cosmo->fsR, meR = cosmo->meR;
   double Alpha[2], DAlpha[2], Beta[2], R2p2s, RLya;
-  double DK_K_fid, DK_K, fitted_RLya;
+  double DK_K_fid =0., DK_K, fitted_RLya;
   double C_2s, C_2p, gamma_2s, gamma_2p, s, Dxe2;
   static double diff[3];
   unsigned i;
