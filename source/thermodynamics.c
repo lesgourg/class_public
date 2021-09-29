@@ -3866,7 +3866,7 @@ int thermodynamics_ionization_fractions(
   struct thermo_vector * ptv = ptdw->ptv;
 
   /* Thermo quantities */
-  double x_H, x_He, xHeII, x, Tmat;
+  double x_H, x_He, xHeII, x=0., Tmat;
   /* Analytical quantities */
   double rhs, sqrt_val;
 

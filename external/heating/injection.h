@@ -254,7 +254,8 @@ extern "C" {
                                      struct injection* phe,
                                      char* chi_x_file);
 
-  int injection_output_titles(struct injection* phe,char* titles_heat);
+  int injection_output_titles(struct injection* phe,
+                              char titles[_MAXTITLESTRINGLENGTH_]);
 
   int injection_output_data(struct injection * phe,
                             int number_of_titles,

@@ -105,7 +105,8 @@ extern "C" {
                                       double z,
                                       double * energy_rate);
 
-  int noninjection_output_titles(struct noninjection * pni, char* titles);
+  int noninjection_output_titles(struct noninjection * pni,
+                                 char titles[_MAXTITLESTRINGLENGTH_]);
 
   int noninjection_output_data(struct noninjection * pni,
                                int number_of_titles,
