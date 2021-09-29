@@ -1894,6 +1894,9 @@ int background_solve(
   /* what parameters are used in the output? */
   int * used_in_output;
 
+  /* index of ncdm species */
+  int n_ncdm;
+
   /** - setup background workspace */
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -2082,6 +2085,21 @@ int background_solve(
   pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
   pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
   pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
+
+  /* Compute the density fraction of non-free-streaming matter (in the minimal LambdaCDM model, this would be just Omega_b + Omega_cdm). This definition takes into account interating, decaying and warm dark matter, but it would need to be refined if some part of the matter component was modelled by the fluid (fld) or the scalar field (scf). */
+  pba->Omega0_nfsm =  pba->Omega0_b;
+  if (pba->has_cdm == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_cdm;
+  if (pba->has_idm_dr == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_idm_dr;
+  if (pba->has_dcdm == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_dcdm;
+  for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
+    /* here we define non-free-streaming matter as: any non-relatistic species with a dimensionless ratio m/T bigger than a threshold ppr->M_nfsm_threshold; if this threshold is of the order of 10^4, this corresponds to the condition "becoming non-relativistic during radiation domination". Beware: this definition won't work in the case in which the user passes a customised p.s.d. for ncdm, such that M_ncdm is not defined.  */
+    if (pba->M_ncdm[n_ncdm] > ppr->M_nfsm_threshold) {
+      pba->Omega0_nfsm += pba->Omega0_ncdm[n_ncdm];
+    }
+  }
 
   free(pvecback);
   free(pvecback_integration);
@@ -2785,7 +2803,6 @@ int background_output_budget(
       budget_matter+=pba->Omega0_dcdm;
     }
 
-
     printf(" ---> Relativistic Species \n");
     class_print_species("Photons",g);
     budget_radiation+=pba->Omega0_g;
@@ -2803,11 +2820,11 @@ int background_output_budget(
     }
 
     if (pba->N_ncdm > 0) {
-      printf(" ---> Massive Neutrino Species \n");
+      printf(" ---> Non-Cold Dark Matter Species (incl. massive neutrinos)\n");
     }
     if (pba->N_ncdm > 0) {
       for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
-        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Non-Cold Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
         budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
       }
     }
@@ -2836,13 +2853,15 @@ int background_output_budget(
     printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
     printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
     if (pba->N_ncdm > 0) {
-      printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+      printf(" Non-Cold Dark Matter             Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
     }
     if ((pba->has_lambda == _TRUE_) || (pba->has_fld == _TRUE_) || (pba->has_scf == _TRUE_) || (pba->has_curvature == _TRUE_)) {
       printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
     }
     printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
 
+    printf(" out of which \n");
+    class_print_species("Non-Free-Streaming Matter",nfsm);
     printf(" -------------------------------------------------------------------- \n");
   }
 

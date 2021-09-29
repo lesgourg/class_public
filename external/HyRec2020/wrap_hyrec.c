@@ -50,7 +50,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
   /** - set cosmological parameters for hyrec */
   phy->data->cosmo->T0 = T_cmb;
   phy->data->cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
-  phy->data->cosmo->ocbh2 = (pba->Omega0_b+pba->Omega0_cdm)*pba->h*pba->h;
+  phy->data->cosmo->ocbh2 = pba->Omega0_nfsm*pba->h*pba->h;
 
   phy->data->cosmo->YHe = pth->YHe;
   phy->data->cosmo->Neff = pba->Neff;
