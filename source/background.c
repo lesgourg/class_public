@@ -982,6 +982,7 @@ int background_indices(
   pba->has_idr = _FALSE_;
   pba->has_idm_dr = _FALSE_;
   pba->has_curvature = _FALSE_;
+  pba->has_varconst  = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
@@ -1015,6 +1016,9 @@ int background_indices(
 
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
+
+  if (pba->varconst_dep != varconst_none)
+    pba->has_varconst = _TRUE_;
 
   /** - initialize all indices */
 

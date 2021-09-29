@@ -2166,7 +2166,6 @@ int input_read_parameters_general(struct file_content * pfc,
   }
 
   if(pba->varconst_dep!=varconst_none){
-    pba->has_varconst = _TRUE_;
     /* 10.b) Sensitivity of bbn to a variation of the fine structure constant */
     class_read_double("bbn_alpha_sensitivity",pth->bbn_alpha_sensitivity);
   }
@@ -5342,6 +5341,7 @@ int input_default_params(struct background *pba,
   pth->compute_damping_scale = _FALSE_;
 
   /** 10) Varying fundamental constants */
+  pba->varconst_dep = varconst_none;
   pba->varconst_alpha = 1.;
   pba->varconst_me = 1.;
   pth->bbn_alpha_sensitivity = 1.;
