@@ -14,7 +14,7 @@ jobs:
     - name: Checkout reference 🛎
       uses: actions/checkout@v2
       with:
-        ref: master
+        ref: devel
         path: ref_class
     - name: Create or update virtual Python environment
       run: |

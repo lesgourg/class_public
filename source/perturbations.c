@@ -394,7 +394,7 @@ int perturbations_output_firstline_and_ic_suffix(
                                                  struct perturbations *ppt,
                                                  int index_ic,
                                                  char first_line[_LINE_LENGTH_MAX_],
-                                                 FileName ic_suffix
+                                                 char ic_suffix[_SUFFIXNAMESIZE_]
                                                  ){
 
   first_line[0]='\0';

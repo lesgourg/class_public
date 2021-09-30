@@ -924,7 +924,7 @@ int output_tk(
   FileName file_name;
   char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
   char first_line[_LINE_LENGTH_MAX_];
-  char ic_suffix[4];   // 4 is enough to write "ad", "bi", "cdi", "nid", "niv", ...
+  char ic_suffix[_SUFFIXNAMESIZE_];   // 4 is enough to write "ad", "bi", "cdi", "nid", "niv", ...
 
 
   index_md=ppt->index_md_scalars;

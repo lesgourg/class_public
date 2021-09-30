@@ -626,6 +626,17 @@ int background_functions(
     /** - velocity growth factor */
     pvecback[pba->index_bg_f] = pvecback_B[pba->index_bi_D_prime]/( pvecback_B[pba->index_bi_D]*a*pvecback[pba->index_bg_H]);
 
+    /**- Varying fundamental constants */
+    if (pba->has_varconst == _TRUE_) {
+      class_call(background_varconst_of_z(pba,
+                                          1./a-1.,
+                                          &(pvecback[pba->index_bg_varc_alpha]),
+                                          &(pvecback[pba->index_bg_varc_me])
+                                          ),
+                 pba->error_message,
+                 pba->error_message);
+    }
+
     /* one can put other variables here */
     /*  */
     /*  */
@@ -736,6 +747,49 @@ int background_w_fld(
       far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
       Recfast does not assume anything */
 
+  return _SUCCESS_;
+}
+
+/**
+ * Single place where the variation of fundamental constants is
+ * defined. Parameters of the function are passed through the
+ * background structure. Generalisation to arbitrary functions should
+ * be simple.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param z              Input: current value of redhsift
+ * @param alpha          Output: fine structure constant relative to its current value
+ * @param me             Output: effective electron mass relative to its current value
+ * @return the error status
+ */
+
+int background_varconst_of_z(
+                             struct background* pba,
+                             double z,
+                             double* alpha,
+                             double* me
+                             ){
+
+  switch(pba->varconst_dep){
+
+    case varconst_none:
+      *alpha = 1.;
+      *me = 1.;
+      break;
+
+    case varconst_instant:
+      if(z>pba->varconst_transition_redshift){
+        *alpha = pba->varconst_alpha;
+        *me = pba->varconst_me;
+      }
+      else{
+        *alpha = 1.;
+        *me = 1.;
+      }
+      break;
+
+    /* Implement here your arbitrary model of varying fundamental constants! */
+  }
   return _SUCCESS_;
 }
 
@@ -928,6 +982,7 @@ int background_indices(
   pba->has_idr = _FALSE_;
   pba->has_idm_dr = _FALSE_;
   pba->has_curvature = _FALSE_;
+  pba->has_varconst  = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
@@ -961,6 +1016,9 @@ int background_indices(
 
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
+
+  if (pba->varconst_dep != varconst_none)
+    pba->has_varconst = _TRUE_;
 
   /** - initialize all indices */
 
@@ -1072,6 +1130,12 @@ int background_indices(
 
   /* -> velocity growth factor in dust universe */
   class_define_index(pba->index_bg_f,_TRUE_,index_bg,1);
+
+  /* -> varying fundamental constant -- alpha (fine structure) */
+  class_define_index(pba->index_bg_varc_alpha,pba->has_varconst,index_bg,1);
+
+  /* -> varying fundamental constant -- me (effective electron mass) */
+  class_define_index(pba->index_bg_varc_me,pba->has_varconst,index_bg,1);
 
   /* -> put here additional quantities describing background */
   /*    */
@@ -1713,6 +1777,19 @@ int background_checks(
                w_fld);
   }
 
+  /* Varying fundamental constants */
+  if (pba->has_varconst == _TRUE_) {
+    class_test(pba->varconst_alpha <= 0,
+               pba->error_message,
+               "incorrect fine structure constant before transition");
+    class_test(pba->varconst_me <= 0,
+               pba->error_message,
+               "incorrect effective electron mass before transition");
+    class_test(pba->varconst_transition_redshift < 0,
+               pba->error_message,
+               "incorrect transition redshift");
+  }
+
   /** - in verbose mode, send to standard output some additional information on non-obvious background parameters */
   if (pba->background_verbose > 0) {
 
@@ -1816,6 +1893,9 @@ int background_solve(
   int index_loga, index_scf;
   /* what parameters are used in the output? */
   int * used_in_output;
+
+  /* index of ncdm species */
+  int n_ncdm;
 
   /** - setup background workspace */
   bpaw.pba = pba;
@@ -2005,6 +2085,21 @@ int background_solve(
   pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
   pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
   pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
+
+  /* Compute the density fraction of non-free-streaming matter (in the minimal LambdaCDM model, this would be just Omega_b + Omega_cdm). This definition takes into account interating, decaying and warm dark matter, but it would need to be refined if some part of the matter component was modelled by the fluid (fld) or the scalar field (scf). */
+  pba->Omega0_nfsm =  pba->Omega0_b;
+  if (pba->has_cdm == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_cdm;
+  if (pba->has_idm_dr == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_idm_dr;
+  if (pba->has_dcdm == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_dcdm;
+  for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
+    /* here we define non-free-streaming matter as: any non-relatistic species with a dimensionless ratio m/T bigger than a threshold ppr->M_nfsm_threshold; if this threshold is of the order of 10^4, this corresponds to the condition "becoming non-relativistic during radiation domination". Beware: this definition won't work in the case in which the user passes a customised p.s.d. for ncdm, such that M_ncdm is not defined.  */
+    if (pba->M_ncdm[n_ncdm] > ppr->M_nfsm_threshold) {
+      pba->Omega0_nfsm += pba->Omega0_ncdm[n_ncdm];
+    }
+  }
 
   free(pvecback);
   free(pvecback_integration);
@@ -2371,6 +2466,9 @@ int background_output_titles(
   class_store_columntitle(titles,"gr.fac. D",_TRUE_);
   class_store_columntitle(titles,"gr.fac. f",_TRUE_);
 
+  class_store_columntitle(titles,"rel. alpha",pba->has_varconst);
+  class_store_columntitle(titles,"rel. m_e",pba->has_varconst);
+
   return _SUCCESS_;
 }
 
@@ -2440,6 +2538,9 @@ int background_output_data(
 
     class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
+
+    class_store_double(dataptr,pvecback[pba->index_bg_varc_alpha],pba->has_varconst,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_varc_me],pba->has_varconst,storeidx);
   }
 
   return _SUCCESS_;
@@ -2702,7 +2803,6 @@ int background_output_budget(
       budget_matter+=pba->Omega0_dcdm;
     }
 
-
     printf(" ---> Relativistic Species \n");
     class_print_species("Photons",g);
     budget_radiation+=pba->Omega0_g;
@@ -2720,11 +2820,11 @@ int background_output_budget(
     }
 
     if (pba->N_ncdm > 0) {
-      printf(" ---> Massive Neutrino Species \n");
+      printf(" ---> Non-Cold Dark Matter Species (incl. massive neutrinos)\n");
     }
     if (pba->N_ncdm > 0) {
       for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
-        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Non-Cold Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
         budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
       }
     }
@@ -2753,13 +2853,15 @@ int background_output_budget(
     printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
     printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
     if (pba->N_ncdm > 0) {
-      printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+      printf(" Non-Cold Dark Matter             Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
     }
     if ((pba->has_lambda == _TRUE_) || (pba->has_fld == _TRUE_) || (pba->has_scf == _TRUE_) || (pba->has_curvature == _TRUE_)) {
       printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
     }
     printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
 
+    printf(" out of which \n");
+    class_print_species("Non-Free-Streaming Matter",nfsm);
     printf(" -------------------------------------------------------------------- \n");
   }
 

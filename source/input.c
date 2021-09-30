@@ -2136,6 +2136,40 @@ int input_read_parameters_general(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("compute_damping_scale","compute damping scale",pth->compute_damping_scale);
 
+  /** 10) Varying fundamental constants */
+  class_call(parser_read_string(pfc,"varying_fundamental_constants",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if (strstr(string1,"none") != NULL){
+      pba->varconst_dep = varconst_none;
+    }
+    else if (strstr(string1,"instant") != NULL){
+      pba->varconst_dep = varconst_instant;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'varying_fundamental_constants' as '%s'. It has to be one of {'none','instantaneous'}.",string1);
+    }
+  }
+  switch(pba->varconst_dep){
+    case varconst_none:
+    /* nothing to be read*/
+    break;
+    /* 10.a) Instantaneous transition from specified values to unity at given transition redshift */
+    case varconst_instant:
+      class_read_double("varying_alpha",pba->varconst_alpha);
+      class_read_double("varying_me",pba->varconst_me);
+      class_read_double("varying_transition_redshift",pba->varconst_transition_redshift);
+    break;
+  }
+
+  if(pba->varconst_dep!=varconst_none){
+    /* 10.b) Sensitivity of bbn to a variation of the fine structure constant */
+    class_read_double("bbn_alpha_sensitivity",pth->bbn_alpha_sensitivity);
+  }
+
   return _SUCCESS_;
 
 }
@@ -5305,6 +5339,13 @@ int input_default_params(struct background *pba,
 
   /** 9) Damping scale */
   pth->compute_damping_scale = _FALSE_;
+
+  /** 10) Varying fundamental constants */
+  pba->varconst_dep = varconst_none;
+  pba->varconst_alpha = 1.;
+  pba->varconst_me = 1.;
+  pth->bbn_alpha_sensitivity = 1.;
+  pba->varconst_transition_redshift = 50.;
 
   /**
    * Default to input_read_parameters_species

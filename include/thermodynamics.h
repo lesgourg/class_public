@@ -64,6 +64,7 @@ struct thermodynamics
 
   double YHe;  /**< \f$ Y_{He} \f$: primordial helium mass fraction rho_He/(rho_H+rho_He),
                   close but not exactly equal to the density fraction 4*n_He/(n_H+4*n_He) */
+  double bbn_alpha_sensitivity; /**< Related to variation of fundamental constants (sensitivity of YHe to alpha) */
 
   enum recombination_algorithm recombination; /**< recombination code */
 
@@ -168,6 +169,10 @@ struct thermodynamics
   double b_idr;         /**< strength of the self coupling for interacting dark radiation (idr-idr) */
   double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation */
   double m_idm_dr;      /**< dark matter mass for idm_dr */
+
+  /** parameters for varying fundamental constants */
+
+  short has_varconst; /**< presence of varying fundamental constants? */
 
   //@}
 
@@ -587,6 +592,7 @@ extern "C" {
   int thermodynamics_ionization_fractions(
                                           double z,
                                           double * y,
+                                          struct background * pba,
                                           struct thermodynamics * pth,
                                           struct thermo_workspace * ptw,
                                           int current_ap

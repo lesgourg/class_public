@@ -18,17 +18,22 @@
 #define MODEL SWIFT	                /* SWIFT is the default model. Four more models can be used (PEEBLES, RECFAST, EMLA2s2p, FULL). */
                                     /* Each model is defined in hydrogen.h */
 
+/* !!!!!  Do NOT change any numbers below unless you know what's going on with each parameter exactly !!!!! */
+
 #define SIZE_ErrorM      2048
 
-#define DXHEII_MAX       1e-5       /* If xHeII - xHeII(Saha) < DXEHII_MAX, use post-Saha expansion for Helium. Lower value = higher accuracy. */
+#define DXHEII_MAX       1e-5       /* If xHeII - xHeII(Saha) < DXEHII_MAX, use post-Saha expansion for Helium.*/
+#define DXHEII_DIFF_MAX  5e-2       /* If |1-dxHeIIdlna_prev/dxHeIIdlna| > DXHEII_DIFF_MAX, do loop with 10 times smaller time step */
 
 #define DXHII_MAX        3e-4       /* If xHII - xHII(Saha) < DXHII_MAX, use post-Saha expansion for Hydrogen. Switch to ODE integration after that.
                                     IMPORTANT: do not set to a lower value unless using a smaller time-step */
+#define DXHII_DIFF_MAX   5e-2       /* If |1-dxHIIdlna_prev/dxHIIdlna| > DXHII_DIFF_MAX, do loop with 10 times smaller time step */
 
 #define XHEII_MIN        1e-6       /* Stop considering Helium recombination once xHeII < XHEII_MIN */
 //#define XHEII_MIN      1e-10      /* Used when calculating correction function in SWIFT mode */
 
 #define DLNT_MAX         5e-4       /* Use the steady-state approximation for Tm as long as 1-Tm/Tr < DLNT_MAX, then switch to ODE integration */
+#define DTM_DIFF_MAX     5e-2       /* If |1-dTmdlna_prev/dTmdlna| > DTM_DIFF_MAX, evole Tm with implicit method */
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param);
 
@@ -40,7 +45,7 @@ double rec_dTmdlna(double z, double xe, double Tm, REC_COSMOPARAMS *cosmo, doubl
 
 double Tm_implicit(double z, double xe, double Tm, REC_COSMOPARAMS *cosmo, double dEdtdV, double H, double DLNA);
 
-void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double *dxHeIIdlna_prev,
+void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dxHeIIdlna_prev[2],
                          double *hubble_array, int flag);
 
 void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *xH1, unsigned iz_rad, double H);

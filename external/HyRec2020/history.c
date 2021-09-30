@@ -51,7 +51,7 @@ Hubble expansion rate in sec^-1.
 
 extern double exported_dtauda(double *);
 
-double rec_HubbleRate(REC_COSMOPARAMS *cosmo, double z, int *error, char error_message[SIZE_ErrorM]) {
+double rec_HubbleRate(REC_COSMOPARAMS *cosmo, double z) {
   double a;
 
   a = 1./(1.+z);
@@ -84,7 +84,7 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
   double zmin = 0.;
   double h = *h0inp/100.;
   double h2 = h*h;
-  char sub_message[1024];
+  char sub_message[SIZE_ErrorM];
 
   /* To load tables only once */
   if (firstTime==0){
@@ -119,7 +119,7 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
   rec_data.cosmo->fsR = rec_data.cosmo->meR = 1.;   /* Default: today's values */
   rec_data.cosmo->nH0 = 11.223846333047e-6*rec_data.cosmo->obh2*(1.-rec_data.cosmo->YHe);  // number density of hudrogen today in cm-3
   rec_data.cosmo->fHe = rec_data.cosmo->YHe/(1.-rec_data.cosmo->YHe)/3.97153;              // abundance of helium by number
-  if (MODEL == 4) rec_data.cosmo->dlna = DLNA_SWIFT;
+  if (MODEL == SWIFT) rec_data.cosmo->dlna = DLNA_SWIFT;
   else rec_data.cosmo->dlna = DLNA_HYREC;
   dlna = rec_data.cosmo->dlna;
 
@@ -146,7 +146,9 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
   double Hubble_flag[1];
   Hubble_flag[0] = -1.;
 
-  rec_build_history(rec_data, MODEL, Hubble_flag);
+  rec_data.xe_output = xe; rec_data.Tm_output = Tm;
+
+  rec_build_history(&rec_data, MODEL, Hubble_flag);
   if (rec_data.error == 1) {
     printf("\n%s\n",rec_data.error_message);
     exit(1);
@@ -289,7 +291,7 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
 
   param->inj_params->odmh2      = param->ocbh2 - param->obh2;
 
-  if (MODEL == 4) param->dlna = DLNA_SWIFT;
+  if (MODEL == SWIFT) param->dlna = DLNA_SWIFT;
   else param->dlna = DLNA_HYREC;
 
   if (fout!=NULL) fprintf(fout, "\n");
@@ -360,10 +362,7 @@ Output: change in x per dt
 double hyrec_integrator(double deriv, double deriv_prev[2], double z) {
   double result;
 
-  if (MODEL == 3){
-    if (z > 20 && z < 1500) result = 23./12.*deriv -16./12. * deriv_prev[0] + 5./12. *deriv_prev[1];
-    else  result = 1.25 * deriv - 0.25 *deriv_prev[1];
-  }
+  if (MODEL == FULL) result = 1.25 * deriv - 0.25 *deriv_prev[1];
   else result = 23./12.*deriv -16./12. * deriv_prev[0] + 5./12. *deriv_prev[1];
 
   // update derivatives
@@ -391,7 +390,7 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dx
   int *error = &data->error;
 
   double xH1, xH1_p, xH1_m, xHeIISaha, dxHeIISaha_dlna, DdxHeIIdlna_Dxe, dxHeIIdlna, z_out, Dxe, DLNA;
-  char sub_message[128];
+  char sub_message[SIZE_ErrorM];
   double H;
   if (flag==10) DLNA = cosmo->dlna;
   else DLNA = cosmo->dlna/10.;
@@ -449,21 +448,20 @@ void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *
 
   double ainv, xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, T, nH, Dxe;
   int model_stiff;	// To use EMLA2p2s model for PostSaha in FULL and SWIFT mode
-  char sub_message[128];
+  char sub_message[SIZE_ErrorM];
 
   // Set model for rec_xH1_stiff. FULL mode uses EMLA2s2p for stiff.
   // SWIFT mode uses EMLA2s2p for stiff when z is not in the range of redshifts for SWIFT fitting function.
 
   T = kBoltz*cosmo->T0 * (ainv=1.+z);
 
-  // Set DXHII_MAX_stiff parameter
-  if (model == 3) {
-    model_stiff = 2;
+  if (model == FULL) {
+    model_stiff = EMLA2s2p;
   }
   else{
     model_stiff = model;
-    if (model == 4){
-      if (T/kBoltz/cosmo->fsR/cosmo->fsR/cosmo->meR > data->fit->swift_func[0][DKK_SIZE-1] ) model_stiff = 2;
+    if (model == SWIFT){
+      if (T/kBoltz/cosmo->fsR/cosmo->fsR/cosmo->meR > data->fit->swift_func[0][DKK_SIZE-1] ) model_stiff = EMLA2s2p;
     }
   }
 
@@ -495,7 +493,7 @@ void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *
   //if (z<1700.) *stiff = 0;   /* Used when calculating the correction function for SWIFT mode. */
 
   /* Update photon population when MODEL = FULL */
-  if (model == 3) rec_dxHIIdlna(data, model, xHeII + 1.-*xH1, 1.-*xH1, nH, H, T, T, iz_rad, z);
+  if (model == FULL) rec_dxHIIdlna(data, model, xHeII + 1.-*xH1, 1.-*xH1, nH, H, T, T, iz_rad, z);
 
   if (*xH1 < 0. || *xH1 != *xH1) {
     sprintf(sub_message, "xH1 < 0 in rec_xH1_stiff: at z = %f, xH1 = %E\n", z, *xH1);
@@ -528,9 +526,9 @@ void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double
   double Tm = data->Tm_output[iz-1];
   long iz_rad = iz-1-data->rad->iz_rad_0;
 
-  double dxHeIIdlna, dxHIIdlna=0, z_out, xe;
+  double dxHeIIdlna, dxHIIdlna=0., z_out, xe;
   double nH, TR, DLNA;
-  char sub_message[128];
+  char sub_message[SIZE_ErrorM];
   DLNA = cosmo->dlna;
   xe = *xHeII + 1.- (*xH1);
   nH = cosmo->nH0 *cube(1.+z_in);
@@ -584,7 +582,7 @@ void rec_get_xe_next1_H(HYREC_DATA *data, int model, double z_in, long iz, doubl
 
   double dxedlna, z_out;
   double nH, TR, xH1, dEdtdV, DLNA;
-  char sub_message[128];
+  char sub_message[SIZE_ErrorM];
   if (flag==10) DLNA = cosmo->dlna;
   else DLNA = cosmo->dlna/10.;
 
@@ -615,7 +613,7 @@ void rec_get_xe_next1_H(HYREC_DATA *data, int model, double z_in, long iz, doubl
 
   // Test that the outcome is sensible
   if (*xe_out > 1. || *xe_out < 0. || *xe_out != *xe_out) {
-    sprintf(sub_message, "xe > 0 or xe < 0 in get_rec_next1_H at z = %E, xe = %E\n", z_out, *xe_out);
+    sprintf(sub_message, "xe > 1 or xe < 0 in get_rec_next1_H at z = %E, xe = %E\n", z_out, *xe_out);
     strcat(data->error_message, sub_message);
     *error = 1;
   }
@@ -646,7 +644,7 @@ void rec_get_xe_next2_HTm(HYREC_DATA *data, int model, double z_in, long iz, dou
   long iz_rad = iz-1-data->rad->iz_rad_0;
 
   double dxedlna, dTmdlna, nH, TR, dEdtdV, DLNA;
-  char sub_message[128];
+  char sub_message[SIZE_ErrorM];
   DLNA = cosmo->dlna;
 
   nH = cosmo->nH0 *cube(1.+z_in);
@@ -663,16 +661,19 @@ void rec_get_xe_next2_HTm(HYREC_DATA *data, int model, double z_in, long iz, dou
 
   dTmdlna = rec_dTmdlna(z_in, xe_in, Tm_in, cosmo, dEdtdV, H);
 
-  if ( z_in < 600){
-    data->xe_output[iz] = xe_in + DLNA *hyrec_integrator(dxedlna, dxedlna_prev, z_in);
-    data->Tm_output[iz] = Tm_in + DLNA *hyrec_integrator(dTmdlna, dTmdlna_prev, z_in);
-  }
-  else {
+  data->Tm_evolve_implicit = 1;
+  if (fabs(1-dTmdlna_prev[0]/dTmdlna)<DTM_DIFF_MAX) data->Tm_evolve_implicit = 0;
+  if (data->Tm_evolve_implicit == 1){
     dTmdlna_prev[0] = dTmdlna;
     dTmdlna_prev[1] = dTmdlna_prev[0];
     data->xe_output[iz] = xe_in + DLNA *hyrec_integrator(dxedlna, dxedlna_prev, z_in);
     data->Tm_output[iz] = Tm_implicit(z_out, data->xe_output[iz], Tm_in, cosmo, dEdtdV, H_next, DLNA);
   }
+  else {
+    data->xe_output[iz] = xe_in + DLNA *hyrec_integrator(dxedlna, dxedlna_prev, z_in);
+    data->Tm_output[iz] = Tm_in + DLNA *hyrec_integrator(dTmdlna, dTmdlna_prev, z_in);
+  }
+
   if (*error == 1) {
     sprintf(sub_message, "  called from rec_get_xe_next2_HTm at z = %f\n", z_in);
     strcat(data->error_message, sub_message);
@@ -705,7 +706,7 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
   double z, dz, DLNA, Delta_xe, xHeII, xH1, dEdtdV_dep, nH, H;
   double *ion = &cosmo->inj_params->ion;
   double *exclya = &cosmo->inj_params->exclya;
-  double z_out=0, H_next;
+  double z_out=0., H_next;
   int flag=10;
   double xe_i, Tm_i;
 
@@ -745,9 +746,10 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
   xHeII_prev[1] = xHeII;
   xHeII_prev[0] = xHeII;
 
+  data->loop_after_quasi=1;
   for(; iz <= data->rad->iz_rad_0; iz++) {
 
-    if (model == 4 && data->quasi_eq == 0 && z > 2800.){
+    if (model == SWIFT && data->quasi_eq == 0 && data->loop_after_quasi == 1){
       xe_i = xe_output[iz-1]; Tm_i = Tm_output[iz-1];
       for (flag=0;flag<10;flag++) {
         rec_get_xe_next1_He(data, z, &xHeII, dxHeIIdlna_prev_sub, hubble_array, flag);
@@ -767,6 +769,8 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
       xHeII_prev[0] = xHeII;
       dxHeIIdlna_prev[1] = (xHeII_prev[1] - xHeII_prev[3])/2./DLNA;
       dxHeIIdlna_prev[0] = (xHeII_prev[0] - xHeII_prev[2])/2./DLNA;
+
+      if (fabs(1-dxHeIIdlna_prev[1]/dxHeIIdlna_prev[0])<DXHEII_DIFF_MAX) data->loop_after_quasi = 0;
     }
     else{
       rec_get_xe_next1_He(data, z, &xHeII, dxHeIIdlna_prev, hubble_array, flag);
@@ -830,9 +834,10 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
   ********/
   dxHIIdlna_prev_sub[1] = dxHIIdlna_prev[1];
   dxHIIdlna_prev_sub[0] = dxHIIdlna_prev[0];
-  for (; z >= 700. && fabs(1.-Tm_output[iz-1]/cosmo->T0/(1.+z)) < DLNT_MAX; iz++) {
+  data->loop_after_quasi = 1;
+  for (; z >= 0. && fabs(1.-Tm_output[iz-1]/cosmo->T0/(1.+z)) < DLNT_MAX; iz++) {
 
-    if (model == 4 &&z > 1500.){
+    if (model == SWIFT && data->loop_after_quasi == 1){
       xe_i = xe_output[iz-1]; Tm_i = Tm_output[iz-1];
       for (flag=0;flag<10;flag++) {
         rec_get_xe_next1_H(data, model, z, iz, xe_i, Tm_i, &xe_i, &Tm_i, dxHIIdlna_prev_sub, H, flag);
@@ -849,6 +854,8 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
       xe_output[iz] = xe_i; Tm_output[iz] = Tm_i;
       dxHIIdlna_prev[1] = (xe_output[iz-1] - xe_output[iz-3])/2./DLNA;
       dxHIIdlna_prev[0] = (xe_output[iz] - xe_output[iz-2])/2./DLNA;
+
+      if (fabs(1-dxHIIdlna_prev[1]/dxHIIdlna_prev[0])<DXHII_DIFF_MAX) data->loop_after_quasi=0;
     }
 
     else{
@@ -963,7 +970,7 @@ void hyrec_free(HYREC_DATA *data) {
   free(data->xe_output);
   free(data->Tm_output);
   free(data->error_message);
-  if (MODEL == 3) free_radiation(data->rad);
+  if (MODEL == FULL) free_radiation(data->rad);
   free(data->rad);
   free_fit(data->fit);
   free(data->fit);

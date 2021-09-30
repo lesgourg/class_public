@@ -19,6 +19,9 @@
 /*            - Written November 2010.                                                                  */
 /********************************************************************************************************/
 
+/* !!!!!  Do NOT change any numbers below (except DLNA). They are not accuracy parameters !!!!! */
+/* !!!!!  If needed, only DLNA_HYREC or DLNA_SWIFT can be set to be a lower value for better accuracy !!!!! */
+
 #ifndef __HYDROGEN__
 #define __HYDROGEN__
 
@@ -168,6 +171,8 @@ typedef struct{
   double *Tm_output;
   int error;
   int quasi_eq;
+  int loop_after_quasi;
+  int Tm_evolve_implicit;
   char *error_message;
   char *path_to_hyrec;
   RADIATION *rad;

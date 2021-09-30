@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v3.0.2"
+#define _VERSION_ "v3.1.0"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -30,6 +30,8 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
 
 #define _FILENAMESIZE_ 256 /**< size of the string read in each line of the file (extra characters not taken into account) */
 typedef char FileName[_FILENAMESIZE_];
+
+#define _SUFFIXNAMESIZE_ 4 /**< maximum size of the short string appended to file names to account for initial conditions, etc. */
 
 #define _PI_ 3.1415926535897932384626433832795e0 /**< The number pi */
 
