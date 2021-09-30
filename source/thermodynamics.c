@@ -3845,6 +3845,7 @@ int thermodynamics_calculate_drag_quantities(
  * @param z            Input: redshift
  * @param y            Input: vector of quantities to integrate with evolver
  * @param pth          Input: pointer to thermodynamics structure
+ * @param pba          Input: pointer to background structure
  * @param ptw          Input/Output: pointer to thermo workspace. Contains output for x, ...
  * @param current_ap   Input: index of current approximation scheme
  * @return the error status
