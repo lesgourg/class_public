@@ -2803,6 +2803,17 @@ int background_output_budget(
       budget_matter+=pba->Omega0_dcdm;
     }
 
+    if (pba->N_ncdm > 0) {
+      printf(" ---> Non-Cold Dark Matter Species (incl. massive neutrinos)\n");
+    }
+    if (pba->N_ncdm > 0) {
+      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
+        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Non-Cold Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
+        budget_matter+=pba->Omega0_ncdm[index_ncdm];
+      }
+    }
+
     printf(" ---> Relativistic Species \n");
     class_print_species("Photons",g);
     budget_radiation+=pba->Omega0_g;
@@ -2817,16 +2828,6 @@ int background_output_budget(
     if (pba->has_idr == _TRUE_) {
       class_print_species("Interacting Dark Radiation",idr);
       budget_radiation+=pba->Omega0_idr;
-    }
-
-    if (pba->N_ncdm > 0) {
-      printf(" ---> Non-Cold Dark Matter Species (incl. massive neutrinos)\n");
-    }
-    if (pba->N_ncdm > 0) {
-      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
-        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Non-Cold Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
-        budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
-      }
     }
 
     if ((pba->has_lambda == _TRUE_) || (pba->has_fld == _TRUE_) || (pba->has_scf == _TRUE_) || (pba->has_curvature == _TRUE_)) {
@@ -2853,15 +2854,13 @@ int background_output_budget(
     printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
     printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
     if (pba->N_ncdm > 0) {
-      printf(" Non-Cold Dark Matter             Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+      printf(" - Non-Free-Streaming Matter      Omega = %-15g , omega = %-15g \n",pba->Omega0_nfsm,pba->Omega0_nfsm*pba->h*pba->h);
+      printf(" - Non-Cold Dark Matter           Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
     }
     if ((pba->has_lambda == _TRUE_) || (pba->has_fld == _TRUE_) || (pba->has_scf == _TRUE_) || (pba->has_curvature == _TRUE_)) {
       printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
     }
-    printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
-
-    printf(" out of which \n");
-    class_print_species("Non-Free-Streaming Matter",nfsm);
+    printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_other,(budget_radiation+budget_matter+budget_other)*pba->h*pba->h);
     printf(" -------------------------------------------------------------------- \n");
   }
 

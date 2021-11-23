@@ -2210,7 +2210,8 @@ int input_read_parameters_species(struct file_content * pfc,
   double Omega_tot;
   double sigma_B; // Stefan-Boltzmann constant
   double stat_f_idr = 7./8.;
-
+  short has_m_budget = _FALSE_, has_cdm_userdefined = _FALSE_;
+  double Omega_m_remaining = 0.;
 
 
   sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
@@ -2354,9 +2355,36 @@ int input_read_parameters_species(struct file_content * pfc,
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->Omega0_cdm = param1;
+    has_cdm_userdefined = _TRUE_;
   }
   if (flag2 == _TRUE_){
     pba->Omega0_cdm = param2/pba->h/pba->h;
+    has_cdm_userdefined = _TRUE_;
+  }
+  /** 4) (Second part) Omega_0_m (total non-relativistic) */
+  class_call(parser_read_double(pfc,"Omega_m",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_m",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  /* Read */
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "You can only enter one of 'Omega_m' or 'omega_m'.");
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    Omega_m_remaining = param1;
+    has_m_budget = _TRUE_;
+  }
+  if (flag2 == _TRUE_){
+    Omega_m_remaining = param2/pba->h/pba->h;
+    has_m_budget = _TRUE_;
+  }
+  class_test(has_cdm_userdefined == _TRUE_ && has_m_budget == _TRUE_, errmsg, "If you want to use 'Omega_m' you cannot fix 'Omega_cdm' simultaneously. Please remove either 'Omega_cdm' or 'Omega_m' from the input file.");
+  if (has_m_budget == _TRUE_) {
+    class_test(Omega_m_remaining < pba->Omega0_b, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_b = %e'",Omega_m_remaining, pba->Omega0_b);
+    Omega_m_remaining-= pba->Omega0_b;
   }
 
   if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
@@ -2519,7 +2547,10 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
   }
-
+  if (has_m_budget == _TRUE_) {
+    class_test(Omega_m_remaining < pba->Omega0_ncdm_tot, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_ncdm = %e' (summed over all species)",Omega_m_remaining, pba->Omega0_ncdm_tot);
+    Omega_m_remaining-= pba->Omega0_ncdm_tot;
+  }
 
   /** 6) Omega_0_k (effective fractional density of curvature) */
   /* Read */
@@ -2607,6 +2638,10 @@ int input_read_parameters_species(struct file_content * pfc,
     class_test(pba->Gamma_dcdm<0.,
                errmsg,
                "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
+  }
+  if (has_m_budget == _TRUE_) {
+    class_test(Omega_m_remaining < pba->Omega0_dcdmdr, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_dcdmdr = %e'",Omega_m_remaining, pba->Omega0_dcdmdr);
+    Omega_m_remaining-= pba->Omega0_dcdmdr;
   }
 
   /** 7.2) Interacting dark matter & dark radiation, ETHOS-parametrization/NADM parametrization, see explanatory.ini */
@@ -2815,6 +2850,15 @@ int input_read_parameters_species(struct file_content * pfc,
         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
       }
     }
+  }
+  if (has_m_budget == _TRUE_) {
+  class_test(Omega_m_remaining < pba->Omega0_idm_dr, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_idm_dr = %e'",Omega_m_remaining, pba->Omega0_idm_dr);
+    Omega_m_remaining -= pba->Omega0_idm_dr;
+  }
+
+
+  if (has_m_budget == _TRUE_) {
+    pba->Omega0_cdm = Omega_m_remaining;
   }
 
   /* ** ADDITIONAL SPECIES ** */
