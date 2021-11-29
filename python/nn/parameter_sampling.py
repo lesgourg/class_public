@@ -164,7 +164,7 @@ class EllipsoidDomain(ParamDomain):
         """
         if parameters["tau_reio"] <= 0.004:
             return False, 1001
-        if parameters["w0_fld"] + parameters["wa_fld"] > -1/3:
+        if parameters["w0_fld"] + parameters["wa_fld"] > 0:
             return False, 1002
         if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
             return False, 1003
