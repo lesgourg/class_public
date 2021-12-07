@@ -34,11 +34,11 @@
  * the pre-computed table and interpolating.
  *
  * @param ppt        Input: pointer to perturbation structure containing interpolation tables
- * @param index_md   Input: index of requested mode
- * @param index_ic   Input: index of requested initial condition
+ * @param index_md   Input: index of requested mode (for scalars, just pass ppt->index_md_scalars)
+ * @param index_ic   Input: index of requested initial condition (for adiabatic, just pass ppt->index_ic_ad)
  * @param index_tp   Input: index of requested source function type
  * @param tau        Input: any value of conformal time
- * @param psource    Output: vector (already allocated) of source function as a function of k
+ * @param psource_at_tau Output: vector (already allocated) of source function as a function of k, psource_at_tau[index_k]
  * @return the error status
  */
 
@@ -48,7 +48,7 @@ int perturbations_sources_at_tau(
                                  int index_ic,
                                  int index_tp,
                                  double tau,
-                                 double * psource
+                                 double * psource_at_tau
                                  ) {
 
   /** Summary: */
@@ -58,34 +58,26 @@ int perturbations_sources_at_tau(
   int last_index;
   double logtau;
 
+  short do_spline = _FALSE_;
+
   logtau = log(tau);
 
-  /** - interpolate in pre-computed table contained in ppt */
+  /** - If we have defined a z_max_pk > 0, then we have already an
+     array of sources and of their second derivative with respect to
+     time in the range 0 < z < z_max_pk, that can be used for an
+     accurate spline interpolation at a given tau. Check whether we
+     are in this situation and whether the value of tau is in the
+     right range. */
 
-  /** - linear interpolation at early times (z>z_max_pk), available,
-        but actually never used by default version of CLASS */
-
-  if ((logtau < ppt->ln_tau[0]) || (ppt->ln_tau_size <= 1)) {
-
-    class_call(array_interpolate_two_bis(ppt->tau_sampling,
-                                         1,
-                                         0,
-                                         ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
-                                         ppt->k_size[index_md],
-                                         ppt->tau_size,
-                                         tau,
-                                         psource,
-                                         ppt->k_size[index_md],
-                                         ppt->error_message),
-               ppt->error_message,
-               ppt->error_message);
+  if (ppt->ln_tau_size > 1) {
+    if (logtau >= ppt->ln_tau[0]) {
+      do_spline = _TRUE_;
+    }
   }
 
-  /** - more accurate spline interpolation at late times (z<z_max_pk),
-        used in the calculation of output quantitites like transfer
-        functions T(k,z) or power spectra P(k,z) */
+  /** - If yes, we do such a spline */
 
-  else {
+  if (do_spline == _TRUE_) {
 
     class_call(array_interpolate_spline(ppt->ln_tau,
                                         ppt->ln_tau_size,
@@ -94,9 +86,29 @@ int perturbations_sources_at_tau(
                                         ppt->k_size[index_md],
                                         logtau,
                                         &last_index,
-                                        psource,
+                                        psource_at_tau,
                                         ppt->k_size[index_md],
                                         ppt->error_message),
+               ppt->error_message,
+               ppt->error_message);
+  }
+
+  /** - otherwise, we just go for a quick linear interpolation. This
+        is made available for developpers for completeness, but it is
+        actually never used by the default version of CLASS */
+
+  else {
+
+    class_call(array_interpolate_two_bis(ppt->tau_sampling,
+                                         1,
+                                         0,
+                                         ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
+                                         ppt->k_size[index_md],
+                                         ppt->tau_size,
+                                         tau,
+                                         psource_at_tau,
+                                         ppt->k_size[index_md],
+                                         ppt->error_message),
                ppt->error_message,
                ppt->error_message);
   }
@@ -105,9 +117,119 @@ int perturbations_sources_at_tau(
 }
 
 /**
- * Function called by the output module or the wrappers, which returns all
- * the source functions \f$ S^{X} (k, \tau) \f$ at a given conformal
- * time tau corresponding to the input redshift z.
+ * Source function \f$ S^{X} (k, \tau) \f$ at a given redhsift z.
+ *
+ * Evaluate source functions at given redhsift z by reading
+ * the pre-computed table and interpolating.
+ *
+ * @param ppt        Input: pointer to perturbation structure containing interpolation tables
+ * @param index_md   Input: index of requested mode (for scalars, just pass ppt->index_md_scalars)
+ * @param index_ic   Input: index of requested initial condition (for adiabatic, just pass ppt->index_ic_ad)
+ * @param index_tp   Input: index of requested source function type
+ * @param z          Input: any value of redshift
+ * @param psource_at_z Output: vector (already allocated) of source function as a function of k, psource_at_z[index_k]
+ * @return the error status
+ */
+
+int perturbations_sources_at_z(
+                               struct background * pba,
+                               struct perturbations * ppt,
+                               int index_md,
+                               int index_ic,
+                               int index_tp,
+                               double z,
+                               double * psource_at_z
+                               ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             ppt->error_message);
+
+  class_call(perturbations_sources_at_tau(ppt,index_md,index_ic,index_tp,tau,psource_at_z),
+             ppt->error_message,
+             ppt->error_message);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Source function \f$ S^{X} (k, \tau) \f$ at a given redhsift z and wavenumber k.
+ *
+ * Evaluate source functions at given redhsift z and wavenumber k by reading
+ * the pre-computed table and interpolating.
+ *
+ * @param ppt        Input: pointer to perturbation structure containing interpolation tables
+ * @param index_md   Input: index of requested mode (for scalars, just pass ppt->index_md_scalars)
+ * @param index_ic   Input: index of requested initial condition (for adiabatic, just pass ppt->index_ic_ad)
+ * @param index_tp   Input: index of requested source function type
+ * @param k          Input: any value of wavenumber
+ * @param z          Input: any value of redshift
+ * @param psource_at_k_and_z Output: pointer to the source function at (k,z) (so to just one number)
+ * @return the error status
+ */
+
+int perturbations_sources_at_k_and_z(
+                                     struct background * pba,
+                                     struct perturbations * ppt,
+                                     int index_md,
+                                     int index_ic,
+                                     int index_tp,
+                                     double k,
+                                     double z,
+                                     double * psource_at_k_and_z
+                                     ) {
+
+  double * sources;
+  double * ddsources_dk2;
+  int last_index;
+
+  class_alloc(sources,
+              ppt->k_size[index_md]*sizeof(double),
+              ppt->error_message);
+
+  class_alloc(ddsources_dk2,
+              ppt->k_size[index_md]*sizeof(double),
+              ppt->error_message);
+
+  class_call(perturbations_sources_at_z(pba,ppt,index_md,index_ic,index_tp,z,sources),
+             ppt->error_message,
+             ppt->error_message);
+
+  class_call(array_spline_table_lines(ppt->k[index_md],
+                                      ppt->k_size[index_md],
+                                      sources,
+                                      1,
+                                      ddsources_dk2,
+                                      _SPLINE_EST_DERIV_,
+                                      ppt->error_message),
+             ppt->error_message,
+             ppt->error_message);
+
+  class_call(array_interpolate_spline(ppt->k[index_md],
+                                      ppt->k_size[index_md],
+                                      sources,
+                                      ddsources_dk2,
+                                      1,
+                                      k,
+                                      &last_index,
+                                      psource_at_k_and_z,
+                                      1,
+                                      ppt->error_message),
+             ppt->error_message,
+             ppt->error_message);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Function called by the output module or the wrappers, which returns
+ * the source functions \f$ S^{X} (k, \tau) \f$ corresponding to
+ * densities ('dTk') and velocities ('vTk') at a given conformal time
+ * tau corresponding to the input redshift z.
  *
  * @param pba              Input: pointer to background structure
  * @param ppt              Input: pointer to perturbation structure

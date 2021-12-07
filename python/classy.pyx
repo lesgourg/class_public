@@ -1627,12 +1627,6 @@ cdef class Class:
         free(data)
         return primordial
 
-
-    @cython.returns(dict)
-    @cython.initializedcheck(False)
-    @cython.boundscheck(False)
-    @cython.cdivision(True)
-    @cython.ccall
     def get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested

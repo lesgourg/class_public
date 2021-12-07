@@ -1741,6 +1741,11 @@ int background_checks(
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
+  /** - control that we have photons and baryons in the problem */
+  class_test((pba->Omega0_g<=0) || (pba->Omega0_b<=0),
+             pba->error_message,
+             "CLASS is conceived to work in a universe containing at least two species: photons and baryons. You could work in the limit where Omega_g or Omega_b are very small, but not zero");
+
   /** - control that cosmological parameter values make sense, otherwise inform user */
 
   /* H0 in Mpc^{-1} */
@@ -1773,7 +1778,7 @@ int background_checks(
 
     class_test(w_fld >= 1./3.,
                pba->error_message,
-               "Your choice for w(a--->0)=%g is suspicious, since it is bigger than -1/3 there cannot be radiation domination at early times\n",
+               "Your choice for w(a--->0)=%g is suspicious, since it is bigger than 1/3 there cannot be radiation domination at early times\n",
                w_fld);
   }
 

@@ -666,13 +666,34 @@ extern "C" {
 #endif
 
   int perturbations_sources_at_tau(
-                             struct perturbations * ppt,
-                             int index_md,
-                             int index_ic,
-                             int index_tp,
-                             double tau,
-                             double * pvecsources
-                             );
+                                   struct perturbations * ppt,
+                                   int index_md,
+                                   int index_ic,
+                                   int index_tp,
+                                   double tau,
+                                   double * psource_at_tau
+                                   );
+
+  int perturbations_sources_at_z(
+                                 struct background * pba,
+                                 struct perturbations * ppt,
+                                 int index_md,
+                                 int index_ic,
+                                 int index_tp,
+                                 double z,
+                                 double * psource_at_z
+                                 );
+
+   int perturbations_sources_at_k_and_z(
+                                        struct background * pba,
+                                        struct perturbations * ppt,
+                                        int index_md,
+                                        int index_ic,
+                                        int index_tp,
+                                        double k,
+                                        double z,
+                                        double * psource_at_k_and_z
+                                        );
 
   int perturbations_output_data(
                           struct background * pba,
