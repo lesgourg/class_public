@@ -293,7 +293,7 @@ struct background
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
   short has_idr;       /**< presence of interacting dark radiation? */
   short has_curvature; /**< presence of global spatial curvature? */
-  short has_varconst; /**< presence of varying fundamental constants? */
+  short has_varconst;  /**< presence of varying fundamental constants? */
 
   //@}
 

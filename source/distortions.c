@@ -1038,7 +1038,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
         if (psd->include_g_distortion == _TRUE_) {
           g = psd->sd_parameter_table[psd->index_type_g];
           psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
-                                                 g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
+                                                 g*g*0.5*psd->sd_shape_table[psd->index_type_y][index_x];
         }
         else {
           g = 0.;
