@@ -426,6 +426,15 @@ int harmonic_indices(
       phr->has_tt = _FALSE_;
     }
 
+    if (ppt->has_cl_gwb == _TRUE_) {
+      phr->has_gw = _TRUE_;
+      phr->index_ct_gw=index_ct;
+      index_ct++;
+    }
+    else {
+      phr->has_gw = _FALSE_;
+    }
+
     if (ppt->has_cl_cmb_polarization == _TRUE_) {
       phr->has_ee = _TRUE_;
       phr->index_ct_ee=index_ct;
@@ -578,6 +587,7 @@ int harmonic_indices(
       /* spectra computed up to l_scalar_max */
 
       if (phr->has_tt == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tt] = ppt->l_scalar_max;
+      if (phr->has_gw == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gw] = ppt->l_scalar_max;
       if (phr->has_ee == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_ee] = ppt->l_scalar_max;
       if (phr->has_te == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_te] = ppt->l_scalar_max;
       if (phr->has_pp == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_pp] = ppt->l_scalar_max;
@@ -1059,9 +1069,21 @@ int harmonic_compute_cl(
     if (phr->has_tt == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_tt]=
         primordial_pk[index_ic1_ic2]
-        * transfer_ic1_temp
-        * transfer_ic2_temp
+        // * transfer_ic1_temp
+        // * transfer_ic2_temp
+        * transfer_ic1[ptr->index_tt_t1] //TODO_GWB: Remove!
+        * transfer_ic2[ptr->index_tt_t1]
         * factor;
+
+    if (phr->has_gw == _TRUE_)
+    {
+      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gw]=
+        primordial_pk[index_ic1_ic2] //TODO_GW: primordial spectrum
+        * transfer_ic1[ptr->index_tt_g1]
+        * transfer_ic2[ptr->index_tt_g1]
+        * factor;
+    }
+      
 
     if (phr->has_ee == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_ee]=
@@ -1624,7 +1646,7 @@ int harmonic_tk_at_z(
 
 
   class_stop(phr->error_message,
-             "The function harmonic_tk_at_z() is obsolete, use instead perturbations_sources_at_z(), it does the same");
+             "The function harmonic_tk_at_z() is obsolete, use instead perturbations_sources_at_tau(), it does the same");
 
   return _SUCCESS_;
 
@@ -1651,7 +1673,7 @@ int harmonic_tk_at_k_and_z(
                            ) {
 
   class_stop(phr->error_message,
-             "The function harmonic_tk_at_k_and_z() is obsolete, use instead perturbations_sources_at_k_and_z(), it does the same");
+             "The function harmonic_tk_at_k_and_z() is obsolete, use instead perturbations_sources_at_tau(), it does the same provided that you interpolate its output at some wavenumber k");
 
   return _SUCCESS_;
 

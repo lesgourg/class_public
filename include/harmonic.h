@@ -49,6 +49,7 @@ struct harmonic {
   //@{
 
   int has_tt; /**< do we want \f$ C_l^{TT}\f$? (T = temperature) */
+  int has_gw; /**< do we want \f$ C_l^{GWGW}\f$? (GW = gravitartional wave) */
   int has_ee; /**< do we want \f$ C_l^{EE}\f$? (E = E-polarization) */
   int has_te; /**< do we want \f$ C_l^{TE}\f$? */
   int has_bb; /**< do we want \f$ C_l^{BB}\f$? (B = B-polarization) */
@@ -63,6 +64,7 @@ struct harmonic {
   int has_dl; /**< do we want \f$ C_l^{dl}\f$? */
 
   int index_ct_tt; /**< index for type \f$ C_l^{TT} \f$*/
+  int index_ct_gw; /**< index for type \f$ C_l^{GWGW} \f$*/
   int index_ct_ee; /**< index for type \f$ C_l^{EE} \f$*/
   int index_ct_te; /**< index for type \f$ C_l^{TE} \f$*/
   int index_ct_bb; /**< index for type \f$ C_l^{BB} \f$*/

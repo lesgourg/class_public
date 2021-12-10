@@ -525,6 +525,7 @@ int transfer_indices(
 
     class_define_index(ptr->index_tt_t0,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_t1,     ppt->has_cl_cmb_temperature,      index_tt,1);
+    class_define_index(ptr->index_tt_g1,     ppt->has_cl_gwb,                  index_tt,1);
     class_define_index(ptr->index_tt_lcmb,   ppt->has_cl_cmb_lensing_potential,index_tt,1);
     class_define_index(ptr->index_tt_density,ppt->has_nc_density,              index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_rsd,    ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
@@ -842,6 +843,7 @@ int transfer_get_l_list(
     if (ppt->has_scalars == _TRUE_) {
 
       if ((ppt->has_cl_cmb_temperature == _TRUE_) ||
+          (ppt->has_cl_gwb == _TRUE_) ||
           (ppt->has_cl_cmb_polarization == _TRUE_) ||
           (ppt->has_cl_cmb_lensing_potential == _TRUE_))
         l_max=MAX(ppt->l_scalar_max,l_max);
@@ -945,6 +947,9 @@ int transfer_get_l_list(
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
             ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
+          l_max=ppt->l_scalar_max;
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1))
           l_max=ppt->l_scalar_max;
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
@@ -1352,6 +1357,10 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_t1;
 
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_g1; //TODO_GW: Change?
+          // tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
+
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_t2;
 
@@ -1536,6 +1545,10 @@ int transfer_source_tau_size(
     /* scalar temperature */
     if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
         ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
+      *tau_size = ppt->tau_size;
+
+    /* scalar gwb */
+    if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1))
       *tau_size = ppt->tau_size;
 
     /* scalar polarization */
@@ -3466,6 +3479,38 @@ int transfer_limber(
 
   }
 
+  else if (radial_type == SCALAR_TEMPERATURE_GW) { //TODO_GW: transfer limber
+
+    if (((l+1.5)/q > ptw->tau0_minus_tau[0]) || //TODO_GW: no influence
+        ((l-0.5)/q < ptw->tau0_minus_tau[ptw->tau_size-1])) {
+      *trsf = 0.;
+      return _SUCCESS_;
+    }
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l+1.5)/q,
+                                           &Sp),
+               ptr->error_message,
+               ptr->error_message);
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l-0.5)/q,
+                                           &Sm),
+               ptr->error_message,
+               ptr->error_message);
+
+    *trsf = //TODO_GW: no influence
+      -sqrt(_PI_/(2.*l+3.))*Sp/(l+1.5) * (l+1.)/(2.*l+1)
+      +sqrt(_PI_/(2.*l-1.))*Sm/(l-0.5) * l/(2.*l+1.);
+
+  }
+
   else if (radial_type == NC_RSD) {
 
     if (((l+2.5)/q > ptw->tau0_minus_tau[0]) ||
@@ -3692,6 +3737,8 @@ int transfer_can_be_neglected(
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_;
 
+    else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_; //TODO_GWB: big influence
+
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*ra_rec)) *neglect = _TRUE_;
 
     else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*ra_rec)) *neglect = _TRUE_;
@@ -3744,6 +3791,10 @@ int transfer_late_source_can_be_neglected(
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
         if ((index_tt == ptr->index_tt_t1) ||
             (index_tt == ptr->index_tt_t2))
+          *neglect = _TRUE_;
+      }
+      if (ppt->has_cl_gwb == _TRUE_) { //TODO_GW: big influence
+        if ((index_tt == ptr->index_tt_g1))
           *neglect = _TRUE_;
       }
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
@@ -3940,6 +3991,13 @@ int transfer_radial_function(
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_function[j];
     break;
+  case SCALAR_TEMPERATURE_GW: //TODO_GW: used in transfer_integrate
+    class_call(interpolate_dPhi(pHIS, x_size, index_l, chireverse, dPhi, ptr->error_message),
+               ptr->error_message, ptr->error_message);
+    //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, NULL, dPhi, NULL);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_function[j]; //TODO_GW: VERY BIG INFLUENCE
+    break;
   case SCALAR_TEMPERATURE_2:
     class_call(interpolate_Phid2Phi(pHIS, x_size, index_l, chireverse, Phi, d2Phi, ptr->error_message),
                ptr->error_message, ptr->error_message);
@@ -4076,6 +4134,14 @@ int transfer_select_radial_function(
       }
       if (index_tt == ptr->index_tt_t2) {
         *radial_type = SCALAR_TEMPERATURE_2;
+      }
+
+    }
+
+    if (ppt->has_cl_gwb == _TRUE_){
+
+      if (index_tt == ptr->index_tt_g1) {
+        *radial_type = SCALAR_TEMPERATURE_GW;
       }
 
     }

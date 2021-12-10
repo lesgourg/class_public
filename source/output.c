@@ -1580,6 +1580,7 @@ int output_open_cl_file(
     }
     if (pop->output_format == class_format) {
       class_fprintf_columntitle(*clfile,"TT",phr->has_tt,colnum);
+      class_fprintf_columntitle(*clfile,"GW",phr->has_gw,colnum);
       class_fprintf_columntitle(*clfile,"EE",phr->has_ee,colnum);
       class_fprintf_columntitle(*clfile,"TE",phr->has_te,colnum);
       class_fprintf_columntitle(*clfile,"BB",phr->has_bb,colnum);
@@ -1589,6 +1590,7 @@ int output_open_cl_file(
     }
     else if (pop->output_format == camb_format) {
       class_fprintf_columntitle(*clfile,"TT",phr->has_tt,colnum);
+      class_fprintf_columntitle(*clfile,"GW",phr->has_gw,colnum);
       class_fprintf_columntitle(*clfile,"EE",phr->has_ee,colnum);
       class_fprintf_columntitle(*clfile,"BB",phr->has_bb,colnum);
       class_fprintf_columntitle(*clfile,"TE",phr->has_te,colnum);
@@ -1694,6 +1696,7 @@ int output_one_line_of_cl(
 
   if (pop->output_format == camb_format) {
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_tt], phr->has_tt);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_gw], phr->has_gw);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_ee], phr->has_ee);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_bb], phr->has_bb);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_te], phr->has_te);
@@ -1702,6 +1705,8 @@ int output_one_line_of_cl(
     class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[phr->index_ct_ep], phr->has_ep);
     index_ct_rest = 0;
     if (phr->has_tt == _TRUE_)
+      index_ct_rest++;
+    if (phr->has_gw == _TRUE_)
       index_ct_rest++;
     if (phr->has_ee == _TRUE_)
       index_ct_rest++;

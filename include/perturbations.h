@@ -136,6 +136,7 @@ struct perturbations
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
+  short has_cl_gwb;       /**< do we need \f$ C_l \f$'s for GWB? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -229,6 +230,7 @@ struct perturbations
 
   short has_source_t;          /**< do we need source for CMB temperature? */
   short has_source_p;          /**< do we need source for CMB polarization? */
+  short has_source_gwb;          /**< do we need source for GWB? */
   short has_source_delta_m;    /**< do we need source for delta of total matter? */
   short has_source_delta_cb;   /**< do we ALSO need source for delta of ONLY cdm and baryon? */
   short has_source_delta_tot;  /**< do we need source for delta total? */
@@ -276,6 +278,7 @@ struct perturbations
   int index_tp_t0; /**< index value for temperature (j=0 term) */
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
+  int index_tp_g1; /**< index value for gw (j=1 term) */
   int index_tp_p; /**< index value for polarization */
   int index_tp_delta_m; /**< index value for matter density fluctuation */
   int index_tp_delta_cb; /**< index value for delta cb */
@@ -666,34 +669,13 @@ extern "C" {
 #endif
 
   int perturbations_sources_at_tau(
-                                   struct perturbations * ppt,
-                                   int index_md,
-                                   int index_ic,
-                                   int index_tp,
-                                   double tau,
-                                   double * psource_at_tau
-                                   );
-
-  int perturbations_sources_at_z(
-                                 struct background * pba,
-                                 struct perturbations * ppt,
-                                 int index_md,
-                                 int index_ic,
-                                 int index_tp,
-                                 double z,
-                                 double * psource_at_z
-                                 );
-
-   int perturbations_sources_at_k_and_z(
-                                        struct background * pba,
-                                        struct perturbations * ppt,
-                                        int index_md,
-                                        int index_ic,
-                                        int index_tp,
-                                        double k,
-                                        double z,
-                                        double * psource_at_k_and_z
-                                        );
+                             struct perturbations * ppt,
+                             int index_md,
+                             int index_ic,
+                             int index_tp,
+                             double tau,
+                             double * pvecsources
+                             );
 
   int perturbations_output_data(
                           struct background * pba,
