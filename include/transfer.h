@@ -282,8 +282,7 @@ typedef enum {SCALAR_TEMPERATURE_0,
               TENSOR_TEMPERATURE_2,
               TENSOR_POLARISATION_E,
               TENSOR_POLARISATION_B,
-              NC_RSD,
-              SCALAR_GW_1} radial_function_type;
+              NC_RSD} radial_function_type;
 
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
