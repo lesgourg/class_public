@@ -7461,47 +7461,17 @@ int perturbations_sources(
     /* scalar gwb */
     if (ppt->has_source_gwb == _TRUE_) {
 
-      /* check whether integrated Sachs-Wolf term should be included */
-      if ((ppt->switch_eisw == 0) && (z >= ppt->eisw_lisw_split_z)){
-        switch_isw = 0;
-      }
-      if ((ppt->switch_lisw == 0) && (z < ppt->eisw_lisw_split_z)) {
-        switch_isw=0;
-      }
-
-      /* newtonian gauge: simplest form, not efficient numerically */
-      /*
-        if (ppt->gauge == newtonian) {
-        _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* pvecmetric[ppw->index_mt_psi] + pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b]/k;
-        }
-      */
-
-      /* newtonian gauge: slightly more complicated form, but more efficient numerically */
-
-      if (ppt->gauge == newtonian) { //TODO_GW: formula in newtonian gauge
-        // _set_source_(ppt->index_tp_g1) = switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]); //tp_t1
-        // _set_source_(ppt->index_tp_phi_plus_psi) = y[ppw->pv->index_pt_phi] + pvecmetric[ppw->index_mt_psi]; //tp_phi_plus_psi
-
-        //k * (phi + psi)
-        _set_source_(ppt->index_tp_g1) = k* (pvecmetric[ppw->index_mt_psi] + y[ppw->pv->index_pt_phi]); //TODO_GW: ???
-      }
-
-
-      /* synchronous gauge: simplest form, not efficient numerically */
-      /*
-        if (ppt->gauge == synchronous) {
-        _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-        }
-      */
-
-      /* synchronous gauge: slightly more complicated form, but more efficient numerically */
-
-      if (ppt->gauge == synchronous) {
+      if (ppt->gauge == newtonian)
         _set_source_(ppt->index_tp_g1) =
-          switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime]
-                                                                    + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
-                                                                    - y[ppw->pv->index_pt_eta]); //TODO_GW: Dont know formula in synchronous gauge
-      }
+          //k * (y[ppw->pv->index_pt_phi] + pvecmetric[ppw->index_mt_psi]);
+          2.*pvecmetric[ppw->index_mt_phi_prime];
+
+      if (ppt->gauge == synchronous)
+        _set_source_(ppt->index_tp_phi_plus_psi) =
+          //k * (y[ppw->pv->index_pt_eta] + pvecmetric[ppw->index_mt_alpha_prime]);
+          2. * (pvecmetric[ppw->index_mt_eta_prime]
+                - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
+                - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime]);
     }
 
     /* scalar polarization */

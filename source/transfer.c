@@ -4102,7 +4102,7 @@ int transfer_select_radial_function(
     if (ppt->has_cl_gwb == _TRUE_){
 
       if (index_tt == ptr->index_tt_gw1) {
-        *radial_type = SCALAR_TEMPERATURE_1;
+        *radial_type = SCALAR_TEMPERATURE_0;
       }
 
     }

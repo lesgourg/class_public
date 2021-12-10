@@ -1069,10 +1069,8 @@ int harmonic_compute_cl(
     if (phr->has_tt == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_tt]=
         primordial_pk[index_ic1_ic2]
-        // * transfer_ic1_temp
-        // * transfer_ic2_temp
-        * transfer_ic1[ptr->index_tt_t1] //TODO_GWB: Remove!
-        * transfer_ic2[ptr->index_tt_t1]
+        * transfer_ic1_temp
+        * transfer_ic2_temp
         * factor;
 
     if (phr->has_gw == _TRUE_)
@@ -1646,7 +1644,7 @@ int harmonic_tk_at_z(
 
 
   class_stop(phr->error_message,
-             "The function harmonic_tk_at_z() is obsolete, use instead perturbations_sources_at_tau(), it does the same");
+             "The function harmonic_tk_at_z() is obsolete, use instead perturbations_sources_at_z(), it does the same");
 
   return _SUCCESS_;
 
@@ -1673,7 +1671,7 @@ int harmonic_tk_at_k_and_z(
                            ) {
 
   class_stop(phr->error_message,
-             "The function harmonic_tk_at_k_and_z() is obsolete, use instead perturbations_sources_at_tau(), it does the same provided that you interpolate its output at some wavenumber k");
+             "The function harmonic_tk_at_k_and_z() is obsolete, use instead perturbations_sources_at_k_and_z(), it does the same");
 
   return _SUCCESS_;
 

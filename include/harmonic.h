@@ -49,7 +49,6 @@ struct harmonic {
   //@{
 
   int has_tt; /**< do we want \f$ C_l^{TT}\f$? (T = temperature) */
-  int has_gw; /**< do we want \f$ C_l^{GWGW}\f$? (GW = gravitartional wave) */
   int has_ee; /**< do we want \f$ C_l^{EE}\f$? (E = E-polarization) */
   int has_te; /**< do we want \f$ C_l^{TE}\f$? */
   int has_bb; /**< do we want \f$ C_l^{BB}\f$? (B = B-polarization) */
@@ -62,9 +61,9 @@ struct harmonic {
   int has_ll; /**< do we want \f$ C_l^{ll}\f$? (l = galaxy lensing potential) */
   int has_tl; /**< do we want \f$ C_l^{Tl}\f$? */
   int has_dl; /**< do we want \f$ C_l^{dl}\f$? */
+  int has_gw; /**< do we want \f$ C_l^{GWGW}\f$? (GW = gravitational wave) */
 
   int index_ct_tt; /**< index for type \f$ C_l^{TT} \f$*/
-  int index_ct_gw; /**< index for type \f$ C_l^{GWGW} \f$*/
   int index_ct_ee; /**< index for type \f$ C_l^{EE} \f$*/
   int index_ct_te; /**< index for type \f$ C_l^{TE} \f$*/
   int index_ct_bb; /**< index for type \f$ C_l^{BB} \f$*/
@@ -77,6 +76,7 @@ struct harmonic {
   int index_ct_ll; /**< first index for type \f$ C_l^{ll} \f$((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type \f$ C_l^{Tl} \f$(d_size values) */
   int index_ct_dl; /**< first index for type \f$ C_l^{dl} \f$(d_size values) */
+  int index_ct_gw; /**< index for type \f$ C_l^{GWGW} \f$*/
 
   int d_size;      /**< number of bins for which density Cl's are computed */
 
