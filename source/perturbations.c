@@ -34,21 +34,6 @@
  * the pre-computed table and interpolating.
  *
  * @param ppt        Input: pointer to perturbation structure containing interpolation tables
- * @param index_md   Input: index of requested mode
- * @param index_ic   Input: index of requested initial condition
- * @param index_tp   Input: index of requested source function type
- * @param tau        Input: any value of conformal time
- * @param psource    Output: vector (already allocated) of source function as a function of k
- * @return the error status
- */
-
-/**
- * Source function \f$ S^{X} (k, \tau) \f$ at a given conformal time tau.
- *
- * Evaluate source functions at given conformal time tau by reading
- * the pre-computed table and interpolating.
- *
- * @param ppt        Input: pointer to perturbation structure containing interpolation tables
  * @param index_md   Input: index of requested mode (for scalars, just pass ppt->index_md_scalars)
  * @param index_ic   Input: index of requested initial condition (for adiabatic, just pass ppt->index_ic_ad)
  * @param index_tp   Input: index of requested source function type
@@ -241,9 +226,10 @@ int perturbations_sources_at_k_and_z(
 }
 
 /**
- * Function called by the output module or the wrappers, which returns all
- * the source functions \f$ S^{X} (k, \tau) \f$ at a given conformal
- * time tau corresponding to the input redshift z.
+ * Function called by the output module or the wrappers, which returns
+ * the source functions \f$ S^{X} (k, \tau) \f$ corresponding to
+ * densities ('dTk') and velocities ('vTk') at a given conformal time
+ * tau corresponding to the input redshift z.
  *
  * @param pba              Input: pointer to background structure
  * @param ppt              Input: pointer to perturbation structure

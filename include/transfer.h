@@ -131,7 +131,6 @@ struct transfer {
   int index_tt_t2;      /**< index for transfer type = temperature (j=2 term) */
   int index_tt_e;       /**< index for transfer type = E-polarization */
   int index_tt_b;       /**< index for transfer type = B-polarization */
-  int index_tt_g1;      /**< index for transfer type = gravitational wave, compare to index_tt_t1 */
   int index_tt_lcmb;    /**< index for transfer type = CMB lensing */
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
@@ -145,6 +144,8 @@ struct transfer {
   int index_tt_nc_g3;   /**< index for first bin of transfer type = gravity term G3 for of number count */
   int index_tt_nc_g4;   /**< index for first bin of transfer type = gravity term G3 for of number count */
   int index_tt_nc_g5;   /**< index for first bin of transfer type = gravity term G3 for of number count */
+
+  int index_tt_gw1;     /**< index for transfer type = gravitational wave (j=1 term) */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
@@ -273,7 +274,6 @@ struct transfer_workspace {
 typedef enum {SCALAR_TEMPERATURE_0,
               SCALAR_TEMPERATURE_1,
               SCALAR_TEMPERATURE_2,
-              SCALAR_TEMPERATURE_GW,
               SCALAR_POLARISATION_E,
               VECTOR_TEMPERATURE_1,
               VECTOR_TEMPERATURE_2,
@@ -282,7 +282,8 @@ typedef enum {SCALAR_TEMPERATURE_0,
               TENSOR_TEMPERATURE_2,
               TENSOR_POLARISATION_E,
               TENSOR_POLARISATION_B,
-              NC_RSD} radial_function_type;
+              NC_RSD,
+              SCALAR_GW_1} radial_function_type;
 
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 

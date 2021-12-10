@@ -525,7 +525,6 @@ int transfer_indices(
 
     class_define_index(ptr->index_tt_t0,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_t1,     ppt->has_cl_cmb_temperature,      index_tt,1);
-    class_define_index(ptr->index_tt_g1,     ppt->has_cl_gwb,                  index_tt,1);
     class_define_index(ptr->index_tt_lcmb,   ppt->has_cl_cmb_lensing_potential,index_tt,1);
     class_define_index(ptr->index_tt_density,ppt->has_nc_density,              index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_rsd,    ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
@@ -538,6 +537,7 @@ int transfer_indices(
     class_define_index(ptr->index_tt_nc_g4,  ppt->has_nc_gr,                   index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_nc_g5,  ppt->has_nc_gr,                   index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_lensing,ppt->has_cl_lensing_potential,    index_tt,ppt->selection_num);
+    class_define_index(ptr->index_tt_gw1,    ppt->has_cl_gwb,                  index_tt,1);
 
     ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
@@ -843,9 +843,9 @@ int transfer_get_l_list(
     if (ppt->has_scalars == _TRUE_) {
 
       if ((ppt->has_cl_cmb_temperature == _TRUE_) ||
-          (ppt->has_cl_gwb == _TRUE_) ||
           (ppt->has_cl_cmb_polarization == _TRUE_) ||
-          (ppt->has_cl_cmb_lensing_potential == _TRUE_))
+          (ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
+          (ppt->has_cl_gwb == _TRUE_))
         l_max=MAX(ppt->l_scalar_max,l_max);
 
       if ((ppt->has_cl_lensing_potential == _TRUE_) ||
@@ -949,9 +949,6 @@ int transfer_get_l_list(
             ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
           l_max=ppt->l_scalar_max;
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1))
-          l_max=ppt->l_scalar_max;
-
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
           l_max=ppt->l_scalar_max;
 
@@ -973,6 +970,9 @@ int transfer_get_l_list(
 
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
           l_max=ppt->l_lss_max;
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1))
+          l_max=ppt->l_scalar_max;
 
       }
 
@@ -1357,10 +1357,6 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_t1;
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_g1; //TODO_GW: Change?
-          // tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
-
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_t2;
 
@@ -1404,6 +1400,10 @@ int transfer_get_source_correspondence(
 
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_g1; //TODO_GW: Change?
+          // tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
 
       }
 
@@ -1547,10 +1547,6 @@ int transfer_source_tau_size(
         ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
       *tau_size = ppt->tau_size;
 
-    /* scalar gwb */
-    if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1))
-      *tau_size = ppt->tau_size;
-
     /* scalar polarization */
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
       *tau_size = ppt->tau_size;
@@ -1681,6 +1677,10 @@ int transfer_source_tau_size(
         *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./MIN(l_limber,ppt->l_lss_max)))*ppr->selection_sampling_bessel_los);
       }
     }
+
+    /* scalar gwb */
+    if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1))
+      *tau_size = ppt->tau_size;
   }
 
   /* tensor mode */
@@ -3479,7 +3479,7 @@ int transfer_limber(
 
   }
 
-  else if (radial_type == SCALAR_TEMPERATURE_GW) { //TODO_GW: transfer limber
+  else if (radial_type == SCALAR_GW_1) { //TODO_GW: transfer limber
 
     if (((l+1.5)/q > ptw->tau0_minus_tau[0]) || //TODO_GW: no influence
         ((l-0.5)/q < ptw->tau0_minus_tau[ptw->tau_size-1])) {
@@ -3737,7 +3737,7 @@ int transfer_can_be_neglected(
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_;
 
-    else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_g1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_; //TODO_GWB: big influence
+    //else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_; //TODO_GWB: big influence
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*ra_rec)) *neglect = _TRUE_;
 
@@ -3793,10 +3793,10 @@ int transfer_late_source_can_be_neglected(
             (index_tt == ptr->index_tt_t2))
           *neglect = _TRUE_;
       }
-      if (ppt->has_cl_gwb == _TRUE_) { //TODO_GW: big influence
-        if ((index_tt == ptr->index_tt_g1))
-          *neglect = _TRUE_;
-      }
+      //if (ppt->has_cl_gwb == _TRUE_) { //TODO_GW: big influence
+      //  if ((index_tt == ptr->index_tt_gw1))
+      //    *neglect = _TRUE_;
+      //}
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         if (index_tt == ptr->index_tt_e)
           *neglect = _TRUE_;
@@ -3991,7 +3991,7 @@ int transfer_radial_function(
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_function[j];
     break;
-  case SCALAR_TEMPERATURE_GW: //TODO_GW: used in transfer_integrate
+  case SCALAR_GW_1: //TODO_GW: used in transfer_integrate
     class_call(interpolate_dPhi(pHIS, x_size, index_l, chireverse, dPhi, ptr->error_message),
                ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, NULL, dPhi, NULL);
@@ -4140,8 +4140,8 @@ int transfer_select_radial_function(
 
     if (ppt->has_cl_gwb == _TRUE_){
 
-      if (index_tt == ptr->index_tt_g1) {
-        *radial_type = SCALAR_TEMPERATURE_GW;
+      if (index_tt == ptr->index_tt_gw1) {
+        *radial_type = SCALAR_GW_1;
       }
 
     }
