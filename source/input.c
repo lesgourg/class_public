@@ -1693,7 +1693,7 @@ int input_read_parameters_general(struct file_content * pfc,
                errmsg,
                errmsg);
     class_test(flag1==_FALSE_,
-               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd', 'gwCl'}, you entered '%s'",string1);
+               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl'}, you entered '%s'",string1);
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -2553,7 +2553,10 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
   }
-
+  if (has_m_budget == _TRUE_) {
+    class_test(Omega_m_remaining < pba->Omega0_ncdm_tot, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_ncdm = %e' (summed over all species)",Omega_m_remaining, pba->Omega0_ncdm_tot);
+    Omega_m_remaining-= pba->Omega0_ncdm_tot;
+  }
 
   /** 6) Omega_0_k (effective fractional density of curvature) */
   /* Read */
