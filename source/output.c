@@ -1580,23 +1580,23 @@ int output_open_cl_file(
     }
     if (pop->output_format == class_format) {
       class_fprintf_columntitle(*clfile,"TT",phr->has_tt,colnum);
-      class_fprintf_columntitle(*clfile,"GW",phr->has_gw,colnum);
       class_fprintf_columntitle(*clfile,"EE",phr->has_ee,colnum);
       class_fprintf_columntitle(*clfile,"TE",phr->has_te,colnum);
       class_fprintf_columntitle(*clfile,"BB",phr->has_bb,colnum);
       class_fprintf_columntitle(*clfile,"phiphi",phr->has_pp,colnum);
       class_fprintf_columntitle(*clfile,"TPhi",phr->has_tp,colnum);
       class_fprintf_columntitle(*clfile,"Ephi",phr->has_ep,colnum);
+      class_fprintf_columntitle(*clfile,"GW",phr->has_gwb,colnum);
     }
     else if (pop->output_format == camb_format) {
       class_fprintf_columntitle(*clfile,"TT",phr->has_tt,colnum);
-      class_fprintf_columntitle(*clfile,"GW",phr->has_gw,colnum);
       class_fprintf_columntitle(*clfile,"EE",phr->has_ee,colnum);
       class_fprintf_columntitle(*clfile,"BB",phr->has_bb,colnum);
       class_fprintf_columntitle(*clfile,"TE",phr->has_te,colnum);
       class_fprintf_columntitle(*clfile,"dd",phr->has_pp,colnum);
       class_fprintf_columntitle(*clfile,"dT",phr->has_tp,colnum);
       class_fprintf_columntitle(*clfile,"dE",phr->has_ep,colnum);
+      class_fprintf_columntitle(*clfile,"GW",phr->has_gwb,colnum);
     }
 
     /** - Next deal with entries that are independent of format type */
@@ -1696,17 +1696,15 @@ int output_one_line_of_cl(
 
   if (pop->output_format == camb_format) {
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_tt], phr->has_tt);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_gw], phr->has_gw);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_ee], phr->has_ee);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_bb], phr->has_bb);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_te], phr->has_te);
     class_fprintf_double(clfile, l*(l+1)*factor*cl[phr->index_ct_pp], phr->has_pp);
     class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[phr->index_ct_tp], phr->has_tp);
     class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[phr->index_ct_ep], phr->has_ep);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_gwb], phr->has_gwb);
     index_ct_rest = 0;
     if (phr->has_tt == _TRUE_)
-      index_ct_rest++;
-    if (phr->has_gw == _TRUE_)
       index_ct_rest++;
     if (phr->has_ee == _TRUE_)
       index_ct_rest++;
@@ -1719,6 +1717,8 @@ int output_one_line_of_cl(
     if (phr->has_tp == _TRUE_)
       index_ct_rest++;
     if (phr->has_ep == _TRUE_)
+      index_ct_rest++;
+    if (phr->has_gwb == _TRUE_)
       index_ct_rest++;
     /* Now print the remaining (if any) entries:*/
     for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {

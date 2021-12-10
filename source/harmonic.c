@@ -427,12 +427,12 @@ int harmonic_indices(
     }
 
     if (ppt->has_cl_gwb == _TRUE_) {
-      phr->has_gw = _TRUE_;
-      phr->index_ct_gw=index_ct;
+      phr->has_gwb = _TRUE_;
+      phr->index_ct_gwb =index_ct;
       index_ct++;
     }
     else {
-      phr->has_gw = _FALSE_;
+      phr->has_gwb = _FALSE_;
     }
 
     if (ppt->has_cl_cmb_polarization == _TRUE_) {
@@ -587,7 +587,7 @@ int harmonic_indices(
       /* spectra computed up to l_scalar_max */
 
       if (phr->has_tt == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tt] = ppt->l_scalar_max;
-      if (phr->has_gw == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gw] = ppt->l_scalar_max;
+      if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwb] = ppt->l_scalar_max;
       if (phr->has_ee == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_ee] = ppt->l_scalar_max;
       if (phr->has_te == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_te] = ppt->l_scalar_max;
       if (phr->has_pp == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_pp] = ppt->l_scalar_max;
@@ -1021,7 +1021,7 @@ int harmonic_compute_cl(
       }
     }
 
-    if (phr->has_gw == _TRUE_) {
+    if (phr->has_gwb == _TRUE_) {
 
       if (_scalars_) {
 
@@ -1084,10 +1084,10 @@ int harmonic_compute_cl(
         * transfer_ic2_temp
         * factor;
 
-    if (phr->has_gw == _TRUE_)
+    if (phr->has_gwb == _TRUE_)
     {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gw]=
-        primordial_pk[index_ic1_ic2] //TODO_GW: primordial spectrum
+      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]=
+        primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
         * transfer_ic1_temp
         * transfer_ic2_temp
         * factor;
