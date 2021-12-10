@@ -1383,7 +1383,8 @@ int perturbations_indices(
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
-      class_define_index(ppt->index_tp_g1,         ppt->has_source_gwb,       index_type,1);
+      class_define_index(ppt->index_tp_gwb0,       ppt->has_source_gwb,       index_type,1);
+      class_define_index(ppt->index_tp_gwb1,       ppt->has_source_gwb,       index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
       class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_type,1);
@@ -7461,17 +7462,28 @@ int perturbations_sources(
     /* scalar gwb */
     if (ppt->has_source_gwb == _TRUE_) {
 
-      if (ppt->gauge == newtonian)
-        _set_source_(ppt->index_tp_g1) =
-          //k * (y[ppw->pv->index_pt_phi] + pvecmetric[ppw->index_mt_psi]);
+      if (ppt->gauge == newtonian) {
+
+        _set_source_(ppt->index_tp_gwb0) =
           2.*pvecmetric[ppw->index_mt_phi_prime];
 
-      if (ppt->gauge == synchronous)
-        _set_source_(ppt->index_tp_phi_plus_psi) =
-          //k * (y[ppw->pv->index_pt_eta] + pvecmetric[ppw->index_mt_alpha_prime]);
+        _set_source_(ppt->index_tp_gwb1) =
+          k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+      }
+
+
+      if (ppt->gauge == synchronous) {
+
+        _set_source_(ppt->index_tp_gwb0) =
           2. * (pvecmetric[ppw->index_mt_eta_prime]
                 - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
                 - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime]);
+
+        _set_source_(ppt->index_tp_gwb1) =
+          k * (pvecmetric[ppw->index_mt_alpha_prime]
+               + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
+               - y[ppw->pv->index_pt_eta]);
+      }
     }
 
     /* scalar polarization */

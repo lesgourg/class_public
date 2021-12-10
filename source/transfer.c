@@ -537,7 +537,8 @@ int transfer_indices(
     class_define_index(ptr->index_tt_nc_g4,  ppt->has_nc_gr,                   index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_nc_g5,  ppt->has_nc_gr,                   index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_lensing,ppt->has_cl_lensing_potential,    index_tt,ppt->selection_num);
-    class_define_index(ptr->index_tt_gw1,    ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb0,    ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb1,    ppt->has_cl_gwb,                  index_tt,1);
 
     ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
@@ -971,7 +972,8 @@ int transfer_get_l_list(
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
           l_max=ppt->l_lss_max;
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1))
+        if ((ppt->has_cl_gwb == _TRUE_) &&
+            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1)))
           l_max=ppt->l_scalar_max;
 
       }
@@ -1401,9 +1403,11 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_g1; //TODO_GW: Change?
-        //tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb0))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb0;
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb1;
 
       }
 
@@ -1679,7 +1683,8 @@ int transfer_source_tau_size(
     }
 
     /* scalar gwb */
-    if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1))
+    if ((ppt->has_cl_gwb == _TRUE_) &&
+        ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1)))
       *tau_size = ppt->tau_size;
   }
 
@@ -3705,7 +3710,7 @@ int transfer_can_be_neglected(
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_;
 
-    //else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gw1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_; //TODO_GWB: big influence
+    //else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_; //TODO_GWB: big influence
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*ra_rec)) *neglect = _TRUE_;
 
@@ -3762,7 +3767,7 @@ int transfer_late_source_can_be_neglected(
           *neglect = _TRUE_;
       }
       //if (ppt->has_cl_gwb == _TRUE_) { //TODO_GW: big influence
-      //  if ((index_tt == ptr->index_tt_gw1))
+      //  if ((index_tt == ptr->index_tt_gwb1))
       //    *neglect = _TRUE_;
       //}
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
@@ -4101,8 +4106,11 @@ int transfer_select_radial_function(
 
     if (ppt->has_cl_gwb == _TRUE_){
 
-      if (index_tt == ptr->index_tt_gw1) {
+      if (index_tt == ptr->index_tt_gwb0) {
         *radial_type = SCALAR_TEMPERATURE_0;
+      }
+      if (index_tt == ptr->index_tt_gwb1) {
+        *radial_type = SCALAR_TEMPERATURE_1;
       }
 
     }

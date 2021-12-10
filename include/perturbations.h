@@ -278,7 +278,8 @@ struct perturbations
   int index_tp_t0; /**< index value for temperature (j=0 term) */
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
-  int index_tp_g1; /**< index value for gw (j=1 term) */
+  int index_tp_gwb0; /**< index value for gravitational wave background (j=0 term) */
+  int index_tp_gwb1; /**< index value for gravitational wave background (j=1 term) */
   int index_tp_p; /**< index value for polarization */
   int index_tp_delta_m; /**< index value for matter density fluctuation */
   int index_tp_delta_cb; /**< index value for delta cb */

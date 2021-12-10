@@ -1021,6 +1021,17 @@ int harmonic_compute_cl(
       }
     }
 
+    if (phr->has_gw == _TRUE_) {
+
+      if (_scalars_) {
+
+        transfer_ic1_temp = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1];
+        transfer_ic2_temp = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1];
+
+      }
+
+    }
+
     /* integrand of Cl's */
 
     /* note: we must integrate
@@ -1077,8 +1088,8 @@ int harmonic_compute_cl(
     {
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gw]=
         primordial_pk[index_ic1_ic2] //TODO_GW: primordial spectrum
-        * transfer_ic1[ptr->index_tt_gw1]
-        * transfer_ic2[ptr->index_tt_gw1]
+        * transfer_ic1_temp
+        * transfer_ic2_temp
         * factor;
     }
 

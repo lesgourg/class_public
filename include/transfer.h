@@ -145,7 +145,8 @@ struct transfer {
   int index_tt_nc_g4;   /**< index for first bin of transfer type = gravity term G3 for of number count */
   int index_tt_nc_g5;   /**< index for first bin of transfer type = gravity term G3 for of number count */
 
-  int index_tt_gw1;     /**< index for transfer type = gravitational wave (j=1 term) */
+  int index_tt_gwb0;    /**< index for transfer type = gravitational wave (j=0 term) */
+  int index_tt_gwb1;    /**< index for transfer type = gravitational wave (j=1 term) */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
