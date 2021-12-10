@@ -136,7 +136,7 @@ struct perturbations
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
-  short has_cl_gwb;       /**< do we need \f$ C_l \f$'s for GWB? */
+  short has_cl_gwb;                   /**< do we need \f$ C_l \f$'s for GWB? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -669,13 +669,34 @@ extern "C" {
 #endif
 
   int perturbations_sources_at_tau(
-                             struct perturbations * ppt,
-                             int index_md,
-                             int index_ic,
-                             int index_tp,
-                             double tau,
-                             double * pvecsources
-                             );
+                                   struct perturbations * ppt,
+                                   int index_md,
+                                   int index_ic,
+                                   int index_tp,
+                                   double tau,
+                                   double * psource_at_tau
+                                   );
+
+  int perturbations_sources_at_z(
+                                 struct background * pba,
+                                 struct perturbations * ppt,
+                                 int index_md,
+                                 int index_ic,
+                                 int index_tp,
+                                 double z,
+                                 double * psource_at_z
+                                 );
+
+   int perturbations_sources_at_k_and_z(
+                                        struct background * pba,
+                                        struct perturbations * ppt,
+                                        int index_md,
+                                        int index_ic,
+                                        int index_tp,
+                                        double k,
+                                        double z,
+                                        double * psource_at_k_and_z
+                                        );
 
   int perturbations_output_data(
                           struct background * pba,
