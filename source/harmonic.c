@@ -903,6 +903,8 @@ int harmonic_compute_cl(
   int index_ic1_ic2;
   double transfer_ic1_temp=0.;
   double transfer_ic2_temp=0.;
+  double transfer_ic1_gwb=0.; //transfer function for gwb must be treated extra, otherwise it overrides the temperature CMB
+  double transfer_ic2_gwb=0.;
   double * transfer_ic1_nc=NULL;
   double * transfer_ic2_nc=NULL;
   double factor;
@@ -1025,8 +1027,8 @@ int harmonic_compute_cl(
 
       if (_scalars_) {
 
-        transfer_ic1_temp = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1];
-        transfer_ic2_temp = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1];
+        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1];
+        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1];
 
       }
 
@@ -1088,9 +1090,10 @@ int harmonic_compute_cl(
     {
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]=
         primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
-        * transfer_ic1_temp
-        * transfer_ic2_temp
-        * factor;
+        * transfer_ic1_gwb
+        * transfer_ic2_gwb
+        * factor
+        * (4 - ppm->n_s) * (4 - ppm->n_s); //conversion factor between Gamma and delta_GW
     }
 
 

@@ -7464,8 +7464,9 @@ int perturbations_sources(
 
       if (ppt->gauge == newtonian) {
 
-        _set_source_(ppt->index_tp_gwb0) =
-          2.*pvecmetric[ppw->index_mt_phi_prime];
+        // _set_source_(ppt->index_tp_gwb0) =
+        //   2.*pvecmetric[ppw->index_mt_phi_prime]; //only use one of the two version for ISW effect!
+        _set_source_(ppt->index_tp_gwb0) = 0; //TODO_GWB: implement SW
 
         _set_source_(ppt->index_tp_gwb1) =
           k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
