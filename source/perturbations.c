@@ -1723,6 +1723,8 @@ int perturbations_timesampling_for_sources(
                ppt->error_message);
   }
 
+  fprintf(stderr,"source sampling start at tau=%e because z_max_pk=%e\n",tau_ini,ppt->z_max_pk);
+
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:
       - --> if CMB requested:
       timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
@@ -7464,9 +7466,9 @@ int perturbations_sources(
 
       if (ppt->gauge == newtonian) {
 
-        // _set_source_(ppt->index_tp_gwb0) =
-        //   2.*pvecmetric[ppw->index_mt_phi_prime]; //only use one of the two version for ISW effect!
-        _set_source_(ppt->index_tp_gwb0) = 0; //TODO_GWB: implement SW
+        _set_source_(ppt->index_tp_gwb0) =
+          2.*pvecmetric[ppw->index_mt_phi_prime]; //only use one of the two version for ISW effect!
+         //_set_source_(ppt->index_tp_gwb0) = 0; //TODO_GWB: implement SW
 
         _set_source_(ppt->index_tp_gwb1) =
           k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
