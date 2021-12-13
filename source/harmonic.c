@@ -1092,8 +1092,8 @@ int harmonic_compute_cl(
         primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
         * transfer_ic1_gwb
         * transfer_ic2_gwb
-        * factor
-        * (4 - ppm->n_s) * (4 - ppm->n_s); //conversion factor between Gamma and delta_GW
+        // * (4 - ppm->n_s) * (4 - ppm->n_s) //conversion factor between Gamma and delta_GW
+        * factor;
     }
 
 
