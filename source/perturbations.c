@@ -764,7 +764,8 @@ int perturbations_init(
 
   if (ppt->z_max_pk > pth->z_rec) {
 
-    class_test(ppt->has_cmb == _TRUE_,
+    // class_test(ppt->has_cmb == _TRUE_,
+    class_test((ppt->has_cmb == _TRUE_) && (ppt->has_source_gwb == _FALSE_),
                ppt->error_message,
                "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you don't ask for a calculation of the CMB source function(s). Remove any CMB from your output and try e.g. with 'output=mTk' or 'output=mTk,vTk'",
                ppt->z_max_pk,
@@ -1586,7 +1587,8 @@ int perturbations_timesampling_for_sources(
       temperature and ionization fraction perturbations (delta_T = 1/3
       delta_b, delta_x_e) are not valid]. */
 
-  if ((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) {
+  // if ((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) {
+  if (((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) && (ppt->has_source_gwb == _FALSE_)) {
 
     /* using bisection, search time tau such that the ratio of thermo
        to Hubble time scales tau_c/tau_h=aH/kappa' is equal to
@@ -1760,7 +1762,8 @@ int perturbations_timesampling_for_sources(
                pth->error_message,
                ppt->error_message);
 
-    if (ppt->has_cmb == _TRUE_) {
+    // if (ppt->has_cmb == _TRUE_) {
+    if (ppt->has_cmb == _TRUE_ && ppt->has_source_gwb == _FALSE_) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
@@ -1843,7 +1846,8 @@ int perturbations_timesampling_for_sources(
                pth->error_message,
                ppt->error_message);
 
-    if (ppt->has_cmb == _TRUE_) {
+    // if (ppt->has_cmb == _TRUE_) {
+    if (ppt->has_cmb == _TRUE_ && ppt->has_source_gwb == _FALSE_) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
