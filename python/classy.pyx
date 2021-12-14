@@ -1062,10 +1062,10 @@ cdef class Class:
         return pk_at_k_z, k, z
 
     # Gives sigma(R,z) for a given (R,z)
-    def sigma(self,double R,double z):
+    def sigma(self, double R, double z, h_units=False):
         """
         Gives sigma (total matter) for a given R and z
-        (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
+        (R is the radius in units of Mpc, so if R=8/h, or R=8 if ``h_units=True``, this will be the usual sigma8(z)
 
         .. note::
 
@@ -1082,16 +1082,20 @@ cdef class Class:
         if (self.pt.k_max_for_pk < self.ba.h):
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R,z,self.fo.index_pk_m,out_sigma,&sigma)==_FAILURE_:
+        R_with_units = R
+        if h_units:
+            R_with_units = R_with_units / self.ba.h
+
+        if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R_with_units,z,self.fo.index_pk_m,out_sigma,&sigma)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return sigma
 
     # Gives sigma_cb(R,z) for a given (R,z)
-    def sigma_cb(self,double R,double z):
+    def sigma_cb(self,double R, double z, h_units=False):
         """
         Gives sigma (cdm+b) for a given R and z
-        (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
+        (R is the radius in units of Mpc, so if R=8/h, or R=8 if ``h_units=True``, this will be the usual sigma8(z)
 
         .. note::
 
@@ -1111,7 +1115,11 @@ cdef class Class:
         if (self.pt.k_max_for_pk < self.ba.h):
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R,z,self.fo.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
+        R_with_units = R
+        if h_units:
+            R_with_units = R_with_units / self.ba.h
+
+        if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R_with_units,z,self.fo.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return sigma_cb
