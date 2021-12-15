@@ -7305,6 +7305,7 @@ int perturbations_sources(
   double a_prime_over_a_prime=0.;  /* (a'/a)' */
   double w_fld,dw_over_da_fld,integral_fld;
   int switch_isw = 1;
+  int switch_gwb_isw = 1;
 
   double a, a2, f_dr;
 
@@ -7468,25 +7469,38 @@ int perturbations_sources(
     /* scalar gwb */
     if (ppt->has_source_gwb == _TRUE_) {
 
+      /* check whether integrated Sachs-Wolf term should be included */
+      if ((ppt->switch_gwb_eisw == 0) && (z >= ppt->eisw_lisw_split_z)){
+        switch_gwb_isw = 0;
+      }
+      if ((ppt->switch_gwb_lisw == 0) && (z < ppt->eisw_lisw_split_z)) {
+        switch_gwb_isw=0;
+      }
+
       if (ppt->gauge == newtonian) {
 
         _set_source_(ppt->index_tp_gwb0) =
-          2.*pvecmetric[ppw->index_mt_phi_prime]; //TODO_GWB: implement SW
+          switch_gwb_isw * 2.*pvecmetric[ppw->index_mt_phi_prime]; //TODO_GWB: implement SW
+        if(index_tau == 0) { //SW effect
+          _set_source_(ppt->index_tp_gwb0) =
+            switch_gwb_isw * 2.*pvecmetric[ppw->index_mt_phi_prime]
+            + ppt->switch_gwb_sw * y[ppw->pv->index_pt_phi];
+        }
 
         _set_source_(ppt->index_tp_gwb1) =
-          k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+          switch_gwb_isw * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
       }
 
 
       if (ppt->gauge == synchronous) {
 
         _set_source_(ppt->index_tp_gwb0) =
-          2. * (pvecmetric[ppw->index_mt_eta_prime]
+          switch_gwb_isw * 2. * (pvecmetric[ppw->index_mt_eta_prime]
                 - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
                 - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime]);
 
         _set_source_(ppt->index_tp_gwb1) =
-          k * (pvecmetric[ppw->index_mt_alpha_prime]
+          switch_gwb_isw * k * (pvecmetric[ppw->index_mt_alpha_prime]
                + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
                - y[ppw->pv->index_pt_eta]);
       }

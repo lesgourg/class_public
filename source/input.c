@@ -1622,6 +1622,7 @@ int input_read_parameters_general(struct file_content * pfc,
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl",
                                 "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD","GWCL"};
   char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
+  char * options_gwb_contributions[8] = {"tsw","eisw","lisw","ini","TSW","EISW","LISW","Ini"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
   char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
@@ -1795,6 +1796,54 @@ int input_read_parameters_general(struct file_content * pfc,
   if (ppt->has_density_transfers == _TRUE_) {
     /* Read */
     class_read_flag_or_deprecated("extra_metric_transfer_functions","extra metric transfer functions",ppt->has_metricpotential_transfers);
+  }
+
+  /** 1.d) Terms contributing to the graviational wave spectrum */
+  if (ppt->has_cl_gwb == _TRUE_) {
+    /* Read */
+    class_call(parser_read_string(pfc,"gravitational_wave_contributions",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Compatibility code BEGIN */
+    if(flag1 == _FALSE_){
+      class_call(parser_read_string(pfc,"gravitational wave contributions",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    /* Compatibility code END */
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      ppt->switch_gwb_sw = 0;
+      ppt->switch_gwb_eisw = 0;
+      ppt->switch_gwb_lisw = 0;
+      ppt->switch_gwb_ini = 0;
+      if ((strstr(string1,"tsw") != NULL) || (strstr(string1,"TSW") != NULL)){
+        ppt->switch_gwb_sw = 1;
+      }
+      if ((strstr(string1,"eisw") != NULL) || (strstr(string1,"EISW") != NULL)){
+        ppt->switch_gwb_eisw = 1;
+      }
+      if ((strstr(string1,"lisw") != NULL) || (strstr(string1,"LISW") != NULL)){
+        ppt->switch_gwb_lisw = 1;
+      }
+      if ((strstr(string1,"ini") != NULL) || (strstr(string1,"Ini") != NULL)){
+        ppt->switch_gwb_ini = 1;
+      }
+      /* Test */
+      class_call(parser_check_options(string1, options_gwb_contributions, 10, &flag1),
+                 errmsg,
+                 errmsg);
+      class_test(flag1==_FALSE_,
+                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','eisw','lisw','ini'}, you entered '%s'",string1);
+      class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
+                 errmsg,
+                 "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','eisw','lisw','ini'}.",string1);
+
+      /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
+      /* Read */ //TODO_GWB: leave it like this?
+      class_read_double("early/late isw redshift",ppt->eisw_lisw_split_z); //Deprecated parameter
+      class_read_double("early_late_isw_redshift",ppt->eisw_lisw_split_z);
+    }
   }
 
   if (ppt->has_perturbations == _TRUE_) {
@@ -5328,6 +5377,11 @@ int input_default_params(struct background *pba,
   ppt->has_nc_gr = _FALSE_;
   /** 1.c) 'dTk' (or 'mTk') case */
   ppt->has_metricpotential_transfers = _FALSE_;
+  /** 1.d) 'gwCl' case */
+  ppt->switch_gwb_sw = 1;
+  ppt->switch_gwb_eisw = 1;
+  ppt->switch_gwb_lisw = 1;
+  ppt->switch_gwb_ini = 1;
 
   /** 2) Perturbed recombination */
   ppt->has_perturbed_recombination=_FALSE_;
