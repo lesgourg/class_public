@@ -1727,19 +1727,21 @@ int perturbations_timesampling_for_sources(
 
   if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: Okay to implement in this way?
 
-    /* check the time corresponding to the highest redshift requested in output plus one */
-    class_call(background_tau_of_z(pba,
-                                   ppt->z_max_pk+1,
-                                   &tau_ini_gwb),
-               pba->error_message,
-               ppt->error_message);
+    // /* check the time corresponding to the highest redshift requested in output plus one */
+    // class_call(background_tau_of_z(pba,
+    //                                ppt->z_max_pk+1,
+    //                                &tau_ini_gwb),
+    //            pba->error_message,
+    //            ppt->error_message);
+
+    tau_ini_gwb = ppt->tau_ini_gwb;
 
     /* obsolete: previous choice was to start always at recombination time */
     /* tau_ini = pth->tau_rec; */
 
     /* set values of first_index_back/thermo */
     class_call(background_at_tau(pba,
-                                 tau_ini,
+                                 tau_ini_gwb,
                                  short_info,
                                  inter_normal,
                                  &first_index_back,
@@ -1757,7 +1759,7 @@ int perturbations_timesampling_for_sources(
                pth->error_message,
                ppt->error_message);
 
-    fprintf(stderr,"source sampling for CMB would start at tau=%e, but with gwb it starts at tau=%e because z_max_pk=%e\n",tau_ini,tau_ini_gwb,ppt->z_max_pk);
+    // fprintf(stderr,"source sampling for CMB would start at tau=%e, but with gwb it starts at tau_ini=%e\n",tau_ini,tau_ini_gwb);
   }
 
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:

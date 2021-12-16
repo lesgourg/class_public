@@ -4640,7 +4640,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
   }
 
   /** 3.c) Maximum redshift */
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_gwb == _TRUE_)) {
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
     /* Read */
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
                errmsg,
@@ -4680,6 +4680,19 @@ int input_read_parameters_spectra(struct file_content * pfc,
         }
       }
       /* Now we have checked all contributions that could change z_max_pk */
+    }
+  }
+
+  /** 4) Gravitational Wave Background */
+  if (ppt->has_cl_gwb == _TRUE_) {
+    /** initial time for GWB */
+    /* Read */
+    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1==_TRUE_) {
+      ppt->tau_ini_gwb = param1;
     }
   }
 
@@ -5766,6 +5779,10 @@ int input_default_params(struct background *pba,
   pop->z_pk[0] = 0.;
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
+
+  /** 4) Gravitational Wave Background */
+  /** 4.a) inital time for GWB */
+  ppt->tau_ini_gwb=0.1;
 
   /**
    * Default to input_read_parameters_lensing

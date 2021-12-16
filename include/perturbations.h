@@ -177,6 +177,8 @@ struct perturbations
   double three_cvis2_ur;/**< 3 x effective viscosity parameter for the ultrarelativistic perturbations */
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
+  
+  double tau_ini_gwb; /**< the inital time for the graviational wave background. This will then also fix the initial sampling time of the sources. */
 
   double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm_fr-idr */
   double * beta_idr;  /**< Angular contribution to collisional term at l>=2 for idr-idr */
