@@ -1563,6 +1563,7 @@ int perturbations_timesampling_for_sources(
   double tau_lower;
   double tau_upper;
   double tau_mid;
+  double tau_ini_gwb; /*< initial time if only GWB is condisered */
 
   double timescale_source;
   double rate_thermo;
@@ -1587,8 +1588,7 @@ int perturbations_timesampling_for_sources(
       temperature and ionization fraction perturbations (delta_T = 1/3
       delta_b, delta_x_e) are not valid]. */
 
-  // if ((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) {
-  if (((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) && (ppt->has_source_gwb == _FALSE_)) {
+  if ((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) {
 
     /* using bisection, search time tau such that the ratio of thermo
        to Hubble time scales tau_c/tau_h=aH/kappa' is equal to
@@ -1725,7 +1725,40 @@ int perturbations_timesampling_for_sources(
                ppt->error_message);
   }
 
-  fprintf(stderr,"source sampling start at tau=%e because z_max_pk=%e\n",tau_ini,ppt->z_max_pk);
+  if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: Okay to implement in this way?
+
+    /* check the time corresponding to the highest redshift requested in output plus one */
+    class_call(background_tau_of_z(pba,
+                                   ppt->z_max_pk+1,
+                                   &tau_ini_gwb),
+               pba->error_message,
+               ppt->error_message);
+
+    /* obsolete: previous choice was to start always at recombination time */
+    /* tau_ini = pth->tau_rec; */
+
+    /* set values of first_index_back/thermo */
+    class_call(background_at_tau(pba,
+                                 tau_ini,
+                                 short_info,
+                                 inter_normal,
+                                 &first_index_back,
+                                 pvecback),
+               pba->error_message,
+               ppt->error_message);
+
+    class_call(thermodynamics_at_z(pba,
+                                   pth,
+                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                   inter_normal,
+                                   &first_index_thermo,
+                                   pvecback,
+                                   pvecthermo),
+               pth->error_message,
+               ppt->error_message);
+
+    fprintf(stderr,"source sampling for CMB would start at tau=%e, but with gwb it starts at tau=%e because z_max_pk=%e\n",tau_ini,tau_ini_gwb,ppt->z_max_pk);
+  }
 
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:
       - --> if CMB requested:
@@ -1740,6 +1773,56 @@ int perturbations_timesampling_for_sources(
   last_index_back = first_index_back;
   last_index_thermo = first_index_thermo;
   tau = tau_ini;
+
+  /** - if GWB is requested
+      timecale_source = 1/aH; until beginn of cmb tau_ini
+      afterwards same sampling as for cmb
+  */
+  if  (ppt->has_source_gwb == _TRUE_) {
+    tau = tau_ini_gwb;
+
+    while (tau < tau_ini) {
+
+      class_call(background_at_tau(pba,
+                                  tau,
+                                  short_info,
+                                  inter_closeby,
+                                  &last_index_back,
+                                  pvecback),
+                pba->error_message,
+                ppt->error_message);
+
+      class_call(thermodynamics_at_z(pba,
+                                    pth,
+                                    1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                    inter_closeby,
+                                    &last_index_thermo,
+                                    pvecback,
+                                    pvecthermo),
+                pth->error_message,
+                ppt->error_message);
+        
+      /* variation rate given by Hubble time */
+      a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
+
+      timescale_source = a_prime_over_a;
+
+      /* check it is non-zero */
+      class_test(timescale_source == 0.,
+                ppt->error_message,
+                "null evolution rate, integration is diverging");
+
+      /* compute inverse rate */
+      timescale_source = 1./timescale_source;
+
+      class_test(fabs(ppr->perturbations_sampling_stepsize*timescale_source/tau) < ppr->smallest_allowed_variation,
+                ppt->error_message,
+                "integration step =%e < machine precision : leads either to numerical error or infinite loop",ppr->perturbations_sampling_stepsize*timescale_source);
+
+      tau = tau + ppr->perturbations_sampling_stepsize*timescale_source;
+      counter++;
+    }
+  }
 
   while (tau < pba->conformal_age) {
 
@@ -1762,8 +1845,7 @@ int perturbations_timesampling_for_sources(
                pth->error_message,
                ppt->error_message);
 
-    // if (ppt->has_cmb == _TRUE_) {
-    if (ppt->has_cmb == _TRUE_ && ppt->has_source_gwb == _FALSE_) {
+    if (ppt->has_cmb == _TRUE_) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
@@ -1825,6 +1907,58 @@ int perturbations_timesampling_for_sources(
   last_index_thermo = first_index_thermo;
   tau = tau_ini;
 
+  /** - if GWB is requested
+      timecale_source = 1/aH; until beginn of cmb tau_ini
+      afterwards same sampling as for cmb
+  */
+  if  (ppt->has_source_gwb == _TRUE_) {
+    ppt->tau_sampling[counter]=tau_ini_gwb;
+    tau = tau_ini_gwb;
+
+    while (tau < tau_ini) {
+
+      class_call(background_at_tau(pba,
+                                  tau,
+                                  short_info,
+                                  inter_closeby,
+                                  &last_index_back,
+                                  pvecback),
+                pba->error_message,
+                ppt->error_message);
+
+      class_call(thermodynamics_at_z(pba,
+                                    pth,
+                                    1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                    inter_closeby,
+                                    &last_index_thermo,
+                                    pvecback,
+                                    pvecthermo),
+                pth->error_message,
+                ppt->error_message);
+        
+      /* variation rate given by Hubble time */
+      a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
+      timescale_source = a_prime_over_a;
+
+      /* check it is non-zero */
+      class_test(timescale_source == 0.,
+                ppt->error_message,
+                "null evolution rate, integration is diverging");
+
+      /* compute inverse rate */
+      timescale_source = 1./timescale_source;
+
+      class_test(fabs(ppr->perturbations_sampling_stepsize*timescale_source/tau) < ppr->smallest_allowed_variation,
+                ppt->error_message,
+                "integration step =%e < machine precision : leads either to numerical error or infinite loop",ppr->perturbations_sampling_stepsize*timescale_source);
+
+      tau = tau + ppr->perturbations_sampling_stepsize*timescale_source;
+      counter++;
+      ppt->tau_sampling[counter]=tau;
+
+    }
+  }
+
   while (tau < pba->conformal_age) {
 
     class_call(background_at_tau(pba,
@@ -1846,8 +1980,7 @@ int perturbations_timesampling_for_sources(
                pth->error_message,
                ppt->error_message);
 
-    // if (ppt->has_cmb == _TRUE_) {
-    if (ppt->has_cmb == _TRUE_ && ppt->has_source_gwb == _FALSE_) {
+    if (ppt->has_cmb == _TRUE_) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
