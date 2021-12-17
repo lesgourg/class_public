@@ -539,6 +539,7 @@ int transfer_indices(
     class_define_index(ptr->index_tt_lensing,ppt->has_cl_lensing_potential,    index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_gwb0,    ppt->has_cl_gwb,                  index_tt,1);
     class_define_index(ptr->index_tt_gwb1,    ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb_ini0,ppt->has_cl_gwb,                  index_tt,1);
 
     ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
@@ -973,7 +974,7 @@ int transfer_get_l_list(
           l_max=ppt->l_lss_max;
 
         if ((ppt->has_cl_gwb == _TRUE_) &&
-            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1)))
+            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_ini0)))
           l_max=ppt->l_scalar_max;
 
       }
@@ -1409,6 +1410,9 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb1;
 
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini0))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb_ini0;
+
       }
 
       if (_vectors_) {
@@ -1684,7 +1688,7 @@ int transfer_source_tau_size(
 
     /* scalar gwb */
     if ((ppt->has_cl_gwb == _TRUE_) &&
-        ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1)))
+        ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_ini0)))
       *tau_size = ppt->tau_size;
   }
 
@@ -4111,6 +4115,9 @@ int transfer_select_radial_function(
       }
       if (index_tt == ptr->index_tt_gwb1) {
         *radial_type = SCALAR_TEMPERATURE_1;
+      }
+      if (index_tt == ptr->index_tt_gwb_ini0) {
+        *radial_type = SCALAR_TEMPERATURE_0;
       }
 
     }

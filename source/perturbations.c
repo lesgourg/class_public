@@ -1386,6 +1386,7 @@ int perturbations_indices(
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_gwb0,       ppt->has_source_gwb,       index_type,1);
       class_define_index(ppt->index_tp_gwb1,       ppt->has_source_gwb,       index_type,1);
+      class_define_index(ppt->index_tp_gwb_ini0,       ppt->has_source_gwb,       index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
       class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_type,1);
@@ -7618,10 +7619,15 @@ int perturbations_sources(
 
         _set_source_(ppt->index_tp_gwb0) =
           switch_gwb_isw * 2.*pvecmetric[ppw->index_mt_phi_prime]; //TODO_GWB: implement SW
+
+        _set_source_(ppt->index_tp_gwb_ini0) = 0;
+        
         if(index_tau == 0) { //SW effect
           _set_source_(ppt->index_tp_gwb0) =
             switch_gwb_isw * 2.*pvecmetric[ppw->index_mt_phi_prime]
             + ppt->switch_gwb_sw * y[ppw->pv->index_pt_phi];
+
+          _set_source_(ppt->index_tp_gwb_ini0) = 1;
         }
 
         _set_source_(ppt->index_tp_gwb1) =
