@@ -426,15 +426,6 @@ int harmonic_indices(
       phr->has_tt = _FALSE_;
     }
 
-    if (ppt->has_cl_gwb == _TRUE_) {
-      phr->has_gwb = _TRUE_;
-      phr->index_ct_gwb =index_ct;
-      index_ct++;
-    }
-    else {
-      phr->has_gwb = _FALSE_;
-    }
-
     if (ppt->has_cl_cmb_polarization == _TRUE_) {
       phr->has_ee = _TRUE_;
       phr->index_ct_ee=index_ct;
@@ -492,6 +483,15 @@ int harmonic_indices(
     }
     else {
       phr->has_ep = _FALSE_;
+    }
+
+    if (ppt->has_cl_gwb == _TRUE_) {
+      phr->has_gwb = _TRUE_;
+      phr->index_ct_gwb =index_ct;
+      index_ct++;
+    }
+    else {
+      phr->has_gwb = _FALSE_;
     }
 
     if ((ppt->has_scalars == _TRUE_) &&
@@ -587,12 +587,12 @@ int harmonic_indices(
       /* spectra computed up to l_scalar_max */
 
       if (phr->has_tt == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tt] = ppt->l_scalar_max;
-      if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwb] = ppt->l_scalar_max;
       if (phr->has_ee == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_ee] = ppt->l_scalar_max;
       if (phr->has_te == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_te] = ppt->l_scalar_max;
       if (phr->has_pp == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_pp] = ppt->l_scalar_max;
       if (phr->has_tp == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tp] = ppt->l_scalar_max;
       if (phr->has_ep == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_ep] = ppt->l_scalar_max;
+      if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwb] = ppt->l_scalar_max;
 
       /* spectra computed up to l_lss_max */
 
