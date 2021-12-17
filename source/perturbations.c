@@ -1740,26 +1740,28 @@ int perturbations_timesampling_for_sources(
     /* tau_ini = pth->tau_rec; */
 
     /* set values of first_index_back/thermo */
-    class_call(background_at_tau(pba,
-                                 tau_ini_gwb,
-                                 short_info,
-                                 inter_normal,
-                                 &first_index_back,
-                                 pvecback),
-               pba->error_message,
-               ppt->error_message);
+    if (tau_ini_gwb < tau_ini) {
+      class_call(background_at_tau(pba,
+                                    tau_ini_gwb,
+                                    short_info,
+                                    inter_normal,
+                                    &first_index_back,
+                                    pvecback),
+                  pba->error_message,
+                  ppt->error_message);
 
-    class_call(thermodynamics_at_z(pba,
-                                   pth,
-                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   inter_normal,
-                                   &first_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
-               ppt->error_message);
+      class_call(thermodynamics_at_z(pba,
+                                      pth,
+                                      1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                      inter_normal,
+                                      &first_index_thermo,
+                                      pvecback,
+                                      pvecthermo),
+                  pth->error_message,
+                  ppt->error_message);
+    }
 
-    // fprintf(stderr,"source sampling for CMB would start at tau=%e, but with gwb it starts at tau_ini=%e\n",tau_ini,tau_ini_gwb);
+    fprintf(stderr,"source sampling for CMB would start at tau=%e, but with gwb it starts at tau_ini=%e\n",tau_ini,tau_ini_gwb);
   }
 
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:
@@ -1780,7 +1782,7 @@ int perturbations_timesampling_for_sources(
       timecale_source = 1/aH; until beginn of cmb tau_ini
       afterwards same sampling as for cmb
   */
-  if  (ppt->has_source_gwb == _TRUE_) {
+  if  ((ppt->has_source_gwb == _TRUE_) && (tau_ini_gwb < tau_ini)) {
     tau = tau_ini_gwb;
 
     while (tau < tau_ini) {
@@ -1913,7 +1915,7 @@ int perturbations_timesampling_for_sources(
       timecale_source = 1/aH; until beginn of cmb tau_ini
       afterwards same sampling as for cmb
   */
-  if  (ppt->has_source_gwb == _TRUE_) {
+  if  ((ppt->has_source_gwb == _TRUE_) && (tau_ini_gwb < tau_ini)) {
     ppt->tau_sampling[counter]=tau_ini_gwb;
     tau = tau_ini_gwb;
 
