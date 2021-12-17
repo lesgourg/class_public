@@ -61,7 +61,8 @@ struct harmonic {
   int has_ll; /**< do we want \f$ C_l^{ll}\f$? (l = galaxy lensing potential) */
   int has_tl; /**< do we want \f$ C_l^{Tl}\f$? */
   int has_dl; /**< do we want \f$ C_l^{dl}\f$? */
-  int has_gwb;/**< do we want \f$ C_l^{GWGW}\f$? (GW = gravitational wave background) */
+  int has_gwb;/**< do we want \f$ C_l^{GWB GWB}\f$? (GWB = gravitational wave background) */
+  int has_tgwb; /**< do we want \f$ C_l^{T GWB}\f$? */
 
   int index_ct_tt; /**< index for type \f$ C_l^{TT} \f$*/
   int index_ct_ee; /**< index for type \f$ C_l^{EE} \f$*/
@@ -76,7 +77,8 @@ struct harmonic {
   int index_ct_ll; /**< first index for type \f$ C_l^{ll} \f$((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type \f$ C_l^{Tl} \f$(d_size values) */
   int index_ct_dl; /**< first index for type \f$ C_l^{dl} \f$(d_size values) */
-  int index_ct_gwb;/**< index for type \f$ C_l^{GWGW} \f$*/
+  int index_ct_gwb;/**< index for type \f$ C_l^{GWB GWB} \f$*/
+  int index_ct_tgwb; /**< index for type \f$ C_l^{T GWB} \f$*/
 
   int d_size;      /**< number of bins for which density Cl's are computed */
 

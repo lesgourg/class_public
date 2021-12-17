@@ -494,6 +494,15 @@ int harmonic_indices(
       phr->has_gwb = _FALSE_;
     }
 
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_gwb == _TRUE_)) {
+      phr->has_tgwb = _TRUE_;
+      phr->index_ct_tgwb =index_ct;
+      index_ct++;
+    }
+    else {
+      phr->has_tgwb = _FALSE_;
+    }
+
     if ((ppt->has_scalars == _TRUE_) &&
         ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)))
       phr->d_size=ppt->selection_num;
@@ -593,6 +602,7 @@ int harmonic_indices(
       if (phr->has_tp == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tp] = ppt->l_scalar_max;
       if (phr->has_ep == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_ep] = ppt->l_scalar_max;
       if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwb] = ppt->l_scalar_max;
+      if (phr->has_tgwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tgwb] = ppt->l_scalar_max;
 
       /* spectra computed up to l_lss_max */
 
@@ -1086,17 +1096,6 @@ int harmonic_compute_cl(
         * transfer_ic2_temp
         * factor;
 
-    if (phr->has_gwb == _TRUE_)
-    {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]=
-        primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
-        * transfer_ic1_gwb
-        * transfer_ic2_gwb
-        // * (4 - ppm->n_s) * (4 - ppm->n_s) //conversion factor between Gamma and delta_GW
-        * factor;
-    }
-
-
     if (phr->has_ee == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_ee]=
         primordial_pk[index_ic1_ic2]
@@ -1138,6 +1137,25 @@ int harmonic_compute_cl(
         * 0.5*(transfer_ic1[ptr->index_tt_e] * transfer_ic2[ptr->index_tt_lcmb] +
                transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_e])
         * factor;
+
+    if (phr->has_gwb == _TRUE_)
+    {
+      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]=
+        primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
+        * transfer_ic1_gwb
+        * transfer_ic2_gwb
+        // * (4 - ppm->n_s) * (4 - ppm->n_s) //conversion factor between Gamma and delta_GW
+        * factor;
+    }
+
+    if (phr->has_tgwb == _TRUE_)
+    {
+      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_tgwb]=
+        primordial_pk[index_ic1_ic2]
+        * 0.5*(transfer_ic1_temp * transfer_ic2_gwb +
+               transfer_ic1_gwb * transfer_ic2_temp)
+        * factor;
+    }
 
     if (_scalars_ && (phr->has_dd == _TRUE_)) {
       index_ct=0;
