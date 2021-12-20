@@ -1760,8 +1760,6 @@ int perturbations_timesampling_for_sources(
                   pth->error_message,
                   ppt->error_message);
     }
-
-    fprintf(stderr,"source sampling for CMB would start at tau=%e, but with gwb it starts at tau_ini=%e\n",tau_ini,tau_ini_gwb);
   }
 
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:

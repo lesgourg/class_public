@@ -3744,8 +3744,6 @@ int transfer_can_be_neglected(
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_;
 
-    //else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_; //TODO_GWB: big influence
-
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*ra_rec)) *neglect = _TRUE_;
 
     else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*ra_rec)) *neglect = _TRUE_;
@@ -3800,10 +3798,6 @@ int transfer_late_source_can_be_neglected(
             (index_tt == ptr->index_tt_t2))
           *neglect = _TRUE_;
       }
-      //if (ppt->has_cl_gwb == _TRUE_) { //TODO_GW: big influence
-      //  if ((index_tt == ptr->index_tt_gwb1))
-      //    *neglect = _TRUE_;
-      //}
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         if (index_tt == ptr->index_tt_e)
           *neglect = _TRUE_;

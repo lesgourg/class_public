@@ -1687,6 +1687,7 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_cl_gwb = _TRUE_;
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
+      // class_type_parameter(evolver,int,enum evolver_type,rk) //TODO_GWB: Change evolver to rk automatically for GWB
     }
 
     /* Test */
@@ -1840,7 +1841,7 @@ int input_read_parameters_general(struct file_content * pfc,
                  "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','eisw','lisw','ini'}.",string1);
 
       /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
-      /* Read */ //TODO_GWB: leave it like this?
+      /* Read */
       class_read_double("early/late isw redshift",ppt->eisw_lisw_split_z); //Deprecated parameter
       class_read_double("early_late_isw_redshift",ppt->eisw_lisw_split_z);
     }
