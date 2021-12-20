@@ -539,7 +539,8 @@ int transfer_indices(
     class_define_index(ptr->index_tt_lensing,ppt->has_cl_lensing_potential,    index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_gwb0,    ppt->has_cl_gwb,                  index_tt,1);
     class_define_index(ptr->index_tt_gwb1,    ppt->has_cl_gwb,                  index_tt,1);
-    class_define_index(ptr->index_tt_gwb_ini0,ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb_sw  ,ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb_ini ,ppt->has_cl_gwb,                  index_tt,1);
 
     ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
@@ -974,7 +975,7 @@ int transfer_get_l_list(
           l_max=ppt->l_lss_max;
 
         if ((ppt->has_cl_gwb == _TRUE_) &&
-            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_ini0)))
+            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
           l_max=ppt->l_scalar_max;
 
       }
@@ -1410,8 +1411,11 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb1;
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini0))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb_ini0;
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) //TODO_GWB: what are these lines? Why do we need them?
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_phi;
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini))
+          tp_of_tt[index_md][index_tt]=0;
 
       }
 
@@ -1692,7 +1696,7 @@ int transfer_source_tau_size(
       *tau_size = ppt->tau_size;
     
     if ((ppt->has_cl_gwb == _TRUE_) &&
-        (index_tt == ptr->index_tt_gwb_ini0))
+        ((index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
       *tau_size = 1;
   }
 
@@ -2171,7 +2175,7 @@ int transfer_sources(
       redefine_source = _TRUE_;
 
     /* gravitational wave background */
-    if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini0))
+    if ((ppt->has_source_gwb == _TRUE_) && ((index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
       redefine_source = _TRUE_;
 
   }
@@ -2398,9 +2402,17 @@ int transfer_sources(
 
       /* GWB initial and SW contribution, only need initial time*/
 
-      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini0)) { //TODO_GWB: only copied from _nonintegrated_ncl_
-        /* copy from input array to output array */
-        sources[0] = 1; //TODO_GWB: get SW term at this position
+      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
+        /* source function for gwb sw term */
+        sources[0] = 1. * ppt->switch_gwb_sw; //TODO_GWB: get SW term at this position
+
+        /* store value of (tau0-tau) */
+        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+      }
+
+      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini)) {
+        /* source function for gwb initial term */
+        sources[0] = 1. * ppt->switch_gwb_ini;
 
         /* store value of (tau0-tau) */
         tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
@@ -3292,8 +3304,6 @@ int transfer_integrate(
   /** - --> trivial case: the source is a Dirac function and is sampled in only one point */
   if (ptw->tau_size == 1) {
 
-    // printf("Test index=%i, index_gwb=%i", index_tt, ptr->index_tt_gwb_ini0); //TODO_GWB: this should be the case for gwb_ini0
-
     class_call(transfer_radial_function(
                                         ptw,
                                         ppt,
@@ -4136,7 +4146,10 @@ int transfer_select_radial_function(
       if (index_tt == ptr->index_tt_gwb1) {
         *radial_type = SCALAR_TEMPERATURE_1;
       }
-      if (index_tt == ptr->index_tt_gwb_ini0) {
+      if (index_tt == ptr->index_tt_gwb_sw) {
+        *radial_type = SCALAR_TEMPERATURE_0;
+      }
+      if (index_tt == ptr->index_tt_gwb_ini) {
         *radial_type = SCALAR_TEMPERATURE_0;
       }
 
