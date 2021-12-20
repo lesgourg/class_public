@@ -1688,8 +1688,12 @@ int transfer_source_tau_size(
 
     /* scalar gwb */
     if ((ppt->has_cl_gwb == _TRUE_) &&
-        ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_ini0)))
+        ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1)))
       *tau_size = ppt->tau_size;
+    
+    if ((ppt->has_cl_gwb == _TRUE_) &&
+        (index_tt == ptr->index_tt_gwb_ini0))
+      *tau_size = 1;
   }
 
   /* tensor mode */
@@ -2166,6 +2170,10 @@ int transfer_sources(
     if (_nonintegrated_ncl_ || _integrated_ncl_)
       redefine_source = _TRUE_;
 
+    /* gravitational wave background */
+    if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini0))
+      redefine_source = _TRUE_;
+
   }
 
   /* conformal time today */
@@ -2387,6 +2395,16 @@ int transfer_sources(
         }
       }
       /* End integrated contributions */
+
+      /* GWB initial and SW contribution, only need initial time*/
+
+      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini0)) { //TODO_GWB: only copied from _nonintegrated_ncl_
+        /* copy from input array to output array */
+        sources[0] = 1; //TODO_GWB: get SW term at this position
+
+        /* store value of (tau0-tau) */
+        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+      }
     }
   }
 
@@ -3273,6 +3291,8 @@ int transfer_integrate(
 
   /** - --> trivial case: the source is a Dirac function and is sampled in only one point */
   if (ptw->tau_size == 1) {
+
+    // printf("Test index=%i, index_gwb=%i", index_tt, ptr->index_tt_gwb_ini0); //TODO_GWB: this should be the case for gwb_ini0
 
     class_call(transfer_radial_function(
                                         ptw,

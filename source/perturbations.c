@@ -7620,7 +7620,7 @@ int perturbations_sources(
         _set_source_(ppt->index_tp_gwb0) =
           switch_gwb_isw * 2.*pvecmetric[ppw->index_mt_phi_prime]; //TODO_GWB: implement SW
 
-        _set_source_(ppt->index_tp_gwb_ini0) = 0;
+        // _set_source_(ppt->index_tp_gwb_ini0) = 0;
 
         // if(index_tau == 0) { //SW effect
         if(tau == ppt->tau_ini_gwb) { //SW effect //TODO_GWB: works only if tau_ini_gwb is the initial computing time
@@ -7629,7 +7629,7 @@ int perturbations_sources(
             switch_gwb_isw * 2.*pvecmetric[ppw->index_mt_phi_prime]
             + ppt->switch_gwb_sw * y[ppw->pv->index_pt_phi];
 
-          _set_source_(ppt->index_tp_gwb_ini0) = 1;
+          // _set_source_(ppt->index_tp_gwb_ini0) = 1;
         }
 
         _set_source_(ppt->index_tp_gwb1) =

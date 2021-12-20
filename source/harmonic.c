@@ -1037,8 +1037,8 @@ int harmonic_compute_cl(
 
       if (_scalars_) {
 
-        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1];
-        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1];
+        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1] + transfer_ic1[ptr->index_tt_gwb_ini0];
+        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1] + transfer_ic1[ptr->index_tt_gwb_ini0];
 
       }
 
