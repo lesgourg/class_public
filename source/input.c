@@ -1687,7 +1687,6 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_cl_gwb = _TRUE_;
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
-      // class_type_parameter(evolver,int,enum evolver_type,rk) //TODO_GWB: Change evolver to rk automatically for GWB
     }
 
     /* Test */
@@ -4686,6 +4685,9 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
   /** 4) Gravitational Wave Background */
   if (ppt->has_cl_gwb == _TRUE_) {
+    //set evolover to rk
+    ppr->evolver = rk;
+
     /** initial time for GWB */
     /* Read */
     class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),

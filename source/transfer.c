@@ -2404,7 +2404,13 @@ int transfer_sources(
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
         /* source function for gwb sw term */
-        sources[0] = 1. * ppt->switch_gwb_sw; //TODO_GWB: get SW term at this position
+        if (ppt->gauge == newtonian) {
+          sources[0] = ppt->switch_gwb_sw * 2. / 3.; //TODO_GWB: phi(k, tau_ini)
+        }
+
+        if (ppt->gauge == synchronous) {
+          sources[0] = ppt->switch_gwb_sw * 1.; //TODO_GWB: ?
+        }
 
         /* store value of (tau0-tau) */
         tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
@@ -2412,7 +2418,7 @@ int transfer_sources(
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini)) {
         /* source function for gwb initial term */
-        sources[0] = 1. * ppt->switch_gwb_ini;
+        sources[0] = ppt->switch_gwb_ini * 1.;
 
         /* store value of (tau0-tau) */
         tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
