@@ -1265,6 +1265,10 @@ int perturbations_indices(
         ppt->has_source_phi_plus_psi = _TRUE_;
       }
 
+      if (ppt->has_cl_gwb == _TRUE_) { //TODO_GWB: Ok to implement like this?
+        ppt->has_source_phi = _TRUE_; //needed for SW term
+      }
+
       if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m)) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_m = _TRUE_;
@@ -1386,7 +1390,6 @@ int perturbations_indices(
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_gwb0,       ppt->has_source_gwb,       index_type,1);
       class_define_index(ppt->index_tp_gwb1,       ppt->has_source_gwb,       index_type,1);
-      class_define_index(ppt->index_tp_gwb_sw,     ppt->has_source_gwb,       index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
       class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_type,1);
@@ -7620,8 +7623,6 @@ int perturbations_sources(
 
         _set_source_(ppt->index_tp_gwb1) =
           switch_gwb_isw * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
-
-        _set_source_(ppt->index_tp_gwb_sw) = y[ppw->pv->index_pt_phi]; //TODO_GWB: only dirty fix and different result in different gauge
       }
 
 
@@ -7636,8 +7637,6 @@ int perturbations_sources(
           switch_gwb_isw * k * (pvecmetric[ppw->index_mt_alpha_prime]
                + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
                - y[ppw->pv->index_pt_eta]);
-
-        _set_source_(ppt->index_tp_gwb_sw) = y[ppw->pv->index_pt_phi];
       }
     }
 

@@ -1412,7 +1412,7 @@ int transfer_get_source_correspondence(
           tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb1;
 
         if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb_sw; //TODO_GWB: only dirty fix, use real ppt->index_tp_phi instead
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_phi;
 
         if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini))
           tp_of_tt[index_md][index_tt]=0; //dummy variable, unused
@@ -2405,14 +2405,6 @@ int transfer_sources(
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
         /* source function for gwb sw term */
         sources[0] = ppt->switch_gwb_sw * interpolated_sources[0]; //TODO_GWB: use correct index for ppt->tau_ini_gwb
-
-        // if (ppt->gauge == newtonian) { //TODO_GWB: different result for different gauge
-        //   sources[0] = ppt->switch_gwb_sw * interpolated_sources[0];
-        // }
-
-        // if (ppt->gauge == synchronous) {
-        //   sources[0] = ppt->switch_gwb_sw * interpolated_sources[0];
-        // }
 
         /* store value of (tau0-tau) */
         tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
