@@ -120,6 +120,8 @@ struct harmonic {
 
   //@}
 
+  double factor_gwb_ini_scalar; /**< propotionality factor between the initial GWB spectrum and the scalar spectrum */
+
   /** @name - technical parameters */
 
   //@{

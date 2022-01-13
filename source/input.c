@@ -4697,6 +4697,16 @@ int input_read_parameters_spectra(struct file_content * pfc,
     if (flag1==_TRUE_) {
       ppt->tau_ini_gwb = param1;
     }
+
+    /** 4.b) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+    /* Read */
+    class_call(parser_read_double(pfc,"factor_gwb_ini_scalar",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1==_TRUE_) {
+      phr->factor_gwb_ini_scalar = param1;
+    }
   }
 
   return _SUCCESS_;
@@ -5786,6 +5796,8 @@ int input_default_params(struct background *pba,
   /** 4) Gravitational Wave Background */
   /** 4.a) inital time for GWB */
   ppt->tau_ini_gwb=0.1;
+    /** 4.b) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+  phr->factor_gwb_ini_scalar=0.;
 
   /**
    * Default to input_read_parameters_lensing

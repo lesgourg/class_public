@@ -1040,8 +1040,10 @@ int harmonic_compute_cl(
         // transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1] + transfer_ic1[ptr->index_tt_gwb_sw]; //TODO_GWB: inital term
         // transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1] + transfer_ic2[ptr->index_tt_gwb_sw];
 
-        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1] + transfer_ic1[ptr->index_tt_gwb_sw] + transfer_ic1[ptr->index_tt_gwb_ini];
-        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1] + transfer_ic2[ptr->index_tt_gwb_sw] + transfer_ic2[ptr->index_tt_gwb_ini];
+        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1] + transfer_ic1[ptr->index_tt_gwb_sw]
+          + phr->factor_gwb_ini_scalar * transfer_ic1[ptr->index_tt_gwb_ini];
+        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1] + transfer_ic2[ptr->index_tt_gwb_sw]
+          + phr->factor_gwb_ini_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
 
       }
 
