@@ -2403,11 +2403,24 @@ int transfer_sources(
       /* GWB initial and SW contribution, only need initial time*/
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
+        
+        /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
+        class_call(array_search_bisect(ppt->tau_size,
+                                       ppt->tau_sampling,
+                                       ppt->tau_ini_gwb,
+                                       &index_tau, //TODO_GWB: ok like this, or make it a global parameter as it is the same for all index_q?
+                                       ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
+
+        if ((ptr->transfer_verbose>1) && (index_q == 0))
+          printf("Index for tau_ini_gwb: index_tau=%d, tau_ini_gwb=%e, tau[index_tau]=%e \n", index_tau, ppt->tau_ini_gwb, ppt->tau_sampling[index_tau]);
+
         /* source function for gwb sw term */
-        sources[0] = ppt->switch_gwb_sw * interpolated_sources[0]; //TODO_GWB: use correct index for ppt->tau_ini_gwb
+        sources[0] = ppt->switch_gwb_sw * interpolated_sources[index_tau];
 
         /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb; //TODO_GWB: is it more consistent to use tau_sampling[index_tau] instead of tau_ini_gwb?
       }
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini)) {
