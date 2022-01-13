@@ -415,6 +415,7 @@ extern "C" {
                                     struct transfer * ptr,
                                     struct harmonic * phr,
                                     struct output * pop,
+                                    int input_verbose,
                                     ErrorMsg errmsg);
 
   int input_read_parameters_lensing(struct file_content * pfc,

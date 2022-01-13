@@ -1556,6 +1556,7 @@ int input_read_parameters(struct file_content * pfc,
 
   /** Read parameters for spectra quantities */
   class_call(input_read_parameters_spectra(pfc,ppr,pba,ppm,ppt,ptr,phr,pop,
+                                           input_verbose,
                                            errmsg),
              errmsg,
              errmsg);
@@ -4372,6 +4373,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                                   struct transfer * ptr,
                                   struct harmonic *phr,
                                   struct output * pop,
+                                  int input_verbose,
                                   ErrorMsg errmsg){
 
   /** Summary: */
@@ -4687,6 +4689,9 @@ int input_read_parameters_spectra(struct file_content * pfc,
   if (ppt->has_cl_gwb == _TRUE_) {
     //set evolover to rk
     ppr->evolver = rk;
+    if (input_verbose > 1) {
+      fprintf(stdout,"The evolver is changed to 'rk' because the GWB is requested\n");
+    }
 
     /** initial time for GWB */
     /* Read */

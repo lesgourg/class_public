@@ -1731,20 +1731,15 @@ int perturbations_timesampling_for_sources(
 
   if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: Okay to implement in this way?
 
-    // /* check the time corresponding to the highest redshift requested in output plus one */
-    // class_call(background_tau_of_z(pba,
-    //                                ppt->z_max_pk+1,
-    //                                &tau_ini_gwb),
-    //            pba->error_message,
-    //            ppt->error_message);
-
     tau_ini_gwb = ppt->tau_ini_gwb;
 
-    /* obsolete: previous choice was to start always at recombination time */
-    /* tau_ini = pth->tau_rec; */
-
-    /* set values of first_index_back/thermo */
     if (tau_ini_gwb < tau_ini) {
+
+      if (ppt->perturbations_verbose > 1) {
+        printf("tau_ini_gwb=%e < tau_ini=%e, so the evolution starts at tau_ini_gwb=%e \n", tau_ini_gwb, tau_ini, tau_ini_gwb);
+      }
+
+      /* set values of first_index_back/thermo */
       class_call(background_at_tau(pba,
                                     tau_ini_gwb,
                                     short_info,
@@ -1763,6 +1758,13 @@ int perturbations_timesampling_for_sources(
                                       pvecthermo),
                   pth->error_message,
                   ppt->error_message);
+    }
+    else {
+
+      if (ppt->perturbations_verbose > 1) {
+        printf("tau_ini_gwb=%e > tau_ini=%e, so the evolution starts at tau_ini=%e \n", tau_ini_gwb, tau_ini, tau_ini);
+      }
+
     }
   }
 
