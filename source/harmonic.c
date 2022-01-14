@@ -1042,6 +1042,11 @@ int harmonic_compute_cl(
         transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1] + transfer_ic2[ptr->index_tt_gwb_sw]
           + phr->factor_gwb_ini_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
 
+        if (phr->convert_gwb_to_energydensity == _TRUE_) { //TODO_GWB: implement in a more general way
+          transfer_ic1_gwb *= (4 - ppm->n_t);
+          transfer_ic2_gwb *= (4 - ppm->n_t);
+        }
+
       }
 
     }
@@ -1146,7 +1151,6 @@ int harmonic_compute_cl(
         primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
         * transfer_ic1_gwb
         * transfer_ic2_gwb
-        // * (4 - ppm->n_s) * (4 - ppm->n_s) //conversion factor between Gamma and delta_GW
         * factor;
     }
 

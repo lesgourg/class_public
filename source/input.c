@@ -4693,7 +4693,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
       fprintf(stdout,"The evolver is changed to 'rk' because the GWB is requested\n");
     }
 
-    /** initial time for GWB */
+    /** 4.a) initial time for GWB */
     /* Read */
     class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
                errmsg,
@@ -4711,6 +4711,17 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
     if (flag1==_TRUE_) {
       phr->factor_gwb_ini_scalar = param1;
+    }
+
+    /** 4.c) Convert GWB to energy density  */
+    /* Read */
+    flag1 = _FALSE_;
+    class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
+    phr->convert_gwb_to_energydensity = flag1;
+    if ((phr->convert_gwb_to_energydensity) && (ppm->primordial_spec_type != analytic_Pk))
+      fprintf(stdout,"WARNING: The option 'convert_gwb_to_energydensity = yes' only works with 'Pk_ini_type = analytik_Pk' at the moment!\n"); //TODO_GWB: implement in a more general way
+    if ((input_verbose > 1) && (phr->convert_gwb_to_energydensity == _TRUE_)) {
+      fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with (4 - n_t), n_t = %e\n", ppm->n_t);
     }
   }
 
@@ -5801,8 +5812,10 @@ int input_default_params(struct background *pba,
   /** 4) Gravitational Wave Background */
   /** 4.a) inital time for GWB */
   ppt->tau_ini_gwb=0.1;
-    /** 4.b) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+  /** 4.b) propotrionality factor between inital GWB spectrum and scalar spectrum  */
   phr->factor_gwb_ini_scalar=0.;
+  /** 4.c) Convert GWB to energy density */
+  phr->convert_gwb_to_energydensity=_FALSE_;
 
   /**
    * Default to input_read_parameters_lensing
