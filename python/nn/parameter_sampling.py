@@ -83,61 +83,57 @@ class EllipsoidDomain(ParamDomain):
 
         print("lhs took {}s".format(elapsed))
         samples = lower[None, :] + samples * (upper - lower)[None, :]
-        print("samples.shape", samples.shape)
-
-        DISABLE_OMEGA_K = False
-        if DISABLE_OMEGA_K:
-            # !!!!! TODO DANGER !!!!!!
-            # MAKE SURE THIS IS NOT ENABLED!
-            # !!!!! TODO DANGER !!!!!!
-            samples[:, self.index("Omega_k")] = 0.0
-            self.best_fit[self.index("Omega_k")] = 0.0
-            ndf = self.ndf - 1
-        else:
-            ndf = self.ndf
 
         inside_ellipsoid = is_inside_ellipsoid(
             self.inv_covmat,
             samples, self.best_fit,
-            ndf, sigma)
+            self.ndf, sigma)
+
         ratio_inside = inside_ellipsoid.sum() / len(samples)
         print("fraction of points inside ellipsoid:", ratio_inside)
 
-        tau_large_enough = samples[:, self.index("tau_reio")] > 0.004
-        count_tau = tau_large_enough.sum()
-        ratio_tau = count_tau / len(samples)
-        print("fraction of kept points (tau_reio only):", ratio_tau)
+        # eff_mask will allow 
+        eff_mask = np.array(ratio_inside,dtype=np.bool)
 
-        N_ur_positive = samples[:, self.index("N_ur")] > 0
-        ratio_N_ur = N_ur_positive.sum() / len(samples)
-        print("fraction of kept points (N_ur only):", ratio_N_ur)
+        if "tau_reio" in self.pnames:
+            tau_large_enough = samples[:, self.index("tau_reio")] > 0.004
+            count_tau = tau_large_enough.sum()
+            ratio_tau = count_tau / len(samples)
+            eff_mask = eff_mask & tau_large_enough
+            print("fraction of kept points (tau_reio only):", ratio_tau)
+        
+        if "N_ur" in self.pnames:
+            N_ur_positive = samples[:, self.index("N_ur")] > 0
+            ratio_N_ur = N_ur_positive.sum() / len(samples)
+            eff_mask = eff_mask & N_ur_positive
+            print("fraction of kept points (N_ur only):", ratio_N_ur)
 
-        omega_ncdm_large_enough = samples[:, self.index("omega_ncdm")] > OMEGA_NCDM_MIN
-        ratio_ncdm = omega_ncdm_large_enough.sum() / len(samples)
-        print("fraction of kept points (omega_ncdm only):", ratio_ncdm)
+        if "omega_ncdm" in self.pnames:
+            omega_ncdm_large_enough = samples[:, self.index("omega_ncdm")] > OMEGA_NCDM_MIN
+            ratio_ncdm = omega_ncdm_large_enough.sum() / len(samples)
+            eff_mask = eff_mask & omega_ncdm_large_enough
+            print("fraction of kept points (omega_ncdm only):", ratio_ncdm)
 
-        fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < -1./3.
-        count_fld = fld_consistent.sum()
-        ratio_fld = count_fld / len(samples)
-        print("fraction of kept points (fld only):", ratio_fld)
+        if "w0_fld" in self.pnames:
+            fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < 0.
+            count_fld = fld_consistent.sum()
+            ratio_fld = count_fld / len(samples)
+            eff_mask = eff_mask & fld_consistent
+            print("fraction of kept points (fld only):", ratio_fld)
 
-        # wa_bound = samples[:, self.index("wa_fld")] <= 0.0
-        # count_wa = wa_bound.sum()
-        # ratio_wa = count_wa / len(samples)
-        # print("fraction of kept points (wa < 0 only):", ratio_wa)
-        # inside_mask = inside_ellipsoid & tau_large_enough & fld_consistent & omega_ncdm_large_enough & wa_bound
+        if False:
+            samples[:, self.index("w0_fld")]=-1.0
+            samples[:, self.index("wa_fld")]=0.0
+            samples[:, self.index("N_ur")]=0.00641
+            samples[:, self.index("omega_ncdm")]=0.06/93.14
+            samples[:, self.index("Omega_k")]=0.0
 
-        inside_mask = inside_ellipsoid \
-            & tau_large_enough \
-            & fld_consistent \
-            & omega_ncdm_large_enough \
-            & N_ur_positive
-        count_inside = inside_mask.sum()
+        count_inside = eff_mask.sum()
         ratio_inside = count_inside / len(samples)
         print("count_inside:", count_inside)
         print("fraction of kept points:", ratio_inside)
 
-        samples = samples[inside_mask]
+        samples = samples[eff_mask]
 
         return samples
 
@@ -162,18 +158,23 @@ class EllipsoidDomain(ParamDomain):
         NOTE: this assumes that all network parameters (i.e. all of self.pnames)
         are present in parameters.
         """
-        if parameters["tau_reio"] <= 0.004:
-            return False, 1001
-        if parameters["w0_fld"] + parameters["wa_fld"] > 0:
-            return False, 1002
-        if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
-            return False, 1003
-        if parameters["N_ur"]<0:
-            return False, 1004
+        if "tau_reio" in parameters.keys():
+            if parameters["tau_reio"] <= 0.004:
+                return False, 1001
+        if "w0_fld" in parameters.keys():
+            if parameters["w0_fld"] + parameters["wa_fld"] > 0:
+                return False, 1002
+        if "omega_ncdm" in parameters.keys():
+            if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
+                return False, 1003
+        if "N_ur" in parameters.keys():
+            if parameters["N_ur"]<0:
+                return False, 1004
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
         sigma = self.sigma_validate if validate else self.sigma_train
         inside, delta_chi2 = is_inside_ellipsoid(self.inv_covmat, cosmo_params,
                                      self.best_fit, self.ndf, sigma, return_delta_chi2=True)
+
         return inside[0], delta_chi2[0]
 
     def save(self, path):
@@ -283,7 +284,7 @@ class DefaultParamDomain(ParamDomain):
         ratio_tau = count_tau / len(samples)
         print("fraction of kept points (tau_reio only):", ratio_tau)
 
-        fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < -1./3.
+        fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < 0.
         count_fld = fld_consistent.sum()
         ratio_fld = count_fld / len(samples)
         print("fraction of kept points (fld only):", ratio_fld)
@@ -380,7 +381,8 @@ def is_inside_ellipsoid(inv_covmat, params, bestfit, df, sigma, return_delta_chi
     df: float
     sigma: float
     """
-    delta_chi2 = get_delta_chi2(df, sigma)
+    #return([True],[0])
+    delta_chi2 = get_delta_chi2(df, sigma)*1000
     d = params - bestfit
     if return_delta_chi2 == False:
         return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2
