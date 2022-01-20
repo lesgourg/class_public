@@ -34,8 +34,7 @@ class BasePredictor:
         self.reset_times()
 
     def reset_cache(self):
-        self.raw_cache = {}
-        self.transformed_cache = {}
+        self.cache = {}
 
     def reset_times(self):
         # NOTE: use explicit initializiation instead of defaultdict
@@ -47,6 +46,7 @@ class BasePredictor:
             "neural network evaluation":            0.0,
             "neural network input transformation":  0.0,
             "neural network output transformation": 0.0,
+            "save source function in cache": 0.0,
         }
         self.time_prediction_per_network = {}
 
@@ -107,7 +107,7 @@ class BasePredictor:
         start_predict = perf_counter()
         result, raw_inputs = self._predict(quantity, tau, provider, cache)
         k_min_class = self.cosmo.k_min()
-
+        
         # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
         # OTHERWISE BAD THINGS WILL HAPPEN!!!
         k_min_idx = lowest_k_index(self.k, k_min_class)
@@ -115,7 +115,6 @@ class BasePredictor:
 
         # t = (k_min_class - self.k[k_min_idx]) / (self.k[k_min_idx + 1] - self.k[k_min_idx])
         # left = result[k_min_idx] * (1.0 - t) + result[k_min_idx + 1] * t
-
         z = np.polyfit(self.k[k_min_idx:k_min_idx+3], result[k_min_idx:k_min_idx+3], deg=2)
         left = z[2] + z[1] * k_min_class + z[0] * k_min_class**2
 
@@ -123,13 +122,13 @@ class BasePredictor:
         result = np.concatenate((left[None, :], right), axis=0)
 
         k = self.get_k()
-
         # here we handle the special case of delta_m by fitting the (k s_2)^2 factor
         # for low values of k, i.e. delta_m = p * (k s_2)^2
-
         if quantity == "delta_m":
             S = result
-            assert S.shape == (len(k), len(tau))
+            if S.shape != (len(k), len(tau)):
+                print("SHAPE does not fit")
+                raise AssertionError
             #print("INFO: delta_m")
             k_th = 5e-4
             fit_mask = (k > k_th) & (k < 1e-3)
@@ -152,11 +151,13 @@ class BasePredictor:
             # plt.grid()
             # plt.show()
 
-            result[k < k_th] = replacement
+            #result[k < k_th] = replacement
         
         elif quantity == "delta_cb":
             S = result
-            assert S.shape == (len(k), len(tau))
+            if S.shape != (len(k), len(tau)):
+                print("SHAPE does not fit")
+                raise AssertionError
             #print("INFO: delta_m")
             k_th = 5e-4
             fit_mask = (k > k_th) & (k < 1e-3)
@@ -179,7 +180,7 @@ class BasePredictor:
             # plt.grid()
             # plt.show()
 
-            result[k < k_th] = replacement
+            #result[k < k_th] = replacement
 
 
 
@@ -340,6 +341,20 @@ class TreePredictor(BasePredictor):
         if self.verbose:
             print(*args, **kwargs)
 
+    def update_predictor(self, cosmo):
+        """
+        If we reuse the predictor instance we need to reload the classy.Class instance to get the updated values.
+        """
+        # Update cosmo instance
+        self.cosmo = cosmo
+
+        # Clean Cache and reset times
+        self.reset_cache()
+        self.reset_times()
+
+        # If the workspace or evaluation models did change we need to reload k-array, transformation and models!
+        # [SG]: TODO
+
     def _all_network_input_names(self):
         from itertools import chain
         return set(chain(*(mod.required_inputs() for mod in self.models.values())))
@@ -454,13 +469,16 @@ class TreePredictor(BasePredictor):
             S = self.untransform(quantity, S_t, raw_inputs)
         self.times["neural network output transformation"] += perf_counter() - start_output
 
+        save_cache = perf_counter()
         self.cache[quantity] = (S, raw_inputs)
+        self.times["save source function in cache"] += perf_counter() - save_cache
+
         return S, raw_inputs
 
     def _predict_from_combine(self, quantity, cosmo, tau, provider, cache):
         assert quantity not in self.models
-        parents, combine, pass_cosmo = self.rules[quantity]
 
+        parents, combine, pass_cosmo = self.rules[quantity]
         contributions = []
         raw_inputs = {}
         self.log("Computing {} as combination of {}.".format(quantity, parents))
@@ -503,7 +521,6 @@ class Timer:
 def build_predictor(cosmo, device_name="cpu"):
     timer = Timer()
     timer.start("all")
-
     timer.start("cosmo.nn_workspace()")
     workspace = cosmo.nn_workspace()
     timer.end("cosmo.nn_workspace()")
@@ -535,7 +552,7 @@ def build_predictor(cosmo, device_name="cpu"):
     timer.end("build predictor")
 
     timer.end("all")
-    #timer.pprint()
+    timer.pprint()
 
     return predictor
 

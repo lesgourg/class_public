@@ -215,6 +215,7 @@ cdef class Class:
     cdef c_linked_list module_list
 
     cpdef bint use_NN
+    cpdef bint pred_init
     cpdef object predictor
 
     # Defining two new properties to recover, respectively, the parameters used
@@ -243,6 +244,7 @@ cdef class Class:
         cpdef char* dumc
         self.allocated = False
         self.use_NN = False
+        self.pred_init = False
         self.computed = False
         self._pars = {}
         self.fc.size=0
@@ -291,8 +293,11 @@ cdef class Class:
         Also checks the 'nn_verbose' parameter to determine how much information 
         to print about the usage of neural networks.
         """
+        if "use_nn" in self.pars:
+            if self.pars["use_nn"]==False:
+                return
         if not "neural network path" in self._pars:
-            return False
+                raise ValueError("use_nn is True but no neural network path is not provided!")
         elif "neural network path" in self.pars:
             using_nn = self.can_use_nn()
             if "nn_verbose" in self.pars:
@@ -336,6 +341,11 @@ cdef class Class:
 
     def can_use_nn(self):
         """ may only be called if neural networks are enabled """
+
+        # first check whether a neural network path is given
+        if not "neural network path" in self._pars:
+            return False
+        
         workspace = self.nn_workspace()
         domain = workspace.loader().domain_descriptor()
         using_nn, self.pt.network_deltachisquared = domain.contains(self._pars)
@@ -626,7 +636,7 @@ cdef class Class:
             problematic_parameters = []
             # GS: added this because neural network arguments are not relevant
             # to the C code.
-            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug","nn_verbose"])
+            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug","nn_verbose","use_nn"])
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
                     name = self.fc.name[i].decode()
@@ -695,7 +705,6 @@ cdef class Class:
 
 
             # Allocate memory for ALL source functions (since transfer.c iterates over them)
-
             use_nn = self.use_nn()
 
             if use_nn and not self.nn_cheat_enabled():
@@ -786,11 +795,18 @@ cdef class Class:
                 timer.end("neural network initialization")
 
                 timer.start("get all sources")
-                timer.start("build predictor")
-                predictor = classynet.predictors.build_predictor(self)
-                timer.end("build predictor")
+                timer.start("update predictor")
+
+                # Check whether the predictor has been already build, otherwise build it now. If it already has been build, the cosmo parameter have to be updated!
+                if self.pred_init==False:
+                    self.predictor = classynet.predictors.build_predictor(self)
+                    self.pred_init = True
+                else:
+                    self.predictor.update_predictor(self)
+
+                timer.end("update predictor")
                 timer.start("predictor.predict_many")
-                k_NN, NN_prediction = predictor.predict_many(source_names, np.asarray(tau_CLASS))
+                k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS))
                 timer.end("predictor.predict_many")
                 timer.end("get all sources")
 
@@ -873,10 +889,10 @@ cdef class Class:
                     self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
                 timer.end("allocate unused source functions")
 
-                for key, value in predictor.times.items():
+                for key, value in self.predictor.times.items():
                     timer[key] = value
 
-                for key, value in predictor.time_prediction_per_network.items():
+                for key, value in self.predictor.time_prediction_per_network.items():
                     timer["indiv. network: '{}'".format(key)] = value
 
                 timer.start("overwrite source functions")
@@ -1023,7 +1039,7 @@ cdef class Class:
         #print(self.ncp)
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
-        return
+        return 
 
     def raw_cl(self, lmax=-1, nofail=False):
         """
