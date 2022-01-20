@@ -1,10 +1,10 @@
 import random
 import json
 import os
-
+import sys
 import classy
 
-import classynet.utils
+import classynet.utils as utils
 
 class BenchmarkRunner:
 
@@ -19,17 +19,18 @@ class BenchmarkRunner:
         settings_actual = self._load_params(self.iterations)
 
         print("running benchmark for {} threads".format(self.nthreads))
+        cosmo = classy.Class()
 
         # warmup
         print("running CLASS {} times (warmup)".format(self.warmup))
-        self._run_benchmark(settings_warmup)
+        self._run_benchmark(cosmo,settings_warmup)
         print()
-        print("FINISHED WARMUUP")
+        print("FINISHED WARMUP")
         print()
 
         # actual run
         print("running CLASS {} times (benchmark)".format(self.iterations))
-        no_nn, nn = self._run_benchmark(settings_actual)
+        no_nn, nn = self._run_benchmark(cosmo,settings_actual)
         result = {"nn": nn, "no_nn": no_nn}
 
         self._save_results(result)
@@ -48,29 +49,30 @@ class BenchmarkRunner:
             result.append(p)
         return result
 
-    def _run_benchmark(self, list_of_settings):
+    def _run_benchmark(self, cosmo, list_of_settings):
         if os.environ.get("OMP_NUM_THREADS") != str(self.nthreads):
             raise ValueError("BenchmarkRunner constructed with nthreads={}, but OMP_NUM_THREADS is {} instead!".format(
                 self.nthreads, os.environ.get("OMP_NUM_THREADS")))
 
-        def run(use_nn):
-            return [self.run_class(settings, use_nn=use_nn) for settings in list_of_settings]
+        def run(use_nn, cosmo):
+            if use_nn:
+                print("USING NEURAL NETWORKS!")
+                cosmo.set({"use_nn": True})
+                cosmo.set({"neural network path": self.workspace})
+            else:
+                cosmo.set({"use_nn": False})
+
+            return [self.run_class(cosmo,settings, use_nn=use_nn) for settings in list_of_settings]
 
         self._show_msg("performing run WITHOUT neural networks")
-        without_nn = run(False)
-        print()
+        without_nn = run(False,cosmo) # [SG]: Change dis
         self._show_msg("performing run WITH neural networks")
-        with_nn    = run(True)
+        with_nn    = run(True,cosmo)
 
         return without_nn, with_nn
 
-    def run_class(self, params, use_nn=False, verbose=0):
-        cosmo = classy.Class()
+    def run_class(self, cosmo, params, use_nn=False, verbose=0):
         cosmo.set(params)
-        if use_nn:
-            if verbose>0:
-                print("USING NEURAL NETWORKS!")
-            cosmo.set({"neural network path": self.workspace})
         timings = {}
         cosmo.compute(level=["perturb"], performance_report=timings)
         cosmo.struct_cleanup()

@@ -6,11 +6,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class BenchmarkPlotter:
-    def __init__(self, workspace):
+    def __init__(self, workspace, plotting_style = 'latex'):
         self.workspace = workspace
+        self.print_titles = True
+
+        if plotting_style == 'latex':
+            from matplotlib import rc
+            rc('font', **{'family': 'serif', 'serif': ['Computer Modern'], 'size': 12})
+            rc('text', usetex=True)
+            self.print_titles = False
+        else:
+            pass
 
     def plot_all(self):
-        pass
+        # load data
+        df_no_nn, df_nn = self._load_data()
+
+        self.plot_perturbation_module()
+        self.plot_absolute_perturb_time(df_no_nn, df_nn)
+        self.plot_perturb_fraction(df_no_nn, df_nn)
+        self.plot_perturb_speedup(df_no_nn, df_nn)
+        self.plot_perturb_contributions(df_no_nn, df_nn)
+
+        # plotting completed
+
+
+
 
     def plot_perturbation_module(self):
         df_no_nn, df_nn = self._load_data()
@@ -28,24 +49,23 @@ class BenchmarkPlotter:
     def plot_absolute_perturb_time(self, df_no_nn, df_nn):
         """
         create bar plots that show the absolute time spent in the perturbation
-        module for both CLASS and CLASSnet as a function of the thread number.
+        module for both Class and ClassNet as a function of the thread number.
         """
         df_perturb = pd.DataFrame({
-            "CLASS":    df_no_nn.perturb,
-            "CLASSnet": df_nn.perturb
+            "Class":    df_no_nn.perturb,
+            "ClassNet": df_nn.perturb
         })
 
         df_perturb.plot.bar(rot=0)
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
         plt.gca().set_yscale("log")
-        plt.title("Time spent in Perturbation Module")
+        if self.print_titles:
+            plt.title("Time spent in Perturbation Module")
         plt.ylabel("time (s)")
         plt.xlabel("number of threads")
 
         # NOTE: matplotlib plots vs. the INDEX of the bin, i.e. starting at 0 for threads = 1!
-        plt.plot(list(df_perturb["CLASS"]), color="k")
-        plt.scatter([1], [18])
         self._savefig("perturb_abs_time")
         plt.close()
 
@@ -53,17 +73,18 @@ class BenchmarkPlotter:
         """
         create a bar char showing the fraction of the time that is spent inside
         the perturbation module as a function of the number of threads for
-        CLASS and CLASSnet.
+        Class and ClassNet.
         """
         df_fraction = pd.DataFrame({
-            "CLASS":    100 * df_no_nn.perturb / df_no_nn.compute,
-            "CLASSnet": 100 * df_nn.perturb / df_nn.compute,
+            "Class":    100 * df_no_nn.perturb / df_no_nn.compute,
+            "ClassNet": 100 * df_nn.perturb / df_nn.compute,
         })
 
         df_fraction.plot.bar(rot=0)
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
-        plt.title("Fraction of Run Time spent in Perturbation Module")
+        if self.print_titles:
+            plt.title("Fraction of Run Time spent in Perturbation Module")
         plt.ylabel("%")
         plt.xlabel("number of threads")
         self._savefig("perturb_time_fraction")
@@ -72,16 +93,17 @@ class BenchmarkPlotter:
     def plot_perturb_speedup(self, df_no_nn, df_nn):
         """
         create a bar char showing the speedup of the perturbation module (i.e.
-        the ratio `time(CLASS) / time(CLASSnet) - 1`.
+        the ratio `time(Class) / time(ClassNet) - 1`.
         """
         df_speedup = pd.DataFrame({
-            "CLASSnet": df_no_nn.perturb / df_nn.perturb - 1,
+            "ClassNet": df_no_nn.perturb / df_nn.perturb - 1,
         })
 
         df_speedup.plot.bar(rot=0)
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
-        plt.title("Speedup (time(CLASS) / time(CLASSnet) - 1)")
+        if self.print_titles:
+            plt.title("speedup (time(Class) / time(ClassNet) - 1)")
         plt.xlabel("number of threads")
         plt.gca().get_legend().remove()
         self._savefig("perturb_speedup")
@@ -106,14 +128,14 @@ class BenchmarkPlotter:
         subtract_fields = network_fields + [
             "neural network input transformation",
             "neural network output transformation",
-            "build predictor",
+            "update predictor",
         ]
         df_nn["predict overhead"] = df_nn["get all sources"] - df_nn[subtract_fields].sum(axis=1)
 
         fields_start = [
             "perturb_init",
             "neural network input transformation",
-            "build predictor",
+            "update predictor",
             "predict overhead"
         ]
         fields_end = ["neural network output transformation", "overwrite source functions"]
@@ -134,13 +156,13 @@ class BenchmarkPlotter:
         replacements = {
             "neural network output transformation": "output processing",
             "neural network input transformation": "input processing",
-            "t0_reco_no_isw": r"$S_{T_0}^{\mathrm{rec, no ISW}}$",
-            "t0_reio_no_isw": r"$S_{T_0}^{\mathrm{reio, no ISW}}$",
-            "t0_isw": r"$S_{T_0}^{\mathrm{ISW}}$",
+            "t0_reco_no_isw": r"$S_{T_0,\mathrm{reco}}$",
+            "t0_reio_no_isw": r"$S_{T_0,\mathrm{reio}}$",
+            "t0_isw": r"$S_{T_0,\mathrm{ISW}}$",
             "t1": r"$S_{T_1}$",
-            "t2_reco": r"$S_{T_2}^{\mathrm{rec}}$",
-            "t2_reio": r"$S_{T_2}^{\mathrm{reio}}$",
-            "('phi_plus_psi', 'delta_m')": "$(\phi+\psi),\delta_m$",
+            "t2_reco": r"$S_{T_2,\mathrm{reco}}$",
+            "t2_reio": r"$S_{T_2,\mathrm{reio}}$",
+            "('phi_plus_psi', 'delta_m', 'delta_cb')": r"$S_{\phi+\psi},S_{\delta_m},S_{\delta_{cb}}$",
         }
         for name in df_comp.columns:
             match = pat.match(name)
@@ -154,21 +176,17 @@ class BenchmarkPlotter:
 
 
         # create enough unique colors
-        color_indices = np.linspace(0, 1, len(df_comp.columns))
-        colors = plt.cm.gist_rainbow(color_indices)
-
-        df_comp.plot.bar(stacked=True, rot=0, color=colors)
+        df_comp.plot.bar(stacked=True, rot=0, colormap='tab20')
         min_key = min(df_comp.index)
         # make some room for legend at top
-        plt.gca().set_ylim(0, 1.8 * df_comp.sum(axis=1).loc[min_key])
+        plt.gca().set_ylim(0, 2 * df_comp.sum(axis=1).loc[min_key])
         plt.gca().legend(labels, ncol=2, mode="expand")
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
-        plt.scatter(list(range(len(df_nn.perturb))), list(df_nn.perturb), c="r", marker="o")
-        # plt.plot(list(df_nn.perturb), ls="--", c="r", marker="o")
-        plt.xlabel("Number of threads (OMP_NUM_THREADS)")
-        plt.title("Contributions to Perturbation Module")
-        plt.ylabel("Time (s)")
+        plt.xlabel("number of threads")
+        if self.print_titles:
+            plt.title("contributions to Perturbation Module")
+        plt.ylabel("time (s)")
         plt.tight_layout()
         self._savefig("time_per_step_and_network")
 
@@ -212,7 +230,6 @@ class BenchmarkPlotter:
 
         df_no_nn = convert_to_df("no_nn")
         df_nn = convert_to_df("nn")
-        print(df_nn)
 
         return df_no_nn, df_nn
 
