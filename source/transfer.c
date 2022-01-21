@@ -2414,7 +2414,7 @@ int transfer_sources(
                    ptr->error_message);
 
         if ((ptr->transfer_verbose>1) && (index_q == 0))
-          printf("Index for tau_ini_gwb: index_tau=%d, tau_ini_gwb=%e, tau[index_tau]=%e \n", index_tau, ppt->tau_ini_gwb, ppt->tau_sampling[index_tau]);
+          printf("Index for tau_ini_gwb: index_tau=%d, tau_ini_gwb=%e, tau[index_tau]=%e, tau0=%e, phi=%e\n", index_tau, ppt->tau_ini_gwb, ppt->tau_sampling[index_tau], tau0, interpolated_sources[index_tau]);
 
         /* source function for gwb sw term */
         sources[0] = ppt->switch_gwb_sw * interpolated_sources[index_tau];

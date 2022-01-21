@@ -1152,6 +1152,19 @@ int harmonic_compute_cl(
         * transfer_ic1_gwb
         * transfer_ic2_gwb
         * factor;
+      
+      if (phr->harmonic_verbose > 2) { //TODO_GWB: only for testing purpose - remove!
+        if ((index_l == 0) && (index_q == 0)) {
+            printf("# index_l, index_q, l, q, k, p(k), transfer1, transfer2, integrant\n");
+        }
+
+        if ((index_l%1 == 0) && (index_q%1 == 0)) {
+          printf("%i, %i, %i, %e, %e,  %e, %e, %e,  %e \n",
+                  index_l, index_q, ptr->l[index_l], ptr->q[index_q], k,
+                  primordial_pk[index_ic1_ic2], transfer_ic1_gwb, transfer_ic2_gwb,
+                  cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]);
+        }
+      }
     }
 
     if (phr->has_tgwb == _TRUE_)
