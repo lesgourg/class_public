@@ -7615,7 +7615,12 @@ int perturbations_sources(
         switch_gwb_isw = 0;
       }
       if ((ppt->switch_gwb_lisw == 0) && (z < ppt->eisw_lisw_split_z)) {
-        switch_gwb_isw=0;
+        switch_gwb_isw = 0;
+      }
+
+      //GWB ISW only start after tau_ini_gwb //TODO_GWB: Ok like this?
+      if (tau < ppt->tau_ini_gwb) {
+        switch_gwb_isw = 0;
       }
 
       if (ppt->gauge == newtonian) {
