@@ -2238,6 +2238,13 @@ int perturbations_get_k_list(
         k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redshift instead of comoving radius: would implement corrections depending on curvature
         k_max    = k_max_cl[ppt->index_md_scalars];
       }
+
+      //TODO_GWB: If GWB is needed, we have to impose an even stronger condition! - First hardwired test: CMB*10
+      if (ppt->has_cl_gwb == _TRUE_) {
+        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],
+          ppr->k_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age/pth->angular_rescaling * 10.0);
+        k_max    = k_max_cl[ppt->index_md_scalars];
+      }
     }
 
     /* find k_max: */
