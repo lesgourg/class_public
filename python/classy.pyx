@@ -293,9 +293,11 @@ cdef class Class:
         Also checks the 'nn_verbose' parameter to determine how much information 
         to print about the usage of neural networks.
         """
-        if "use_nn" in self.pars:
+        if not "use_nn" in self.pars:
+            return False
+        else:
             if self.pars["use_nn"]==False:
-                return
+                return False
         if not "neural network path" in self._pars:
                 raise ValueError("use_nn is True but no neural network path is not provided!")
         elif "neural network path" in self.pars:
@@ -520,7 +522,7 @@ cdef class Class:
 
     cdef void overwrite_source_function(self, int index_md, int index_ic,
             int index_type,
-            int k_NN_size, int tau_size, double[:, :] S):
+            int k_NN_size, int tau_size, double[:] S):
         """
         This utility function overwrites a single source function specified by `index_type`
         with the given source function `S`.
@@ -534,11 +536,27 @@ cdef class Class:
         free(self.pt.sources[index_md][index_ic * tp_size + index_type])
         # Allocate memory for source function
         self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
+        #st=time.time()
+        for i in range(tau_size*k_NN_size):
+            self.pt.sources[index_md][index_ic*tp_size + index_type][i] = S[i]
 
-        for index_tau in range(tau_size):
-            for index_k in range(k_NN_size):
-                # GS TODO: More efficient way to copy memory from numpy array??
-                self.pt.sources[index_md][index_ic*tp_size + index_type][index_tau*k_NN_size + index_k] = S[index_k][index_tau]
+        # cython source array view:
+        #cyarr = cvarray(shape=(k_NN_size * tau_size), itemsize=sizeof(double), format="d")
+        #cyarr = S
+        #print(cyarr)
+        #print(S)
+        #self.pt.sources[index_md][index_ic*tp_size + index_type] = cyarr
+        #self.pt.sources[index_md][index_ic*tp_size + index_type] = S
+
+
+        #sources_cython_view = cvarray()
+
+        #self.pt.sources[index_md][index_ic*tp_size + index_type] = &S
+        #for index_tau in range(tau_size):
+        #    for index_k in range(k_NN_size):
+        #        # GS TODO: More efficient way to copy memory from numpy array??
+        #        self.pt.sources[index_md][index_ic*tp_size + index_type][index_tau*k_NN_size + index_k] = S[index_k][index_tau]
+        #print('copy',time.time()-st)
 
     # GS: TODO remove this function
     def debug_overwrite_source(self, name, double[:, :] S):
@@ -693,10 +711,10 @@ cdef class Class:
             # double [:,:] NN_interpolated
             # double [:] NN_interpolated
             # TODO remove some of the unused ones here
-            double [:, :, :] NN_prediction
+            double [:, :] NN_prediction
             double * c_NN_sources
             double tau1=0.0
-
+            #np.ndarray[np.double_t, ndim=2, mode="c"] NN_prediction
 
         if "perturb" in level:
 
@@ -806,7 +824,7 @@ cdef class Class:
 
                 timer.end("update predictor")
                 timer.start("predictor.predict_many")
-                k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS))
+                k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS),flat_output=True)
                 timer.end("predictor.predict_many")
                 timer.end("get all sources")
 
@@ -897,12 +915,14 @@ cdef class Class:
 
                 timer.start("overwrite source functions")
 
+                start = time.time()
                 for i, index_tp_x in enumerate(requested_index_types):
                     self.overwrite_source_function(
                             index_md, index_ic,
                             index_tp_x,
-                            k_NN_size, tau_size, NN_prediction[i, :, :]
+                            k_NN_size, tau_size, NN_prediction[i, :]
                             )
+                    print('copy sources', time.time()-start)
                 #if self.pt.has_source_delta_cb:
                 #    self.overwrite_source_function(
                 #            index_md, index_ic,
@@ -935,7 +955,7 @@ cdef class Class:
                         index_md, index_ic,
                         self.pt.index_tp_p,
                         k_NN_size, tau_size,
-                        np.sqrt(6) * NN_prediction[source_names.index("t2"), :, :]
+                        np.sqrt(6) * NN_prediction[source_names.index("t2"), :]
                     )
 
                 # if self.pt.has_source_phi_plus_psi:
