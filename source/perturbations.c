@@ -1729,7 +1729,7 @@ int perturbations_timesampling_for_sources(
                ppt->error_message);
   }
 
-  if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: Okay to implement in this way?
+  if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: Okay to implement in this way? - Tests are convergent wrt. step_size
 
     tau_ini_gwb = ppt->tau_ini_gwb;
 
@@ -2239,10 +2239,10 @@ int perturbations_get_k_list(
         k_max    = k_max_cl[ppt->index_md_scalars];
       }
 
-      //TODO_GWB: If GWB is needed, we have to impose an even stronger condition! - First hardwired test: CMB*10
+      /* If GWB is needed, we have to impose an even stronger condition! */
+      //TODO_GWB: for now use CMB*5.0, work good in tests
       if (ppt->has_cl_gwb == _TRUE_) {
-        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],
-          ppr->k_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age/pth->angular_rescaling * 10.0);
+        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars], k_max_cmb[ppt->index_md_scalars] * 5.0);
         k_max    = k_max_cl[ppt->index_md_scalars];
       }
     }
