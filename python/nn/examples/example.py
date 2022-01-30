@@ -1,10 +1,8 @@
 import os
-# from ..parameter_domain import EllipsoidDomain
+import sys
 from classynet.workspace import Workspace, GenerationalWorkspace
-from classynet.parameter_sampling import DefaultParamDomain, EllipsoidDomain
+from classynet.parameter_sampling import EllipsoidDomain
 
-# from classynet.parameter_domain import EllipsoidDomain
-# from classynet.workspace import Workspace
 import classy
 import numpy as np
 
@@ -64,30 +62,18 @@ FIXED_TRAINING_ONLY = {
 # ## The domain on which the NNs should be trained is specified as a dict: name -> (min, max)
 # DOMAIN = {p: (mu - 5 * sigma, mu + 5 * sigma) for p, (mu, sigma) in PLANCK.items()}
 
-#WORKSPACE_DIR = "/scratch/work/stadtmann/CLASSnet_Workspace/CLASSnet_Workspace_1/"
-#WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new/")
-#WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_2/")
-WORKSPACE_DIR = os.path.expanduser("~/Class/CLASSnet_Workspace_new_switching_ST0_Reco_102/")
+WORKSPACE_DIR = os.path.expanduser("~/software/class_versions/class_net/workspaces/test_training")
 
 # IF THIS IS GONE THEN UNDO IS FINISHED
 
-#generations = {
-#    "Net_ST0_Reco":     32,
-#    "Net_ST0_Reio":     23,
-#    "Net_ST0_ISW":      23,
-#    "Net_ST1":          22,
-#    "Net_ST2_Reco":     24,
-#    "Net_ST2_Reio":     23,
-#    "Net_phi_plus_psi": 32,
-#}
 generations = {
-    "Net_ST0_Reco":     102,
-    "Net_ST0_Reio":     101,
-    "Net_ST0_ISW":      101,
-    "Net_ST1":          101,
-    "Net_ST2_Reco":     101,
-    "Net_ST2_Reio":     101,
-    "Net_phi_plus_psi": 101,
+    "Net_ST0_Reco":     201,
+    "Net_ST0_Reio":     201,
+    "Net_ST0_ISW":      201,
+    "Net_ST1":          201,
+    "Net_ST2_Reco":     201,
+    "Net_ST2_Reio":     201,
+    "Net_phi_plus_psi": 201,
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -98,46 +84,43 @@ assert isinstance(workspace, Workspace)
 
 pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
 
-domain = EllipsoidDomain.from_paths(
-    bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
-    covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
+domain = workspace.domain_from_path(
     pnames         = pnames,
+    #bestfit_path   = "~/path/to/lcdm_11p_sn.bestfit",
+    #covmat_path    = "~/path/to/lcdm_11p_sn.covmat",
     sigma_train    = 6,
-    sigma_validate = 5,
+    sigma_validation = 5,
+    sigma_test     = 5,
 )
 
-#domain.save(workspace.domain_descriptor)
-domain.sample_save(training_count=1, validation_count=1000, path=workspace.data / "samples.h5")
-# import sys; sys.exit(0)
+#Save the domain within the workspace
+domain.save(workspace.domain_descriptor)
 
-#training, validation = workspace.loader().cosmological_parameters()
+#Sample parameters according to the domain and save them in the workspace as "samples.h5"
+domain.sample_save(training_count=10, validation_count=5, test_count=5)
+#Load the data sets of parameters
+training, validation, test = workspace.loader().cosmological_parameters()
+
+#print(training)
+sys.exit()
+
 # Generating training data
-
-#workspace.generator().generate_data_for(
-#    fixed=FIXED,
-#    training=training,
-#    validation=validation,
-#    fixed_training_only=FIXED_TRAINING_ONLY,
-#    processes=1)
-#workspace.generator().generate_k_array()
-# import sys; sys.exit(0)
+'''workspace.generator().generate_source_data(
+    fixed=FIXED,
+    training=training,
+    validation=validation,
+    test=test,
+    fixed_training_only=FIXED_TRAINING_ONLY,
+    processes=2)
 '''
-# # Generating training data
-# workspace.generator().generate_data_for(
-#     fixed=FIXED,
-#     training=None,
-#     validation=validation,
-#     fixed_training_only=FIXED_TRAINING_ONLY,
-#     processes=9)
-# import sys; sys.exit(0)
+# Generate k array
+#workspace.generator().generate_k_array()
 
+# Writing down the fixed and varying parameters which were used to generate the data
 #workspace.generator().write_manifest(FIXED, training.keys())
 
-# workspace.generator().generate_data_old(FIXED DOMAIN, training=5, validation=2, processes=8)
-#workspace.generator().generate_data_old(FIXED, DOMAIN, training=10000, validation=1000, processes=32)
-
 # Training: any subset of models can be trained at once
-#workspace.trainer().train_all_models(workers=36)
+workspace.trainer().train_all_models(workers=36)
 
 #from classynet.models import Net_ST0_Reco, Net_ST0_Reio, Net_ST0_ISW, Net_ST1, Net_ST2_Reco, Net_ST2_Reio, Net_phi_plus_psi
 #workspace.trainer().train_models([
@@ -149,6 +132,8 @@ domain.sample_save(training_count=1, validation_count=1000, path=workspace.data 
     #Net_ST2_Reco,
     #Net_ST2_Reio,
 #], 8)
+
+'''
 
 # from ..models import Net_ST0_Reco
 # workspace.trainer().train_model(Net_ST0_Reco, workers=36)

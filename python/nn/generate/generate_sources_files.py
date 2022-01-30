@@ -95,7 +95,7 @@ def generate_source_functions_for(fixed_params, varying_params, directory, proce
     maxima = None
 
     failures = []
-    print(args)
+
     with multiprocessing.Pool(processes) as pool:
         #for exc, (mins, maxs) in tqdm(pool.imap_unordered(generate_source_function, args), total=count):
         i=0

@@ -8,14 +8,15 @@ import torch
 from tabulate import tabulate
 
 from classynet.timer import Timer
-from classynet import training_dashboard
+from classynet.training import training_dashboard
 
 class Phase(enum.Enum):
     Training = 0
     Validation = 1
-    # Testing = 2
+    Test = 2
 
 TrainingInfo = namedtuple("TrainingInfo", ["net", "optimizer", "criterion", "lr_scheduler"])
+
 def build_info(net):
     optimizer = net.optimizer()
     lr_scheduler = net.lr_scheduler(optimizer)
@@ -88,7 +89,7 @@ class MultiTrainer:
         # Dict[str, List[float]]
         self.history = {c.net.name(): [] for c in self.nets}
 
-    def train(self, training_dataset, validation_dataset, loader_workers=0):
+    def train(self, training_dataset, validation_dataset, test_dataset, loader_workers=0):
         # arguments for the torch.utils.data.DataLoader instance
         print("Training with {} data loader workers.".format(loader_workers))
         loader_args = dict(
@@ -105,6 +106,7 @@ class MultiTrainer:
         # Create the DataLoader instances from the given datasets
         train_loader = torch.utils.data.DataLoader(training_dataset, **loader_args)
         val_loader = torch.utils.data.DataLoader(validation_dataset, **loader_args)
+        test_loader = torch.utils.data.DataLoader(test_dataset, **loader_args)
 
         histories = [[] for _ in self.nets]
 
@@ -114,9 +116,10 @@ class MultiTrainer:
             for epoch in range(self.max_epochs):
                 loss = self.run_epoch(Phase.Training, train_loader, epoch)
                 val_loss = self.run_epoch(Phase.Validation, val_loader, epoch)
+                test_loss = self.run_epoch(Phase.Test, test_loader, epoch)
 
                 # Log the losses to file
-                for container, loss_col, val_loss_col, hist in zip(self.nets, loss.T, val_loss.T, histories):
+                for container, loss_col, val_loss_col, test_loss_col, hist in zip(self.nets, loss.T, val_loss.T, test_loss.T, histories):
                     name = container.net.name()
                     # Skip models that have finished training
                     if epoch >= container.net.epochs():
@@ -124,9 +127,12 @@ class MultiTrainer:
                         self.history[name].append(self.history[name][-1])
                         continue
                     self.history[name].append(np.mean(val_loss_col))
+                    self.history[name].append(np.mean(test_loss_col))
+
                     # Save the updated history to file indicated by the
                     # current workspace
-                    row = np.array([epoch, np.mean(loss_col), np.mean(val_loss_col)])
+                    print(val_loss_col,test_loss_col)
+                    row = np.array([epoch, np.mean(loss_col), np.mean(val_loss_col), np.mean(test_loss_col)])
                     hist.append(row)
                     np.savetxt(self.workspace.history_for(container.net.name()), hist)
 

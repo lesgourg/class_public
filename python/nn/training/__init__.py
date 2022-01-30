@@ -19,7 +19,8 @@ class Trainer:
 
     def train_models(self, model_classes, workers=0):
         # TODO let user select device
-        device = torch.device("cuda")
+        #device = torch.device("cuda")
+        device = torch.device("cpu")
 
         k = self.workspace.loader().k()
 
@@ -61,8 +62,12 @@ class Trainer:
             data_directory=self.workspace.validation_data,
             **dataset_args
         )
+        test_dataset = SourceFileDataset(
+            data_directory=self.workspace.test_data,
+            **dataset_args
+        )
 
-        trainer.train(training_dataset, validation_dataset, loader_workers=workers)
+        trainer.train(training_dataset, validation_dataset, test_dataset, loader_workers=workers)
 
 
 def collect_model_inputs(models):

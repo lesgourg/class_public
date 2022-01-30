@@ -1,4 +1,6 @@
+from genericpath import exists
 import os
+import time
 import numpy as np
 import scipy.stats as ss
 from classynet.lhs import lhs, lhs_float
@@ -28,33 +30,44 @@ OMEGA_NCDM_MIN = 1.70698158e-5
 class EllipsoidDomain(ParamDomain):
 
     @staticmethod
-    def from_paths(bestfit_path, covmat_path, pnames, sigma_train, sigma_validate):
+    def from_paths(workspace,
+        pnames, 
+        bestfit_path, 
+        covmat_path, 
+        sigma_train = 6, 
+        sigma_validation = 5,
+        sigma_test = 5,
+        ):
         _bestfit_names, best_fit = load_montepython_bestfit(bestfit_path, pnames)
         assert _bestfit_names == pnames
         covmat, inv_covmat = load_montepython_covmat(covmat_path, pnames)
         return EllipsoidDomain(
+            workspace,
             best_fit=best_fit,
             covmat=covmat,
             inv_covmat=inv_covmat,
             pnames=pnames,
             sigma_train=sigma_train,
-            sigma_validate=sigma_validate,
+            sigma_validation=sigma_validation,
+            sigma_test=sigma_test,
         )
 
-    def __init__(self, best_fit, covmat, inv_covmat, pnames, sigma_train, sigma_validate=None):
+    def __init__(self, workspace, best_fit, covmat, inv_covmat, pnames, sigma_train=6, sigma_validation=5, sigma_test=5):
+        self.workspace = workspace
         self.best_fit = best_fit
         self.covmat = covmat
         self.inv_covmat = inv_covmat
         self.pnames = pnames
         self.sigma_train = sigma_train
-        self.sigma_validate = sigma_validate if sigma_validate is not None else self.sigma_train
+        self.sigma_validation = sigma_validation 
+        self.sigma_test = sigma_test 
 
         self.ndf = len(self.pnames)
 
     def index(self, name):
         return self.pnames.index(name)
 
-    def sample(self, count, sigma, tol=50, maxiter=100):
+    def sample(self, count, sigma, tol=0.1, maxiter=100):
         fraction = 1.0
         for _ in range(maxiter):
             if fraction > 0:
@@ -63,10 +76,13 @@ class EllipsoidDomain(ParamDomain):
                 new_count = 5 * new_count
             samples = self._sample(new_count, sigma=sigma)
             print("-----------------------------------------------")
-            if abs(len(samples) - count) < tol:
+            if abs(len(samples) - count)/count < tol:
+                #wait a second to ensure the get a new seed is created for following dataset
+                time.sleep(1)
+                print(samples)
                 return samples
             fraction = len(samples) / new_count
-        raise ValueError("Couldn't get {} samples with tol={}".format(count, tol))
+        raise ValueError("Couldn't get {} samples with relative tol={}".format(count, tol))
 
     def _sample(self, count, sigma):
         deltachi2 = get_delta_chi2(self.ndf, sigma)
@@ -121,12 +137,6 @@ class EllipsoidDomain(ParamDomain):
             eff_mask = eff_mask & fld_consistent
             print("fraction of kept points (fld only):", ratio_fld)
 
-        if False:
-            samples[:, self.index("w0_fld")]=-1.0
-            samples[:, self.index("wa_fld")]=0.0
-            samples[:, self.index("N_ur")]=0.00641
-            samples[:, self.index("omega_ncdm")]=0.06/93.14
-            samples[:, self.index("Omega_k")]=0.0
 
         count_inside = eff_mask.sum()
         ratio_inside = count_inside / len(samples)
@@ -137,17 +147,24 @@ class EllipsoidDomain(ParamDomain):
 
         return samples
 
-    def sample_save(self, training_count, validation_count, path):
+    def sample_save(self, training_count, validation_count, test_count):
         def create_group(f, name, count, sigma):
             samples = self.sample(count, sigma=sigma)
-            print("Saving group '{}' of {} samples to {}".format(name, len(samples), path))
+            print("Saving group '{}' of {}".format(name, len(samples)))
             g = f.create_group(name=name)
             for name, column in zip(self.pnames, samples.T):
                 g.create_dataset(name, data=column)
 
-        with h5.File(path, "w") as out:
+        # Write 
+        os.makedirs(self.workspace.path / 'training', exist_ok=True)
+        with h5.File(self.workspace.path / 'training' / 'parameters.h5', "w") as out:
             create_group(out, "training", training_count, sigma=self.sigma_train)
-            create_group(out, "validation", validation_count, sigma=self.sigma_validate)
+        os.makedirs(self.workspace.path / 'validation', exist_ok=True)
+        with h5.File(self.workspace.path / 'validation' / 'parameters.h5', "w") as out:
+            create_group(out, "validation", validation_count, sigma=self.sigma_validation)
+        os.makedirs(self.workspace.path / 'test', exist_ok=True)
+        with h5.File(self.workspace.path / 'test' / 'parameters.h5', "w") as out:
+            create_group(out, "test", test_count, sigma=self.sigma_test)
 
     def parameter_names(self):
         return list(self.pnames)
@@ -171,7 +188,7 @@ class EllipsoidDomain(ParamDomain):
             if parameters["N_ur"]<0:
                 return False, 1004
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
-        sigma = self.sigma_validate if validate else self.sigma_train
+        sigma = self.sigma_validation if validate else self.sigma_train
         inside, delta_chi2 = is_inside_ellipsoid(self.inv_covmat, cosmo_params,
                                      self.best_fit, self.ndf, sigma, return_delta_chi2=True)
 
@@ -184,7 +201,8 @@ class EllipsoidDomain(ParamDomain):
             "inv_covmat":     [list(row) for row in self.inv_covmat],
             "pnames":         list(self.pnames),
             "sigma_train":    self.sigma_train,
-            "sigma_validate": self.sigma_validate,
+            "sigma_validation": self.sigma_validation,
+            "sigma_test": self.sigma_test,
         }
         with open(path, "w") as out:
             json.dump(d, out)
@@ -199,8 +217,13 @@ class EllipsoidDomain(ParamDomain):
             inv_covmat     = data["inv_covmat"],
             pnames         = data["pnames"],
             sigma_train    = data["sigma_train"],
-            sigma_validate = data["sigma_validate"],
+            sigma_validation = data["sigma_validation"],
+            sigma_test = data["sigma_test"],
         )
+
+
+# [SG] TODO DELETE
+"""
 
 class DefaultParamDomain(ParamDomain):
     def __init__(self, covmat_planck_path, sigma):
@@ -328,6 +351,7 @@ class DefaultParamDomain(ParamDomain):
     def load(self, path):
         raise NotImplementedError
 
+"""
 
 def load_montepython_file(fname):
     with open(fname) as f:

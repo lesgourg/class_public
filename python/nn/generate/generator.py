@@ -1,4 +1,5 @@
 import json
+import sys
 #from . import generate_data
 from .generate_sources_files import generate_data, generate_parameters_and_data
 
@@ -6,21 +7,7 @@ class Generator:
     def __init__(self, workspace):
         self.workspace = workspace
 
-    def generate_data_old(self, fixed, domain, training, validation, processes=None):
-        self.write_manifest(fixed, domain.keys())
-
-        generate_parameters_and_data(
-            training,
-            domain, fixed,
-            self.workspace.training_data, processes=processes
-        )
-        generate_parameters_and_data(
-            validation,
-            domain, fixed,
-            self.workspace.validation_data, processes=processes
-        )
-
-    def generate_data_for(self, fixed, training=None, validation=None, processes=None, fixed_training_only=None):
+    def generate_source_data(self, fixed, training=None, validation=None, test=None, processes=None, fixed_training_only=None):
         """
         this method works with precomputed `domain` data.
         """
@@ -46,6 +33,19 @@ class Generator:
                 fixed,
                 self.workspace.validation_data, processes=processes
             )
+
+        if test:
+            generate_data(
+                test,
+                fixed,
+                self.workspace.test_data, processes=processes
+            )
+
+    def generate_spectra(self):
+        """
+        [SG]: TODO
+        """
+        return()
 
     def generate_k_array(self):
         import glob
@@ -96,17 +96,21 @@ class Generator:
         ax.set_xlabel("$k [Mpc^{-1}]$")
         fig.savefig(self.workspace.data / "k_scatter.png", dpi=200)
 
-
-
     def write_manifest(self, fixed, varying_names):
         # Save the manifest declaring the fixed and variable inputs
         # the data has been generated for
         with open(self.workspace.manifest, "w") as dest:
             json.dump(self.manifest(fixed, varying_names), dest)
 
-
     def manifest(self, fixed, varying_names):
+        # SG: add cosmological fixed parameters into the varying_names list
+        #necessary_NN_parameters = ['']
+        #fixed_cosmological_names = []
+        #print(fixed)
+        #print(varying_names)
+        #sys.exit()
         return {
             "fixed": fixed,
             "cosmological_parameters": list(varying_names)
         }
+

@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 from pathlib import Path
 from functools import wraps
@@ -83,8 +84,16 @@ class Workspace:
 
     @property
     @create_dir
+    def test_data(self):
+        return self.path / "test"
+
+    @property
+    @create_dir
     def models(self):
         return self.path / "models"
+
+    def path(self):
+        return self.path
 
     def model_path(self, name):
         return self.models / f"{name}.pt"
@@ -138,15 +147,38 @@ class Workspace:
     def history_for(self, name):
         return self.history / f"{name}.csv"
 
-    # def cosmological_parameters(self):
-    #     return self.data / "samples.npz"
-
-    def cosmological_parameters(self):
-        return self.data / "samples.h5"
-
     @property
     def domain_descriptor(self):
         return self.data / "domain.json"
+
+    def domain_from_path(self,
+        pnames,
+        bestfit_path        = None,
+        covmat_path         = None,
+        sigma_train         = 6,
+        sigma_validation    = 5,
+        sigma_test          = 5,
+        ):
+        # If bestfit and covmat paths are given they are loaded. 
+        # If there are no paths given bestfit and covmat are searched in the workspace.data directory
+        if bestfit_path==None:
+            bestfit_file = [_ for _ in os.listdir(self.data) if _[-7:]=='bestfit']
+            if (len(bestfit_file)!=1): raise ValueError('more then one bestfit was found. Specify!') 
+            bestfit_path = self.data / bestfit_file[0]
+        if covmat_path==None:
+            covmat_file = [_ for _ in os.listdir(self.data) if _[-6:]=='covmat']
+            if (len(covmat_file)!=1): raise ValueError('more then one covmat was found. Specify!') 
+            covmat_path = self.data / covmat_file[0]
+
+        return EllipsoidDomain.from_paths(
+            self,
+            pnames,
+            bestfit_path, 
+            covmat_path, 
+            sigma_train = sigma_train, 
+            sigma_validation = sigma_validation,
+            sigma_test = sigma_test,
+        )
 
     def generator(self):
         return generator.Generator(self)
@@ -217,10 +249,20 @@ class Loader:
         return np.load(self.workspace.k)
 
     def cosmological_parameters(self):
-        def load(g):
-            return {key: value[()] for key, value in g.items()}
-        with h5.File(self.workspace.cosmological_parameters(), "r") as f:
-            return load(f["training"]), load(f["validation"])
+        def load(my_set):
+            my_path = self.workspace.path / my_set / 'parameters.h5'
+            if os.path.isfile(my_path):
+                with h5.File(my_path, "r") as f:
+                    return {key: list(f.get(key)) for key in f.keys()}
+            else:
+                return
+
+        training_parameter = load('training')
+        validation_parameter = load('validation')
+        test_parameter = load('test')
+
+        return(training_parameter, validation_parameter, test_parameter)
+
 
     def domain_descriptor(self):
         path = self.workspace.domain_descriptor
