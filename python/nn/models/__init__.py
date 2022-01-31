@@ -15,3 +15,13 @@ ALL_NETWORK_CLASSES = [
     Net_ST2_Reio,
     Net_phi_plus_psi,
 ]
+
+ALL_NETWORK_STRINGS = [
+    'Net_ST0_Reco',
+    'Net_ST0_Reio',
+    'Net_ST0_ISW',
+    'Net_ST1',
+    'Net_ST2_Reco',
+    'Net_ST2_Reio',
+    'Net_phi_plus_psi',
+]

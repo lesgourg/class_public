@@ -13,6 +13,7 @@ from classynet.generate import generator
 from classynet.testing import tester
 from classynet.benchmark import BenchmarkRunner
 from classynet.benchmark_plotter import BenchmarkPlotter
+from classynet.models import ALL_NETWORK_STRINGS
 
 from classynet.parameter_sampling import EllipsoidDomain
 
@@ -201,10 +202,16 @@ class Workspace:
     def benchmark_plotter(self):
         return BenchmarkPlotter(self)
 
+    def network_names(self):
+        return ALL_NETWORK_STRINGS
+
 
 class GenerationalWorkspace(Workspace):
 
     def __init__(self, path, generations, results=None):
+        '''
+        generations: network dict with numbers
+        '''
         super().__init__(path, results=results)
         self.generations = generations
 
@@ -226,7 +233,10 @@ class GenerationalWorkspace(Workspace):
             results=self._results.sub(sub))
 
     def model_path(self, name):
-        return self.models / "{}_{}.pt".format(name, self.generations[name])
+        if name in self.generations:
+            return self.models / "{}_{}.pt".format(name, self.generations[name])
+        else:
+            return self.models / "{}.pt".format(name)
 
     def model_path_checkpoint(self, name, checkpoint):
         return self.models / "{}_{}_checkpoint_{}.pt".format(
@@ -267,7 +277,7 @@ class Loader:
     def domain_descriptor(self):
         path = self.workspace.domain_descriptor
         # TODO hardcode EllipsoidDomain here?
-        return EllipsoidDomain.load(path)
+        return EllipsoidDomain.load(self.workspace, path)
 
     # def domain_descriptor(self):
     #     path = self.workspace.domain_descriptor()

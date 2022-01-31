@@ -208,10 +208,11 @@ class EllipsoidDomain(ParamDomain):
             json.dump(d, out)
 
     @staticmethod
-    def load(path):
+    def load(workspace, path):
         with open(path, "r") as src:
             data = json.load(src)
         return EllipsoidDomain(
+            workspace,
             best_fit       = data["best_fit"],
             covmat         = data["covmat"],
             inv_covmat     = data["inv_covmat"],

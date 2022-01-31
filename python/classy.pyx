@@ -25,6 +25,7 @@ cimport cython
 
 import classynet.workspace
 import classynet.predictors
+import classynet.models
 
 import sys
 def viewdictitems(d):
@@ -216,6 +217,7 @@ cdef class Class:
 
     cpdef bint use_NN
     cpdef bint pred_init
+    cpdef dict NN_generations
     cpdef object predictor
 
     # Defining two new properties to recover, respectively, the parameters used
@@ -244,6 +246,7 @@ cdef class Class:
         cpdef char* dumc
         self.allocated = False
         self.use_NN = False
+        self.NN_generations = {}
         self.pred_init = False
         self.computed = False
         self._pars = {}
@@ -281,9 +284,6 @@ cdef class Class:
           return # Don't change the computed states, if the new dict was already contained in the previous dict
         self.computed=False
 
-        # TODO if pars contains NN enable, load models here?
-        # TODO if pars contains NN enable, set use_NN
-
         return True
 
     def use_nn(self):
@@ -293,41 +293,42 @@ cdef class Class:
         Also checks the 'nn_verbose' parameter to determine how much information 
         to print about the usage of neural networks.
         """
+        if "nn_verbose" in self.pars:
+            nn_verbose = self.pars["nn_verbose"]
+        else:
+            nn_verbose = 0
         if not "use_nn" in self.pars:
             return False
         else:
-            if self.pars["use_nn"]==False:
+            if self.pars["use_nn"].lower()=='false':
                 return False
         if not "neural network path" in self._pars:
                 raise ValueError("use_nn is True but no neural network path is not provided!")
         elif "neural network path" in self.pars:
             using_nn = self.can_use_nn()
-            if "nn_verbose" in self.pars:
-                if self.pars["nn_verbose"]>1:
-                    if not using_nn:
-                        print("##################################")
-                        print("#   NOT USING NEURAL NETWORKS!   #")
-                        print("##################################")
-                        return False
-                    else:
-                        print("##################################")
-                        print("#    USING NEURAL NETWORKS!      #")
-                        print("##################################")
-                        return True
-                elif self.pars["nn_verbose"]==1:
-                    if not using_nn:
-                        print("USING NEURAL NETWORKS : False!")
-                        return False
-                    else:
-                        print("USING NEURAL NETWORKS :          True!")
-                        return True
-                elif self.pars["nn_verbose"]==0:
-                    if not using_nn:
-                        return False
-                    else:
-                        return True
+            if nn_verbose>1:
+                if not using_nn:
+                    print("##################################")
+                    print("#   NOT USING NEURAL NETWORKS!   #")
+                    print("##################################")
+                    return False
                 else:
-                    raise ValueError("nn_verbose is not set to valid value: should be integer equal or above 0 but is {}".format(self.pars["nn_verbose"]))
+                    print("##################################")
+                    print("#    USING NEURAL NETWORKS!      #")
+                    print("##################################")
+                    return True
+            elif nn_verbose==1:
+                if not using_nn:
+                    print("USING NEURAL NETWORKS : False!")
+                    return False
+                else:
+                    print("USING NEURAL NETWORKS :          True!")
+                    return True
+            elif nn_verbose==0:
+                if not using_nn:
+                    return False
+                else:
+                    return True
             else:
                 if not using_nn:
                     print("##################################")
@@ -654,7 +655,7 @@ cdef class Class:
             problematic_parameters = []
             # GS: added this because neural network arguments are not relevant
             # to the C code.
-            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug","nn_verbose","use_nn"])
+            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug","nn_verbose","use_nn","Net_phi_plus_psi","Net_ST0_ISW","Net_ST0_Reco","Net_ST0_Reio","Net_ST1","Net_ST2_Reco","Net_ST2_Reio"])
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
                     name = self.fc.name[i].decode()
@@ -3217,7 +3218,15 @@ make        nonlinear_scale_cb(z, z_size)
         # TODO don't do this here
         workspace = self._pars["neural network path"]
         if any(isinstance(workspace, t) for t in [str, bytes, os.PathLike]):
-            workspace = classynet.workspace.Workspace(workspace)
+            # Check whether any generations are requested for nn
+            joint = list(set(self._pars).intersection(classynet.models.ALL_NETWORK_STRINGS))
+            print(joint)
+            if len(joint)>0:
+                self.NN_generations = {name : self._pars[name] for name in joint}
+                print(self.NN_generations)
+                workspace = classynet.workspace.GenerationalWorkspace(workspace,self.NN_generations)
+            else:
+                workspace = classynet.workspace.Workspace(workspace)
         return workspace
 
     def nn_cosmological_parameters(self):

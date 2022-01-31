@@ -60,13 +60,16 @@ def generate_data(varying, fixed_params, directory, processes=None):
             ))
     # ...and generate training/validation/testing data.
     minima, maxima = generate_source_functions_for(fixed_params, varying, directory, processes=processes)
+
     # save minima and maxima
     with open(os.path.join(directory, "normalization.json"), "w") as out:
         json.dump({"min": minima, "max": maxima}, out)
+
     # save cosmological parameters
-    with h5.File(os.path.join(directory, "parameters.h5"), "w") as out:
+    with h5.File(os.path.join(directory, "parameters_rewrite.h5"), "w") as out:
         for key, data in varying.items():
             out.create_dataset(key, data=data)
+
     # and also return them, just in case
     return varying
 
