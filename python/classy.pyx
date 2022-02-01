@@ -447,6 +447,7 @@ cdef class Class:
             thermodynamics_free(&self.th)
         if self.module_list.contains("background"):
             background_free(&self.ba)
+        self.predictor.cleanup()
         self.allocated = False
         self.computed = False
         
@@ -822,7 +823,6 @@ cdef class Class:
                     self.pred_init = True
                 else:
                     self.predictor.update_predictor(self)
-
                 timer.end("update predictor")
                 timer.start("predictor.predict_many")
                 k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS),flat_output=True)
@@ -923,7 +923,8 @@ cdef class Class:
                             index_tp_x,
                             k_NN_size, tau_size, NN_prediction[i, :]
                             )
-                    print('copy sources', time.time()-start)
+                    #print('copy sources', time.time()-start)
+
                 #if self.pt.has_source_delta_cb:
                 #    self.overwrite_source_function(
                 #            index_md, index_ic,
@@ -3220,10 +3221,8 @@ make        nonlinear_scale_cb(z, z_size)
         if any(isinstance(workspace, t) for t in [str, bytes, os.PathLike]):
             # Check whether any generations are requested for nn
             joint = list(set(self._pars).intersection(classynet.models.ALL_NETWORK_STRINGS))
-            print(joint)
             if len(joint)>0:
                 self.NN_generations = {name : self._pars[name] for name in joint}
-                print(self.NN_generations)
                 workspace = classynet.workspace.GenerationalWorkspace(workspace,self.NN_generations)
             else:
                 workspace = classynet.workspace.Workspace(workspace)

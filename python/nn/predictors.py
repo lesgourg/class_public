@@ -33,6 +33,11 @@ class BasePredictor:
         self.reset_cache()
         self.reset_times()
 
+    def cleanup(self):
+        # Called by classy in Class.struct_cleanup()
+        self.reset_cache()
+        self.reset_times()
+
     def reset_cache(self):
         self.cache = {}
 
@@ -107,7 +112,7 @@ class BasePredictor:
         start_predict = perf_counter()
         result, raw_inputs = self._predict(quantity, tau, provider, cache)
         k_min_class = self.cosmo.k_min()
-        
+
         # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
         # OTHERWISE BAD THINGS WILL HAPPEN!!!
         k_min_idx = lowest_k_index(self.k, k_min_class)
@@ -230,7 +235,7 @@ class BasePredictor:
         ))
         return k_result
 
-    def predict_many(self, quantities, tau):
+    def predict_many(self, quantities, tau, flat_output= False):
         """
         Predict the source functions whose names are given as the list `quantities`.
         This will return a numpy array of shape (len(quantities), len(k) + 1, len(tau)).
@@ -255,14 +260,28 @@ class BasePredictor:
 
         k = self.get_k()
         k_len = len(k)
-        result = np.zeros((len(quantities), len(k), len(tau)))
 
-        # Store predictions in array
-        for i, quantity in enumerate(quantities):
-            S = predictions[quantity]
-            result[i, :, :] = S
+        if not flat_output:
+            # [SG]: Not used annymore
+            result = np.zeros((len(quantities), len(k), len(tau)))
 
-        return k, result
+            # Store predictions in array
+            for i, quantity in enumerate(quantities):
+                S = predictions[quantity]
+                result[i, :, :] = S
+
+            return k, result
+
+        else:
+            result = np.zeros((len(quantities), len(k) * len(tau)))
+
+            # Store predictions in array
+            for i, quantity in enumerate(quantities):
+                S = predictions[quantity]
+                result[i, :] = S.T.flatten()
+
+            return k, result
+
 
     def predict_all(self, tau):
         return self.predict_many(["t0", "t1", "t2", "phi_plus_psi", "delta_m", "delta_cb"], tau)
@@ -552,14 +571,13 @@ def build_predictor(cosmo, device_name="cpu"):
     timer.end("build predictor")
 
     timer.end("all")
-    timer.pprint()
+    #timer.pprint()
 
     return predictor
 
 def load_models(workspace, classes, k, device):
     from collections import defaultdict
     times = defaultdict(float)
-
     start_models = perf_counter()
     # models = [ctor(k) for ctor in classes]
     models = []
@@ -569,7 +587,6 @@ def load_models(workspace, classes, k, device):
         # times[ctor.__name__] = perf_counter() - start
         models.append(mod)
     times["model ctors"] += perf_counter() - start_models
-
     for model in models:
         start = perf_counter()
         state_dict = torch.load(workspace.model_path(model.name()), map_location=device)
@@ -583,7 +600,6 @@ def load_models(workspace, classes, k, device):
         model.to(device)
         times["model.to(device)"] += perf_counter() - start
         model.eval()
-
 
     def model_key(model):
         targets = model.source_functions()
