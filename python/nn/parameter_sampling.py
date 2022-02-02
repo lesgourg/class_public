@@ -79,7 +79,6 @@ class EllipsoidDomain(ParamDomain):
             if abs(len(samples) - count)/count < tol:
                 #wait a second to ensure the get a new seed is created for following dataset
                 time.sleep(1)
-                print(samples)
                 return samples
             fraction = len(samples) / new_count
         raise ValueError("Couldn't get {} samples with relative tol={}".format(count, tol))
@@ -109,7 +108,7 @@ class EllipsoidDomain(ParamDomain):
         print("fraction of points inside ellipsoid:", ratio_inside)
 
         # eff_mask will allow 
-        eff_mask = np.array(ratio_inside,dtype=np.bool)
+        eff_mask = np.array(inside_ellipsoid,dtype=np.bool)
 
         if "tau_reio" in self.pnames:
             tau_large_enough = samples[:, self.index("tau_reio")] > 0.004
@@ -147,7 +146,7 @@ class EllipsoidDomain(ParamDomain):
 
         return samples
 
-    def sample_save(self, training_count, validation_count, test_count):
+    def sample_save(self, training_count=0, validation_count=0, test_count=0, file_name = 'parameters'):
         def create_group(f, name, count, sigma):
             samples = self.sample(count, sigma=sigma)
             print("Saving group '{}' of {}".format(name, len(samples)))
@@ -155,16 +154,19 @@ class EllipsoidDomain(ParamDomain):
             for name, column in zip(self.pnames, samples.T):
                 g.create_dataset(name, data=column)
 
-        # Write 
-        os.makedirs(self.workspace.path / 'training', exist_ok=True)
-        with h5.File(self.workspace.path / 'training' / 'parameters.h5', "w") as out:
-            create_group(out, "training", training_count, sigma=self.sigma_train)
-        os.makedirs(self.workspace.path / 'validation', exist_ok=True)
-        with h5.File(self.workspace.path / 'validation' / 'parameters.h5', "w") as out:
-            create_group(out, "validation", validation_count, sigma=self.sigma_validation)
-        os.makedirs(self.workspace.path / 'test', exist_ok=True)
-        with h5.File(self.workspace.path / 'test' / 'parameters.h5', "w") as out:
-            create_group(out, "test", test_count, sigma=self.sigma_test)
+        # Write and sample
+        if training_count!=0:
+            os.makedirs(self.workspace.path / 'training', exist_ok=True)
+            with h5.File(self.workspace.path / 'training' / '{}.h5'.format(file_name), "w") as out:
+                create_group(out, "training", training_count, sigma=self.sigma_train)
+        if validation_count!=0:
+            os.makedirs(self.workspace.path / 'validation', exist_ok=True)
+            with h5.File(self.workspace.path / 'validation' / '{}.h5'.format(file_name), "w") as out:
+                create_group(out, "validation", validation_count, sigma=self.sigma_validation)
+        if test_count!=0:
+            os.makedirs(self.workspace.path / 'test', exist_ok=True)
+            with h5.File(self.workspace.path / 'test' / '{}.h5'.format(file_name), "w") as out:
+                create_group(out, "test", test_count, sigma=self.sigma_test)
 
     def parameter_names(self):
         return list(self.pnames)
@@ -407,7 +409,7 @@ def is_inside_ellipsoid(inv_covmat, params, bestfit, df, sigma, return_delta_chi
     sigma: float
     """
     #return([True],[0])
-    delta_chi2 = get_delta_chi2(df, sigma)*1000
+    delta_chi2 = get_delta_chi2(df, sigma)#*1000
     d = params - bestfit
     if return_delta_chi2 == False:
         return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2

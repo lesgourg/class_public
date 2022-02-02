@@ -152,6 +152,9 @@ class Workspace:
     def domain_descriptor(self):
         return self.data / "domain.json"
 
+    def domain(self):
+        return EllipsoidDomain.load(self,self.domain_descriptor)
+
     def domain_from_path(self,
         pnames,
         bestfit_path        = None,
@@ -258,14 +261,14 @@ class Loader:
     def k(self):
         return np.load(self.workspace.k)
 
-    def cosmological_parameters(self):
+    def cosmological_parameters(self, file_name = 'parameters'):
         def load(my_set):
-            my_path = self.workspace.path / my_set / 'parameters.h5'
+            my_path = self.workspace.path / my_set / '{}.h5'.format(file_name)
             if os.path.isfile(my_path):
                 with h5.File(my_path, "r") as f:
-                    return {key: list(f.get(key)) for key in f.keys()}
+                    return {key: list(f[my_set].get(key)) for key in f[my_set].keys()}
             else:
-                return
+                return None
 
         training_parameter = load('training')
         validation_parameter = load('validation')

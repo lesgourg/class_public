@@ -447,7 +447,8 @@ cdef class Class:
             thermodynamics_free(&self.th)
         if self.module_list.contains("background"):
             background_free(&self.ba)
-        self.predictor.cleanup()
+        if self.pred_init:
+            self.predictor.cleanup()
         self.allocated = False
         self.computed = False
         
