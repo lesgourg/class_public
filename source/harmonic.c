@@ -1037,9 +1037,11 @@ int harmonic_compute_cl(
 
       if (_scalars_) {
 
-        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1] + transfer_ic1[ptr->index_tt_gwb_sw]
+        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1]
+          + transfer_ic1[ptr->index_tt_gwb_sw0] + transfer_ic1[ptr->index_tt_gwb_sw1]
           + phr->factor_gwb_ini_scalar * transfer_ic1[ptr->index_tt_gwb_ini];
-        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1] + transfer_ic2[ptr->index_tt_gwb_sw]
+        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1]
+          + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
           + phr->factor_gwb_ini_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
 
         if (phr->convert_gwb_to_energydensity == _TRUE_) { //TODO_GWB: implement in a more general way

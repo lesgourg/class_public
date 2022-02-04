@@ -1266,7 +1266,8 @@ int perturbations_indices(
       }
 
       if (ppt->has_cl_gwb == _TRUE_) { //TODO_GWB: Ok to implement like this?
-        ppt->has_source_phi = _TRUE_; //needed for SW term
+        ppt->has_source_psi = _TRUE_;
+        ppt->has_source_phi = _TRUE_;
       }
 
       if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m)) {
