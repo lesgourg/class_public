@@ -9,10 +9,10 @@ class BenchmarkPlotter:
     def __init__(self, workspace, plotting_style = 'latex'):
         self.workspace = workspace
         self.print_titles = True
-
+        self.figsize = (6,4)
         if plotting_style == 'latex':
             from matplotlib import rc
-            rc('font', **{'family': 'serif', 'serif': ['Computer Modern'], 'size': 12})
+            rc('font', **{'family': 'serif', 'serif': ['Computer Modern'], 'size': 20})
             rc('text', usetex=True)
             self.print_titles = False
         else:
@@ -26,6 +26,8 @@ class BenchmarkPlotter:
         self.plot_absolute_perturb_time(df_no_nn, df_nn)
         self.plot_perturb_fraction(df_no_nn, df_nn)
         self.plot_perturb_speedup(df_no_nn, df_nn)
+
+        self.figsize = (11,8)
         self.plot_perturb_contributions(df_no_nn, df_nn)
 
         # plotting completed
@@ -128,15 +130,17 @@ class BenchmarkPlotter:
         subtract_fields = network_fields + [
             "neural network input transformation",
             "neural network output transformation",
-            "update predictor",
+            #"update predictor",
+            "translate into output",
         ]
         df_nn["predict overhead"] = df_nn["get all sources"] - df_nn[subtract_fields].sum(axis=1)
 
         fields_start = [
             "perturb_init",
             "neural network input transformation",
-            "update predictor",
-            "predict overhead"
+            #"update predictor",
+            "predict overhead",
+            "translate into output",
         ]
         fields_end = ["neural network output transformation", "overwrite source functions"]
         fields = fields_start + network_fields + fields_end
@@ -163,6 +167,8 @@ class BenchmarkPlotter:
             "t2_reco": r"$S_{T_2,\mathrm{reco}}$",
             "t2_reio": r"$S_{T_2,\mathrm{reio}}$",
             "('phi_plus_psi', 'delta_m', 'delta_cb')": r"$S_{\phi+\psi},S_{\delta_m},S_{\delta_{cb}}$",
+            "translate into output": "reshape/concatenate output",
+            "predict overhead": "module overhead"
         }
         for name in df_comp.columns:
             match = pat.match(name)
@@ -179,7 +185,7 @@ class BenchmarkPlotter:
         df_comp.plot.bar(stacked=True, rot=0, colormap='tab20')
         min_key = min(df_comp.index)
         # make some room for legend at top
-        plt.gca().set_ylim(0, 2 * df_comp.sum(axis=1).loc[min_key])
+        plt.gca().set_ylim(0, 2.22 * df_comp.sum(axis=1).loc[min_key])
         plt.gca().legend(labels, ncol=2, mode="expand")
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
@@ -193,6 +199,7 @@ class BenchmarkPlotter:
     def _savefig(self, name, fig=None):
         if fig is None:
             fig = plt.gcf()
+            fig.set_size_inches(*self.figsize)
 
         def save(extension):
             path = self.workspace.benchmark / (name + "." + extension)

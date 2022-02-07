@@ -826,7 +826,7 @@ cdef class Class:
                     self.predictor.update_predictor(self)
                 timer.end("update predictor")
                 timer.start("predictor.predict_many")
-                k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS),flat_output=True)
+                k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS))
                 timer.end("predictor.predict_many")
                 timer.end("get all sources")
 

@@ -80,5 +80,7 @@ setup(
                   include_dirs=[nm.get_include()],
                   )
     ],
-    #data_files=[('bbn', ['../bbn/sBBN.dat'])]
+    package_data= {
+        'classynet.plotting':[os.path.join(classy_folder, "nn", "plotting","approx_planck_noise.dat")]
+    },
 )

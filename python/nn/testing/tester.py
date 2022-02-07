@@ -1,23 +1,156 @@
+from genericpath import exists
 import multiprocessing
 import random
 import copy
 import numpy as np
 from scipy.interpolate import CubicSpline
+import os
+import h5py as h5
 
 from tqdm import tqdm
 import classy
 from classy import Class
 
 from classynet.generate.generate_cosmological_parameters import sample_cosmological_parameters
+from classynet.plotting.plot_tester_cls import *
+import classynet.utils as utils
 
+
+'''
+The Tester class allows to obtain and plot all kinds of data and information from the ClassNet
+'''
 class Tester:
     def __init__(self, workspace):
         self.workspace = workspace
 
         self.k = self.workspace.loader().k()
         manifest = workspace.loader().manifest()
-
         self.fixed = manifest["fixed"]
+
+        self.WDIR = workspace.path
+
+
+    
+    def create_cls(self,pnames,N=1000):
+        """
+        This function generates spectra with and without the neural network of the test set. 
+        It will be used to qualify the differences between ClassFULL and ClassNet.
+        The networks have to be trained for this purpose
+        The test/parameters.h5 hasn't been sampled in advance it is going to be here.
+        """
+        if not os.path.isfile(self.workspace.test_data / 'cl_test_parameters.h5'):
+            domain = self.workspace.domain_from_path(pnames)
+
+            #Sample parameters according to the domain and save them in the workspace as "samples.h5"
+            domain.sample_save(training_count=0, validation_count=0, test_count=N, file_name='cl_test_parameters')
+
+        # Load parameters
+        training, validation, test = self.workspace.loader().cosmological_parameters(file_name='cl_test_parameters')
+        #Create the spectra data for class_full
+        if not os.path.isfile(self.workspace.test_data / 'FULL_cls.h5'):
+            self.workspace.generator().generate_spectra_data(
+                #training=training,
+                #validation=validation,
+                test=test,
+                processes=4,
+                use_nn=False,
+            )
+
+        #Create the spectra data for class_full
+        if not os.path.isfile(self.workspace.test_data / 'NN_cls.h5'):
+            self.workspace.generator().generate_spectra_data(
+                #training=training,
+                #validation=validation,
+                test=test,
+                processes=4,
+                use_nn=True,
+            )
+
+    def load_files(self,path,my_set):
+        with h5.File(path, "r") as f:
+            return {key: list(f[my_set].get(key)) for key in f[my_set].keys()}
+
+    def compare_cls_full_net(self,pnames=None,mode='cl_lens',N_lines = 100, N_contain = 1000):
+        """
+        This function loades the cls stored in '/test/FULL_cls.h5' and '/test/NN_cls.h5' and compares the differences and make plots.
+        """
+
+        # load cls and parameters
+        FULL_cls = self.load_files(self.workspace.test_data / 'FULL_cls.h5',mode)
+        NN_cls = self.load_files(self.workspace.test_data / 'NN_cls.h5',mode)
+        NN_para = self.load_files(self.workspace.test_data / 'NN_cls.h5','parameter')
+        FULL_para = self.load_files(self.workspace.test_data / 'FULL_cls.h5','parameter')
+
+        # get the chisquares of the individual data points
+        if pnames != None:
+            domain = self.workspace.domain_from_path(pnames)
+        else:
+            domain = self.workspace.domain()
+
+        FULL_para_list_of_dirs = utils.transpose_dict_of_lists(FULL_para)
+
+        chisq_list = []
+        for i,dir in enumerate(FULL_para_list_of_dirs):
+            _, chisq = domain.contains(dir)
+            chisq_list.append(chisq)
+
+        chisq_list = np.array(chisq_list)
+
+        # spectra which should be plotted
+        spectra = ['tt','ee','bb','te','tp','pp','pk']
+
+        # Start with line plots which show ClassNN and CLassFULL in 1 plot
+        os.makedirs(self.workspace.plots / 'cl_tests' / 'line_plots', exist_ok=True)
+        os.makedirs(self.workspace.plots / 'cl_tests' / 'variance_plots', exist_ok=True)
+        os.makedirs(self.workspace.plots / 'cl_tests' / 'contain_plots', exist_ok=True)
+
+        my_plotter = CL_plotter()
+        for spectrum in spectra:
+            print('plotting {}'.format(spectrum))
+            save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '.pdf')
+            my_plotter.line_plots(FULL_cls,NN_cls,spectrum,save_dir,N=N_lines)
+            save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '_dif_abs.pdf')
+            my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs",N=N_lines)
+            save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '_dif_abs_chi.pdf')
+            my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs",chisq = chisq_list,N=N_lines)
+            save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '_dif_rel.pdf')
+            my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="rel",N=N_lines)
+
+
+            save_dir = self.workspace.plots / 'cl_tests' / 'variance_plots' / (spectrum + '_cosmic_variance.pdf')
+            my_plotter.line_plots(FULL_cls,NN_cls,spectrum,save_dir,cosmic_variance=True,N=N_lines)
+
+            sigmas=[0.99,0.95,0.68]
+            save_dir = self.workspace.plots / 'cl_tests' / 'contain_plots' / (spectrum + '_dif_cont_error.pdf')
+            my_plotter.line_plots_contain(FULL_cls,NN_cls,spectrum,save_dir,noise=True,sigmas = sigmas, N=N_contain)
+            save_dir = self.workspace.plots / 'cl_tests' / 'contain_plots' / (spectrum + '_dif_cont.pdf')
+            my_plotter.line_plots_contain(FULL_cls,NN_cls,spectrum,save_dir,noise=False,sigmas = sigmas, N=N_contain)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def test(self, count=None, cheat=None, seed=None,nonlinear=None):
         """
@@ -228,8 +361,19 @@ class Tester:
         with open(path, "wb") as out:
             pickle.dump(stats, out)
 
+
+
+
+
+
+
+
+
 def truncate(cls):
     """
     Removes the first two multipoles of a Cl dict.
     """
     return {k: v[2:] for k, v in cls.items()}
+
+
+

@@ -23,7 +23,7 @@ params = {
     "H0":        67.66,
     "tau_reio":  0.0561,
 
-    "neural network path": os.path.expanduser("~/CLASSnet_HPC/"),
+    "neural network path": os.path.expanduser("~/path/to/workspace"),
 }
 params.update(FIXED)
 

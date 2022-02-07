@@ -2,17 +2,18 @@ import json
 import sys
 #from . import generate_data
 from .generate_sources_files import generate_data, generate_parameters_and_data
+from .generate_spectra import generate_spectral_data
 
 class Generator:
     def __init__(self, workspace):
         self.workspace = workspace
 
-    def generate_source_data(self, fixed, training=None, validation=None, test=None, processes=None, fixed_training_only=None):
+    def generate_source_data(self, fixed=None, training=None, validation=None, test=None, processes=None, fixed_training_only=None):
         """
-        this method works with precomputed `domain` data.
+        this method works with precomputed `domain` data. It also writes a down the fixed Classy parameters and the parameters of te network
         """
 
-        if training:
+        if fixed is not None:
             self.write_manifest(fixed, training.keys())
 
         # this must happen AFTER writing the manifest!
@@ -41,11 +42,47 @@ class Generator:
                 self.workspace.test_data, processes=processes
             )
 
-    def generate_spectra(self):
+    def generate_spectra_data(self, training=None, validation=None, test=None, processes=None, fixed_nn_only=None, use_nn=False):
         """
-        [SG]: TODO
+        [SG]: TODO description
         """
-        return()
+
+        # load fixed CLASS parameters which were also used to generate the training samples
+        fixed = self.workspace.loader().manifest()['fixed']
+
+        if fixed_nn_only:
+            fixed_nn_only['neural network path']=str(self.workspace.path)
+        else:
+            fixed_nn_only = {'neural network path':str(self.workspace.path)}
+
+        if use_nn:
+            path_suffix = 'NN_cls.h5'
+        else:
+            path_suffix = 'FULL_cls.h5'
+
+        if training:
+            generate_spectral_data(
+                self.workspace,
+                training,
+                fixed,
+                self.workspace.training_data / path_suffix, processes=processes, fixed_nn_only=fixed_nn_only, use_nn=use_nn,
+            )
+
+        if validation:
+            generate_spectral_data(
+                self.workspace,
+                validation,
+                fixed,
+                self.workspace.validation_data / path_suffix, processes=processes, fixed_nn_only=fixed_nn_only, use_nn=use_nn,
+            )
+
+        if test:
+            generate_spectral_data(
+                self.workspace,
+                test,
+                fixed,
+                self.workspace.test_data / path_suffix, processes=processes, fixed_nn_only=fixed_nn_only, use_nn=use_nn
+            )
 
     def generate_k_array(self):
         import glob

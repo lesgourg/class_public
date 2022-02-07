@@ -40,7 +40,19 @@ def transpose_dict_of_lists(dct):
     Inverse of `transpose_list_of_dicts`.
     """
     size = len(next(iter(dct.values())))
-    return [{key: dct[key][i] for key in dct} for i in range(size)]
+    #list of parameters which only appear once
+    keys_once = [key for key in dct.keys() if len(dct[key])==1]
+    keys_size = [key for key in dct.keys() if len(dct[key])==size]
+
+    out_dict = []
+
+    for i in range(size):
+        _ = {key: dct[key][i] for key in keys_size}
+        for key in keys_once:
+            _[key] = dct[key][0]
+        out_dict.append(_)
+
+    return out_dict
 
 
 def powerspace(start, stop, k, *args, **kwargs):

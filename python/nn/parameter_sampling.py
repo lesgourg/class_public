@@ -26,6 +26,7 @@ class ParamDomain:
 
 #OMEGA_NCDM_MIN = 8.147986e-5
 OMEGA_NCDM_MIN = 1.70698158e-5
+W0WA_BOUND = -1./3.
 
 class EllipsoidDomain(ParamDomain):
 
@@ -130,7 +131,7 @@ class EllipsoidDomain(ParamDomain):
             print("fraction of kept points (omega_ncdm only):", ratio_ncdm)
 
         if "w0_fld" in self.pnames:
-            fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < 0.
+            fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < W0WA_BOUND 
             count_fld = fld_consistent.sum()
             ratio_fld = count_fld / len(samples)
             eff_mask = eff_mask & fld_consistent
@@ -175,13 +176,14 @@ class EllipsoidDomain(ParamDomain):
         """
         parameters is a dict of CLASS parameters.
         NOTE: this assumes that all network parameters (i.e. all of self.pnames)
+        SG: TODO CHANGE THIS!
         are present in parameters.
         """
         if "tau_reio" in parameters.keys():
             if parameters["tau_reio"] <= 0.004:
                 return False, 1001
         if "w0_fld" in parameters.keys():
-            if parameters["w0_fld"] + parameters["wa_fld"] > 0:
+            if parameters["w0_fld"] + parameters["wa_fld"] > W0WA_BOUND:
                 return False, 1002
         if "omega_ncdm" in parameters.keys():
             if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
