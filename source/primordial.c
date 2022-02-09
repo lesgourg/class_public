@@ -3432,9 +3432,39 @@ int primordial_output_titles(struct perturbations * ppt,
                              struct primordial * ppm,
                              char titles[_MAXTITLESTRINGLENGTH_]
                              ){
+  int index_md,index_ic1;
   class_store_columntitle(titles,"k [1/Mpc]",_TRUE_);
-  class_store_columntitle(titles,"P_scalar(k)",_TRUE_);
-  class_store_columntitle(titles,"P_tensor(k)",ppt->has_tensors);
+  for (index_md = 0; index_md < ppm->md_size; index_md++) {
+    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+      if (_scalars_) {
+        if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
+          class_store_columntitle(titles,"P_scalar(k)",_TRUE_);
+        }
+
+        if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
+          class_store_columntitle(titles,"P_bi(k)",_TRUE_);
+        }
+
+        if ((ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_cdi)) {
+          class_store_columntitle(titles,"P_cdi(k)",_TRUE_);
+        }
+
+        if ((ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_nid)) {
+          class_store_columntitle(titles,"P_nid(k)",_TRUE_);
+        }
+
+        if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv)) {
+          class_store_columntitle(titles,"P_ni(k)",_TRUE_);
+        }
+      }
+
+      if (_tensors_) {
+        if (index_ic1 == ppt->index_ic_ten) {
+          class_store_columntitle(titles,"P_tensor(k)",_TRUE_);
+        }
+      }
+    }
+  }
 
   return _SUCCESS_;
 
@@ -3447,14 +3477,19 @@ int primordial_output_data(struct perturbations * ppt,
 
   int index_k, storeidx;
   double *dataptr;
+  int index_md,index_ic1,index_ic1_ic2;
 
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     dataptr = data + index_k*number_of_titles;
     storeidx = 0;
 
     class_store_double(dataptr, exp(ppm->lnk[index_k]), _TRUE_,storeidx);
-    class_store_double(dataptr, exp(ppm->lnpk[ppt->index_md_scalars][index_k]), _TRUE_,storeidx);
-    class_store_double(dataptr, exp(ppm->lnpk[ppt->index_md_tensors][index_k]), ppt->has_tensors,storeidx);
+    for (index_md = 0; index_md < ppm->md_size; index_md++) {
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+        index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
+        class_store_double(dataptr, exp(ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]), _TRUE_,storeidx);
+      }
+    }
   }
 
 
