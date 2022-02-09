@@ -221,6 +221,7 @@ struct perturbations
   //@{
 
   int index_ic_ad; /**< index value for adiabatic */
+  int index_ic_gwb; /**< index value for intitial GWB */
   int index_ic_cdi; /**< index value for CDM isocurvature */
   int index_ic_bi; /**< index value for baryon isocurvature */
   int index_ic_nid; /**< index value for neutrino density isocurvature */

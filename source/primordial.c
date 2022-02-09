@@ -746,6 +746,12 @@ int primordial_analytic_spectrum_init(
           one_running = ppm->alpha_s;
         }
 
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+          one_amplitude = ppm->A_s;
+          one_tilt = ppm->n_s;
+          one_running = ppm->alpha_s;
+        }
+
         if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
           one_amplitude = ppm->A_s*ppm->f_bi*ppm->f_bi;
           one_tilt = ppm->n_bi;
@@ -3439,6 +3445,10 @@ int primordial_output_titles(struct perturbations * ppt,
       if (_scalars_) {
         if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
           class_store_columntitle(titles,"P_scalar(k)",_TRUE_);
+        }
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+          class_store_columntitle(titles,"P_gwb(k)",_TRUE_);
         }
 
         if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
