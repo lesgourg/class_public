@@ -1626,7 +1626,7 @@ int input_read_parameters_general(struct file_content * pfc,
   char * options_gwb_contributions[8] = {"tsw","eisw","lisw","ini","TSW","EISW","LISW","Ini"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
-  char * options_ics[12] = {"ad","gwb","bi","cdi","nid","niv","AD","GWB","BI","CDI","NID","NIV"};
+  char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
 
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
@@ -1926,7 +1926,7 @@ int input_read_parameters_general(struct file_content * pfc,
           ppt->has_niv=_TRUE_;
         }
         /* Test */
-        class_call(parser_check_options(string1, options_ics, 12, &flag1),
+        class_call(parser_check_options(string1, options_ics, 10, &flag1),
                    errmsg,
                    errmsg);
         class_test(flag1==_FALSE_,

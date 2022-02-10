@@ -747,9 +747,9 @@ int primordial_analytic_spectrum_init(
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) { //TODO_GWB: GWB initial spectrum
-          one_amplitude = ppm->A_s;
-          one_tilt = ppm->n_s;
-          one_running = ppm->alpha_s;
+          one_amplitude = ppm->A_gwb;
+          one_tilt = ppm->n_gwb;
+          one_running = 0;
         }
 
         if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
