@@ -1626,7 +1626,7 @@ int input_read_parameters_general(struct file_content * pfc,
   char * options_gwb_contributions[8] = {"tsw","eisw","lisw","ini","TSW","EISW","LISW","Ini"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
-  char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
+  char * options_ics[12] = {"ad","gwb","bi","cdi","nid","niv","AD","GWB","BI","CDI","NID","NIV"};
 
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
@@ -1908,6 +1908,9 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
+        if ((strstr(string1,"gwb") != NULL) || (strstr(string1,"GWB") != NULL)){
+          ppt->has_gwb_ini=_TRUE_;
+        }
         if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL)){
           ppt->has_bi=_TRUE_;
         }
@@ -1921,14 +1924,14 @@ int input_read_parameters_general(struct file_content * pfc,
           ppt->has_niv=_TRUE_;
         }
         /* Test */
-        class_call(parser_check_options(string1, options_ics, 10, &flag1),
+        class_call(parser_check_options(string1, options_ics, 12, &flag1),
                    errmsg,
                    errmsg);
         class_test(flag1==_FALSE_,
-                   errmsg, "The options for 'ic' are {'ad','bi','cdi','nid','niv'}, you entered '%s'",string1);
-        class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
+                   errmsg, "The options for 'ic' are {'ad','gwb','bi','cdi','nid','niv'}, you entered '%s'",string1);
+        class_test(ppt->has_ad==_FALSE_ && ppt->has_gwb_ini==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
                    errmsg,
-                   "You specified 'ic' as '%s'. It has to contain some of {'ad','bi','cdi','nid','niv'}.",string1);
+                   "You specified 'ic' as '%s'. It has to contain some of {'ad','gwb,'bi','cdi','nid','niv'}.",string1);
       }
     }
     else {
@@ -5433,6 +5436,7 @@ int input_default_params(struct background *pba,
   ppt->has_tensors=_FALSE_;
   /** 3.a) Initial conditions for scalars */
   ppt->has_ad=_TRUE_;
+  ppt->has_gwb_ini=_FALSE_;
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;

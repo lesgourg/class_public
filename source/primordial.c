@@ -746,7 +746,7 @@ int primordial_analytic_spectrum_init(
           one_running = ppm->alpha_s;
         }
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) { //TODO_GWB: GWB initial spectrum
           one_amplitude = ppm->A_s;
           one_tilt = ppm->n_s;
           one_running = ppm->alpha_s;
@@ -3447,7 +3447,7 @@ int primordial_output_titles(struct perturbations * ppt,
           class_store_columntitle(titles,"P_scalar(k)",_TRUE_);
         }
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
           class_store_columntitle(titles,"P_gwb(k)",_TRUE_);
         }
 

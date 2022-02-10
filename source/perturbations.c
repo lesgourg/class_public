@@ -1439,7 +1439,7 @@ int perturbations_indices(
 
       index_ic = 0;
       class_define_index(ppt->index_ic_ad, ppt->has_ad, index_ic,1);
-      class_define_index(ppt->index_ic_gwb,ppt->has_cl_gwb,index_ic,1);
+      class_define_index(ppt->index_ic_gwb,ppt->has_gwb_ini,index_ic,1);
       class_define_index(ppt->index_ic_bi, ppt->has_bi, index_ic,1);
       class_define_index(ppt->index_ic_cdi,ppt->has_cdi,index_ic,1);
       class_define_index(ppt->index_ic_nid,ppt->has_nid,index_ic,1);
