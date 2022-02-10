@@ -4348,6 +4348,42 @@ int input_read_parameters_primordial(struct file_content * pfc,
                "inflationary module cannot work if you ask for isocurvature modes");
   }
 
+
+  /** 2) Primordial/Initial spectrum of the Graviational Wave Background (GWB) */
+  if (ppt->has_cl_gwb == _TRUE_) {
+    /** 2.a) General parameters*/
+    /** 2.a.1) Primordial spectrum type of the GWB*/
+    /* Read */
+    class_call(parser_read_string(pfc,"Pk_gwb_ini_type",&string1,&flag1,errmsg),
+              errmsg,
+              errmsg);
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_) {
+      if (strcmp(string1,"adiabatic_ic") == 0){
+        ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
+      }
+      else if (strcmp(string1,"analytic_Pk") == 0){
+        ppm->primordial_gwb_spec_type = analytic_Pk_gwb;
+      }
+      else{
+        class_stop(errmsg,
+                  "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'adiabatic_ic, analytic_Pk'}.",string1);
+      }
+    }
+
+    /** 2.a.2) Pivot scale in Mpc-1 */
+    /* Read */
+    class_read_double("k_pivot_gwb",ppm->k_pivot_gwb);
+
+    /** 2.c) For type 'analytic_Pk' */
+    if (ppm->primordial_gwb_spec_type == analytic_Pk_gwb) {
+      /** 2.c.1) Amplitude */
+      class_read_double("A_gwb",ppm->A_gwb);
+      /** 2.c.2) Spectral index */
+      class_read_double("n_gwb",ppm->n_gwb);
+    }
+  }
+
   return _SUCCESS_;
 
 }
@@ -5775,6 +5811,19 @@ int input_default_params(struct background *pba,
   ppm->custom8=0.;
   ppm->custom9=0.;
   ppm->custom10=0.;
+
+  /** 2) Primordial/Inital spectrum of GWB */
+  /** 2.a) General parameters */
+  /** 2.a.1) Primordial spectrum type of GWB */
+  ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
+  /** 2.a.2) Pivot scale in Mpc-1 */
+  ppm->k_pivot_gwb = 0.05;
+
+  /** 2.c) For type 'analytic_Pk' */
+  /** 2.c.1) Amplitude */
+  ppm->A_gwb = 2.100549e-09;
+  /** 2.c.2) Spectral index */
+  ppm->n_gwb = 0.9660499;
 
   /**
    * Default to input_read_parameters_spectra

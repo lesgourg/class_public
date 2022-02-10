@@ -16,6 +16,13 @@ enum primordial_spectrum_type {
   external_Pk
 };
 
+/** enum defining how the primordial GWB spectrum should be computed */
+
+enum primordial_gwb_spectrum_type {
+  adiabatic_ic_gwb,
+  analytic_Pk_gwb
+};
+
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
 
 enum linear_or_logarithmic {
@@ -198,6 +205,12 @@ struct primordial {
   double custom9;  /**< one parameter of the primordial computed in 'external_Pk' */
   double custom10; /**< one parameter of the primordial computed in 'external_Pk' */
 
+  /* - parameters describing the intial GWB spectrum */
+  enum primordial_gwb_spectrum_type primordial_gwb_spec_type; /**< type of primordial GWB spectrum */
+  double k_pivot_gwb; /**< pivot scale for GWB in \f$ Mpc^{-1} \f$ */
+
+  double A_gwb;  /**< Amplitude for GWB inital spectrum*/
+  double n_gwb;  /**< Spectral index for GWB intial spectrum*/
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */
