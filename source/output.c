@@ -393,6 +393,13 @@ int output_cl(
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar adiabatic (AD) mode");
             }
 
+            if ((ppt->has_gwb_ini == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_gwb)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_gwb.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for inital gravitaional wave background (GWB) mode");
+            }
+
             if ((ppt->has_bi == _TRUE_) &&
                 (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
 

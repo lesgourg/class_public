@@ -1044,6 +1044,11 @@ int harmonic_compute_cl(
           + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
           + phr->factor_gwb_ini_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
 
+        if (index_ic1 == ppt->index_ic_gwb) //TODO_GWB: Is there a nicer way to implement this?
+          transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb_ini];
+        if (index_ic2 == ppt->index_ic_gwb)
+          transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb_ini];
+
         if (phr->convert_gwb_to_energydensity == _TRUE_) { //TODO_GWB: implement in a more general way
           transfer_ic1_gwb *= (4 - ppm->n_t);
           transfer_ic2_gwb *= (4 - ppm->n_t);
