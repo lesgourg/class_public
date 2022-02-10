@@ -208,7 +208,9 @@ struct primordial {
   /* - parameters describing the intial GWB spectrum */
   enum primordial_gwb_spectrum_type primordial_gwb_spec_type; /**< type of primordial GWB spectrum */
   double k_pivot_gwb; /**< pivot scale for GWB in \f$ Mpc^{-1} \f$ */
-
+  
+  double gwb_ini_adiabatic; /**< propotionality factor between the initial GWB spectrum and the scalar spectrum */
+  
   double A_gwb;  /**< Amplitude for GWB inital spectrum*/
   double n_gwb;  /**< Spectral index for GWB intial spectrum*/
   //@}

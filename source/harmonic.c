@@ -1039,10 +1039,10 @@ int harmonic_compute_cl(
 
         transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1]
           + transfer_ic1[ptr->index_tt_gwb_sw0] + transfer_ic1[ptr->index_tt_gwb_sw1]
-          + phr->factor_gwb_ini_scalar * transfer_ic1[ptr->index_tt_gwb_ini];
+          + ppm->gwb_ini_adiabatic * transfer_ic1[ptr->index_tt_gwb_ini];
         transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1]
           + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
-          + phr->factor_gwb_ini_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
+          + ppm->gwb_ini_adiabatic * transfer_ic2[ptr->index_tt_gwb_ini];
 
         if (index_ic1 == ppt->index_ic_gwb) //TODO_GWB: Is there a nicer way to implement this?
           transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb_ini];

@@ -1908,9 +1908,11 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
-        if ((strstr(string1,"gwb") != NULL) || (strstr(string1,"GWB") != NULL)){
-          ppt->has_gwb_ini=_TRUE_;
-        }
+        /* index_ic_gwb and has_gwb_ini is handled by Pk_gwb_ini_type
+        // if ((strstr(string1,"gwb") != NULL) || (strstr(string1,"GWB") != NULL)){
+        //   ppt->has_gwb_ini=_TRUE_;
+        // }
+        */
         if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL)){
           ppt->has_bi=_TRUE_;
         }
@@ -1928,10 +1930,10 @@ int input_read_parameters_general(struct file_content * pfc,
                    errmsg,
                    errmsg);
         class_test(flag1==_FALSE_,
-                   errmsg, "The options for 'ic' are {'ad','gwb','bi','cdi','nid','niv'}, you entered '%s'",string1);
-        class_test(ppt->has_ad==_FALSE_ && ppt->has_gwb_ini==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
+                   errmsg, "The options for 'ic' are {'ad','bi','cdi','nid','niv'}, you entered '%s'",string1);
+        class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
                    errmsg,
-                   "You specified 'ic' as '%s'. It has to contain some of {'ad','gwb,'bi','cdi','nid','niv'}.",string1);
+                   "You specified 'ic' as '%s'. It has to contain some of {'ad','bi','cdi','nid','niv'}.",string1);
       }
     }
     else {
@@ -4370,10 +4372,22 @@ int input_read_parameters_primordial(struct file_content * pfc,
                   "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'adiabatic_ic, analytic_Pk'}.",string1);
       }
     }
+    /* activate gwb_ini adiabatic id: index_ic_gwb */
+    if (ppm->primordial_gwb_spec_type != adiabatic_ic_gwb) {
+        ppt->has_gwb_ini=_TRUE_;
+    }
 
     /** 2.a.2) Pivot scale in Mpc-1 */
-    /* Read */
     class_read_double("k_pivot_gwb",ppm->k_pivot_gwb);
+
+    /** 2.a.3) Initial time for GWB in Mpc */
+    class_read_double("tau_ini_gwb",ppt->tau_ini_gwb);
+
+    /** 2.b) For type 'adiabatic_Pk' */
+    if (ppm->primordial_gwb_spec_type == adiabatic_ic_gwb) {
+      /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+      class_read_double("gwb_ini_adiabatic",ppm->gwb_ini_adiabatic);
+    }
 
     /** 2.c) For type 'analytic_Pk' */
     if (ppm->primordial_gwb_spec_type == analytic_Pk_gwb) {
@@ -4732,27 +4746,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
       fprintf(stdout,"The evolver is changed to 'rk' because the GWB is requested\n");
     }
 
-    /** 4.a) initial time for GWB */
-    /* Read */
-    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1==_TRUE_) {
-      ppt->tau_ini_gwb = param1;
-    }
-
-    /** 4.b) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-    /* Read */
-    class_call(parser_read_double(pfc,"factor_gwb_ini_scalar",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1==_TRUE_) {
-      phr->factor_gwb_ini_scalar = param1;
-    }
-
-    /** 4.c) Convert GWB to energy density  */
+    /** 4.a) Convert GWB to energy density  */
     /* Read */
     flag1 = _FALSE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
@@ -5818,6 +5812,12 @@ int input_default_params(struct background *pba,
   ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
   /** 2.a.2) Pivot scale in Mpc-1 */
   ppm->k_pivot_gwb = 0.05;
+  /** 2.a.3) inital time for GWB in Mpc*/
+  ppt->tau_ini_gwb=0.1;
+  
+  /** 2.b) For type 'adiabatic_Pk' */
+  /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+  ppm->gwb_ini_adiabatic=0.;
 
   /** 2.c) For type 'analytic_Pk' */
   /** 2.c.1) Amplitude */
@@ -5863,11 +5863,7 @@ int input_default_params(struct background *pba,
   ppt->z_max_pk=0.;
 
   /** 4) Gravitational Wave Background */
-  /** 4.a) inital time for GWB */
-  ppt->tau_ini_gwb=0.1;
-  /** 4.b) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-  phr->factor_gwb_ini_scalar=0.;
-  /** 4.c) Convert GWB to energy density */
+  /** 4.a) Convert GWB to energy density */
   phr->convert_gwb_to_energydensity=_FALSE_;
 
   /**
