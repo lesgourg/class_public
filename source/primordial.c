@@ -746,12 +746,6 @@ int primordial_analytic_spectrum_init(
           one_running = ppm->alpha_s;
         }
 
-        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) { //TODO_GWB: GWB initial spectrum
-          one_amplitude = ppm->A_gwb;
-          one_tilt = ppm->n_gwb;
-          one_running = 0;
-        }
-
         if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
           one_amplitude = ppm->A_s*ppm->f_bi*ppm->f_bi;
           one_tilt = ppm->n_bi;
@@ -797,6 +791,11 @@ int primordial_analytic_spectrum_init(
       ppm->amplitude[index_md][index_ic1_ic2] = one_amplitude;
       ppm->tilt[index_md][index_ic1_ic2] = one_tilt;
       ppm->running[index_md][index_ic1_ic2] = one_running;
+
+      /* The GWB inital spectrum is handeled in a different function! */
+      if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+        ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
+      }
     }
 
     /* non-diagonal coefficients */
@@ -916,6 +915,11 @@ int primordial_analytic_spectrum_init(
             0.5*(ppm->running[index_md][index_ic1_ic1]
                  +ppm->running[index_md][index_ic2_ic2])
             + one_running;
+        }
+
+        /* The GWB inital spectrum is handeled in a different function! */
+        if ((ppt->has_gwb_ini == _TRUE_) && ((index_ic1 == ppt->index_ic_gwb)||(index_ic2 == ppt->index_ic_gwb))) {
+          ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
         }
       }
     }
@@ -3438,17 +3442,13 @@ int primordial_output_titles(struct perturbations * ppt,
                              struct primordial * ppm,
                              char titles[_MAXTITLESTRINGLENGTH_]
                              ){
-  int index_md,index_ic1;
+  int index_md,index_ic1,index_ic2;
   class_store_columntitle(titles,"k [1/Mpc]",_TRUE_);
   for (index_md = 0; index_md < ppm->md_size; index_md++) {
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
       if (_scalars_) {
         if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
           class_store_columntitle(titles,"P_scalar(k)",_TRUE_);
-        }
-
-        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
-          class_store_columntitle(titles,"P_gwb(k)",_TRUE_);
         }
 
         if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
@@ -3466,11 +3466,108 @@ int primordial_output_titles(struct perturbations * ppt,
         if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv)) {
           class_store_columntitle(titles,"P_ni(k)",_TRUE_);
         }
+
+        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+          class_store_columntitle(titles,"P_gwb(k)",_TRUE_);
+        }
       }
 
       if (_tensors_) {
         if (index_ic1 == ppt->index_ic_ten) {
           class_store_columntitle(titles,"P_tensor(k)",_TRUE_);
+        }
+      }
+    }
+
+    /* non-diagonal coefficients */
+    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+      for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+
+        if (_scalars_) {
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
+                ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
+            class_store_columntitle(titles,"ad x bi",_TRUE_);
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) ||
+                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_cdi)))) {
+            class_store_columntitle(titles,"ad x cdi",_TRUE_);
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) ||
+                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_nid)))) {
+            class_store_columntitle(titles,"ad x nid",_TRUE_);
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) ||
+                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_niv)))) {
+            class_store_columntitle(titles,"ad x niv",_TRUE_);
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_gwb)) ||
+                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_gwb)))) {
+            class_store_columntitle(titles,"ad x gwb",_TRUE_);
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) ||
+                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_cdi)))) {
+            class_store_columntitle(titles,"bi x cdi",_TRUE_);
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) ||
+                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_nid)))) {
+            class_store_columntitle(titles,"bi x nid",_TRUE_);
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) ||
+                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_niv)))) {
+            class_store_columntitle(titles,"bi x niv",_TRUE_);
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_gwb)) ||
+                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_gwb)))) {
+            class_store_columntitle(titles,"bi x gwb",_TRUE_);
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) ||
+                ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_nid)))) {
+            class_store_columntitle(titles,"cdi x nid",_TRUE_);
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) ||
+                ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_niv)))) {
+            class_store_columntitle(titles,"cdi x niv",_TRUE_);
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_gwb)) ||
+                ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_gwb)))) {
+            class_store_columntitle(titles,"cdi x gwb",_TRUE_);
+          }
+
+          if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) ||
+                ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_niv)))) {
+            class_store_columntitle(titles,"nid x niv",_TRUE_);
+          }
+
+          if ((ppt->has_nid == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_gwb)) ||
+                ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_gwb)))) {
+            class_store_columntitle(titles,"nid x gwb",_TRUE_);
+          }
         }
       }
     }
@@ -3487,7 +3584,7 @@ int primordial_output_data(struct perturbations * ppt,
 
   int index_k, storeidx;
   double *dataptr;
-  int index_md,index_ic1,index_ic1_ic2;
+  int index_md,index_ic1,index_ic2,index_ic1_ic2;
 
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     dataptr = data + index_k*number_of_titles;
@@ -3497,7 +3594,27 @@ int primordial_output_data(struct perturbations * ppt,
     for (index_md = 0; index_md < ppm->md_size; index_md++) {
       for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
-        class_store_double(dataptr, exp(ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]), _TRUE_,storeidx);
+        if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+          class_store_double(dataptr, exp(ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]), _TRUE_,storeidx);
+        }
+        else {
+          class_store_double(dataptr, 0., _TRUE_,storeidx);
+        }
+      }
+      /* non-diagonal coefficients */
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+        for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+
+          if (_scalars_) {
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+            if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+              class_store_double(dataptr, exp(ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]), _TRUE_,storeidx);
+            }
+            else {
+              class_store_double(dataptr, 0., _TRUE_,storeidx);
+            }
+          }
+        }
       }
     }
   }
