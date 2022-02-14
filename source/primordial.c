@@ -807,7 +807,7 @@ int primordial_analytic_spectrum_init(
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
               (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
-               ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
             one_correlation = ppm->c_ad_bi;
             one_tilt = ppm->n_ad_bi;
             one_running = ppm->alpha_ad_bi;
@@ -3487,7 +3487,7 @@ int primordial_output_titles(struct perturbations * ppt,
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
               (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
-                ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
+                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
             class_store_columntitle(titles,"ad x bi",_TRUE_);
           }
 
