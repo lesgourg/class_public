@@ -86,6 +86,10 @@ int primordial_spectrum_at_k(
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
+    class_test((ppm->primordial_gwb_spec_type != analytic_Pk_gwb) || (ppm->primordial_gwb_spec_type != adiabatic_ic_gwb),
+               ppm->error_message,
+               "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
+
     /* direct computation */
 
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
