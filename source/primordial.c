@@ -436,7 +436,7 @@ int primordial_init(
 
           if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-            class_call(primordial_analytic_spectrum(ppm, //TODO_GWB
+            class_call(primordial_analytic_spectrum(ppm, //TODO_GWB: this should work without changes?
                                                     index_md,
                                                     index_ic1_ic2,
                                                     k,
@@ -454,7 +454,7 @@ int primordial_init(
 
               /* non-diagonal coefficients: cosDelta(k) = P(k)_12/sqrt[P(k)_1 P(k)_2] */
 
-              class_call(primordial_analytic_spectrum(ppm, //TODO_GWB
+              class_call(primordial_analytic_spectrum(ppm,
                                                       index_md,
                                                       index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]),
                                                       k,
@@ -462,7 +462,7 @@ int primordial_init(
                         ppm->error_message,
                         ppm->error_message);
 
-              class_call(primordial_analytic_spectrum(ppm, //TODO_GWB
+              class_call(primordial_analytic_spectrum(ppm,
                                                       index_md,
                                                       index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]),
                                                       k,
@@ -642,7 +642,7 @@ int primordial_free(
 
   if (ppm->lnk_size > 0) {
 
-    if (ppm->primordial_spec_type == analytic_Pk) {
+    if ((ppm->primordial_spec_type == analytic_Pk) || (ppm->primordial_gwb_spec_type == analytic_Pk_gwb)) {
       for (index_md = 0; index_md < ppm->md_size; index_md++) {
         free(ppm->amplitude[index_md]);
         free(ppm->tilt[index_md]);
