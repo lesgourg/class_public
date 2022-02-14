@@ -1664,7 +1664,7 @@ int primordial_inflation_analytic_spectra(
     tensors = pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2);
 
     /** - store the obtained result for curvature and tensor perturbations */
-    ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
+    ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
   }
 
@@ -1845,7 +1845,7 @@ int primordial_inflation_one_wavenumber(
              "negative tensor spectrum");
 
   /** - store the obtained result for curvature and tensor perturbations */
-  ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
+  ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]] = log(curvature);
   ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
 
   /* uncomment if you want to print here the spectra for testing */
