@@ -3539,6 +3539,36 @@ int primordial_gwb_analytic_spectrum_init(
   double one_running=0.;
   double one_correlation=0.;
 
+  if (ppm->primordial_spec_type != analytic_Pk) {//TODO_GWB: Somehow this also work without the if satement. But shouldn't this give an error then?
+    class_alloc(ppm->amplitude,
+                ppm->md_size*sizeof(double *),
+                ppm->error_message);
+
+    class_alloc(ppm->tilt,
+                ppm->md_size*sizeof(double *),
+                ppm->error_message);
+
+    class_alloc(ppm->running,
+                ppm->md_size*sizeof(double *),
+                ppm->error_message);
+
+    for (index_md = 0; index_md < ppm->md_size; index_md++) {
+
+      class_alloc(ppm->amplitude[index_md],
+                  ppm->ic_ic_size[index_md]*sizeof(double),
+                  ppm->error_message);
+
+      class_alloc(ppm->tilt[index_md],
+                  ppm->ic_ic_size[index_md]*sizeof(double),
+                  ppm->error_message);
+
+      class_alloc(ppm->running[index_md],
+                  ppm->ic_ic_size[index_md]*sizeof(double),
+                  ppm->error_message);
+
+    }
+  }
+
   index_md = ppt->index_md_scalars;
   index_ic1 = ppt->index_ic_gwb;
 
