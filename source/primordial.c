@@ -407,6 +407,87 @@ int primordial_init(
 
   }
 
+  /**  - deal with spectrum for GWB */
+  if (ppt->has_gwb_ini == _TRUE_) {
+    if (ppm->primordial_verbose > 0)
+      printf("Computing primordial GWB spectra");
+
+    /** - deal with case of analytic primordial GWB spectrum */
+    if (ppm->primordial_gwb_spec_type == analytic_Pk_gwb) {
+
+      if (ppm->primordial_verbose > 0)
+        printf(" (analytic spectrum)\n");
+
+      class_call_except(primordial_gwb_analytic_spectrum_init(ppt,
+                                                              ppm),
+                        ppm->error_message,
+                        ppm->error_message,
+                        primordial_free(ppm));
+      
+      for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
+
+        k=exp(ppm->lnk[index_k]);
+        index_md = ppt->index_md_scalars;
+        index_ic1 = ppt->index_ic_gwb;
+
+        for (index_ic2 = 0; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+
+          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+
+          if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+
+            class_call(primordial_analytic_spectrum(ppm, //TODO_GWB
+                                                    index_md,
+                                                    index_ic1_ic2,
+                                                    k,
+                                                    &pk),
+                      ppm->error_message,
+                      ppm->error_message);
+
+            if (index_ic1 == index_ic2) {
+
+              /* diagonal coefficients: ln[P(k)] */
+
+              ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = log(pk);
+            }
+            else {
+
+              /* non-diagonal coefficients: cosDelta(k) = P(k)_12/sqrt[P(k)_1 P(k)_2] */
+
+              class_call(primordial_analytic_spectrum(ppm, //TODO_GWB
+                                                      index_md,
+                                                      index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]),
+                                                      k,
+                                                      &pk1),
+                        ppm->error_message,
+                        ppm->error_message);
+
+              class_call(primordial_analytic_spectrum(ppm, //TODO_GWB
+                                                      index_md,
+                                                      index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]),
+                                                      k,
+                                                      &pk2),
+                        ppm->error_message,
+                        ppm->error_message);
+
+              if (pk > sqrt(pk1*pk2))
+                ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 1.;
+              else if (pk < -sqrt(pk1*pk2))
+                ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = -1.;
+              else
+                ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = pk/sqrt(pk1*pk2);
+
+            }
+          }
+          else {
+            /* non-diagonal coefficients when ic's are uncorrelated */
+            ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 0.;
+          }
+        }
+      }
+    }
+  }
+
   /** - compute second derivative of each \f$ \ln{P_k} \f$ versus lnk with spline, in view of interpolation */
 
   for (index_md = 0; index_md < ppm->md_size; index_md++) {
@@ -3436,6 +3517,101 @@ int primordial_external_spectrum_init(
     ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
 
   return _SUCCESS_;
+}
+
+/**
+ * Like primordial_analytic_spectrum_init() but for the
+ * graviational wave background (gwb).
+ *
+ * @param ppt  Input: pointer to perturbation structure
+ * @param ppm  Input/output: pointer to primordial structure
+ * @return the error status
+ */
+
+int primordial_gwb_analytic_spectrum_init(
+                                      struct perturbations   * ppt,
+                                      struct primordial * ppm
+                                      ) {
+  int index_md,index_ic1,index_ic2;
+  int index_ic1_ic2,index_ic1_ic1,index_ic2_ic2;
+  double one_amplitude=0.;
+  double one_tilt=0.;
+  double one_running=0.;
+  double one_correlation=0.;
+
+  index_md = ppt->index_md_scalars;
+  index_ic1 = ppt->index_ic_gwb;
+
+  class_test(index_ic1 >= ppm->ic_size[index_md],
+             ppm->error_message,
+             "The index of the GWB is out of range. This should not happen!");
+
+  /* diagonal coefficient */
+  if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+    one_amplitude = ppm->A_gwb;
+    one_tilt = ppm->n_gwb;
+    one_running = 0.;
+  }
+
+  class_test(one_amplitude <= 0.,
+              ppm->error_message,
+              "inconsistent input for primordial amplitude: %g for index_md=%d, index_ic=%d\n",
+              one_amplitude,index_md,index_ic1);
+
+  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
+
+  ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
+  ppm->amplitude[index_md][index_ic1_ic2] = one_amplitude;
+  ppm->tilt[index_md][index_ic1_ic2] = one_tilt;
+  ppm->running[index_md][index_ic1_ic2] = one_running;
+
+  /* non-diagonal coefficients */
+
+  for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+    for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_) &&
+            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_ad)) ||
+              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_ad)))) {
+          one_correlation = 0.;
+          one_tilt = 0.;
+          one_running = 0.;
+        }
+
+      class_test((one_correlation < -1) || (one_correlation > 1),
+                  ppm->error_message,
+                  "inconsistent input for isocurvature cross-correlation\n");
+
+      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+      index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
+      index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]);
+
+      if (one_correlation == 0.) {
+        ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
+        ppm->amplitude[index_md][index_ic1_ic2] = 0.;
+        ppm->tilt[index_md][index_ic1_ic2] = 0.;
+        ppm->running[index_md][index_ic1_ic2] = 0.;
+      }
+      else {
+        ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
+        ppm->amplitude[index_md][index_ic1_ic2] =
+          sqrt(ppm->amplitude[index_md][index_ic1_ic1]*
+                ppm->amplitude[index_md][index_ic2_ic2])*
+          one_correlation;
+        ppm->tilt[index_md][index_ic1_ic2] =
+          0.5*(ppm->tilt[index_md][index_ic1_ic1]
+                +ppm->tilt[index_md][index_ic2_ic2])
+          + one_tilt;
+        ppm->running[index_md][index_ic1_ic2] =
+          0.5*(ppm->running[index_md][index_ic1_ic1]
+                +ppm->running[index_md][index_ic2_ic2])
+          + one_running;
+      }
+    }
+  }
+
+  return _SUCCESS_;
+
 }
 
 int primordial_output_titles(struct perturbations * ppt,

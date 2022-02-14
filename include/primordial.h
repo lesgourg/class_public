@@ -521,6 +521,11 @@ extern "C" {
                                         struct primordial * ppm
                                         );
 
+  int primordial_gwb_analytic_spectrum_init(
+                                        struct perturbations   * ppt,
+                                        struct primordial * ppm
+                                        );
+
   int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,
                                char titles[_MAXTITLESTRINGLENGTH_]
