@@ -3382,15 +3382,15 @@ int primordial_external_spectrum_init(
                                       struct perturbations * ppt,
                                       struct primordial * ppm
                                       ) {
-  /** Summary: */ //TODO_GWB: implemnt external GWB spectrum
+  /** Summary: */
 
   char arguments[_ARGUMENT_LENGTH_MAX_];
   char line[_LINE_LENGTH_MAX_];
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   FILE *process;
   int n_data_guess, n_data = 0;
-  double *k = NULL, *pks = NULL, *pkt = NULL, *tmp = NULL;
-  double this_k, this_pks, this_pkt;
+  double *k = NULL, *pks = NULL, *pkgwb = NULL, *pkt = NULL, *tmp = NULL;
+  double this_k, this_pks, this_pkgwb, this_pkt;
   int status;
   int index_k;
 
@@ -3399,6 +3399,8 @@ int primordial_external_spectrum_init(
   n_data_guess = 100;
   k   = (double *)malloc(n_data_guess*sizeof(double));
   pks = (double *)malloc(n_data_guess*sizeof(double));
+  if (ppm->primordial_gwb_spec_type == external_Pk_gwb)
+    pkgwb = (double *)malloc(n_data_guess*sizeof(double));
   if (ppt->has_tensors == _TRUE_)
     pkt = (double *)malloc(n_data_guess*sizeof(double));
   /* Prepare the command */
@@ -3425,11 +3427,21 @@ int primordial_external_spectrum_init(
              "The program failed to set the environment for the external command. Maybe you ran out of memory.");
   /* Read output and store it */
   while (fgets(line, sizeof(line)-1, process) != NULL) {
-    if (ppt->has_tensors == _TRUE_) {
-      sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkt);
+    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+      if (ppt->has_tensors == _TRUE_) {
+        sscanf(line, "%lf %lf %lf %lf", &this_k, &this_pks, &this_pkgwb, &this_pkt);
+      }
+      else {
+        sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkgwb);
+      }
     }
     else {
-      sscanf(line, "%lf %lf", &this_k, &this_pks);
+      if (ppt->has_tensors == _TRUE_) {
+        sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkt);
+      }
+      else {
+        sscanf(line, "%lf %lf", &this_k, &this_pks);
+      }
     }
     /* Standard technique in C: if too many data, double the size of the vectors */
     /* (it is faster and safer that reallocating every new line) */
@@ -3445,6 +3457,13 @@ int primordial_external_spectrum_init(
                  ppm->error_message,
                  "Error allocating memory to read the external spectrum.\n");
       pks = tmp;
+      if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+        tmp = (double *)realloc(pkgwb, n_data_guess*sizeof(double));
+        class_test(tmp == NULL,
+                   ppm->error_message,
+                   "Error allocating memory to read the external spectrum.\n");
+        pkgwb = tmp;
+      };
       if (ppt->has_tensors == _TRUE_) {
         tmp = (double *)realloc(pkt, n_data_guess*sizeof(double));
         class_test(tmp == NULL,
@@ -3456,6 +3475,9 @@ int primordial_external_spectrum_init(
     /* Store */
     k  [n_data]   = this_k;
     pks[n_data]   = this_pks;
+    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+      pkgwb[n_data] = this_pkgwb;
+    }
     if (ppt->has_tensors == _TRUE_) {
       pkt[n_data] = this_pkt;
     }
@@ -3511,7 +3533,7 @@ int primordial_external_spectrum_init(
                   ppm->lnk_size*sizeof(double),
                   ppm->error_message);
   };
-  /** - Store values */
+  /** - Store values */ //TODO_GWB: read the values
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     ppm->lnk[index_k] = log(k[index_k]);
     ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]] = log(pks[index_k]);
@@ -3528,6 +3550,8 @@ int primordial_external_spectrum_init(
   /** - Release the memory used locally */
   free(k);
   free(pks);
+  if (ppm->primordial_gwb_spec_type == external_Pk_gwb)
+    free(pkgwb);
   if (ppt->has_tensors == _TRUE_)
     free(pkt);
   /** - Tell CLASS that there are scalar (and tensor) modes */
