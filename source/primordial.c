@@ -3480,11 +3480,11 @@ int primordial_external_spectrum_init(
                 ppm->error_message);
   class_realloc(ppm->lnpk[ppt->index_md_scalars],
                 ppm->lnpk[ppt->index_md_scalars],
-                ppm->lnk_size*sizeof(double),
+                ppm->lnk_size*ppm->ic_ic_size[ppt->index_md_scalars]*sizeof(double),
                 ppm->error_message);
   class_realloc(ppm->ddlnpk[ppt->index_md_scalars],
                 ppm->ddlnpk[ppt->index_md_scalars],
-                ppm->lnk_size*sizeof(double),
+                ppm->lnk_size*ppm->ic_ic_size[ppt->index_md_scalars]*sizeof(double),
                 ppm->error_message);
   if (ppt->has_tensors == _TRUE_) {
     class_realloc(ppm->lnpk[ppt->index_md_tensors],
@@ -3499,7 +3499,7 @@ int primordial_external_spectrum_init(
   /** - Store values */
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     ppm->lnk[index_k] = log(k[index_k]);
-    ppm->lnpk[ppt->index_md_scalars][index_k] = log(pks[index_k]);
+    ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]] = log(pks[index_k]);
     if (ppt->has_tensors == _TRUE_)
       ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
     /* DEBUG (with tensors)
