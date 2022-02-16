@@ -490,6 +490,21 @@ int primordial_init(
         }
       }
     }
+
+    else if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+      /** - the gwb spectrum is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init*/
+
+      if (ppm->primordial_verbose > 0)
+        printf(" (Pk calculated externally)\n");
+    }
+
+    else {
+
+      class_test(0==0,
+                ppm->error_message,
+                "primordial GWB spectrum type not recognized");
+
+    }
   }
 
   /** - compute second derivative of each \f$ \ln{P_k} \f$ versus lnk with spline, in view of interpolation */
@@ -3367,7 +3382,7 @@ int primordial_external_spectrum_init(
                                       struct perturbations * ppt,
                                       struct primordial * ppm
                                       ) {
-  /** Summary: */
+  /** Summary: */ //TODO_GWB: implemnt external GWB spectrum
 
   char arguments[_ARGUMENT_LENGTH_MAX_];
   char line[_LINE_LENGTH_MAX_];

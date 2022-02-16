@@ -4367,14 +4367,22 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"analytic_Pk") == 0){
         ppm->primordial_gwb_spec_type = analytic_Pk_gwb;
       }
+      else if (strcmp(string1,"external_Pk") == 0){
+        ppm->primordial_gwb_spec_type = external_Pk_gwb;
+      }
       else{
         class_stop(errmsg,
-                  "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'adiabatic_ic, analytic_Pk'}.",string1);
+                  "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'adiabatic_ic, analytic_Pk, external_Pk'}.",string1);
       }
     }
-    /* activate gwb_ini adiabatic id: index_ic_gwb */
+    /* activate gwb_ini adiabatic ic: index_ic_gwb */
     if (ppm->primordial_gwb_spec_type != adiabatic_ic_gwb) {
         ppt->has_gwb_ini=_TRUE_;
+    }
+    /* Test */
+    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+      class_test(ppm->primordial_spec_type != external_Pk,errmsg,
+                 "To use the external_Pk for the GWB you must use the external_Pk for all modes!");
     }
 
     /** 2.a.2) Pivot scale in Mpc-1 */

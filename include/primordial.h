@@ -20,7 +20,8 @@ enum primordial_spectrum_type {
 
 enum primordial_gwb_spectrum_type {
   adiabatic_ic_gwb,
-  analytic_Pk_gwb
+  analytic_Pk_gwb,
+  external_Pk_gwb
 };
 
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
