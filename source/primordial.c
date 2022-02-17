@@ -653,6 +653,48 @@ int primordial_init(
 
   }
 
+  if ((ppt->has_gwb_ini == _TRUE_) && (ppm->primordial_gwb_spec_type != analytic_Pk_gwb))  {
+
+    dlnk = log(10.)/ppr->k_per_decade_primordial;
+
+    class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_scalars]*sizeof(double), ppt->error_message);
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_scalars,
+                                        logarithmic,
+                                        log(ppm->k_pivot),
+                                        tmp),
+                ppm->error_message,
+                ppm->error_message);
+    lnpk_pivot = tmp[index_ic1_ic2];
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_scalars,
+                                        logarithmic,
+                                        log(ppm->k_pivot)+dlnk,
+                                        tmp),
+                ppm->error_message,
+                ppm->error_message);
+    lnpk_plus = tmp[index_ic1_ic2];
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_scalars,
+                                        logarithmic,
+                                        log(ppm->k_pivot)-dlnk,
+                                        tmp),
+                ppm->error_message,
+                ppm->error_message);
+    lnpk_minus = tmp[index_ic1_ic2];
+
+    ppm->A_gwb = exp(lnpk_pivot);
+    ppm->n_gwb = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
+    ppm->alpha_gwb = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+
+    if (ppm->primordial_verbose > 0)
+      printf(" -> A_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->A_gwb,ppm->n_gwb,ppm->alpha_gwb);
+  }
+
   return _SUCCESS_;
 
 }
