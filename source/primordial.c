@@ -3392,7 +3392,7 @@ int primordial_external_spectrum_init(
   double *k = NULL, *pks = NULL, *pkgwb = NULL, *pkt = NULL, *tmp = NULL;
   double this_k, this_pks, this_pkgwb, this_pkt;
   int status;
-  int index_k;
+  int index_k, index_ic1_ic2;
 
   /** - Initialization */
   /* Prepare the data (with some initial size) */
@@ -3533,10 +3533,15 @@ int primordial_external_spectrum_init(
                   ppm->lnk_size*sizeof(double),
                   ppm->error_message);
   };
-  /** - Store values */ //TODO_GWB: read the values
+  /** - Store values */
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     ppm->lnk[index_k] = log(k[index_k]);
-    ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]] = log(pks[index_k]);
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
+    ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pks[index_k]);
+    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+      ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pkgwb[index_k]);
+    }
     if (ppt->has_tensors == _TRUE_)
       ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
     /* DEBUG (with tensors)
@@ -3555,7 +3560,12 @@ int primordial_external_spectrum_init(
   if (ppt->has_tensors == _TRUE_)
     free(pkt);
   /** - Tell CLASS that there are scalar (and tensor) modes */
-  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
+  index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
+  ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
+  if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+    ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
+  }
   if (ppt->has_tensors == _TRUE_)
     ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
 
