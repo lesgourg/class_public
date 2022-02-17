@@ -201,6 +201,7 @@ int primordial_init(
   int index_md,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double pk,pk1,pk2;
   double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus,lnpk_minusminus,lnpk_plusplus;
+  double *tmp;
   /* uncomment if you use optional test below
      (for correlated isocurvature modes) */
   //double cos_delta_k;
@@ -532,30 +533,35 @@ int primordial_init(
 
     if (ppt->has_scalars == _TRUE_) {
 
+      class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_scalars]*sizeof(double), ppt->error_message);
+      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
+
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_scalars,
                                           logarithmic,
                                           log(ppm->k_pivot),
-                                          &lnpk_pivot),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_pivot = tmp[index_ic1_ic2];
 
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_scalars,
                                           logarithmic,
                                           log(ppm->k_pivot)+dlnk,
-
-                                          &lnpk_plus),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_plus = tmp[index_ic1_ic2];
 
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_scalars,
                                           logarithmic,
                                           log(ppm->k_pivot)-dlnk,
-                                          &lnpk_minus),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_minus = tmp[index_ic1_ic2];
 
       ppm->A_s = exp(lnpk_pivot);
       ppm->n_s = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
@@ -575,18 +581,19 @@ int primordial_init(
                                           ppt->index_md_scalars,
                                           logarithmic,
                                           log(ppm->k_pivot)+2.*dlnk,
-
-                                          &lnpk_plusplus),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_plusplus = tmp[index_ic1_ic2];
 
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_scalars,
                                           logarithmic,
                                           log(ppm->k_pivot)-2.*dlnk,
-                                          &lnpk_minusminus),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_minusminus = tmp[index_ic1_ic2];
 
       /** - expression for beta_s:
 
@@ -605,29 +612,35 @@ int primordial_init(
 
     if (ppt->has_tensors == _TRUE_) {
 
+      class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_tensors]*sizeof(double), ppt->error_message);
+      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ten,ppt->index_ic_ten,ppm->ic_size[ppt->index_md_tensors]);
+
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_tensors,
                                           logarithmic,
                                           log(ppm->k_pivot),
-                                          &lnpk_pivot),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_pivot = tmp[index_ic1_ic2];
 
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_tensors,
                                           logarithmic,
                                           log(ppm->k_pivot)+dlnk,
-                                          &lnpk_plus),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_plus = tmp[index_ic1_ic2];
 
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_tensors,
                                           logarithmic,
                                           log(ppm->k_pivot)-dlnk,
-                                          &lnpk_minus),
+                                          tmp),
                  ppm->error_message,
                  ppm->error_message);
+      lnpk_minus = tmp[index_ic1_ic2];
 
       ppm->r = exp(lnpk_pivot)/ppm->A_s;
       ppm->n_t = (lnpk_plus-lnpk_minus)/(2.*dlnk);
