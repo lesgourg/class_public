@@ -214,6 +214,7 @@ struct primordial {
   
   double A_gwb;  /**< Amplitude for GWB inital spectrum*/
   double n_gwb;  /**< Spectral index for GWB intial spectrum*/
+  double alpha_gwb; /**< GWB running */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

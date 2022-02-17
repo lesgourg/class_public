@@ -4403,6 +4403,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("A_gwb",ppm->A_gwb);
       /** 2.c.2) Spectral index */
       class_read_double("n_gwb",ppm->n_gwb);
+      /** 2.c.3) GWB running */
+      class_read_double("alpha_gwb",ppm->alpha_gwb);
     }
   }
 
@@ -5832,6 +5834,8 @@ int input_default_params(struct background *pba,
   ppm->A_gwb = 2.100549e-09;
   /** 2.c.2) Spectral index */
   ppm->n_gwb = 0.9660499;
+  /** 2.c.3) GWB running */
+  ppm->alpha_gwb = 0.;
 
   /**
    * Default to input_read_parameters_spectra

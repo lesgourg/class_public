@@ -3633,7 +3633,7 @@ int primordial_gwb_analytic_spectrum_init(
   if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
     one_amplitude = ppm->A_gwb;
     one_tilt = ppm->n_gwb;
-    one_running = 0.;
+    one_running = ppm->alpha_gwb;
   }
 
   class_test(one_amplitude <= 0.,
