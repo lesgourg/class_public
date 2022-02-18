@@ -215,6 +215,26 @@ struct primordial {
   double A_gwb;  /**< Amplitude for GWB inital spectrum*/
   double n_gwb;  /**< Spectral index for GWB intial spectrum*/
   double alpha_gwb; /**< GWB running */
+
+  double c_gwb_ad; /**< GWBxAD cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwb_ad; /**< GWBxAD cross-correlation tilt */
+  double alpha_gwb_ad; /**< GWBxAD cross-correlation running */
+
+  double c_gwb_bi; /**< GWBxBI cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwb_bi; /**< GWBxBI cross-correlation tilt */
+  double alpha_gwb_bi; /**< GWBxBI cross-correlation running */
+
+  double c_gwb_cdi; /**< GWBxCDI cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwb_cdi; /**< GWBxCDI cross-correlation tilt */
+  double alpha_gwb_cdi; /**< GWBxCDI cross-correlation running */
+
+  double c_gwb_nid; /**< GWBxNID cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwb_nid; /**< GWBxNID cross-correlation tilt */
+  double alpha_gwb_nid; /**< GWBxNID cross-correlation running */
+
+  double c_gwb_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwb_niv; /**< GWBxNIV cross-correlation tilt */
+  double alpha_gwb_niv; /**< GWBxNIV cross-correlation running */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

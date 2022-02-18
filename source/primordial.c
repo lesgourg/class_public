@@ -3711,9 +3711,41 @@ int primordial_gwb_analytic_spectrum_init(
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_) &&
             (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_ad)) ||
               ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_ad)))) {
-          one_correlation = 0.;
-          one_tilt = 0.;
-          one_running = 0.;
+          one_correlation = ppm->c_gwb_ad;
+          one_tilt = ppm->n_gwb_ad;
+          one_running = ppm->alpha_gwb_ad;
+        }
+
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_bi == _TRUE_) &&
+            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_bi)) ||
+              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_bi)))) {
+          one_correlation = ppm->c_gwb_bi;
+          one_tilt = ppm->n_gwb_bi;
+          one_running = ppm->alpha_gwb_bi;
+        }
+
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_cdi)) ||
+              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_cdi)))) {
+          one_correlation = ppm->c_gwb_cdi;
+          one_tilt = ppm->n_gwb_cdi;
+          one_running = ppm->alpha_gwb_cdi;
+        }
+
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_nid)) ||
+              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_nid)))) {
+          one_correlation = ppm->c_gwb_nid;
+          one_tilt = ppm->n_gwb_nid;
+          one_running = ppm->alpha_gwb_nid;
+        }
+
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_niv)) ||
+              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_niv)))) {
+          one_correlation = ppm->c_gwb_niv;
+          one_tilt = ppm->n_gwb_niv;
+          one_running = ppm->alpha_gwb_niv;
         }
 
       class_test((one_correlation < -1) || (one_correlation > 1),

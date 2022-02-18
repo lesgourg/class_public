@@ -4405,6 +4405,36 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("n_gwb",ppm->n_gwb);
       /** 2.c.3) GWB running */
       class_read_double("alpha_gwb",ppm->alpha_gwb);
+
+      /** 2.c.4) Cross-correlation with different adiabatic/entropy mode */
+      if (ppm->primordial_spec_type == analytic_Pk) {
+        /* Read */
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_)) {
+          class_read_double_one_of_two("c_gwb_ad","c_ad_gwb",ppm->c_gwb_ad);
+          class_read_double_one_of_two("n_gwb_ad","n_ad_gwb",ppm->n_gwb_ad);
+          class_read_double_one_of_two("alpha_gwb_ad","alpha_ad_gwb",ppm->alpha_gwb_ad);
+        }
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_bi == _TRUE_)) {
+          class_read_double_one_of_two("c_gwb_bi","c_bi_gwb",ppm->c_gwb_bi);
+          class_read_double_one_of_two("n_gwb_bi","n_bi_gwb",ppm->n_gwb_bi);
+          class_read_double_one_of_two("alpha_gwb_bi","alpha_bi_gwb",ppm->alpha_gwb_bi);
+        }
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
+          class_read_double_one_of_two("c_gwb_cdi","c_cdi_gwb",ppm->c_gwb_cdi);
+          class_read_double_one_of_two("n_gwb_cdi","n_cdi_gwb",ppm->n_gwb_cdi);
+          class_read_double_one_of_two("alpha_gwb_cdi","alpha_cdi_gwb",ppm->alpha_gwb_cdi);
+        }
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_nid == _TRUE_)) {
+          class_read_double_one_of_two("c_gwb_nid","c_nid_gwb",ppm->c_gwb_nid);
+          class_read_double_one_of_two("n_gwb_nid","n_nid_gwb",ppm->n_gwb_nid);
+          class_read_double_one_of_two("alpha_gwb_nid","alpha_nid_gwb",ppm->alpha_gwb_nid);
+        }
+        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+          class_read_double_one_of_two("c_gwb_niv","c_niv_gwb",ppm->c_gwb_niv);
+          class_read_double_one_of_two("n_gwb_niv","n_niv_gwb",ppm->n_gwb_niv);
+          class_read_double_one_of_two("alpha_gwb_niv","alpha_niv_gwb",ppm->alpha_gwb_niv);
+        }
+      }
     }
   }
 
@@ -5836,6 +5866,22 @@ int input_default_params(struct background *pba,
   ppm->n_gwb = 0.9660499;
   /** 2.c.3) GWB running */
   ppm->alpha_gwb = 0.;
+  /** 2.c.4) Cross-correlation with different adiabatic/entropy mode */
+  ppm->c_gwb_ad = 0.;
+  ppm->n_gwb_ad = 0.;
+  ppm->alpha_gwb_ad = 0.;
+  ppm->c_gwb_bi = 0.;
+  ppm->n_gwb_bi = 0.;
+  ppm->alpha_gwb_bi = 0.;
+  ppm->c_gwb_cdi = 0.;
+  ppm->n_gwb_cdi = 0.;
+  ppm->alpha_gwb_cdi = 0.;
+  ppm->c_gwb_nid = 0.;
+  ppm->n_gwb_nid = 0.;
+  ppm->alpha_gwb_nid = 0.;
+  ppm->c_gwb_niv = 0.;
+  ppm->n_gwb_niv = 0.;
+  ppm->alpha_gwb_niv = 0.;
 
   /**
    * Default to input_read_parameters_spectra
