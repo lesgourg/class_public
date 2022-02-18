@@ -68,6 +68,16 @@ The command must generate an output separated into lines, each containing a tupl
 * There must be at least two points `(k, P(k))` before and after the interval of `k` requested by CLASS, in order not to introduce unnecessary interpolation error. Otherwise, an error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1 1/Mpc` should be more than enough.
 
 
+Output for the GWB external primordial spectrum
+-----------------------------------------------
+
+If also the GWB primordial spectrum is given via the external module, each line is structured like the following:
+
+ `k in 1/Mpc` | `P_s(k)` | `P_gwb(k)` (| `P_t(k)` if tensor)
+
+Be aware to not confuse this with the notation when only scalars and tensors but no GWB is requested.
+
+
 Precision
 ---------
 
