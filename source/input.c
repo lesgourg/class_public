@@ -2251,6 +2251,7 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
     }
   }
+  class_test(pba->Omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
 
 
   /** 2) Omega_0_b (baryons) */
@@ -2272,6 +2273,7 @@ int input_read_parameters_species(struct file_content * pfc,
   if (flag2 == _TRUE_){
     pba->Omega0_b = param2/pba->h/pba->h;
   }
+  class_test(pba->Omega0_b<0,errmsg,"You cannot set the baryon density to negative values.");
 
 
   /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
@@ -2322,6 +2324,7 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->Omega0_ur = param3/pba->h/pba->h;
     }
   }
+  class_test(pba->Omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values.");
 
   /** 3.a) Case of non-standard properties */
   /* Read */
@@ -2361,6 +2364,8 @@ int input_read_parameters_species(struct file_content * pfc,
     pba->Omega0_cdm = param2/pba->h/pba->h;
     has_cdm_userdefined = _TRUE_;
   }
+  class_test(pba->Omega0_cdm<0,errmsg, "You cannot set the cold dark matter density to negative values.");
+
   /** 4) (Second part) Omega_0_m (total non-relativistic) */
   class_call(parser_read_double(pfc,"Omega_m",&param1,&flag1,errmsg),
              errmsg,
@@ -2381,6 +2386,7 @@ int input_read_parameters_species(struct file_content * pfc,
     Omega_m_remaining = param2/pba->h/pba->h;
     has_m_budget = _TRUE_;
   }
+  class_test(Omega_m_remaining<0,errmsg, "You cannot set the total matter density to negative values.");
   class_test(has_cdm_userdefined == _TRUE_ && has_m_budget == _TRUE_, errmsg, "If you want to use 'Omega_m' you cannot fix 'Omega_cdm' simultaneously. Please remove either 'Omega_cdm' or 'Omega_m' from the input file.");
   if (has_m_budget == _TRUE_) {
     class_test(Omega_m_remaining < pba->Omega0_b, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_b = %e'",Omega_m_remaining, pba->Omega0_b);
@@ -2547,6 +2553,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
   }
+  class_test(pba->Omega0_ncdm_tot<0,errmsg,"You cannot set the NCDM density to negative values.");
   if (has_m_budget == _TRUE_) {
     class_test(Omega_m_remaining < pba->Omega0_ncdm_tot, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_ncdm = %e' (summed over all species)",Omega_m_remaining, pba->Omega0_ncdm_tot);
     Omega_m_remaining-= pba->Omega0_ncdm_tot;
@@ -2587,6 +2594,7 @@ int input_read_parameters_species(struct file_content * pfc,
   if (flag2 == _TRUE_){
     pba->Omega0_dcdmdr = param2/pba->h/pba->h;
   }
+  class_test(pba->Omega0_dcdmdr<0,errmsg,"You cannot set the dcdmdr density to negative values.");
 
   if (pba->Omega0_dcdmdr > 0) {
     /** 7.1.b) Omega_ini_dcdm or omega_ini_dcdm */
@@ -2681,6 +2689,7 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
   pba->Omega0_idr = stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
+  class_test(pba->Omega0_idr<0,errmsg,"You cannot set the idr density to negative values.");
 
   /** - Omega_0_idm_dr (DM interacting with DR) */
   class_call(parser_read_double(pfc,"Omega_idm_dr",&param1,&flag1,errmsg),
@@ -2722,6 +2731,7 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
   /* Test */
+  class_test(pba->Omega0_idm_dr<0,errmsg,"You cannot set the idm_dr density to negative values.");
   if (pba->Omega0_idm_dr > 0.) {
 
     class_test(pba->Omega0_idr == 0.0,
