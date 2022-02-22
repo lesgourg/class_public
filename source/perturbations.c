@@ -240,21 +240,16 @@ int perturbations_sources_at_k_and_z(
  * @return the error status
  */
 
-int perturbations_output_data(
-                              struct background * pba,
-                              struct perturbations * ppt,
-                              enum file_format output_format,
-                              double z,
-                              int number_of_titles,
-                              double *data
-                              ) {
+int perturbations_output_data_at_z(
+                                   struct background * pba,
+                                   struct perturbations * ppt,
+                                   enum file_format output_format,
+                                   double z,
+                                   int number_of_titles,
+                                   double *data
+                                   ) {
 
-  int n_ncdm;
-  double k, k_over_h, k2;
-  double * tkfull=NULL;  /* array with argument
-                            pk_ic[(index_k * phr->ic_size[index_md] + index_ic)*phr->tr_size+index_tr] */
-  double *tk;
-  double *dataptr;
+  double * tkfull=NULL;  /* array with argument tkfull[(index_k * ppt->ic_size[index_md] + index_ic) * ppt->tp_size[index_md] + index_tp] */
 
   double * pvecsources;
 
@@ -264,7 +259,8 @@ int perturbations_output_data(
   int index_ic;
   int index_k;
   int index_tp;
-  int storeidx;
+
+  /** - allocate tkfull */
 
   if (ppt->k_size[index_md]*ppt->ic_size[index_md]*ppt->tp_size[index_md] > 0) {
     class_alloc(tkfull,
@@ -272,7 +268,10 @@ int perturbations_output_data(
                 ppt->error_message);
   }
 
-  /** - compute \f$T_i(k)\f$ for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
+  /** - compute \f$T_i(k)\f$ for each k (if several ic's, compute it
+        for each ic; if z_pk = 0, this is done by directly reading
+        inside the pre-computed table; if not, this is done by
+        interpolating the table at the correct value of tau. */
 
   /* if z_pk = 0, no interpolation needed */
 
@@ -299,7 +298,7 @@ int perturbations_output_data(
                ppt->error_message);
 
     class_test(log(tau) < ppt->ln_tau[0],
-               "Asking sources at a z bigger than z_max_pk, something probably went wrong\n",
+               "Asking sources at a z bigger than z_max_pk, something probably went wrong",
                ppt->error_message);
 
     class_alloc(pvecsources,
@@ -325,6 +324,121 @@ int perturbations_output_data(
     }
     free(pvecsources);
   }
+
+  /** - store data */
+
+  class_call(perturbations_output_data(pba,ppt,output_format,tkfull,number_of_titles,data),
+             ppt->error_message,
+             ppt->error_message);
+
+  /** - free tkfull */
+  // condition necessary because the size could be zero (if ppt->tp_size is zero)
+  if (tkfull != NULL)
+    free(tkfull);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Function called by the output module or the wrappers, which returns
+ * the source functions \f$ S^{X} (k, \tau) \f$ corresponding to
+ * densities ('dTk') and velocities ('vTk') at a given conformal time
+ * tau corresponding to index index_tau in pre-computed table.
+ *
+ * @param pba              Input: pointer to background structure
+ * @param ppt              Input: pointer to perturbation structure
+ * @param output_format    Input: choice of ordering and normalisation for the output quantities
+ * @param index_tau        Input: index pre-computed table ppt->ln_tau[index_tau]
+ * @param number_of_titles Input: number of requested source functions (found in perturbations_output_titles)
+ * @param data             Output: vector of all source functions for all k values and initial conditions (previously allocated with the right size)
+ * @return the error status
+ */
+
+int perturbations_output_data_at_index_tau(
+                                           struct background * pba,
+                                           struct perturbations * ppt,
+                                           enum file_format output_format,
+                                           int index_tau,
+                                           int number_of_titles,
+                                           double *data
+                                           ) {
+
+  double * tkfull=NULL;  /* array with argument tkfull[(index_k * ppt->ic_size[index_md] + index_ic) * ppt->tp_size[index_md] + index_tp] */
+
+  int index_md = ppt->index_md_scalars;
+  int index_ic;
+  int index_k;
+  int index_tp;
+
+  class_test((index_tau < 0) || (index_tau >= ppt->ln_tau_size),
+             "index_tau outside of array range",
+             ppt->error_message);
+
+  /** - allocate and fill tkfull */
+
+  if (ppt->k_size[index_md]*ppt->ic_size[index_md]*ppt->tp_size[index_md] > 0) {
+    class_alloc(tkfull,
+                ppt->k_size[index_md]*ppt->ic_size[index_md]*ppt->tp_size[index_md]*sizeof(double),
+                ppt->error_message);
+  }
+
+  for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
+    for (index_tp=0; index_tp<ppt->tp_size[index_md]; index_tp++) {
+      for (index_ic=0; index_ic<ppt->ic_size[index_md]; index_ic++) {
+        tkfull[(index_k * ppt->ic_size[index_md] + index_ic) * ppt->tp_size[index_md] + index_tp]
+          = ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp][index_tau * ppt->k_size[index_md] + index_k];
+      }
+    }
+  }
+
+  /** - store data */
+
+  class_call(perturbations_output_data(pba,ppt,output_format,tkfull,number_of_titles,data),
+             ppt->error_message,
+             ppt->error_message);
+
+  /** - free tkfull */
+  // condition necessary because the size could be zero (if ppt->tp_size is zero)
+  if (tkfull != NULL)
+    free(tkfull);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Function called by the output module or the wrappers, which returns
+ * the source functions \f$ S^{X} (k, \tau) \f$ corresponding to
+ * densities ('dTk') and velocities ('vTk') in the correct order
+ * (matching that in perturbations_output_titles), given a vector
+ * containing the corresponding scalar source functions at a given
+ * time.
+ *
+ * @param pba              Input: pointer to background structure
+ * @param ppt              Input: pointer to perturbation structure
+ * @param output_format    Input: choice of ordering and normalisation for the output quantities
+ * @param tkfull           Input: vector of scalar sources at given time, tk[(index_k * ppt->ic_size[index_md] + index_ic) * ppt->tp_size[index_md] + index_tp]
+ * @param number_of_titles Input: number of requested source functions (found in perturbations_output_titles)
+ * @param data             Output: vector of all source functions for all k values and initial conditions (previously allocated with the right size)
+ * @return the error status
+ */
+
+int perturbations_output_data(
+                              struct background * pba,
+                              struct perturbations * ppt,
+                              enum file_format output_format,
+                              double * tkfull,
+                              int number_of_titles,
+                              double *data
+                              ) {
+
+  int n_ncdm;
+  double k, k_over_h, k2;
+  double *tk;
+  double *dataptr;
+  int index_md = ppt->index_md_scalars;
+  int index_ic;
+  int index_k;
+  int storeidx;
 
   /** - store data */
 
@@ -361,6 +475,7 @@ int perturbations_output_data(
           class_store_double(dataptr,tk[ppt->index_tp_delta_dcdm],ppt->has_source_delta_dcdm,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_dr],ppt->has_source_delta_dr,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_scf],ppt->has_source_delta_scf,storeidx);
+          class_store_double(dataptr,tk[ppt->index_tp_delta_m],ppt->has_source_delta_m,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_tot],ppt->has_source_delta_tot,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_phi],ppt->has_source_phi,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_psi],ppt->has_source_psi,storeidx);
@@ -407,10 +522,6 @@ int perturbations_output_data(
     }
   }
 
-  //Necessary because the size could be zero (if ppt->tp_size is zero)
-  if (tkfull != NULL)
-    free(tkfull);
-
   return _SUCCESS_;
 }
 
@@ -453,7 +564,8 @@ int perturbations_output_titles(
       class_store_columntitle(titles,"d_dcdm",pba->has_dcdm);
       class_store_columntitle(titles,"d_dr",pba->has_dr);
       class_store_columntitle(titles,"d_scf",pba->has_scf);
-      class_store_columntitle(titles,"d_tot",_TRUE_);
+      class_store_columntitle(titles,"d_m",ppt->has_source_delta_m);
+      class_store_columntitle(titles,"d_tot",ppt->has_source_delta_tot);
       class_store_columntitle(titles,"phi",ppt->has_source_phi);
       class_store_columntitle(titles,"psi",ppt->has_source_psi);
       class_store_columntitle(titles,"phi_prime",ppt->has_source_phi_prime);
@@ -1270,6 +1382,7 @@ int perturbations_indices(
       if (ppt->has_density_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_tot = _TRUE_;
+        ppt->has_source_delta_m = _TRUE_;
         ppt->has_source_delta_g = _TRUE_;
         ppt->has_source_delta_b = _TRUE_;
         if (pba->has_cdm == _TRUE_)
@@ -1544,6 +1657,8 @@ int perturbations_timesampling_for_sources(
   int index_tp;
   int index_ic;
   int index_tau;
+  int index_tau_pk;
+  int index_ln_tau;
   int last_index_back;
   int last_index_thermo;
   int first_index_back;
@@ -1684,7 +1799,11 @@ int perturbations_timesampling_for_sources(
   }
   else {
 
-    /* check the time corresponding to the highest redshift requested in output plus one */
+    /* check the time corresponding to the highest redshift requested
+       in output plus 1, tau(z_max_pk+1). This margin of 1 aims at
+       adding a few sampled values above z_max_pk, to make
+       interpolations more relia=ble up to z_max_pk, without boundary
+       effects. */
     class_call(background_tau_of_z(pba,
                                    ppt->z_max_pk+1,
                                    &tau_ini),
@@ -1906,10 +2025,14 @@ int perturbations_timesampling_for_sources(
                ppt->error_message,
                "you asked for zmax=%e, i.e. taumin=%e, smaller than or equal to the first possible value =%e; it should be strictly bigger for a successfull interpolation",ppt->z_max_pk,tau_lower,ppt->tau_sampling[0]);
 
+    /* skip all values of tau such that z>z_max_pk */
     while (ppt->tau_sampling[index_tau] < tau_lower){
       index_tau++;
     }
     index_tau --;
+
+    /* now we are at the largest value of tau such that z>z_max_pk. We store it. */
+    index_tau_pk = index_tau;
     class_test(index_tau<0,
                ppt->error_message,
                "by construction, this should never happen, a bug must have been introduced somewhere");
@@ -1921,12 +2044,17 @@ int perturbations_timesampling_for_sources(
     if (index_tau>0) index_tau--;
     ppt->ln_tau_size=ppt->tau_size-index_tau;
 
-    /* allocate and fill array of log(tau) */
+    /* allocate and fill array of log(tau), as well as the value of
+       index_ln_tau_pk. The arrays tau_sampling[] and ln_tau[] refer
+       to the same times, but their indices are shifted by
+       (-ppt->ln_tau_size+ppt->tau_size), such that index_ln_tau=0
+       corresponds to index_tau=ppt->tau_size-ppt->ln_tau_size a*/
     class_alloc(ppt->ln_tau,ppt->ln_tau_size * sizeof(double),ppt->error_message);
 
-    for (index_tau=0; index_tau<ppt->ln_tau_size; index_tau++) {
-      ppt->ln_tau[index_tau]=log(ppt->tau_sampling[index_tau-ppt->ln_tau_size+ppt->tau_size]);
+    for (index_ln_tau=0; index_ln_tau<ppt->ln_tau_size; index_ln_tau++) {
+      ppt->ln_tau[index_ln_tau]=log(ppt->tau_sampling[index_ln_tau-ppt->ln_tau_size+ppt->tau_size]);
     }
+    ppt->index_ln_tau_pk = index_tau_pk-ppt->ln_tau_size+ppt->tau_size;
   }
 
   /** - loop over modes, initial conditions and types. For each of
@@ -2087,8 +2215,11 @@ int perturbations_get_k_list(
 
     /* find k_max: */
 
-    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m == _TRUE_))
+    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
       k_max = MAX(k_max,ppt->k_max_for_pk);
+
+    if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
+      k_max = MAX(k_max,ppr->nonlinear_min_k_max);
 
     /** - --> test that result for k_min, k_max make sense */
 
@@ -2198,7 +2329,9 @@ int perturbations_get_k_list(
 
     ppt->k_size_cl[ppt->index_md_scalars] = index_k;
 
-    /* values until k_max */
+    /* values until k_max; find ppt->k_size_pk along the way */
+
+    ppt->k_size_pk = 0;
 
     while (k < k_max) {
       if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_idm_dr>=2)){
@@ -2213,7 +2346,11 @@ int perturbations_get_k_list(
       }
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
+
       index_k++;
+
+      if ((ppt->k_size_pk == 0) && (k>ppt->k_max_for_pk))
+        ppt->k_size_pk = index_k;
     }
 
     ppt->k_size[ppt->index_md_scalars] = index_k;
