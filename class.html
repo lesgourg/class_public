@@ -159,7 +159,7 @@ The purpose of CLASS is to simulate the evolution of linear perturbations in the
 <p>
 The use of CLASS is free provided that when you use it in a publication, you cite at least the paper <a href="http://arxiv.org/abs/1104.2933">CLASS II: Approximation schemes</a> (reference below). You are welcome to cite any other CLASS paper if relevant!
 <p>
-  There are two ways to download CLASS. The simplest thing is to download a tar.gz archive of the latest released (master branch) version, v3.1.1, by clicking <a href="class_public-3.1.1.tar.gz" download="class_public-3.1.1.tar.gz">class_public-3.1.1.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
+  There are two ways to download CLASS. The simplest thing is to download a tar.gz archive of the latest released (master branch) version, v3.1.2, by clicking <a href="class_public-3.1.2.tar.gz" download="class_public-3.1.2.tar.gz">class_public-3.1.2.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
 <br>
 <hr color=#d2b48c>
 <h2><a name="documentation">Documentation</a></h2>
@@ -292,6 +292,7 @@ In case you are interested in downloading an old version, go to the
           <li> Implementation of varying fundamental constants alpha (fine structure constant) and me (effective electron mass). This feature already existed in HyRec2020; we implemented it also in RecFastCLASS and in the CLASS wrapper of the two recombination codes (credits N. Sch&ouml;neberg). The physics is described e.g. in Hart and Chluba <a href="https://arxiv.org/abs/1705.03925" target="_blank">1705.03925</a>. For a description of input parameters and functionalities, search <tt>varying_fundamental_constants</tt> in <tt>explanatory.ini</tt>.
           <li> Minor updates in Hyrec2020 (credits N. Lee) and several minor bug fixes.
           <li> 7.12.2021 (<tt>v3.1.1</tt>): instead of <tt>Omega_cdm</tt> or <tt>omega_cdm</tt>, user can pass in input <tt>Omega_m</tt> or <tt>omega_m</tt>: the code will adjust automatically the CDM abundance, taking into account all other non-relativistic abundances; also, added new functions <tt>perturbations_at_z()</tt> and <tt>perturbations_at_k_and_z()</tt>, and fixed several minor typos and bugs (credits: N. Sch&ouml;neberg. Fereshteh Majidi)
+          <li> 22.02.2022 (<tt>v3.1.2</tt>): in the python wrapper classy, several new functions: <tt>Om_b(z), Om_cdm(z), Om_ncdm(z), angular_distance_from_to(), scale_independent_f_sigma8(), effective_f_sigma8(), effective_f_sigma8_spline(), get_transfer_and_k_and_z(), get_Weyl_pk_and_k_and_z()</tt>; behavior of <tt>sigma()</tt> and <tt>get_pk_and_k_and_z()</tt> improved; fixed a bug concerning the maximum value k_max used for P(k) calculations and output.
         </ul>
       </td>
     </tr>
