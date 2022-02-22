@@ -3361,7 +3361,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
   /** Define local variables */
   int flag1,flag2,flag3;
-  double param2,param3;
+  double param1,param2,param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) Non-linearity */
@@ -3375,8 +3375,6 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                errmsg,
                errmsg);
   }
-  class_read_double("halofit_min_k_max",ppr->nonlinear_min_k_max);
-  class_read_double("hmcode_min_k_max",ppr->nonlinear_min_k_max);
   /* Compatibility code END */
 
   if (flag1 == _TRUE_) {
@@ -3388,11 +3386,28 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pfo->method=nl_halofit;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
+
+      /* Compatibility code BEGIN */
+      class_call(parser_read_double(pfc,"halofit_min_k_max",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if (flag1 == _TRUE_) {
+        ppr->nonlinear_min_k_max = MAX(ppr->nonlinear_min_k_max,param1);
+      }
+      /* Compatibility code END */
     }
     else if((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pfo->method=nl_HMcode;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
+
+      /* Compatibility code BEGIN */
+      class_call(parser_read_double(pfc,"hmcode_min_k_max",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if (flag1 == _TRUE_) {
+        ppr->nonlinear_min_k_max = MAX(ppr->nonlinear_min_k_max,param1);
+      }
+      /* Compatibility code END */
+
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       class_read_int("extrapolation_method",pfo->extrapolation_method);
 
@@ -4535,10 +4550,10 @@ int input_read_parameters_spectra(struct file_content * pfc,
                "You can only enter one of 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
-      ppt->k_max_for_pk=param1*pba->h;
+      ppt->k_max_for_pk = param1*pba->h;
     }
     if (flag2 == _TRUE_){
-      ppt->k_max_for_pk=param2;
+      ppt->k_max_for_pk = param2;
     }
 
     /** 3.a.1) Maximum k in primordial P(k) */

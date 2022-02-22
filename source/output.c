@@ -966,13 +966,13 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_call(perturbations_output_data(pba,
-                                         ppt,
-                                         pop->output_format,
-                                         pop->z_pk[index_z],
-                                         number_of_titles,
-                                         data
-                                         ),
+    class_call(perturbations_output_data_at_z(pba,
+                                              ppt,
+                                              pop->output_format,
+                                              pop->z_pk[index_z],
+                                              number_of_titles,
+                                              data
+                                              ),
                ppt->error_message,
                pop->error_message);
 

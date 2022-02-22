@@ -1562,7 +1562,7 @@ int fourier_init(
               /* redshift (remeber that a in the code stands for (a/a_0)) */
               z = 1./a-1.;
               fprintf(stdout,
-                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or fourier_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
+                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase the precision parameter nonlinear_min_k_max (currently at %e) until k_NL can be computed at the desired z.\n",z,ppr->nonlinear_min_k_max);
 
               free(pvecback);
             }
@@ -1862,6 +1862,7 @@ int fourier_get_k_list(
   int index_k;
 
   pfo->k_size = ppt->k_size[pfo->index_md_scalars];
+  pfo->k_size_pk = ppt->k_size_pk;
   k_max = ppt->k[pfo->index_md_scalars][pfo->k_size-1];
 
   /** - if k extrapolation necessary, compute number of required extra values */
@@ -1921,6 +1922,7 @@ int fourier_get_tau_list(
 
   /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
   pfo->ln_tau_size = ppt->ln_tau_size;
+  pfo->index_ln_tau_pk = ppt->index_ln_tau_pk;
 
   if (ppt->ln_tau_size > 1) {
 
