@@ -3954,7 +3954,7 @@ int primordial_output_data(struct perturbations * ppt,
           if (_scalars_) {
             index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
             if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-              class_store_double(dataptr, exp(ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]), _TRUE_,storeidx);
+              class_store_double(dataptr, ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2], _TRUE_,storeidx);
             }
             else {
               class_store_double(dataptr, 0., _TRUE_,storeidx);
