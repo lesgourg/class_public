@@ -120,8 +120,6 @@ struct harmonic {
 
   //@}
 
-  int convert_gwb_to_energydensity; /**< do we want to convert the GWB spectrum to the energydensity? */
-
   /** @name - technical parameters */
 
   //@{

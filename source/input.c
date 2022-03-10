@@ -4787,11 +4787,42 @@ int input_read_parameters_spectra(struct file_content * pfc,
     /* Read */
     flag1 = _FALSE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
-    phr->convert_gwb_to_energydensity = flag1;
-    if ((phr->convert_gwb_to_energydensity) && (ppm->primordial_spec_type != analytic_Pk))
-      fprintf(stdout,"WARNING: The option 'convert_gwb_to_energydensity = yes' only works with 'Pk_ini_type = analytik_Pk' at the moment!\n"); //TODO_GWB: implement in a more general way
-    if ((input_verbose > 1) && (phr->convert_gwb_to_energydensity == _TRUE_)) {
-      fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with (4 - n_t), n_t = %e\n", ppm->n_t);
+    ppm->convert_gwb_to_energydensity = flag1;
+    
+    /** 4.a.1) Parameter for conversion */
+    if (ppm->convert_gwb_to_energydensity == _TRUE_) {
+      /* Read gwb_conversion_factor*/
+      class_call(parser_read_string(pfc,"gwb_conversion_factor",&string1,&flag1,errmsg),
+                  errmsg,
+                  errmsg);
+      if (flag1 == _TRUE_){
+        class_read_double("gwb_conversion_factor",ppm->gwb_conversion_factor);
+      }
+
+      /* Read k_gwb only if tensor modes are given*/
+      if (ppt->has_tensors) {
+        class_call(parser_read_string(pfc,"k_gwb",&string1,&flag2,errmsg),
+                    errmsg,
+                    errmsg);
+        class_test((flag1 == _TRUE_) && (flag2 == _TRUE_), errmsg, "Only one of gwb_conversion_factor and k_gwb can be given!")
+        if ((flag2 == _TRUE_) && !((strstr(string1,"k_pivot") != NULL) || (strstr(string1,"k pivot") != NULL))){
+          class_read_double("k_gwb",ppm->k_gwb);
+        }
+        else {
+          ppm->k_gwb = ppm->k_pivot; //set to k_pivot as a standart value.
+        }
+      }
+
+      /* Print the conversion method */
+      if (input_verbose > 1) {
+        if ((ppt->has_tensors == _TRUE_) && (ppm->gwb_conversion_factor == 0.)) {
+          fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with (4 - n_t), calculated at k_gwb=%g 1/Mpc\n", ppm->k_gwb);
+        }
+        else {
+          fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with gwb_conversion_factor=%g\n", ppm->gwb_conversion_factor);
+        }
+      }
+
     }
   }
 
@@ -5917,7 +5948,10 @@ int input_default_params(struct background *pba,
 
   /** 4) Gravitational Wave Background */
   /** 4.a) Convert GWB to energy density */
-  phr->convert_gwb_to_energydensity=_FALSE_;
+  ppm->convert_gwb_to_energydensity=_FALSE_;
+  /** 4.a.1) Parameters for conversion */
+  ppm->gwb_conversion_factor = 0.;
+  ppm->k_gwb = 0.05;
 
   /**
    * Default to input_read_parameters_lensing

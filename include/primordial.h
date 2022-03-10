@@ -234,6 +234,11 @@ struct primordial {
   double c_gwb_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
   double n_gwb_niv; /**< GWBxNIV cross-correlation tilt */
   double alpha_gwb_niv; /**< GWBxNIV cross-correlation running */
+
+  /* - parameters for converting the GWB to the energy density */
+  int convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
+  double gwb_conversion_factor;  /**< factor for conversion of the GWB to energy desnity */
+  double k_gwb;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

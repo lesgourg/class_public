@@ -695,6 +695,39 @@ int primordial_init(
       printf(" -> A_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->A_gwb,ppm->n_gwb,ppm->alpha_gwb);
   }
 
+  /** - derive conversion factor for GWB to energy density */
+  
+  if ((ppt->has_cl_gwb == _TRUE_) && (ppm->convert_gwb_to_energydensity == _TRUE_) &&
+      (ppt->has_tensors == _TRUE_) && (ppm->gwb_conversion_factor == 0.))  {
+    dlnk = log(10.)/ppr->k_per_decade_primordial;
+
+    class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_tensors]*sizeof(double), ppt->error_message);
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ten,ppt->index_ic_ten,ppm->ic_size[ppt->index_md_tensors]);
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_tensors,
+                                        logarithmic,
+                                        log(ppm->k_gwb)+dlnk,
+                                        tmp),
+                ppm->error_message,
+                ppm->error_message);
+    lnpk_plus = tmp[index_ic1_ic2];
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_tensors,
+                                        logarithmic,
+                                        log(ppm->k_gwb)-dlnk,
+                                        tmp),
+                ppm->error_message,
+                ppm->error_message);
+    lnpk_minus = tmp[index_ic1_ic2];
+
+    ppm->gwb_conversion_factor =  4. - (lnpk_plus-lnpk_minus)/(2.*dlnk); // (4-n_t)
+
+    if (ppm->primordial_verbose > 0)
+      printf(" -> gwb_conversion_factor=%g <=> n_t=%g, calculated at k_gwb=%g 1/Mpc\n",ppm->gwb_conversion_factor,4.-ppm->gwb_conversion_factor,ppm->k_gwb);
+  }
+
   return _SUCCESS_;
 
 }

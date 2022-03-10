@@ -1051,9 +1051,9 @@ int harmonic_compute_cl(
             transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb_ini];
         }
 
-        if (phr->convert_gwb_to_energydensity == _TRUE_) { //TODO_GWB: implement in a more general way
-          transfer_ic1_gwb *= (4 - ppm->n_t);
-          transfer_ic2_gwb *= (4 - ppm->n_t);
+        if (ppm->convert_gwb_to_energydensity == _TRUE_) {
+          transfer_ic1_gwb *= ppm->gwb_conversion_factor;
+          transfer_ic2_gwb *= ppm->gwb_conversion_factor;
         }
 
       }
@@ -1157,7 +1157,7 @@ int harmonic_compute_cl(
     if (phr->has_gwb == _TRUE_)
     {
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]=
-        primordial_pk[index_ic1_ic2] //TODO_GWB: primordial spectrum
+        primordial_pk[index_ic1_ic2]
         * transfer_ic1_gwb
         * transfer_ic2_gwb
         * factor;
