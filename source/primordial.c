@@ -3687,7 +3687,8 @@ int primordial_gwb_analytic_spectrum_init(
   /* diagonal coefficient */
   if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
     one_amplitude = ppm->A_gwb;
-    one_tilt = ppm->n_gwb;
+    // one_tilt = ppm->n_gwb;
+    one_tilt = ppm->n_gwb+1.; /* +1 to match definition of n_gwb wrt. 0 (equivalent to n_s-1) */
     one_running = ppm->alpha_gwb;
   }
 

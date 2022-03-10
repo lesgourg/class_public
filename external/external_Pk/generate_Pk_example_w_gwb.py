@@ -40,7 +40,7 @@ def P_t(k) :
     return A_t * (k/k_0)**(n_t)
 
 def P_gwb(k) :
-    return A_gwb * (k/k_0)**(n_gwb-1.)
+    return A_gwb * (k/k_0)**(n_gwb)
 
 # 3. Limits for k and precision:
 #    Check that the boundaries are correct for your case.
