@@ -4385,10 +4385,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
                  "To use the external_Pk for the GWB you must use the external_Pk for all modes!");
     }
 
-    /** 2.a.2) Pivot scale in Mpc-1 */
-    class_read_double("k_pivot_gwb",ppm->k_pivot_gwb);
-
-    /** 2.a.3) Initial time for GWB in Mpc */
+    /** 2.a.2) Initial time for GWB in Mpc */
     class_read_double("tau_ini_gwb",ppt->tau_ini_gwb);
 
     /** 2.b) For type 'adiabatic_Pk' */
@@ -5850,9 +5847,7 @@ int input_default_params(struct background *pba,
   /** 2.a) General parameters */
   /** 2.a.1) Primordial spectrum type of GWB */
   ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
-  /** 2.a.2) Pivot scale in Mpc-1 */
-  ppm->k_pivot_gwb = 0.05;
-  /** 2.a.3) inital time for GWB in Mpc*/
+  /** 2.a.2) inital time for GWB in Mpc*/
   ppt->tau_ini_gwb=0.1;
   
   /** 2.b) For type 'adiabatic_Pk' */
