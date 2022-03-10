@@ -1,6 +1,7 @@
 import numpy as np
 from .containers import InputContainer, TargetContainer
-
+import time
+import matplotlib.pyplot as plt
 class SourceFileAdapter:
     def __init__(self, source_file):
         self.source_file = source_file
@@ -9,7 +10,7 @@ class SourceFileAdapter:
         f = self.source_file
 
         container = InputContainer()
-
+        
         thermos = f["thermos"]
         background = f["background"]
 
@@ -108,17 +109,13 @@ class CLASSAdapter:
         self.cosmo = cosmo
 
     def get_inputs(self):
-        container = InputContainer()
-
+        container = InputContainer() #5e-6 sec
         cosmo = self.cosmo
-        cosmo_params = cosmo.nn_cosmological_parameters()
-
+        cosmo_params = cosmo.nn_cosmological_parameters() #3e-5 sec
         ###################################################################
         # 1) process thermodynamical + background quantities
-        ###################################################################
-
-        thermos = cosmo.get_thermos_for_NN()
-
+        ###################################################################   # Takes 0.011 sec
+        thermos = cosmo.get_thermos_for_NN() #takes 5e-4
         container.tau_th = thermos["tau"]
 
         thermos_params = cosmo.get_current_derived_parameters([
@@ -129,7 +126,8 @@ class CLASSAdapter:
             "ds_rec",
             "ra_rec",
             "da_rec",
-            "rd_rec"])
+            "rd_rec"]) #takes 7e-6
+
         tau_reio = thermos_params["tau_reio"] = cosmo.tau_of_z(thermos_params["z_reio"])
         del thermos_params["z_reio"]
         container.scalars.tau_rec = thermos_params["tau_rec"]
@@ -150,9 +148,11 @@ class CLASSAdapter:
 
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
+        a = time.time()
+        bg = cosmo.get_background() #takes 0.0166 sec
+        print('get_background',time.time()-a)
 
-        bg = cosmo.get_background()
-        bg_nn = cosmo.get_backgrounds_for_NN()
+        bg_nn = cosmo.get_backgrounds_for_NN() #takes 1e-4
 
         tau_bg = bg_nn["tau"]
         r_s = bg_nn["r_s"]
@@ -166,12 +166,23 @@ class CLASSAdapter:
         container.background.rho_g = rho_g
         container.background.D = bg_nn["D"]
         container.background.H = bg_nn["H"]
-        container.background.Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"]
+        #container.background.Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"] 
+        # TODO SG 
 
         container.background.raw_D = bg_nn["D"]
         container.background.raw_H = bg_nn["H"]
         container.background.raw_Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"]
+        
+        # print(container.background.raw_Omega_m/bg_nn["Omega_m"])
 
+        # fig,ax = plt.subplots()
+        # ax.plot(container.tau_bg,container.background.raw_Omega_m/bg_nn["Omega_m"])
+        # ax.set_xlabel(r'\\tau')
+        # ax.set_ylabel(r'\\Omega_{m,calc}/\\Omega_{m,CLASS}')
+        # ax.grid(True)
+        # fig.savefig('omega_m.pdf')
+
+        # sys.exit()
         container.thermo.e_kappa = thermos["e_kappa"]
         container.thermo.r_d = thermos["r_d"]
 
@@ -183,7 +194,7 @@ class CLASSAdapter:
         container.thermo.g_reio_prime = thermos["g_reio_prime"]
 
         container.scalars.k_min = self.cosmo.k_min()
-        container.tau_source = self.cosmo.get_tau_source()
+        container.tau_source = self.cosmo.get_tau_source() #takes 1e-5
 
         ###################################################################
         # 2) process cosmological_parameters
@@ -196,7 +207,7 @@ class CLASSAdapter:
             # This is done in order to be consistent with the naming scheme
             # of input parameters of CLASS
             container.cosmos["raw_cosmos/" + key] = value
-            container.cosmos["cosmos/" + key] = value
+            container.cosmos["cosmos/" + key] = value #takes 1e-5
 
         return container
 

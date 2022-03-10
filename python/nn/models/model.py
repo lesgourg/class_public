@@ -30,6 +30,15 @@ class Model(ABC, nn.Module):
         """
         return None
 
+    def forward_reduced_mode(self, input):
+        """
+        This forward method allows to spped up the evaluation by:
+        1. Providing the array, where the result has to be written in. This prevents unnecessary copying in the later stages.
+        2. Adding a k_min_idx to only store k values which are in fact useful to store.
+        3. Fill the source functions with zeros where no contribution is expected (before tau_reio or after tau_reco)
+        """
+        return None
+
     def slicing(self):
         """
         If this model is only non-zero in some region, this method

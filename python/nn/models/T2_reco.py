@@ -45,7 +45,10 @@ class Net_ST2_Reco(Model):
         self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = x["tau_relative_to_reco"][:, None]
+        
 
+        #TODO SG: Put the sqrt(6) somewhere else
+        sqrt_6 = torch.sqrt(torch.tensor([6]))
         return x["g_reco"][:, None] * self.net_combined(
             torch.cat((
                 self.net_cosmo(inputs_cosmo),
@@ -93,6 +96,22 @@ class Net_ST2_Reco(Model):
 
         # return x["g_reco"][:, None] * add
         return add
+
+    def forward_reduced_mode(self, x, k_min_idx):
+        self.k_min = x["k_min"][0]
+        inputs_cosmo = common.get_inputs_cosmo(x)
+        inputs_tau = x["tau_relative_to_reco"][:, None]
+
+        #TODO SG: Put the sqrt(6) somewhere else
+        y = x["g_reco"][:, None] * self.net_combined(
+            torch.cat((
+                self.net_cosmo(inputs_cosmo),
+                self.net_tau(inputs_tau)
+            ), dim=1))
+
+        return y[:,k_min_idx:]
+
+
 
     def epochs(self):
         return 40

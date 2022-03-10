@@ -22,6 +22,7 @@ from libc.string cimport *
 import cython
 from cython.parallel import prange
 cimport cython
+from cython.view cimport array as cvarray
 
 import classynet.workspace
 import classynet.predictors
@@ -208,6 +209,7 @@ cdef class Class:
     cdef lensing le
     cdef distortions sd
     cdef file_content fc
+    #cdef np.ndarray[np.double_t, ndim=2, mode="c"] NN_prediction_numpy #SG cannot defined here
 
     cpdef int computed # Flag to see if classy has already computed with the given pars
     cpdef int allocated # Flag to see if classy structs are allocated already
@@ -215,10 +217,16 @@ cdef class Class:
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
     cdef c_linked_list module_list
 
-    cpdef bint use_NN
+    cpdef bint using_NN
     cpdef bint pred_init
     cpdef dict NN_generations
     cpdef object predictor
+    cpdef list NN_source_index_list
+    cpdef list NN_pnames
+
+
+    cdef double [:, :] NN_prediction # The NN output which will be handed over to CLASS
+    cpdef int NN_source_size
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -245,9 +253,14 @@ cdef class Class:
     def __cinit__(self, default=False):
         cpdef char* dumc
         self.allocated = False
-        self.use_NN = False
+
+        # NN stuff
+        self.using_NN = False
         self.NN_generations = {}
         self.pred_init = False
+        self.NN_source_index_list = []
+        self.NN_pnames = []
+
         self.computed = False
         self._pars = {}
         self.fc.size=0
@@ -259,6 +272,7 @@ cdef class Class:
         if default: self.set_default()
 
     def __dealloc__(self):
+        print("__DEALLOC__")
         if self.allocated:
           self.struct_cleanup()
         self.empty()
@@ -293,6 +307,7 @@ cdef class Class:
         Also checks the 'nn_verbose' parameter to determine how much information 
         to print about the usage of neural networks.
         """
+        # [SG]: TODO: REWORK THIS FUNCTION ...
         if "nn_verbose" in self.pars:
             nn_verbose = self.pars["nn_verbose"]
         else:
@@ -300,14 +315,15 @@ cdef class Class:
         if not "use_nn" in self.pars:
             return False
         else:
-            if self.pars["use_nn"].lower()=='false':
+            if not self.pars["use_nn"].lower()=='yes':
                 return False
+        
         if not "neural network path" in self._pars:
-                raise ValueError("use_nn is True but no neural network path is not provided!")
+                raise ValueError("use_nn is yes but no neural network path is not provided!")
         elif "neural network path" in self.pars:
-            using_nn = self.can_use_nn()
+            self.using_NN = self.can_use_nn()
             if nn_verbose>1:
-                if not using_nn:
+                if not self.using_NN:
                     print("##################################")
                     print("#   NOT USING NEURAL NETWORKS!   #")
                     print("##################################")
@@ -318,19 +334,19 @@ cdef class Class:
                     print("##################################")
                     return True
             elif nn_verbose==1:
-                if not using_nn:
+                if not self.using_NN:
                     print("USING NEURAL NETWORKS : False!")
                     return False
                 else:
-                    print("USING NEURAL NETWORKS :          True!")
+                    print("USING NEURAL NETWORKS : True!")
                     return True
             elif nn_verbose==0:
-                if not using_nn:
+                if not self.using_NN:
                     return False
                 else:
                     return True
             else:
-                if not using_nn:
+                if not self.using_NN:
                     print("##################################")
                     print("#   NOT USING NEURAL NETWORKS!   #")
                     print("##################################")
@@ -351,8 +367,8 @@ cdef class Class:
         
         workspace = self.nn_workspace()
         domain = workspace.loader().domain_descriptor()
-        using_nn, self.pt.network_deltachisquared = domain.contains(self._pars)
-        if not using_nn:
+        domain_use_nn, self.pt.network_deltachisquared = domain.contains(self._pars)
+        if not domain_use_nn:
             if "nn_verbose" in self.pars:
                 if self.pars["nn_verbose"]>1:
                     print("neural network domain of validity does not contain requested parameters")
@@ -378,7 +394,6 @@ cdef class Class:
             return False
         if not expect("Omega_Lambda", 0):
             return False
-        # TODO are there other valid values (e.g. 'true' or something like that)?
         if not expect("compute damping scale", "yes"):
             return False
 
@@ -429,6 +444,12 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
+        if self.using_NN:
+            # allocate the source functions which were overwritten/freed by the NN. They are to be freed by pert_free()
+            for indices in self.NN_source_index_list:
+                self.pt.sources[indices[0]][indices[1]] = <double *> malloc(sizeof(double))
+            self.NN_source_index_list = []
+            self.using_NN = False
         if self.module_list.contains("distortions"):
             distortions_free(&self.sd)
         if self.module_list.contains("lensing"):
@@ -525,7 +546,8 @@ cdef class Class:
 
     cdef void overwrite_source_function(self, int index_md, int index_ic,
             int index_type,
-            int k_NN_size, int tau_size, double[:] S):
+            int k_NN_size, int tau_size, 
+            double[:] S):
         """
         This utility function overwrites a single source function specified by `index_type`
         with the given source function `S`.
@@ -537,48 +559,12 @@ cdef class Class:
         ## -> Not reuqired if perform_NN_skip is true :
         # Required again because all source functions have been allocated earlier
         free(self.pt.sources[index_md][index_ic * tp_size + index_type])
-        # Allocate memory for source function
-        self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
-        #st=time.time()
-        for i in range(tau_size*k_NN_size):
-            self.pt.sources[index_md][index_ic*tp_size + index_type][i] = S[i]
+        
+        # Hand over the address of the numpy data array
+        self.pt.sources[index_md][index_ic * tp_size + index_type] = &S[0]
 
-        # cython source array view:
-        #cyarr = cvarray(shape=(k_NN_size * tau_size), itemsize=sizeof(double), format="d")
-        #cyarr = S
-        #print(cyarr)
-        #print(S)
-        #self.pt.sources[index_md][index_ic*tp_size + index_type] = cyarr
-        #self.pt.sources[index_md][index_ic*tp_size + index_type] = S
-
-
-        #sources_cython_view = cvarray()
-
-        #self.pt.sources[index_md][index_ic*tp_size + index_type] = &S
-        #for index_tau in range(tau_size):
-        #    for index_k in range(k_NN_size):
-        #        # GS TODO: More efficient way to copy memory from numpy array??
-        #        self.pt.sources[index_md][index_ic*tp_size + index_type][index_tau*k_NN_size + index_k] = S[index_k][index_tau]
-        #print('copy',time.time()-st)
-
-    # GS: TODO remove this function
-    def debug_overwrite_source(self, name, double[:, :] S):
-        cdef int index_md = self.pt.index_md_scalars
-        cdef int index_ic = self.pt.index_ic_ad
-        cdef int tp_size = self.pt.tp_size[index_md]
-        cdef int tau_size = self.pt.tau_size
-        cdef int k_size = self.pt.k_size[index_md]
-        cdef int i_tau
-        cdef int i_k
-
-        index_type = self.translate_source_to_index(name)
-
-        print("expected S.shape of", (k_size, tau_size))
-        print("got      S.shape of", S.shape)
-
-        for i_tau in range(tau_size):
-            for i_k in range(k_size):
-                self.pt.sources[index_md][index_ic*tp_size + index_type][i_tau*k_size + i_k] = S[i_k][i_tau]
+        # Add the overwritten indices to list such that it can be reallocated when they are cleaned up by pert_free()
+        self.NN_source_index_list.extend([[index_md, index_ic * tp_size + index_type]])
 
 
     def compute(self, level=["distortions"], performance_report=None, post_perturb_callback=None):
@@ -714,10 +700,9 @@ cdef class Class:
             # double [:,:] NN_interpolated
             # double [:] NN_interpolated
             # TODO remove some of the unused ones here
-            double [:, :] NN_prediction
-            double * c_NN_sources
+            #double [:, :] NN_prediction
             double tau1=0.0
-            #np.ndarray[np.double_t, ndim=2, mode="c"] NN_prediction
+            #np.ndarray[np.double_t, ndim=2, mode="c"] NN_prediction_numpy
 
         if "perturb" in level:
 
@@ -726,27 +711,40 @@ cdef class Class:
 
 
             # Allocate memory for ALL source functions (since transfer.c iterates over them)
-            use_nn = self.use_nn()
+            self.using_NN = self.use_nn()   #0.0007 sec
 
-            if use_nn and not self.nn_cheat_enabled():
+            if self.using_NN and not self.nn_cheat_enabled():
                 if "nn_verbose" in self.pars:
                     if self.pars["nn_verbose"]>2:
                         print("Using neural networks; skipping regular perturbation module.")
                 self.pt.perform_NN_skip = _TRUE_
 
+            start = time.time()
             if perturb_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
-                raise CosmoComputationError(self.pt.error_message)
+                raise CosmoComputationError(self.pt.error_message) #with NN 0.0005 sec
             
             self.module_list.append("perturb")
+
             timer.end("perturb_init")
 
             # flag for using NN
-            if use_nn:
+            if self.using_NN:
                 timer.start("neural network complete")
+
+                timer.start("update predictor")
+                # Check whether the predictor has been already build, otherwise build it now. If it already has been build, the cosmo parameter have to be updated!
+                if self.pred_init==False:
+                    self.predictor = classynet.predictors.build_predictor(self)
+                    self.pred_init = True
+                else:
+                    self.predictor.update_predictor(self)
+                timer.end("update predictor")   # 1e-5 sec
+
                 timer.start("neural network initialization")
 
+                # Obtain prediction parameters
                 index_md = self.pt.index_md_scalars;
                 k_size = self.pt.k_size[index_md];
                 tau_size = self.pt.tau_size;
@@ -754,86 +752,88 @@ cdef class Class:
 
                 tp_size = self.pt.tp_size[index_md];
 
+                k_NN_size = len(self.predictor.get_k())
+
+                #load requested tau values
                 tau_CLASS = np.zeros((tau_size))
                 for index_tau in range(tau_size):
                     tau_CLASS[index_tau] = self.pt.tau_sampling[index_tau]
 
-                requested_index_types = []
-
+                NN_requested_index_types = []
+                
                 # add all sources that class calculates to the list for predicting
                 source_names = []
                 if self.pt.has_source_t:
-                    requested_index_types.extend([
+                    NN_requested_index_types.extend([
                         self.pt.index_tp_t0,
                         self.pt.index_tp_t1,
                         self.pt.index_tp_t2,
                         ])
                     source_names.extend(["t0", "t1", "t2"])
 
-                    if self.nn_debug_enabled():
-                        requested_index_types.extend([
-                            self.pt.index_tp_t0_reco_no_isw,
-                            self.pt.index_tp_t0_reio_no_isw,
-                            self.pt.index_tp_t0_isw,
-                            self.pt.index_tp_t2_reco,
-                            self.pt.index_tp_t2_reio,
-                            ])
-                        source_names.extend([
-                            "t0_reco_no_isw", "t0_reio_no_isw", "t0_isw",
-                            "t2_reco", "t2_reio"
-                        ])
                 if self.pt.has_source_phi_plus_psi:
-                    requested_index_types.append(self.pt.index_tp_phi_plus_psi)
+                    NN_requested_index_types.append(self.pt.index_tp_phi_plus_psi)
                     source_names.append("phi_plus_psi")
 
                 if self.pt.has_source_delta_m:
-                    requested_index_types.append(self.pt.index_tp_delta_m)
+                    NN_requested_index_types.append(self.pt.index_tp_delta_m)
                     source_names.append("delta_m")
 
-
                 if self.pt.has_source_delta_cb:
-                    requested_index_types.append(self.pt.index_tp_delta_cb)
+                    NN_requested_index_types.append(self.pt.index_tp_delta_cb)
                     source_names.append("delta_cb")
 
-                '''
-                if self.pt.has_source_delta_g:
-                    index_type_list.append(self.pt.index_tp_delta_g)
-                    names.append('delta_g')
-                if self.pt.has_source_theta_m:
-                    index_type_list.append(self.pt.index_tp_theta_m)
-                    names.append('theta_m')
-                if self.pt.has_source_phi:
-                    index_type_list.append(self.pt.index_tp_phi)
-                    names.append('phi')
-                if self.pt.has_source_phi_prime:
-                    index_type_list.append(self.pt.index_tp_phi_prime)
-                    names.append('phi_prime')
-                if self.pt.has_source_psi:
-                    index_type_list.append(self.pt.index_tp_psi)
-                    names.append('psi')
-                '''
+                if self.pt.has_source_p:
+                    NN_requested_index_types.append(self.pt.index_tp_p)
+                    source_names.append("t2_p")
+                    
+                if self.nn_debug_enabled():
+                    NN_requested_index_types.extend([
+                        self.pt.index_tp_t0_reco_no_isw,
+                        self.pt.index_tp_t0_reio_no_isw,
+                        self.pt.index_tp_t0_isw,
+                        self.pt.index_tp_t2_reco,
+                        self.pt.index_tp_t2_reio,
+                        ])
+                    source_names.extend([
+                        "t0_reco_no_isw", "t0_reio_no_isw", "t0_isw",
+                        "t2_reco", "t2_reio"
+                    ])
 
-                timer.end("neural network initialization")
+                # TODO SG: Maybe add further source functions if needed ...
+                # if self.pt.has_source_delta_g:
+                #     index_type_list.append(self.pt.index_tp_delta_g)
+                #     names.append('delta_g')
+                # if self.pt.has_source_theta_m:
+                #     index_type_list.append(self.pt.index_tp_theta_m)
+                #     names.append('theta_m')
+                # if self.pt.has_source_phi:
+                #     index_type_list.append(self.pt.index_tp_phi)
+                #     names.append('phi')
+                # if self.pt.has_source_phi_prime:
+                #     index_type_list.append(self.pt.index_tp_phi_prime)
+                #     names.append('phi_prime')
+                # if self.pt.has_source_psi:
+                #     index_type_list.append(self.pt.index_tp_psi)
+                #     names.append('psi')
+                timer.end("neural network initialization")  # 4e-5 sec
+
+                timer.start("allocate numpy array of predictions")
+                #try cython array init
+                #self.NN_prediction = cvarray(shape=(len(source_names),tau_size*k_NN_size),itemsize=sizeof(double),format='d')
+                self.NN_prediction = cvarray(shape=(len(source_names),tau_size*k_NN_size),itemsize=sizeof(double),format='d')
+                timer.end("allocate numpy array of predictions") # 1e-4 sec. Is at the 0.2% of runtime. But most likeli some space for improment ...
 
                 timer.start("get all sources")
-                timer.start("update predictor")
-
-                # Check whether the predictor has been already build, otherwise build it now. If it already has been build, the cosmo parameter have to be updated!
-                if self.pred_init==False:
-                    self.predictor = classynet.predictors.build_predictor(self)
-                    self.pred_init = True
-                else:
-                    self.predictor.update_predictor(self)
-                timer.end("update predictor")
                 timer.start("predictor.predict_many")
-                k_NN, NN_prediction = self.predictor.predict_many(source_names, np.asarray(tau_CLASS))
-                timer.end("predictor.predict_many")
+                # NN prediction of the source functions. They are stored in the self.NN_prediction array.
+                k_NN = self.predictor.predict_many(source_names, np.asarray(tau_CLASS), self.NN_prediction)
+                timer.end("predictor.predict_many") #0.07 sec
                 timer.end("get all sources")
 
-                timer.start("overwrite k array")
 
+                timer.start("overwrite k array")
                 # Copy k values from NN
-                k_NN_size = len(k_NN)
                 free(self.pt.k[index_md])
                 self.pt.k[index_md] = <double*>malloc(k_NN_size * sizeof(double))
                 for i_k in range(k_NN_size):
@@ -890,100 +890,39 @@ cdef class Class:
                 if "nn_verbose" in self.pars:
                     if self.pars["nn_verbose"]>2:
                         print("pt.k[index_md][pt.k_size_cl[index_md] - 1] =", _k_max_dbg)
+                timer.end("overwrite k array") # 5e-5 sec
 
-                #print("NET  k_min: {}".format(k_NN[0]))
-                #print("NET  k_max: {}".format(k_NN[-1]))
-                #print("NET  k_size: {}".format(k_NN_size))
-                #print("NET  k_max_cl_calculated: {}".format(k_max_cl))
-                #print("NET  k_max_cl: {}".format(k_NN[k_max_cl_idx-1]))
-                #print("NET  k_size_cl: {}".format(k_max_cl_idx))
-                timer.end("overwrite k array")
-
-                timer.start("allocate unused source functions")
-
-                for index_type in range(tp_size):
-                    # Using malloc instead of calloc here will cause the splining
-                    # in transfer.c to explode, but that doesn't seem to be an issue.
-                    # Using malloc over calloc saves about a factor of 10 in runtime.
-                    # self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> calloc(k_NN_size * tau_size,  sizeof(double))
-                    self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
-                timer.end("allocate unused source functions")
-
+                # copy the predictor timestamps to the classy one
                 for key, value in self.predictor.times.items():
                     timer[key] = value
 
+                # copy the predictor timestamps to the classy one     #takes about 1e-5 sec
                 for key, value in self.predictor.time_prediction_per_network.items():
                     timer["indiv. network: '{}'".format(key)] = value
 
-                timer.start("overwrite source functions")
+                #allocate all source functions
+                timer.start("allocate unused source functions")
+                #define source size
+                self.NN_source_size = k_NN_size * tau_size * sizeof(double)
+                for index_type in range(tp_size):
+                    # We need to allocate these, such that they can be dealocated by the perturb_free function later on
+                    self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(sizeof(double))
+                timer.end("allocate unused source functions") #takes about 1e-6 sec
 
+                timer.start("overwrite source functions")
                 start = time.time()
-                for i, index_tp_x in enumerate(requested_index_types):
+                for i, index_tp_x in enumerate(NN_requested_index_types):
                     self.overwrite_source_function(
                             index_md, index_ic,
                             index_tp_x,
-                            k_NN_size, tau_size, NN_prediction[i, :]
+                            k_NN_size, tau_size, 
+                            self.NN_prediction[i, :] #                            NN_prediction_numpy[i, :]
                             )
-                    #print('copy sources', time.time()-start)
-
-                #if self.pt.has_source_delta_cb:
-                #    self.overwrite_source_function(
-                #            index_md, index_ic,
-                #            self.pt.index_tp_delta_cb,
-                #            k_NN_size, tau_size, NN_prediction[source_names.index("delta_m"), :, :]
-                #            )
-
-
-                ############################################################
-                # if self.pt.has_source_t:
-                #     self.overwrite_source_function(
-                #             index_md, index_ic,
-                #             self.pt.index_tp_t0,
-                #             k_NN_size, tau_size, NN_prediction[0, :, :]
-                #             )
-                #     self.overwrite_source_function(
-                #             index_md, index_ic,
-                #             self.pt.index_tp_t1,
-                #             k_NN_size, tau_size, NN_prediction[1, :, :]
-                #             )
-                #     self.overwrite_source_function(
-                #             index_md, index_ic,
-                #             self.pt.index_tp_t2,
-                #             k_NN_size, tau_size, NN_prediction[2, :, :]
-                #             )
-
-                if self.pt.has_source_p:
-                    assert "t2" in source_names
-                    self.overwrite_source_function(
-                        index_md, index_ic,
-                        self.pt.index_tp_p,
-                        k_NN_size, tau_size,
-                        np.sqrt(6) * NN_prediction[source_names.index("t2"), :]
-                    )
-
-                # if self.pt.has_source_phi_plus_psi:
-                #     self.overwrite_source_function(
-                #             index_md, index_ic,
-                #             self.pt.index_tp_phi_plus_psi,
-                #             k_NN_size, tau_size, NN_prediction[3, :, :]
-                #             )
-
-                # if self.pt.has_source_delta_m:
-                #     self.overwrite_source_function(
-                #             index_md, index_ic,
-                #             self.pt.index_tp_delta_m,
-                #             k_NN_size, tau_size, NN_prediction[4, :, :]
-                #             )
-
-
-                timer.end("overwrite source functions")
-                ############################################################
-
+                timer.end("overwrite source functions") # this takes 3e-6 sec
                 timer.end("neural network complete")
 
             timer.end("perturb")
-
-            #print(self.ncp)
+            print(timer.times)
 
             if post_perturb_callback:
                 post_perturb_callback(self)
@@ -2913,7 +2852,7 @@ make        nonlinear_scale_cb(z, z_size)
     def get_backgrounds_for_NN(self):
         """
         Return the comoving sound horizon of photons from the background module and the
-        corresponding conformal time values.
+        corresponding conformal time values. We also need to calculate Omega_m
         """
         cdef:
             int index_tau;
@@ -2921,13 +2860,15 @@ make        nonlinear_scale_cb(z, z_size)
             int bg_size = self.ba.bg_size;
             int index_bg_rs = self.ba.index_bg_rs;
             double * background_table = self.ba.background_table;
-            double [:] r_s = np.zeros((bt_size));
-            double [:] rho_b = np.zeros((bt_size));
-            double [:] rho_g = np.zeros((bt_size));
-            double [:] tau_bg = np.zeros((bt_size));
-            double [:] a = np.zeros((bt_size));
-            double [:] H = np.zeros((bt_size));
-            double [:] D = np.zeros((bt_size));
+            double [:] r_s = np.empty(bt_size, dtype=np.double);
+            double [:] rho_b = np.empty(bt_size, dtype=np.double);
+            double [:] rho_g = np.empty(bt_size, dtype=np.double);
+            double [:] tau_bg = np.empty(bt_size, dtype=np.double);
+            double [:] a = np.empty(bt_size, dtype=np.double);
+            double [:] H = np.empty(bt_size, dtype=np.double);
+            double [:] D = np.empty(bt_size, dtype=np.double);
+            double [:] Omega_m = np.empty(bt_size, dtype=np.double);
+
 
         for index_tau in range(bt_size):
             tau_bg[index_tau] = self.ba.tau_table[index_tau]
@@ -2938,6 +2879,10 @@ make        nonlinear_scale_cb(z, z_size)
             a[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_a];
             H[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_H];
             D[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_D];
+            Omega_m[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_Omega_m];
+            
+
+
 
         return {
                 "tau": np.asarray(tau_bg),
@@ -2947,6 +2892,7 @@ make        nonlinear_scale_cb(z, z_size)
                 "a": np.asarray(a),
                 "H": np.asarray(H),
                 "D": np.asarray(D),
+                "Omega_m": np.asarray(Omega_m),
                 }
 
     def tau_of_z(self,z):
@@ -2982,16 +2928,16 @@ make        nonlinear_scale_cb(z, z_size)
             int index_th_dg_reio = self.th.index_th_dg_reio;
             int index_th_dkappa = self.th.index_th_dkappa;
             int index_th_exp_m_kappa = self.th.index_th_exp_m_kappa;
-            double [:] numpy_r_d = np.zeros((tt_size));
-            double [:] numpy_g = np.zeros((tt_size));
-            double [:] numpy_g_reco = np.zeros(tt_size);
-            double [:] numpy_g_reio = np.zeros(tt_size);
-            double [:] numpy_dg = np.zeros((tt_size));
-            double [:] numpy_dg_reco = np.zeros((tt_size));
-            double [:] numpy_dg_reio = np.zeros((tt_size));
-            double [:] numpy_e_kappa = np.zeros((tt_size));
-            double [:] numpy_dkappa = np.zeros((tt_size));
-            double [:] numpy_tau = np.zeros((tt_size));
+            double [:] numpy_r_d = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_g = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_g_reco = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_g_reio = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dg = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dg_reco = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dg_reio = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_e_kappa = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dkappa = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_tau = np.empty(tt_size, dtype=np.double);     #this takes 2.5e-5 sec
 
         for index_z in prange(tt_size, nogil=True):
 
@@ -3007,12 +2953,13 @@ make        nonlinear_scale_cb(z, z_size)
             numpy_dg_reco[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reco]
             numpy_dg_reio[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reio]
             numpy_dkappa[index_z] = thermodynamics_table[index_z*th_size + index_th_dkappa]
-            numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
+            numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]     #this takes 4e-4
 
         g_reco = np.asarray(numpy_g_reco)
         g_reio = np.asarray(numpy_g_reio)
         g_reco_prime = np.asarray(numpy_dg_reco)
         g_reio_prime = np.asarray(numpy_dg_reio)
+
         ret = {
                 "r_d": np.asarray(numpy_r_d),
                 "g": np.asarray(numpy_g),
@@ -3024,7 +2971,8 @@ make        nonlinear_scale_cb(z, z_size)
                 "e_kappa": np.asarray(numpy_e_kappa),
                 "tau": np.asarray(numpy_tau),
                 "dkappa": np.asarray(numpy_dkappa),
-                }
+                } #takes 1e-5 sec
+
         return ret
 
     def scale_independent_growth_factor(self, z):
@@ -3230,12 +3178,13 @@ make        nonlinear_scale_cb(z, z_size)
         return workspace
 
     def nn_cosmological_parameters(self):
-        manifest = self.nn_workspace().loader().manifest()
-        names = manifest["cosmological_parameters"]
-
+        # here idea: Only load it once
+        if len(self.NN_pnames)==0:
+            manifest = self.nn_workspace().loader().manifest()
+            self.NN_pnames = manifest["cosmological_parameters"]
         result = {}
         remaining = []
-        for name in names:
+        for name in self.NN_pnames:
             if name in self._pars:
                 result[name] = self._pars[name]
             else:

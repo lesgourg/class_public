@@ -8,6 +8,8 @@ from tabulate import tabulate
 import json
 import h5py as h5
 
+import classynet.constants as const_nn
+
 class ParamDomain:
     def sample(self, count):
         raise NotImplementedError

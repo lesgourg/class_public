@@ -72,15 +72,36 @@ class Net_ST0_ISW(Model):
         self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = torch.stack((x["tau"], x["D"]), dim=1)
-
+        acc = torch.cat((
+                self.lin_cosmo(inputs_cosmo),
+                self.lin_tau(inputs_tau)
+            ), dim=1)
         prediction = x["e_kappa"][:, None] * self.lin_combined(
             torch.cat((
                 self.lin_cosmo(inputs_cosmo),
                 self.lin_tau(inputs_tau)
             ), dim=1)
         )
-
         return prediction
+
+
+    def forward_reduced_mode(self, x, k_min_idx):
+        self.k_min = x["k_min"][0]
+        inputs_cosmo = common.get_inputs_cosmo(x)
+        inputs_tau = torch.stack((x["tau"], x["D"]), dim=1)
+        acc = torch.cat((
+                self.lin_cosmo(inputs_cosmo),
+                self.lin_tau(inputs_tau)
+            ), dim=1)
+        prediction = x["e_kappa"][:, None] * self.lin_combined(
+            torch.cat((
+                self.lin_cosmo(inputs_cosmo),
+                self.lin_tau(inputs_tau)
+            ), dim=1)
+        )
+        return prediction[:,k_min_idx:]
+
+
 
     def optimizer(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)

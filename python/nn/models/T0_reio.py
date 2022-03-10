@@ -49,6 +49,27 @@ class Net_ST0_Reio(Model):
         )
         return prediction
 
+
+    def forward_reduced_mode(self, x, k_min_idx):
+        self.k_min = x["k_min"][0]
+
+        inputs_cosmo = common.get_inputs_cosmo(x)
+        inputs_tau = torch.stack([
+            x["tau_relative_to_reio"],
+            x["g_reio"],
+            x["g_reio_prime"],
+            x["e_kappa"],
+        ], axis=1)
+
+        prediction = self.lin_combined(
+            torch.cat((
+                self.lin_cosmo(inputs_cosmo),
+                self.lin_tau(inputs_tau)
+            ), dim=1)
+        )
+        return prediction[:,k_min_idx:]
+
+
     def epochs(self):
         return 40
 

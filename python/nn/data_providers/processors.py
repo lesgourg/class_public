@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.interpolate
-
 from .containers import InputContainer, TargetContainer
 from .approximations import add_approximations
 

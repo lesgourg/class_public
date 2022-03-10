@@ -51,6 +51,23 @@ class Net_ST1(Model):
 
         return prediction
 
+    def forward_reduced_mode(self, x,k_min_idx):
+        self.k_min = x["k_min"][0]
+        inputs_cosmo = common.get_inputs_cosmo(x)
+        inputs_tau = x["tau"][:, None]
+
+        prediction = x["e_kappa"][:, None] * self.k[None, :] * self.lin_combined(
+            torch.cat((
+                self.lin_cosmo(inputs_cosmo),
+                self.lin_tau(inputs_tau)
+            ), dim=1)
+        )
+
+        return prediction[:,k_min_idx:]
+
+
+
+
         self.learning_rate = hp["learning_rate"]
 
     # def forward(self, x):

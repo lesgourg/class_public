@@ -1,6 +1,6 @@
 import json
 import numpy as np
-
+import sys
 
 def compose(*transformers):
     are_input_transformers = all(isinstance(t, InputTransformer) for t in transformers)
@@ -123,22 +123,13 @@ class CompositeTargetTransformer(TargetTransformer):
 class CanonicalTargetTransformer(TargetTransformer):
 
     def __init__(self, k, inputs=None):
-        self.k = k
+        self.k = k #full k array #717 points
         self.inputs = inputs
 
     def transform_targets(self, targets, inputs=None):
         if inputs is not None:
             self.inputs = inputs
 
-        # TODO RE-ENABLE AFTER TESTING??
-        # targets = targets.copy()
-        # if "phi_plus_psi" in targets:
-        #     pp = targets["phi_plus_psi"]
-        #     targets["phi_plus_psi"] = self._transform_phi_plus_psi(pp)
-        # if "phi" in targets:
-        #     targets["phi"] = self._transform_phi_plus_psi(targets["phi"])
-        # if "psi" in targets:
-        #     targets["psi"] = self._transform_phi_plus_psi(targets["psi"])
         if "delta_m" in targets:
             delta_m = targets["delta_m"]
             targets["delta_m"] = self._transform_delta_m(delta_m)
@@ -151,16 +142,7 @@ class CanonicalTargetTransformer(TargetTransformer):
     def untransform_targets(self, targets, inputs=None):
         if inputs is not None:
             self.inputs = inputs
-
-        # TODO RE-ENABLE AFTER TESTING??
-        # targets = targets.copy()
-        # if "phi_plus_psi" in targets:
-        #     pp = targets["phi_plus_psi"]
-        #     targets["phi_plus_psi"] = self._untransform_phi_plus_psi(pp)
-        # if "phi" in targets:
-        #     targets["phi"] = self._untransform_phi_plus_psi(targets["phi"])
-        # if "psi" in targets:
-        #     targets["psi"] = self._untransform_phi_plus_psi(targets["psi"])
+        # TODO SG: put this into the networks
         if "delta_m" in targets:
             delta_m = targets["delta_m"]
             targets["delta_m"] = self._untransform_delta_m(delta_m)
@@ -202,7 +184,6 @@ class CanonicalTargetTransformer(TargetTransformer):
     def _untransform_delta_m(self, value):
         k = self.k
         D = self.inputs["D"]
-
         return value * D[None, :]
 
         k_eq = self._get_k_eq()
@@ -399,4 +380,5 @@ class AbsMaxNormalizer(Normalizer, TargetTransformer):
             return value
 
         else:
+            # TODO SG: put this into the network. It just takes to much time
             return value * self.abs_maxima[key]

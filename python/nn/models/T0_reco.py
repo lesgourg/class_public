@@ -391,21 +391,54 @@ class Net_ST0_Reco(Model):
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
 
-        if THESIS_MODE:
-            thesis_write("k_min", self.k_min.item())
-            thesis_write("linear_combination", linear_combination.cpu().detach().numpy())
-            thesis_write("correction", correction.cpu().detach().numpy())
-            thesis_write("result", result.cpu().detach().numpy())
-
-        # import matplotlib
-        # matplotlib.use("agg")
-        # import matplotlib.pyplot as plt
-        # plt.figure()
-        # plt.semilogx(self.k.cpu().detach(), result[153])
-        # plt.savefig("/home/samaras/deleteme/t0_reco_slice.png", dpi=250)
-
         return result
-        # return linear_combination + correction
+
+    def forward_reduced_mode(self, x, k_min_idx):
+        self.k_min = x["k_min"][0]
+
+        linear_combination = self.net_basis(x)
+        correction = self.net_correction(x)
+
+        if PLOT_MODE:
+            import matplotlib
+            matplotlib.use("agg")
+            import matplotlib.pyplot as plt
+            from plotting.plot_source_function import plot_source_function
+
+            fig, axes = plt.subplots(2, 2, figsize=(2 * 4, 2 * 4))
+
+            plot_source_function(
+                axes[0, 0],
+                self.k,
+                10**x["tau_relative_to_reco"].cpu().numpy(),
+                linear_combination.sum(dim=0).cpu().numpy().T,
+                levels=50,
+                title="linear combination"
+            )
+            plot_source_function(
+                axes[0, 1],
+                self.k,
+                10**x["tau_relative_to_reco"].cpu().numpy(),
+                correction.cpu().numpy().T,
+                levels=50,
+                title="correction"
+            )
+            plot_source_function(
+                axes[1, 0],
+                self.k,
+                10**x["tau_relative_to_reco"].cpu().numpy(),
+                (linear_combination.sum(dim=0) + correction).cpu().numpy().T,
+                levels=50,
+                title="total"
+            )
+
+            fig.savefig(PLOT_DIR + "parts.png", dpi=300)
+
+        result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
+        result = result.sum(dim=0)
+
+        return result[:,k_min_idx:]
+
 
     def epochs(self):
         return 40

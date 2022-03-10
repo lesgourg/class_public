@@ -1,6 +1,6 @@
 import multiprocessing
 import functools
-
+import time
 from .predictor_cache import PredictorCache
 
 from .data_providers import CLASSDataProvider
@@ -27,8 +27,13 @@ class BasePredictor:
 
         self.k = k
 
+        self.tau_size = 0
+
         self.input_transformer = input_transformer
         self.target_transformer = target_transformer
+
+        self.k_min_class = self.cosmo.k_min()
+        self.k_min_idx = lowest_k_index(self.k, self.k_min_class)
 
         self.reset_cache()
         self.reset_times()
@@ -52,6 +57,10 @@ class BasePredictor:
             "neural network input transformation":  0.0,
             "neural network output transformation": 0.0,
             "save source function in cache": 0.0,
+
+            "translate into output": 0.0,
+            "build DataProvider": 0.0,
+            "single predictions complete":0.0,
         }
         self.time_prediction_per_network = {}
 
@@ -103,113 +112,18 @@ class BasePredictor:
         else:
             return 0
 
-    def predict(self, quantity, tau, provider=None, cache=None):
+    def predict(self, source_array, quantity, tau, provider=None, cache=None):
         """
         Get the network prediction for the given `quantity` and `tau` array.
         The result will be sampled on the `k` array obtained from `self.get_k()` and
         thus have the shape `(len(self.get_k()), len(tau))`
         """
-        start_predict = perf_counter()
-        result, raw_inputs = self._predict(quantity, tau, provider, cache)
-        k_min_class = self.cosmo.k_min()
 
-        # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
-        # OTHERWISE BAD THINGS WILL HAPPEN!!!
-        k_min_idx = lowest_k_index(self.k, k_min_class)
-        right = result[self.k > k_min_class]
+        source_array = self._predict(quantity, tau, provider, cache, source_array)
 
-        # t = (k_min_class - self.k[k_min_idx]) / (self.k[k_min_idx + 1] - self.k[k_min_idx])
-        # left = result[k_min_idx] * (1.0 - t) + result[k_min_idx + 1] * t
-        z = np.polyfit(self.k[k_min_idx:k_min_idx+3], result[k_min_idx:k_min_idx+3], deg=2)
-        left = z[2] + z[1] * k_min_class + z[0] * k_min_class**2
+        return source_array
 
-        # old_result = result
-        result = np.concatenate((left[None, :], right), axis=0)
-
-        k = self.get_k()
-        # here we handle the special case of delta_m by fitting the (k s_2)^2 factor
-        # for low values of k, i.e. delta_m = p * (k s_2)^2
-        if quantity == "delta_m":
-            S = result
-            if S.shape != (len(k), len(tau)):
-                print("SHAPE does not fit")
-                raise AssertionError
-            #print("INFO: delta_m")
-            k_th = 5e-4
-            fit_mask = (k > k_th) & (k < 1e-3)
-            from scipy.optimize import leastsq
-            Omega_k = raw_inputs["cosmos/Omega_k"]
-            h = raw_inputs["cosmos/h"]
-            def get_factor(k):
-                return k[:, None]**2 + 3 * Omega_k * (h / 2997.9)**2
-            slope = S[fit_mask].sum(axis=0) / get_factor(k[fit_mask]).sum(axis=0)
-            # slope = S[fit_mask][0] / get_factor(k[fit_mask])[0]
-            replacement = slope * get_factor(k[k < k_th])
-
-            # import matplotlib; matplotlib.use("qt4agg")
-            # import matplotlib.pyplot as plt
-            # plt.loglog(k, -S[:, -1], label="prediction", color="g")
-            # plt.loglog(k[k < k_th], -replacement[:, -1], label="replacement", ls="-.")
-            # plt.axvspan(k[fit_mask][0], k[fit_mask][-1], color="yellow", alpha=0.4)
-            # # plt.loglog(k < k_th], -replacement[:, -1], label="replacement", ls="-.", c="r")
-            # plt.legend()
-            # plt.grid()
-            # plt.show()
-
-            #result[k < k_th] = replacement
-        
-        elif quantity == "delta_cb":
-            S = result
-            if S.shape != (len(k), len(tau)):
-                print("SHAPE does not fit")
-                raise AssertionError
-            #print("INFO: delta_m")
-            k_th = 5e-4
-            fit_mask = (k > k_th) & (k < 1e-3)
-            from scipy.optimize import leastsq
-            Omega_k = raw_inputs["cosmos/Omega_k"]
-            h = raw_inputs["cosmos/h"]
-            def get_factor(k):
-                return k[:, None]**2 + 3 * Omega_k * (h / 2997.9)**2
-            slope = S[fit_mask].sum(axis=0) / get_factor(k[fit_mask]).sum(axis=0)
-            # slope = S[fit_mask][0] / get_factor(k[fit_mask])[0]
-            replacement = slope * get_factor(k[k < k_th])
-
-            # import matplotlib; matplotlib.use("qt4agg")
-            # import matplotlib.pyplot as plt
-            # plt.loglog(k, -S[:, -1], label="prediction", color="g")
-            # plt.loglog(k[k < k_th], -replacement[:, -1], label="replacement", ls="-.")
-            # plt.axvspan(k[fit_mask][0], k[fit_mask][-1], color="yellow", alpha=0.4)
-            # # plt.loglog(k < k_th], -replacement[:, -1], label="replacement", ls="-.", c="r")
-            # plt.legend()
-            # plt.grid()
-            # plt.show()
-
-            #result[k < k_th] = replacement
-
-
-
-
-        # i_tau = 120
-        # import matplotlib
-        # matplotlib.use("qt5agg")
-        # import matplotlib.pyplot as plt
-        # plt.semilogx(self.k, old_result[:, i_tau], label="network prediction")
-        # plt.semilogx(self.k[self.k > k_min_class], right[:, i_tau], label="right part", ls="--")
-        # plt.scatter([k_min_class], [left[i_tau]], label="point at k_min_class")
-        # plt.semilogx(self.get_k(), result[:, i_tau], label="final result", ls="-.")
-        # plt.axvline(k_min_class, label="k_min_class", color="r", ls="--")
-        # plt.axvline(self.k[k_min_idx], label="idx one before k_min_class", color="g", ls="--")
-        # plt.scatter(self.k[k_min_idx:k_min_idx+3], old_result[k_min_idx:k_min_idx+3, i_tau], label="points for quadratic")
-        # plt.legend()
-        # plt.grid()
-        # plt.show()
-
-        self.times["predictor.predict"] += perf_counter() - start_predict
-        return result
-        # return result[lowest_k_index(self.k, k_min_class), :]
-
-    def _predict(self, quantity, tau):
+    def _predict(self, quantity, tau, source_array):
         """
         Predict source function for given quantity.
         Will be implemented by child classes.
@@ -225,17 +139,16 @@ class BasePredictor:
 
     def get_k(self):
         k = self.k
-        k_min_class = self.cosmo.k_min()
 
         # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
         # OTHERWISE BAD THINGS WILL HAPPEN!!!
         k_result = np.concatenate((
-            np.array([k_min_class]),
-            k[k > k_min_class]
+            np.array([self.k_min_class]),
+            k[k > self.k_min_class]
         ))
         return k_result
 
-    def predict_many(self, quantities, tau, flat_output= False):
+    def predict_many(self, quantities, tau, sources_array = None):
         """
         Predict the source functions whose names are given as the list `quantities`.
         This will return a numpy array of shape (len(quantities), len(k) + 1, len(tau)).
@@ -243,53 +156,56 @@ class BasePredictor:
         row to the S array corresponding to k -> 0.
         This is needed so that CLASS does not have to extrapolate for low k.
         """
-        # TODO use self.provider?
-        provider = CLASSDataProvider(self.cosmo)
 
+        # load tau size
+        self.tau_size = len(tau)
+        print("self.tau_size {}".format(self.tau_size))
+        print("k size", len(self.get_k()))
+
+        # update min k from class
+
+        return_sources = False
+
+        if sources_array is None:
+            # if no array was given a new array is created and returned
+            sources_array = np.empty([len(quantities), len(self.get_k()) * self.tau_size], dtype = np.double)
+            return_sources = True
+        
+        # TODO use self.provider?
         start = perf_counter()
+        provider = CLASSDataProvider(self.cosmo)
+        self.times["build DataProvider"] += perf_counter() - start #1e-5 sec
         # Get ALL inputs (since we want to be doing this only _once_)
-        raw_inputs = provider.get_inputs(k=self.k, tau=tau, input_selection=self._all_network_input_names())
-        transformed_inputs = self.input_transformer.transform_inputs(raw_inputs)
+
+        raw_inputs = provider.get_inputs(k=self.k, tau=tau, input_selection=self._all_network_input_names()) # 0.012 sec
+        transformed_inputs = self.input_transformer.transform_inputs(raw_inputs) # 3e-4 sec
 
         # Construct a cache object simplifying the access
-        cache = PredictorCache(raw_inputs, transformed_inputs)
+        cache = PredictorCache(raw_inputs, transformed_inputs) # 3e-6 sec
+        self.times["neural network input transformation"] += perf_counter() - start # 0.014 sec
 
-        self.times["neural network input transformation"] += perf_counter() - start
-
-        predictions = {qty: self.predict(qty, tau, provider, cache=cache) for qty in quantities}
+        start_predict = perf_counter()
+        for i in range(len(quantities)):
+            sources_array[i] = self.predict(sources_array[i], quantities[i], tau, provider, cache=cache)
+        self.times["predictor.predict"] = perf_counter() - start_predict # 0.05 sec
 
         k = self.get_k()
         k_len = len(k)
 
-        if not flat_output:
-            # [SG]: Not used annymore
-            result = np.zeros((len(quantities), len(k), len(tau)))
-
-            # Store predictions in array
-            for i, quantity in enumerate(quantities):
-                S = predictions[quantity]
-                result[i, :, :] = S
-
-            return k, result
-
+        if return_sources:
+            return k, sources_array
         else:
-            result = np.zeros((len(quantities), len(k) * len(tau)))
-
-            # Store predictions in array
-            for i, quantity in enumerate(quantities):
-                S = predictions[quantity]
-                result[i, :] = S.T.flatten()
-
-            return k, result
+            return k
 
 
     def predict_all(self, tau):
-        return self.predict_many(["t0", "t1", "t2", "phi_plus_psi", "delta_m", "delta_cb"], tau)
+        return self.predict_many(["t0", "t1", "t2", "t2_p", "phi_plus_psi", "delta_m", "delta_cb"], tau)
 
     def untransform(self, quantity, value, raw_inputs):
         start = perf_counter()
         result = self.target_transformer.untransform_target(quantity, value, inputs=raw_inputs)
         elapsed = perf_counter() - start
+        #print('unstraform ',quantity,elapsed)
         self.times["neural network output transformation"] += elapsed
 
         return result
@@ -318,24 +234,16 @@ class TorchModel(ModelWrapper):
         return self.model.required_inputs()
 
     def __call__(self, inputs):
-        # self.model.eval()
-        from time import perf_counter
         with torch.no_grad():
-            a = perf_counter()
             converted_inputs = self._convert_inputs(inputs)
-            b = perf_counter()
             S_t = self.model(converted_inputs)
-            c = perf_counter()
 
-            t_convert = b - a
-            t_infer = c - b
-            t_tot = c - a
+        return S_t.cpu().numpy()
 
-            # print("convert:\t{}s\ninfer:\t{}s\ntotal:\t{}s".format(
-            #     t_convert,
-            #     t_infer,
-            #     t_tot
-            #     ))
+    def forward_reduced_mode(self, inputs, k_min_idx):
+        with torch.no_grad():
+            converted_inputs = self._convert_inputs(inputs)
+            S_t = self.model.forward_reduced_mode(converted_inputs, k_min_idx)
 
         return S_t.cpu().numpy()
 
@@ -378,24 +286,15 @@ class TreePredictor(BasePredictor):
         from itertools import chain
         return set(chain(*(mod.required_inputs() for mod in self.models.values())))
 
-    def _predict(self, quantity, tau, provider, cache):
+    def _predict(self, quantity, tau, provider, cache, source_array):
         cosmo = self.cosmo
 
         if quantity in self.models:
-            S, raw_inputs = self._predict_from_model(quantity, cosmo, tau, provider, cache)
+            source_array = self._predict_from_model(quantity, cosmo, tau, provider, cache, source_array)
         else:
-            S, raw_inputs = self._predict_from_combine(quantity, cosmo, tau, provider, cache)
+            source_array = self._predict_from_combine(quantity, cosmo, tau, provider, cache, source_array)
 
-        # TODO CAREFUL
-        if quantity == "t2_reco":
-            #print("T2RECO EXTRAPOLATION")
-            k_th = 1e-3
-            i_k_th = np.argmin(np.abs(self.k - k_th))
-            S_th = S[i_k_th]
-            k_mask = self.k < k_th
-            S[k_mask] = S_th * (self.k[k_mask] / k_th)[:, None]**2
-
-
+        # TODO SG THIS CURRENTLY DOES NOT WORK
         if cosmo.nn_cheat_enabled() and quantity in cosmo.nn_cheat_sources():
             # Here, the `quantity` should not be predicted by a network, but
             # instead be taken from CLASS.
@@ -413,105 +312,151 @@ class TreePredictor(BasePredictor):
 
             spline = scipy.interpolate.RectBivariateSpline(k_cheat, tau_cheat, S_cheat[quantity])
             # this function must also return the `raw_inputs` dict
-            return spline(self.k, tau), raw_inputs
+            return spline(self.k, tau)
 
-            # TODO TODO TODO
-            # k_th = 1e-10
-            # k_left = k_cheat[k_cheat < k_th]
-            # k_right = self.k[self.k >= k_th]
-            # k_ = np.concatenate((k_left, k_right))
-            # S_left = S_cheat[quantity][k_cheat < k_th]
-            # S_right = S[self.k >= k_th]
-            # S_ = np.concatenate((S_left, S_right))
-            # spline = scipy.interpolate.RectBivariateSpline(k_, tau, S_)
-            # # this function must also return the `raw_inputs` dict
-            # return spline(self.k, tau), raw_inputs
+        # TODO SG what is done here?
+        #if quantity in self.funcs:
+        #    self.funcs[quantity](S, raw_inputs)
 
-        if quantity in self.funcs:
-            self.funcs[quantity](S, raw_inputs)
+        return source_array
 
-        return S, raw_inputs
-
-    def _predict_from_model(self, quantity, cosmo, tau, provider, cache):
+    def _predict_from_model(self, quantity, cosmo, tau, provider, cache, source_array, rule = None):
         assert quantity not in self.rules
+
         if quantity in self.cache:
-            return self.cache[quantity]
-
-        model = self.models[quantity]
-
-        in_select = model.required_inputs()
-
-        self.log("Evaluating model for", quantity)
-
-        # Check whether we should evaluate model only at certain tau
-        slicing = model.slicing
-        if slicing is not None:
-            mask = slicing.which(cosmo, tau)
-            tau_eval = tau[mask]
+            S = self.cache[quantity]
         else:
-            tau_eval = tau
-            mask = None
+            model = self.models[quantity]
 
-        start_input_retrieval = perf_counter()
-        raw_inputs = cache.get_raw_inputs(in_select, tau_mask=mask)
-        inputs = cache.get_transformed_inputs(in_select, tau_mask=mask)
-        elapsed = perf_counter() - start_input_retrieval
-        self.times["neural network input transformation"] += elapsed
+            in_select = model.required_inputs()
 
-        start_predict = perf_counter()
-        S_t = model(inputs)
-        elapsed = perf_counter() - start_predict
-        self.time_prediction_per_network[quantity] = elapsed
-        self.times["neural network evaluation"] += elapsed
+            self.log("Evaluating model for", quantity)
 
-        result_shape = list(S_t.shape)
-        result_shape[0] = tau.size
-        result = np.zeros(result_shape)
+            # Check whether we should evaluate model only at certain tau
+            slicing = model.slicing
+            if slicing is not None:
+                mask = slicing.which(cosmo, tau)
+                tau_eval = tau[mask]
+            else:
+                tau_eval = tau
+                mask = None
 
-        if slicing is not None:
-            result[mask] = S_t
-            self.log("Slicing output for quantity", quantity)
+            start_input_retrieval = perf_counter()
+            start = time.time()
+            raw_inputs = cache.get_raw_inputs(in_select, tau_mask=mask)
+            #print('raw input',time.time()-start)
+            start = time.time()
+            inputs = cache.get_transformed_inputs(in_select, tau_mask=mask)
+            #print('get_transformed_inputs',time.time()-start)
+            elapsed = perf_counter() - start_input_retrieval
+            self.times["neural network input transformation"] += elapsed
+
+            start_predict = perf_counter()
+
+            #Find lowest index of the NN k-array which is yet to be used. It is until where the input array is to be filled up with
+            S_t = model.forward_reduced_mode(inputs, self.k_min_idx)
+            elapsed = perf_counter() - start_predict
+            self.time_prediction_per_network[quantity] = elapsed
+            self.times["neural network evaluation"] += elapsed
+
+            result_shape = list(S_t.shape)
+
+            result_shape[0] = tau.size
+
+            #copy here the network prediction to final source array address
+            result = np.zeros(result_shape)
+
+            if slicing is not None:
+                result[mask] = S_t
+                self.log("Slicing output for quantity", quantity)
+            else:
+                result[:, :] = S_t
+
+            S_t = result
+
+            start_output = perf_counter()
+            # Swap k and tau axis
+
+
+
+
+
+
+            S_t = np.swapaxes(S_t, 0, 1)
+
+            if isinstance(quantity, tuple) or isinstance(quantity, list):
+                # If quantity is a 'container' for multiple quantities (e.g. phi+psi and delta_m),
+                # transform the components individually
+                #print('tuple qunat',quantity)
+                S = np.stack([self.untransform(q, S_t[..., i], raw_inputs) for i, q in enumerate(quantity)], axis=2)
+            else:
+                #print('else quant',quantity)
+                S = self.untransform(quantity, S_t, raw_inputs)
+            self.times["neural network output transformation"] += perf_counter() - start_output
+
+
+            # TODO SG: put this somewhere else. Some historic artifact ...
+            if quantity == "t2_reco":
+                start = time.time()
+                k_th = 1e-3
+                i_k_th = np.argmin(np.abs(self.k - k_th))
+                S_th = S[i_k_th]
+                k = self.get_k()
+                k_mask = k < k_th
+                S[k_mask] = S_th * (k[k_mask] / k_th)[:, None]**2
+                #print('T2 RECO EXTRAPOLATION TOOK ',time.time()-start)
+
+
+
+            save_cache = perf_counter()
+            self.cache[quantity] = S
+            self.times["save source function in cache"] += perf_counter() - save_cache
+
+        # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
+        # Therefore, the arrays with low k have to be replaced with a polyfit
+        #polyfit_k_min = perf_counter()
+        #z = np.polyfit(self.k[k_min_idx:k_min_idx+3], S[0:3], deg=2)
+        #S[0,:] = z[2] + z[1] * self.k_min_class + z[0] * self.k_min_class**2
+        #self.times["save source function in cache"] += perf_counter() - polyfit_k_min
+
+
+        if rule == sum:
+            S = self._interpolate_k_min(S)
+            source_array += S.T.flatten()
+        elif rule is None:
+            S = self._interpolate_k_min(S)
+            source_array = S.T.flatten()
+        elif type(rule) == Channel:
+            S = rule(S)
+            S = self._interpolate_k_min(S)
+            source_array = S.T.flatten()
+        elif rule == 't2_p':
+            S = self._interpolate_k_min(S)
+            source_array += S.T.flatten()*np.sqrt(6)
         else:
-            result[:, :] = S_t
-
-        S_t = result
+            print("NO RULE FOUND: RIBBIT!")
 
 
-        start_output = perf_counter()
-        # Swap k and tau axis
-        S_t = np.swapaxes(S_t, 0, 1)
-        if isinstance(quantity, tuple) or isinstance(quantity, list):
-            # If quantity is a 'container' for multiple quantities (e.g. phi+psi and delta_m),
-            # transform the components individually
-            S = np.stack([self.untransform(q, S_t[..., i], raw_inputs) for i, q in enumerate(quantity)], axis=2)
-        else:
-            S = self.untransform(quantity, S_t, raw_inputs)
-        self.times["neural network output transformation"] += perf_counter() - start_output
+        return source_array
 
-        save_cache = perf_counter()
-        self.cache[quantity] = (S, raw_inputs)
-        self.times["save source function in cache"] += perf_counter() - save_cache
+    def _interpolate_k_min(self,S):
+        polyfit_k_min = perf_counter()
+        z = np.polyfit(self.k[self.k_min_idx:self.k_min_idx+3], S[0:3], deg=2)
+        S[0,:] = z[2] + z[1] * self.k_min_class + z[0] * self.k_min_class**2
+        self.times["save source function in cache"] += perf_counter() - polyfit_k_min
+        return S
 
-        return S, raw_inputs
 
-    def _predict_from_combine(self, quantity, cosmo, tau, provider, cache):
+    def _predict_from_combine(self, quantity, cosmo, tau, provider, cache, source_array):
         assert quantity not in self.models
 
         parents, combine, pass_cosmo = self.rules[quantity]
         contributions = []
-        raw_inputs = {}
         self.log("Computing {} as combination of {}.".format(quantity, parents))
         for parent in parents:
-            contrib, raw_inp = self._predict(parent, tau, provider, cache)
-            contributions.append(contrib)
-            raw_inputs.update(raw_inp)
+            source_array = self._predict_from_model(parent, cosmo, tau, provider, cache, source_array, combine)
 
-        if pass_cosmo:
-            S = combine(contributions, cosmo, tau)
-        else:
-            S = combine(contributions)
-
-        return S, raw_inputs
+        return source_array
 
 
 def print_dict_sorted(d):
@@ -571,7 +516,6 @@ def build_predictor(cosmo, device_name="cpu"):
     timer.end("build predictor")
 
     timer.end("all")
-    #timer.pprint()
 
     return predictor
 
@@ -615,12 +559,10 @@ def load_models(workspace, classes, k, device):
     model_dict = {model_key(m): model_wrapper(m) for m in models}
     times["model_dict creation"] += perf_counter() - start
 
-    #print("load_models:")
-    #print_dict_sorted(times)
-
     rules = {
             "t0":           (("t0_reco_no_isw", "t0_reio_no_isw", "t0_isw"), sum, False),
             "t2":           (("t2_reco", "t2_reio"), sum, False),
+            "t2_p":         (("t2_reco", "t2_reio"), 't2_p', False),
             "phi_plus_psi": ((("phi_plus_psi", "delta_m", "delta_cb"),), Channel(0), False),
             "delta_m":      ((("phi_plus_psi", "delta_m", "delta_cb"),), Channel(1), False),
             "delta_cb":     ((("phi_plus_psi", "delta_m", "delta_cb"),), Channel(2), False),
@@ -652,4 +594,4 @@ class Channel:
         self.n = n
 
     def __call__(self, items):
-        return items[0][..., self.n]
+        return items[..., self.n]
