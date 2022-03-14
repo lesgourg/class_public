@@ -1265,7 +1265,7 @@ int perturbations_indices(
         ppt->has_source_phi_plus_psi = _TRUE_;
       }
 
-      if (ppt->has_cl_gwb == _TRUE_) { //TODO_GWB: Ok to implement like this?
+      if (ppt->has_cl_gwb == _TRUE_) {
         ppt->has_source_psi = _TRUE_;
         ppt->has_source_phi = _TRUE_;
       }
@@ -1738,7 +1738,7 @@ int perturbations_timesampling_for_sources(
     if (tau_ini_gwb < tau_ini) {
 
       if (ppt->perturbations_verbose > 1) {
-        printf("tau_ini_gwb=%e < tau_ini=%e, so the evolution starts at tau_ini_gwb=%e \n", tau_ini_gwb, tau_ini, tau_ini_gwb);
+        printf("tau_ini_gwb=%g Mpc < tau_ini=%g Mpc, so the evolution starts at tau_ini_gwb=%g Mpc \n", tau_ini_gwb, tau_ini, tau_ini_gwb);
       }
 
       /* set values of first_index_back/thermo */
@@ -1760,11 +1760,18 @@ int perturbations_timesampling_for_sources(
                                       pvecthermo),
                   pth->error_message,
                   ppt->error_message);
+
+      if (ppt->perturbations_verbose > 1) {
+        printf("The GWB is created at tau_ini_gwb=%g Mpc <=> z_ini_gwb=%g <=> T_ini_gwb=%g K \n",
+               tau_ini_gwb,
+               1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+               pvecthermo[pth->index_th_Tb]); //TODO_GWB: what is the unit of Tb?
+      }
     }
     else {
 
       if (ppt->perturbations_verbose > 1) {
-        printf("tau_ini_gwb=%e > tau_ini=%e, so the evolution starts at tau_ini=%e \n", tau_ini_gwb, tau_ini, tau_ini);
+        printf("tau_ini_gwb=%g Mpc > tau_ini=%g Mpc, so the evolution starts at tau_ini=%g Mpc \n", tau_ini_gwb, tau_ini, tau_ini);
       }
 
     }
