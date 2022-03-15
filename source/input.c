@@ -1889,7 +1889,7 @@ int input_read_parameters_general(struct file_content * pfc,
                  "Inconsistent input: you asked for vectors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
     }
     if (ppt->has_tensors == _TRUE_){
-      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_),
+      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_) && (ppt->has_cl_gwb == _FALSE_),
                  errmsg,
                  "Inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
     }

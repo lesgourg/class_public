@@ -147,6 +147,7 @@ struct transfer {
 
   int index_tt_gwb0;    /**< index for transfer type = gravitational wave (j=0 term) */
   int index_tt_gwb1;    /**< index for transfer type = gravitational wave (j=1 term) */
+  int index_tt_gwb2;    /**< index for transfer type = gravitational wave (j=2 term, tensor modes) */
   int index_tt_gwb_sw0;    /**< index for transfer type = gravitational wave SW term */
   int index_tt_gwb_sw1;    /**< index for transfer type = gravitational wave SW term */
   int index_tt_gwb_ini;    /**< index for transfer type = gravitational wave initial term */

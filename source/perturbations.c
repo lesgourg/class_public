@@ -1482,7 +1482,7 @@ int perturbations_indices(
       /** - --> source flags and indices, for sources that are specific to tensors */
 
       index_type = index_type_common;
-      /* nothing specific, unlike for vectors and scalars! */
+      class_define_index(ppt->index_tp_gwb2, ppt->has_source_gwb, index_type,1);
       ppt->tp_size[index_md] = index_type;
 
       /*
@@ -8037,6 +8037,11 @@ int perturbations_sources(
     /* tensor temperature */
     if (ppt->has_source_t == _TRUE_) {
       _set_source_(ppt->index_tp_t2) = - y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g] * P;
+    }
+
+    /* tensor gwb */
+    if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: check the prefactors
+      _set_source_(ppt->index_tp_gwb2) = - y[ppw->pv->index_pt_gwdot];
     }
 
     /* tensor polarization */

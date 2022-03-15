@@ -651,6 +651,8 @@ int harmonic_indices(
       if (phr->has_ee == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_ee] = ppt->l_tensor_max;
       if (phr->has_te == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_te] = ppt->l_tensor_max;
       if (phr->has_bb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_bb] = ppt->l_tensor_max;
+      if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_gwb] = ppt->l_tensor_max;
+      if (phr->has_tgwb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_tgwb] = ppt->l_tensor_max;
     }
 
     /* maximizations */
@@ -1051,10 +1053,19 @@ int harmonic_compute_cl(
             transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb_ini];
         }
 
-        if (ppm->convert_gwb_to_energydensity == _TRUE_) {
-          transfer_ic1_gwb *= ppm->gwb_conversion_factor;
-          transfer_ic2_gwb *= ppm->gwb_conversion_factor;
-        }
+      }
+
+      if (_tensors_) {
+
+        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb2];
+        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb2];
+
+      }
+
+      if (ppm->convert_gwb_to_energydensity == _TRUE_) {
+
+        transfer_ic1_gwb *= ppm->gwb_conversion_factor;
+        transfer_ic2_gwb *= ppm->gwb_conversion_factor;
 
       }
 

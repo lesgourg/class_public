@@ -567,6 +567,7 @@ int transfer_indices(
     index_tt = index_tt_common;
 
     class_define_index(ptr->index_tt_b, ppt->has_cl_cmb_polarization,index_tt,1);
+    class_define_index(ptr->index_tt_gwb2, ppt->has_cl_gwb,          index_tt,1);
 
     ptr->tt_size[ppt->index_md_tensors]=index_tt;
 
@@ -1448,6 +1449,9 @@ int transfer_get_source_correspondence(
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_p;
+
+        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb2))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb2;
       }
     }
   }
@@ -4257,6 +4261,14 @@ int transfer_select_radial_function(
       }
 
     }
+
+    if (ppt->has_cl_gwb == _TRUE_){
+
+      if (index_tt == ptr->index_tt_gwb2) {
+        *radial_type = TENSOR_TEMPERATURE_2;
+      }
+    }
+    
   }
 
   return _SUCCESS_;
