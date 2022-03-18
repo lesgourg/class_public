@@ -3772,8 +3772,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2;
-  double param1, param2;
+  int flag1, flag2, flag3;
+  double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_ARGUMENT_LENGTH_MAX_];
   double R0,R1,R2,R3,R4;
@@ -4386,7 +4386,36 @@ int input_read_parameters_primordial(struct file_content * pfc,
     }
 
     /** 2.a.2) Initial time for GWB in Mpc */
-    class_read_double("tau_ini_gwb",ppt->tau_ini_gwb);
+    /* Read */
+    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"z_ini_gwb",&param2,&flag2,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
+                errmsg,
+                errmsg);
+    /* Test */
+    class_test(class_at_least_two_of_three(flag1, flag2, flag3),
+                errmsg,
+                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb or 'T_ini_gwb'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      ppt->tau_ini_gwb = param1;
+      ppt->z_ini_gwb = 0.;
+      ppt->T_ini_gwb = 0.;
+    }
+    if (flag2 == _TRUE_){
+      ppt->tau_ini_gwb = 0.;
+      ppt->z_ini_gwb = param2;
+      ppt->T_ini_gwb = 0.;
+    }
+    if (flag3 == _TRUE_){
+      ppt->tau_ini_gwb = 0.;
+      ppt->z_ini_gwb = 0.;
+      ppt->T_ini_gwb = param3;
+    }
 
     /** 2.b) For type 'adiabatic_Pk' */
     if (ppm->primordial_gwb_spec_type == adiabatic_ic_gwb) {
@@ -5878,8 +5907,10 @@ int input_default_params(struct background *pba,
   /** 2.a) General parameters */
   /** 2.a.1) Primordial spectrum type of GWB */
   ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
-  /** 2.a.2) inital time for GWB in Mpc*/
+  /** 2.a.2) inital time for GWB*/
   ppt->tau_ini_gwb=0.1;
+  ppt->z_ini_gwb=0.;
+  ppt->T_ini_gwb=0.;
   
   /** 2.b) For type 'adiabatic_Pk' */
   /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
