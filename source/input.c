@@ -2968,6 +2968,9 @@ int input_read_parameters_species(struct file_content * pfc,
       if ((strstr(string1,"CLP") != NULL) || (strstr(string1,"clp") != NULL)) {
         pba->fluid_equation_of_state = CLP;
       }
+      else if ((strstr(string1,"SRS") != NULL) || (strstr(string1,"srs") != NULL)) {
+        pba->fluid_equation_of_state = SRS;
+      }
       else if ((strstr(string1,"EDE") != NULL) || (strstr(string1,"ede") != NULL)) {
         pba->fluid_equation_of_state = EDE;
       }
@@ -2978,6 +2981,13 @@ int input_read_parameters_species(struct file_content * pfc,
 
     if (pba->fluid_equation_of_state == CLP) {
       /** 8.a.2.2) Equation of state of the fluid in 'CLP' case */
+      /* Read */
+      class_read_double("w0_fld",pba->w0_fld);
+      class_read_double("wa_fld",pba->wa_fld);
+      class_read_double("cs2_fld",pba->cs2_fld);
+    }
+    if (pba->fluid_equation_of_state == SRS) {
+      /** 8.a.2.2) Equation of state of the fluid in 'LRS' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("wa_fld",pba->wa_fld);

@@ -679,6 +679,9 @@ int background_w_fld(
   case CLP:
     *w_fld = pba->w0_fld + pba->wa_fld * (1. - a);
     break;
+  case SRS:
+    *w_fld = ( pba->w0_fld -2*a*pba->w0_fld+ 2*a*a*pba->w0_fld  + pba->wa_fld -a*pba->wa_fld ) /( 1.-2*a+2*a*a    );
+    break;
   case EDE:
     // Omega_ede(a) taken from eq. (10) in 1706.00730
     Omega_ede = (pba->Omega0_fld - pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld)))
@@ -714,6 +717,9 @@ int background_w_fld(
   case CLP:
     *dw_over_da_fld = - pba->wa_fld;
     break;
+  case SRS:
+    *dw_over_da_fld = ((1.-4*a+2*a*a)*pba->wa_fld)/((1.-2*a +2*a*a)*(1.-2*a +2*a*a));
+    break;
   case EDE:
     d2Omega_ede_over_da2 = 0.;
     *dw_over_da_fld = - d2Omega_ede_over_da2*a/3./(1.-Omega_ede)/Omega_ede
@@ -739,6 +745,9 @@ int background_w_fld(
     break;
   case EDE:
     class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    break;
+  case SRS:
+    *integral_fld =( 3./2. )*( -2*(1+pba->wa_fld+ pba->w0_fld ) *log (a) + pba->wa_fld*log(  1-2*a +2*a*a   )      ); 
     break;
   }
 
