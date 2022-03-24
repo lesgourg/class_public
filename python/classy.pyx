@@ -2361,6 +2361,14 @@ cdef class Class:
                 value = self.fo.sigma8[self.fo.index_pk_cb]
             elif name == 'k_eq':
                 value = self.ba.a_eq*self.ba.H_eq
+            elif name == 'a_eq':
+                value = self.ba.a_eq
+            elif name == 'z_eq':
+                value = 1./self.ba.a_eq-1.
+            elif name == 'H_eq':
+                value = self.ba.H_eq
+            elif name == 'tau_eq':
+                value = self.ba.tau_eq
             elif name == 'g_sd':
                 value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':

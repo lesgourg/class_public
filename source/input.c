@@ -2693,28 +2693,28 @@ int input_read_parameters_species(struct file_content * pfc,
   }
   class_test(pba->Omega0_dcdmdr<0,errmsg,"You cannot set the dcdmdr density to negative values.");
 
-  if (pba->Omega0_dcdmdr > 0) {
-    /** 7.1.b) Omega_ini_dcdm or omega_ini_dcdm */
-    /* Read */
-    class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
-               errmsg,
-               errmsg);
-    /* Test */
-    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-               errmsg,
-               "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_){
-      pba->Omega_ini_dcdm = param1;
-    }
-    if (flag2 == _TRUE_){
-      pba->Omega_ini_dcdm = param2/pba->h/pba->h;
-    }
+  /** 7.1.b) Omega_ini_dcdm or omega_ini_dcdm */
+  /* Read */
+  class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  /* Test */
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    pba->Omega_ini_dcdm = param1;
+  }
+  if (flag2 == _TRUE_){
+    pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+  }
+  class_test(pba->Omega_ini_dcdm<0,errmsg,"You cannot set the initial dcdm density to negative values.");
 
-
+  if ((pba->Omega0_dcdmdr > 0) || (pba->Omega_ini_dcdm > 0.)) {
     /** 7.1.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
     /* Read */
     class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
@@ -3007,6 +3007,7 @@ int input_read_parameters_species(struct file_content * pfc,
   Omega_tot += pba->Omega0_b;
   Omega_tot += pba->Omega0_ur;
   Omega_tot += pba->Omega0_cdm;
+  Omega_tot += pba->Omega0_dcdmdr;
   Omega_tot += pba->Omega0_idm_dr;
   Omega_tot += pba->Omega0_idr;
   Omega_tot += pba->Omega0_ncdm_tot;
@@ -5568,6 +5569,8 @@ int input_default_params(struct background *pba,
   /** 7.1.a) Current fractional density of dcdm+dr */
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
+  /** 7.1.b) Initial fractional density of dcdm+dr */
+  pba->Omega_ini_dcdm = 0.;
   /** 7.1.c) Decay constant */
   pba->Gamma_dcdm = 0.0;
   pba->tau_dcdm = 0.0;
