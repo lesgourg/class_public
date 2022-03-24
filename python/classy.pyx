@@ -1186,8 +1186,7 @@ cdef class Class:
                 tk[name] = np.zeros((k_size, z_size),'float64')
 
         # allocate the vector in wich the transfer functions will be stored temporarily for all k and types at a given z
-
-        data = <double*>malloc(sizeof(double)*number_of_titles*k_size)
+        data = <double*>malloc(sizeof(double)*number_of_titles*self.pt.k_size[index_md])
 
         # get T(k,z) array
 
@@ -1201,6 +1200,7 @@ cdef class Class:
                     for index_k in xrange(k_size):
                         tk[name][index_k, index_tau] = data[index_k*number_of_titles+index_type]
 
+        free(data)
         return tk, k, z
 
     #################################
@@ -2361,6 +2361,14 @@ cdef class Class:
                 value = self.fo.sigma8[self.fo.index_pk_cb]
             elif name == 'k_eq':
                 value = self.ba.a_eq*self.ba.H_eq
+            elif name == 'a_eq':
+                value = self.ba.a_eq
+            elif name == 'z_eq':
+                value = 1./self.ba.a_eq-1.
+            elif name == 'H_eq':
+                value = self.ba.H_eq
+            elif name == 'tau_eq':
+                value = self.ba.tau_eq
             elif name == 'g_sd':
                 value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':
