@@ -2052,12 +2052,22 @@ int background_solve(
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
+  
+  /** - calculate fraction of decoubled relativistic particles at start of CLASS computation of the ISW*/
+  // pba->f_dec_late = pba->Omega0_ur / pba->Omega0_r; //TODO_GWB: Is this the correct way of calculating f_dec_late?
+  pba->f_dec_late = pba->background_table[pba->index_bg_rho_ur] / pba->background_table[pba->index_bg_rho_tot]; //TODO_GWB: Is this the correct way of calculating f_dec_late?
+  if (pba->f_dec == -1.) {  //do not consider effect of relativistic particles
+    pba->f_dec = 0;
+    pba->f_dec_late = 0;
+  }
 
   /** - send information to standard output */
   if (pba->background_verbose > 0) {
     printf(" -> age = %f Gyr\n",pba->age);
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);
     printf(" -> N_eff = %g (summed over all species that are non-relativistic at early times) \n",pba->Neff);
+    printf(" -> f_dec = %g (at GWB production) \n",pba->f_dec);
+    printf(" -> f_dec_late = %g (at start of CLASS comoutation of the ISW) \n",pba->f_dec_late);
   }
 
   if (pba->background_verbose > 2) {

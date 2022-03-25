@@ -4853,6 +4853,9 @@ int input_read_parameters_spectra(struct file_content * pfc,
       }
 
     }
+
+    /** 4.b) Fraction of decoupled relativistic particles at time of GWB generation  */
+    class_read_double("f_dec",pba->f_dec);
   }
 
   return _SUCCESS_;
@@ -5983,6 +5986,8 @@ int input_default_params(struct background *pba,
   /** 4.a.1) Parameters for conversion */
   ppm->gwb_conversion_factor = 0.;
   ppm->k_gwb = 0.05;
+  /** 4.b) Fraction of decoupled relativistic particles at time of GWB generation */
+  pba->f_dec=-1; //standart is not to consider the effect!
 
   /**
    * Default to input_read_parameters_lensing

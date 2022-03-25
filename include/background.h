@@ -138,6 +138,8 @@ struct background
   double K; /**< \f$ K \f$: Curvature parameter \f$ K=-\Omega0_k*a_{today}^2*H_0^2\f$; */
   int sgnK; /**< K/|K|: -1, 0 or 1 */
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
+  double f_dec; /**< fraction of decoupled relativistic particles at time of GWB generation*/
+  double f_dec_late; /**< fraction of decoupled relativistic particles at start of CLASS computation of the ISW*/
   double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
   double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
   double Omega0_m;  /**< total non-relativistic matter today */

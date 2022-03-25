@@ -2451,7 +2451,15 @@ int transfer_sources(
            only eisw:   Phi-Psi -> -1
            sw and eisw: Phi     -> 0
         */
-        sources[0] = (ppt->switch_gwb_sw - ppt->switch_gwb_eisw) * interpolated_sources[index_tau];
+       /* effect of relativistic particles:
+          sw (always): 1/(1 + 4/15 f_dec) * Psi
+          eisw (additional): [...] * Psi
+       */
+        sources[0] = (ppt->switch_gwb_sw / (1. + 4./15. * pba->f_dec)
+                      - ppt->switch_gwb_eisw
+                      + ppt->switch_gwb_eisw * ((2. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
+                                                -(2. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec)) ) 
+                      * interpolated_sources[index_tau];
 
         /* store value of (tau0-tau) */
         tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb; //TODO_GWB: is it more consistent to use tau_sampling[index_tau] instead of tau_ini_gwb?
