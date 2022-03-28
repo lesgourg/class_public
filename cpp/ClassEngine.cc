@@ -455,11 +455,13 @@ ClassEngine::getTk( double z,
 
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_cdm, tau, &d_cdm[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_b, tau, &d_b[0]);
-  call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_ncdm1, tau, &d_ncdm[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_tot, tau, &d_tot[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_b, tau, &t_b[0]);
-  call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_ncdm1, tau, &t_ncdm[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_tot, tau, &t_tot[0]);
+  if (ba.N_ncdm > 0) {
+      call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_ncdm1, tau, &d_ncdm[0]);
+      call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_ncdm1, tau, &t_ncdm[0]);
+  }
 
   //
   std::vector<double> h_prime(pt.k_size[index_md],0.0), eta_prime(pt.k_size[index_md],0.0);
@@ -480,8 +482,9 @@ ClassEngine::getTk( double z,
 
     t_cdm[index_k]  = (-alphak2) / fHa;
     t_b[index_k]    = (-alphak2 + t_b[index_k]) / fHa;
-    t_ncdm[index_k] = (-alphak2 + t_ncdm[index_k]) / fHa;
     t_tot[index_k]  = (-alphak2 + t_tot[index_k]) / fHa;
+    if (ba.N_ncdm > 0)
+      t_ncdm[index_k] = (-alphak2 + t_ncdm[index_k]) / fHa;
   }
 }
 
