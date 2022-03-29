@@ -442,6 +442,14 @@ int background_functions(
     rho_m += pvecback[pba->index_bg_rho_cdm];
   }
 
+  /* idm */
+  if (pba->has_idm == _TRUE_) {
+    pvecback[pba->index_bg_rho_idm] = pba->Omega0_idm * pow(pba->H0,2) / pow(a,3);
+    rho_tot += pvecback[pba->index_bg_rho_idm];
+    p_tot += 0.;
+    rho_m += pvecback[pba->index_bg_rho_idm];
+  }
+
   /* dcdm */
   if (pba->has_dcdm == _TRUE_) {
     /* Pass value of rho_dcdm to output */
@@ -485,7 +493,7 @@ int background_functions(
   if (pba->has_ncdm == _TRUE_) {
 
     /* Loop over species: */
-    for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
+    for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
 
       /* function returning background ncdm[n_ncdm] quantities (only
          those for which non-NULL pointers are passed) */
@@ -554,14 +562,6 @@ int background_functions(
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
     rho_r += pvecback[pba->index_bg_rho_ur];
-  }
-
-  /* interacting dark matter */
-  if (pba->has_idm_dr == _TRUE_) {
-    pvecback[pba->index_bg_rho_idm_dr] = pba->Omega0_idm_dr * pow(pba->H0,2) / pow(a,3);
-    rho_tot += pvecback[pba->index_bg_rho_idm_dr];
-    p_tot += 0.;
-    rho_m += pvecback[pba->index_bg_rho_idm_dr];
   }
 
   /* interacting dark radiation */
@@ -694,7 +694,7 @@ int background_w_fld(
     Omega_r = pba->Omega0_g * (1. + 3.044 * 7./8.*pow(4./11.,4./3.)); // assumes LambdaCDM + eventually massive neutrinos so light that they are relativistic at equality; needs to be generalised later on.
     Omega_m = pba->Omega0_b;
     if (pba->has_cdm == _TRUE_) Omega_m += pba->Omega0_cdm;
-    if (pba->has_idm_dr == _TRUE_) Omega_m += pba->Omega0_idm_dr;
+    if (pba->has_idm == _TRUE_) Omega_m += pba->Omega0_idm;
     if (pba->has_dcdm == _TRUE_)
       class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
     a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
@@ -724,15 +724,15 @@ int background_w_fld(
   }
 
   /** - finally, give the analytic solution of the following integral:
-        \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
-        one place, in the initial conditions for the background, and
-        with a=a_ini. If your w(a) does not lead to a simple analytic
-        solution of this integral, no worry: instead of writing
-        something here, the best would then be to leave it equal to
-        zero, and then in background_initial_conditions() you should
-        implement a numerical calculation of this integral only for
-        a=a_ini, using for instance Romberg integration. It should be
-        fast, simple, and accurate enough. */
+      \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
+      one place, in the initial conditions for the background, and
+      with a=a_ini. If your w(a) does not lead to a simple analytic
+      solution of this integral, no worry: instead of writing
+      something here, the best would then be to leave it equal to
+      zero, and then in background_initial_conditions() you should
+      implement a numerical calculation of this integral only for
+      a=a_ini, using for instance Romberg integration. It should be
+      fast, simple, and accurate enough. */
   switch (pba->fluid_equation_of_state) {
   case CLP:
     *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(1./a) + pba->wa_fld*(a-1.));
@@ -772,21 +772,21 @@ int background_varconst_of_z(
 
   switch(pba->varconst_dep){
 
-    case varconst_none:
+  case varconst_none:
+    *alpha = 1.;
+    *me = 1.;
+    break;
+
+  case varconst_instant:
+    if (z>pba->varconst_transition_redshift){
+      *alpha = pba->varconst_alpha;
+      *me = pba->varconst_me;
+    }
+    else{
       *alpha = 1.;
       *me = 1.;
-      break;
-
-    case varconst_instant:
-      if(z>pba->varconst_transition_redshift){
-        *alpha = pba->varconst_alpha;
-        *me = pba->varconst_me;
-      }
-      else{
-        *alpha = 1.;
-        *me = 1.;
-      }
-      break;
+    }
+    break;
 
     /* Implement here your arbitrary model of varying fundamental constants! */
   }
@@ -863,12 +863,12 @@ int background_free(
                     ) {
 
   class_call(background_free_noinput(pba),
-              pba->error_message,
-              pba->error_message);
+             pba->error_message,
+             pba->error_message);
 
   class_call(background_free_input(pba),
-              pba->error_message,
-              pba->error_message);
+             pba->error_message,
+             pba->error_message);
 
   return _SUCCESS_;
 }
@@ -910,7 +910,7 @@ int background_free_input(
   int k;
 
   if (pba->Omega0_ncdm_tot != 0.) {
-    for(k=0; k<pba->N_ncdm; k++) {
+    for (k=0; k<pba->N_ncdm; k++) {
       free(pba->q_ncdm[k]);
       free(pba->w_ncdm[k]);
       free(pba->q_ncdm_bg[k]);
@@ -972,6 +972,7 @@ int background_indices(
   /** - initialize all flags: which species are present? */
 
   pba->has_cdm = _FALSE_;
+  pba->has_idm = _FALSE_;
   pba->has_ncdm = _FALSE_;
   pba->has_dcdm = _FALSE_;
   pba->has_dr = _FALSE_;
@@ -980,12 +981,14 @@ int background_indices(
   pba->has_fld = _FALSE_;
   pba->has_ur = _FALSE_;
   pba->has_idr = _FALSE_;
-  pba->has_idm_dr = _FALSE_;
   pba->has_curvature = _FALSE_;
   pba->has_varconst  = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
+
+  if (pba->Omega0_idm != 0.)
+    pba->has_idm = _TRUE_;
 
   if (pba->Omega0_ncdm_tot != 0.)
     pba->has_ncdm = _TRUE_;
@@ -1010,9 +1013,6 @@ int background_indices(
 
   if (pba->Omega0_idr != 0.)
     pba->has_idr = _TRUE_;
-
-  if (pba->Omega0_idm_dr != 0.)
-    pba->has_idm_dr = _TRUE_;
 
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
@@ -1042,6 +1042,9 @@ int background_indices(
 
   /* - index for rho_cdm */
   class_define_index(pba->index_bg_rho_cdm,pba->has_cdm,index_bg,1);
+
+  /* - index for rho_idm  */
+  class_define_index(pba->index_bg_rho_idm,pba->has_idm,index_bg,1);
 
   /* - indices for ncdm. We only define the indices for ncdm1
      (density, pressure, pseudo-pressure), the other ncdm indices
@@ -1090,9 +1093,6 @@ int background_indices(
 
   /* - index interacting for dark radiation */
   class_define_index(pba->index_bg_rho_idr,pba->has_idr,index_bg,1);
-
-  /* - index for interacting dark matter */
-  class_define_index(pba->index_bg_rho_idm_dr,pba->has_idm_dr,index_bg,1);
 
   /* - put here additional ingredients that you want to appear in the
      normal vector */
@@ -1313,7 +1313,7 @@ int background_ncdm_distribution(
 
       /* loop over flavor eigenstates and compute psd of mass eigenstates */
       *f0=0.0;
-      for(i=0;i<3;i++) {
+      for (i=0;i<3;i++) {
 
         *f0 += mixing_matrix[i][n_ncdm]*1.0/pow(2*_PI_,3)*(1./(exp(q-pba->ksi_ncdm[i])+1.) +1./(exp(q+pba->ksi_ncdm[i])+1.));
 
@@ -1384,7 +1384,7 @@ int background_ncdm_init(
   class_alloc(pba->q_size_ncdm_bg,sizeof(int)*pba->N_ncdm,pba->error_message);
   class_alloc(pba->factor_ncdm,sizeof(double)*pba->N_ncdm,pba->error_message);
 
-  for(k=0, filenum=0; k<pba->N_ncdm; k++) {
+  for (k=0, filenum=0; k<pba->N_ncdm; k++) {
     pbadist.n_ncdm = k;
     pbadist.q = NULL;
     pbadist.tablesize = 0;
@@ -1525,7 +1525,7 @@ int background_ncdm_init(
                  pba->error_message,pba->error_message);
 
       //Loop to find appropriate dq:
-      for(tolexp=_PSD_DERIVATIVE_EXP_MIN_; tolexp<_PSD_DERIVATIVE_EXP_MAX_; tolexp++) {
+      for (tolexp=_PSD_DERIVATIVE_EXP_MIN_; tolexp<_PSD_DERIVATIVE_EXP_MAX_; tolexp++) {
 
         if (index_q == 0) {
           dq = MIN((0.5-ppr->smallest_allowed_variation)*q,2*exp(tolexp)*(pba->q_ncdm[k][index_q+1]-q));
@@ -1727,7 +1727,7 @@ int background_ncdm_M_from_Omega(
  * @param ppr Input: pointer to precision structure
  * @param pba Input: pointer to initialized background structure
  * @return the error status
-*/
+ */
 
 int background_checks(
                       struct precision* ppr,
@@ -1751,8 +1751,8 @@ int background_checks(
   /* H0 in Mpc^{-1} */
   /* Many users asked for this test to be supressed. It is commented out. */
   /*class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-             pba->error_message,
-             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
+    pba->error_message,
+    "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
 
   /* consistency between h and H0 */
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
@@ -1762,14 +1762,14 @@ int background_checks(
   /* T_cmb in K */
   /* Many users asked for this test to be supressed. It is commented out. */
   /*class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
-             pba->error_message,
-             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
+    pba->error_message,
+    "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
 
   /* Omega_k */
   /* Many users asked for this test to be supressed. It is commented out. */
   /*class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
-             pba->error_message,
-             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
+    pba->error_message,
+    "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
@@ -1992,8 +1992,8 @@ int background_solve(
   D_today = pvecback_integration[pba->index_bi_D];
 
   /** - In a loop over lines, fill rest of background table for
-        quantities that depend on numbers like "conformal_age" or
-        "D_today" that were calculated just before */
+      quantities that depend on numbers like "conformal_age" or
+      "D_today" that were calculated just before */
   for (index_loga=0; index_loga < pba->bt_size; index_loga++) {
 
     pba->background_table[index_loga*pba->bg_size+pba->index_bg_D]*= 1./D_today;
@@ -2043,10 +2043,10 @@ int background_solve(
   /** - compute remaining "related parameters" */
 
   /**  - so-called "effective neutrino number", computed at earliest
-      time in interpolation table. This should be seen as a
-      definition: Neff is the equivalent number of
-      instantaneously-decoupled neutrinos accounting for the
-      radiation density, beyond photons */
+       time in interpolation table. This should be seen as a
+       definition: Neff is the equivalent number of
+       instantaneously-decoupled neutrinos accounting for the
+       radiation density, beyond photons */
 
   pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
                *pba->background_table[pba->index_bg_rho_crit]
@@ -2095,8 +2095,8 @@ int background_solve(
   pba->Omega0_nfsm =  pba->Omega0_b;
   if (pba->has_cdm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_cdm;
-  if (pba->has_idm_dr == _TRUE_)
-    pba->Omega0_nfsm += pba->Omega0_idm_dr;
+  if (pba->has_idm == _TRUE_)
+    pba->Omega0_nfsm += pba->Omega0_idm;
   if (pba->has_dcdm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_dcdm;
   for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
@@ -2437,6 +2437,7 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)rho_g",_TRUE_);
   class_store_columntitle(titles,"(.)rho_b",_TRUE_);
   class_store_columntitle(titles,"(.)rho_cdm",pba->has_cdm);
+  class_store_columntitle(titles,"(.)rho_idm",pba->has_idm);
   if (pba->has_ncdm == _TRUE_) {
     for (n=0; n<pba->N_ncdm; n++) {
       sprintf(tmp,"(.)rho_ncdm[%d]",n);
@@ -2450,7 +2451,6 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)w_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
   class_store_columntitle(titles,"(.)rho_idr",pba->has_idr);
-  class_store_columntitle(titles,"(.)rho_idm_dr",pba->has_idm_dr);
   class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
   class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
@@ -2512,6 +2512,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_g],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_idm],pba->has_idm,storeidx);
     if (pba->has_ncdm == _TRUE_) {
       for (n=0; n<pba->N_ncdm; n++) {
         class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);
@@ -2523,7 +2524,6 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_w_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_idr],pba->has_idr,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_idm_dr],pba->has_idm_dr,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);
@@ -2629,8 +2629,8 @@ int background_derivs(
   if (pba->has_cdm == _TRUE_) {
     rho_M += pvecback[pba->index_bg_rho_cdm];
   }
-  if (pba->has_idm_dr == _TRUE_) {
-    rho_M += pvecback[pba->index_bg_rho_idm_dr];
+  if (pba->has_idm == _TRUE_){
+    rho_M += pvecback[pba->index_bg_rho_idm];
   }
 
   dy[pba->index_bi_D] = y[pba->index_bi_D_prime]/a/H;
@@ -2714,8 +2714,8 @@ int background_sources(
   pba->tau_table[index_loga] = y[pba->index_bi_tau];
 
   /** -> compute all other quantities depending only on a + {B} variables and get them stored
-     in one row of background_table
-     The value of {B} variables in pData are also copied to pvecback.*/
+      in one row of background_table
+      The value of {B} variables in pData are also copied to pvecback.*/
   class_call(background_functions(pba, a, y, long_info, bg_table_row),
              pba->error_message,
              pba->error_message);
@@ -2799,9 +2799,9 @@ int background_output_budget(
       class_print_species("Cold Dark Matter",cdm);
       budget_matter+=pba->Omega0_cdm;
     }
-    if (pba->has_idm_dr == _TRUE_) {
-      class_print_species("Interacting Dark Matter - DR ",idm_dr);
-      budget_matter+=pba->Omega0_idm_dr;
+    if (pba->has_idm == _TRUE_){
+      class_print_species("Interacting DM - idr,b,g",idm);
+      budget_matter+=pba->Omega0_idm;
     }
     if (pba->has_dcdm == _TRUE_) {
       class_print_species("Decaying Cold Dark Matter",dcdm);
@@ -2812,7 +2812,7 @@ int background_output_budget(
       printf(" ---> Non-Cold Dark Matter Species (incl. massive neutrinos)\n");
     }
     if (pba->N_ncdm > 0) {
-      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
+      for (index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
         printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Non-Cold Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
         budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
         budget_matter+=pba->Omega0_ncdm[index_ncdm];

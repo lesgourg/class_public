@@ -121,14 +121,14 @@ struct harmonic {
   //@{
 
   struct fourier * pfo; /**< a pointer to the fourier structure is
-                            stored in the harmonic structure. This odd,
-                            unusual and unelegant feature has been
-                            introduced in v2.8 in order to keep in use
-                            some deprecated functions harmonic_pk_...()
-                            that are now pointing at new function
-                            fourier_pk_...(). In the future, if the
-                            deprecated functions are removed, it will
-                            be possible to remove also this pointer. */
+                           stored in the harmonic structure. This odd,
+                           unusual and unelegant feature has been
+                           introduced in v2.8 in order to keep in use
+                           some deprecated functions harmonic_pk_...()
+                           that are now pointing at new function
+                           fourier_pk_...(). In the future, if the
+                           deprecated functions are removed, it will
+                           be possible to remove also this pointer. */
 
   short harmonic_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
@@ -149,158 +149,158 @@ extern "C" {
   /* external functions (meant to be called from other modules) */
 
   int harmonic_cl_at_l(
-                      struct harmonic * phr,
-                      double l,
-                      double * cl,
-                      double ** cl_md,
-                      double ** cl_md_ic
-                      );
+                       struct harmonic * phr,
+                       double l,
+                       double * cl,
+                       double ** cl_md,
+                       double ** cl_md_ic
+                       );
 
   /* internal functions */
 
   int harmonic_init(
-                   struct precision * ppr,
-                   struct background * pba,
-                   struct perturbations * ppt,
-                   struct primordial * ppm,
-                   struct fourier *pfo,
-                   struct transfer * ptr,
-                   struct harmonic * phr
-                   );
+                    struct precision * ppr,
+                    struct background * pba,
+                    struct perturbations * ppt,
+                    struct primordial * ppm,
+                    struct fourier *pfo,
+                    struct transfer * ptr,
+                    struct harmonic * phr
+                    );
 
   int harmonic_free(
+                    struct harmonic * phr
+                    );
+
+  int harmonic_indices(
+                       struct background * pba,
+                       struct perturbations * ppt,
+                       struct transfer * ptr,
+                       struct primordial * ppm,
+                       struct harmonic * phr
+                       );
+
+  int harmonic_cls(
+                   struct background * pba,
+                   struct perturbations * ppt,
+                   struct transfer * ptr,
+                   struct primordial * ppm,
                    struct harmonic * phr
                    );
 
-  int harmonic_indices(
-                      struct background * pba,
-                      struct perturbations * ppt,
-                      struct transfer * ptr,
-                      struct primordial * ppm,
-                      struct harmonic * phr
-                      );
-
-  int harmonic_cls(
-                  struct background * pba,
-                  struct perturbations * ppt,
-                  struct transfer * ptr,
-                  struct primordial * ppm,
-                  struct harmonic * phr
-                  );
-
   int harmonic_compute_cl(
-                         struct background * pba,
-                         struct perturbations * ppt,
-                         struct transfer * ptr,
-                         struct primordial * ppm,
-                         struct harmonic * phr,
-                         int index_md,
-                         int index_ic1,
-                         int index_ic2,
-                         int index_l,
-                         int cl_integrand_num_columns,
-                         double * cl_integrand,
-                         double * primordial_pk,
-                         double * transfer_ic1,
-                         double * transfer_ic2
-                         );
+                          struct background * pba,
+                          struct perturbations * ppt,
+                          struct transfer * ptr,
+                          struct primordial * ppm,
+                          struct harmonic * phr,
+                          int index_md,
+                          int index_ic1,
+                          int index_ic2,
+                          int index_l,
+                          int cl_integrand_num_columns,
+                          double * cl_integrand,
+                          double * primordial_pk,
+                          double * transfer_ic1,
+                          double * transfer_ic2
+                          );
 
   int harmonic_k_and_tau(
-                        struct background * pba,
-                        struct perturbations * ppt,
-                        struct fourier *pfo,
-                        struct harmonic * phr
-                        );
+                         struct background * pba,
+                         struct perturbations * ppt,
+                         struct fourier *pfo,
+                         struct harmonic * phr
+                         );
 
   /* deprecated functions (since v2.8) */
 
   int harmonic_pk_at_z(
-                      struct background * pba,
-                      struct harmonic * phr,
-                      enum linear_or_logarithmic mode,
-                      double z,
-                      double * output_tot,
-                      double * output_ic,
-                      double * output_cb_tot,
-                      double * output_cb_ic
-                      );
+                       struct background * pba,
+                       struct harmonic * phr,
+                       enum linear_or_logarithmic mode,
+                       double z,
+                       double * output_tot,
+                       double * output_ic,
+                       double * output_cb_tot,
+                       double * output_cb_ic
+                       );
 
   int harmonic_pk_at_k_and_z(
-                            struct background * pba,
-                            struct primordial * ppm,
-                            struct harmonic * phr,
-                            double k,
-                            double z,
-                            double * pk,
-                            double * pk_ic,
-                            double * pk_cb,
-                            double * pk_cb_ic
-                            );
+                             struct background * pba,
+                             struct primordial * ppm,
+                             struct harmonic * phr,
+                             double k,
+                             double z,
+                             double * pk,
+                             double * pk_ic,
+                             double * pk_cb,
+                             double * pk_cb_ic
+                             );
 
   int harmonic_pk_nl_at_z(
-                         struct background * pba,
-                         struct harmonic * phr,
-                         enum linear_or_logarithmic mode,
-                         double z,
-                         double * output_tot,
-                         double * output_cb_tot
-                         );
+                          struct background * pba,
+                          struct harmonic * phr,
+                          enum linear_or_logarithmic mode,
+                          double z,
+                          double * output_tot,
+                          double * output_cb_tot
+                          );
 
   int harmonic_pk_nl_at_k_and_z(
-                               struct background * pba,
-                               struct primordial * ppm,
-                               struct harmonic * phr,
-                               double k,
-                               double z,
-                               double * pk_tot,
-                               double * pk_cb_tot
-                               );
+                                struct background * pba,
+                                struct primordial * ppm,
+                                struct harmonic * phr,
+                                double k,
+                                double z,
+                                double * pk_tot,
+                                double * pk_cb_tot
+                                );
 
   int harmonic_fast_pk_at_kvec_and_zvec(
-                                       struct background * pba,
-                                       struct harmonic * phr,
-                                       double * kvec,
-                                       int kvec_size,
-                                       double * zvec,
-                                       int zvec_size,
-                                       double * pk_tot_out,
-                                       double * pk_cb_tot_out,
-                                       int nonlinear);
+                                        struct background * pba,
+                                        struct harmonic * phr,
+                                        double * kvec,
+                                        int kvec_size,
+                                        double * zvec,
+                                        int zvec_size,
+                                        double * pk_tot_out,
+                                        double * pk_cb_tot_out,
+                                        int nonlinear);
 
   int harmonic_sigma(
-                    struct background * pba,
-                    struct primordial * ppm,
-                    struct harmonic * phr,
-                    double R,
-                    double z,
-                    double *sigma
-                    );
+                     struct background * pba,
+                     struct primordial * ppm,
+                     struct harmonic * phr,
+                     double R,
+                     double z,
+                     double *sigma
+                     );
 
   int harmonic_sigma_cb(
-                       struct background * pba,
-                       struct primordial * ppm,
-                       struct harmonic * phr,
-                       double R,
-                       double z,
-                       double *sigma_cb
-                       );
+                        struct background * pba,
+                        struct primordial * ppm,
+                        struct harmonic * phr,
+                        double R,
+                        double z,
+                        double *sigma_cb
+                        );
 
   /* deprecated functions (since v2.1) */
 
   int harmonic_tk_at_z(
-                      struct background * pba,
-                      struct harmonic * phr,
-                      double z,
-                      double * output
-                      );
+                       struct background * pba,
+                       struct harmonic * phr,
+                       double z,
+                       double * output
+                       );
 
   int harmonic_tk_at_k_and_z(
-                            struct background * pba,
-                            struct harmonic * phr,
-                            double k,
-                            double z,
-                            double * output
-                            );
+                             struct background * pba,
+                             struct harmonic * phr,
+                             double k,
+                             double z,
+                             double * output
+                             );
 
   /* end deprecated functions */
 
