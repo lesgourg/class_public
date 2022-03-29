@@ -29,7 +29,7 @@ This will generate a new version of the html manual and the necessary files to m
 
 after
 
-    {\Large C\+L\+A\+SS M\+A\+N\+U\+AL }\\
+    {\Large CLASS MANUAL }\\
 
 and move manually the chapters `"The external Pk mode"` and `"Updating the manual"` to the end, after the automatically generated part. Once you have this file with your desired configuration, navigate back to the class/doc/input directory, and run the second script
 
