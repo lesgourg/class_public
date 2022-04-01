@@ -537,11 +537,10 @@ int transfer_indices(
     class_define_index(ptr->index_tt_nc_g4,  ppt->has_nc_gr,                   index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_nc_g5,  ppt->has_nc_gr,                   index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_lensing,ppt->has_cl_lensing_potential,    index_tt,ppt->selection_num);
-    class_define_index(ptr->index_tt_gwb0,    ppt->has_cl_gwb,                  index_tt,1);
-    class_define_index(ptr->index_tt_gwb1,    ppt->has_cl_gwb,                  index_tt,1);
-    class_define_index(ptr->index_tt_gwb_sw0 ,ppt->has_cl_gwb,                  index_tt,1);
-    class_define_index(ptr->index_tt_gwb_sw1 ,ppt->has_cl_gwb,                  index_tt,1);
-    class_define_index(ptr->index_tt_gwb_ini ,ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb0,   ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb1,   ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb_sw, ppt->has_cl_gwb,                  index_tt,1);
+    class_define_index(ptr->index_tt_gwb_ini,ppt->has_cl_gwb,                  index_tt,1);
 
     ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
@@ -977,7 +976,7 @@ int transfer_get_l_list(
           l_max=ppt->l_lss_max;
 
         if ((ppt->has_cl_gwb == _TRUE_) &&
-            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_sw0) || (index_tt == ptr->index_tt_gwb_sw1) || (index_tt == ptr->index_tt_gwb_ini)))
+            ((index_tt == ptr->index_tt_gwb0) || (index_tt == ptr->index_tt_gwb1) || (index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
           l_max=ppt->l_scalar_max;
 
       }
@@ -1413,13 +1412,7 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_gwb1;
 
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw0))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_phi;
-
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw1))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_psi;
-
-        if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini))
+        if ((ppt->has_cl_gwb == _TRUE_) && ((index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
           tp_of_tt[index_md][index_tt]=0; //dummy variable, unused
 
       }
@@ -1704,7 +1697,7 @@ int transfer_source_tau_size(
       *tau_size = ppt->tau_size;
     
     if ((ppt->has_cl_gwb == _TRUE_) &&
-        ((index_tt == ptr->index_tt_gwb_sw0) || (index_tt == ptr->index_tt_gwb_sw1) || (index_tt == ptr->index_tt_gwb_ini)))
+        ((index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
       *tau_size = 1;
   }
 
@@ -2183,7 +2176,7 @@ int transfer_sources(
       redefine_source = _TRUE_;
 
     /* gravitational wave background */
-    if ((ppt->has_source_gwb == _TRUE_) && ((index_tt == ptr->index_tt_gwb_sw0) || (index_tt == ptr->index_tt_gwb_sw1) || (index_tt == ptr->index_tt_gwb_ini)))
+    if ((ppt->has_source_gwb == _TRUE_) && ((index_tt == ptr->index_tt_gwb_sw) || (index_tt == ptr->index_tt_gwb_ini)))
       redefine_source = _TRUE_;
 
   }
@@ -2410,59 +2403,16 @@ int transfer_sources(
 
       /* GWB initial and SW contribution, only need initial time*/
 
-      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw0)) {
-        
-        /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        class_call(array_search_bisect(ppt->tau_size,
-                                       ppt->tau_sampling,
-                                       ppt->tau_ini_gwb,
-                                       &index_tau, //TODO_GWB: ok like this, or make it a global parameter as it is the same for all index_q?
-                                       ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
-
-        if ((ptr->transfer_verbose>1) && (index_q == 0))
-          printf("Index for tau_ini_gwb: index_tau=%d, tau_ini_gwb=%e, tau[index_tau]=%e, tau0=%e, phi=%e\n", index_tau, ppt->tau_ini_gwb, ppt->tau_sampling[index_tau], tau0, interpolated_sources[index_tau]);
-
-        /* source function
-           only sw:     Psi     -> 0
-           only eisw:   Phi-Psi -> 1
-           sw and eisw: Phi     -> 1
-        */
-        sources[0] = ppt->switch_gwb_eisw * interpolated_sources[index_tau]; //TODO_GWB: check this implementation and the logic!
-
-        /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb; //TODO_GWB: is it more consistent to use tau_sampling[index_tau] instead of tau_ini_gwb?
-      }
-
-      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw1)) {
-        
-        /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        class_call(array_search_bisect(ppt->tau_size,
-                                       ppt->tau_sampling,
-                                       ppt->tau_ini_gwb,
-                                       &index_tau,
-                                       ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
-
-        /* source function
-           only sw:     Psi     -> 1
-           only eisw:   Phi-Psi -> -1
-           sw and eisw: Phi     -> 0
-        */
-       /* effect of relativistic particles:
-          sw (always): 1/(1 + 4/15 f_dec) * Psi
-          eisw (additional): [...] * Psi
-       */
+      if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
+        /* source function for gwb SW and (V)EISW term */
         sources[0] = (ppt->switch_gwb_sw / (1. + 4./15. * pba->f_dec)
-                      - ppt->switch_gwb_eisw
-                      + ppt->switch_gwb_eisw * ((2. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
-                                                -(2. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec)) ) 
-                      * interpolated_sources[index_tau];
+                      + ppt->switch_gwb_veisw * ((2. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
+                                                -(2. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec))
+                      + ppt->switch_gwb_eisw * (2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
+                     ) * 2./3.;
 
         /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb; //TODO_GWB: is it more consistent to use tau_sampling[index_tau] instead of tau_ini_gwb?
+        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
       }
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini)) {
@@ -4195,10 +4145,7 @@ int transfer_select_radial_function(
       if (index_tt == ptr->index_tt_gwb1) {
         *radial_type = SCALAR_TEMPERATURE_1;
       }
-      if (index_tt == ptr->index_tt_gwb_sw0) {
-        *radial_type = SCALAR_TEMPERATURE_0;
-      }
-      if (index_tt == ptr->index_tt_gwb_sw1) {
+      if (index_tt == ptr->index_tt_gwb_sw) {
         *radial_type = SCALAR_TEMPERATURE_0;
       }
       if (index_tt == ptr->index_tt_gwb_ini) {

@@ -1265,11 +1265,6 @@ int perturbations_indices(
         ppt->has_source_phi_plus_psi = _TRUE_;
       }
 
-      if (ppt->has_cl_gwb == _TRUE_) {
-        ppt->has_source_psi = _TRUE_;
-        ppt->has_source_phi = _TRUE_;
-      }
-
       if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m)) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_m = _TRUE_;

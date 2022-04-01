@@ -1815,6 +1815,7 @@ int input_read_parameters_general(struct file_content * pfc,
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
       ppt->switch_gwb_sw = 0;
+      ppt->switch_gwb_veisw = 0;
       ppt->switch_gwb_eisw = 0;
       ppt->switch_gwb_lisw = 0;
       ppt->switch_gwb_ini = 0;
@@ -1823,6 +1824,7 @@ int input_read_parameters_general(struct file_content * pfc,
       }
       if ((strstr(string1,"eisw") != NULL) || (strstr(string1,"EISW") != NULL)){
         ppt->switch_gwb_eisw = 1;
+        ppt->switch_gwb_veisw = 1;
       }
       if ((strstr(string1,"lisw") != NULL) || (strstr(string1,"LISW") != NULL)){
         ppt->switch_gwb_lisw = 1;
@@ -5554,6 +5556,7 @@ int input_default_params(struct background *pba,
   ppt->has_metricpotential_transfers = _FALSE_;
   /** 1.d) 'gwCl' case */
   ppt->switch_gwb_sw = 1;
+  ppt->switch_gwb_veisw = 1;
   ppt->switch_gwb_eisw = 1;
   ppt->switch_gwb_lisw = 1;
   ppt->switch_gwb_ini = 1;

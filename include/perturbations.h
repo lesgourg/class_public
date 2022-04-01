@@ -166,6 +166,7 @@ struct perturbations
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
 
   int switch_gwb_sw;   /**< in graviational wave calculation, do we want to include the Sachs Wolfe term? */
+  int switch_gwb_veisw;/**< in graviational wave calculation, do we want to include the very early integrated Sachs Wolfe term (effect of f_dec)? */
   int switch_gwb_eisw; /**< in graviational wave calculation, do we want to include the early integrated Sachs Wolfe term? */
   int switch_gwb_lisw; /**< in graviational wave calculation, do we want to include the late integrated Sachs Wolfe term? */
   int switch_gwb_ini;  /**< in graviational wave calculation, do we want to include the initial term? */
