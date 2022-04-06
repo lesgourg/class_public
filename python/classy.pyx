@@ -1186,8 +1186,7 @@ cdef class Class:
                 tk[name] = np.zeros((k_size, z_size),'float64')
 
         # allocate the vector in wich the transfer functions will be stored temporarily for all k and types at a given z
-
-        data = <double*>malloc(sizeof(double)*number_of_titles*k_size)
+        data = <double*>malloc(sizeof(double)*number_of_titles*self.pt.k_size[index_md])
 
         # get T(k,z) array
 
@@ -1201,6 +1200,7 @@ cdef class Class:
                     for index_k in xrange(k_size):
                         tk[name][index_k, index_tau] = data[index_k*number_of_titles+index_type]
 
+        free(data)
         return tk, k, z
 
     #################################
@@ -2361,6 +2361,14 @@ cdef class Class:
                 value = self.fo.sigma8[self.fo.index_pk_cb]
             elif name == 'k_eq':
                 value = self.ba.a_eq*self.ba.H_eq
+            elif name == 'a_eq':
+                value = self.ba.a_eq
+            elif name == 'z_eq':
+                value = 1./self.ba.a_eq-1.
+            elif name == 'H_eq':
+                value = self.ba.H_eq
+            elif name == 'tau_eq':
+                value = self.ba.tau_eq
             elif name == 'g_sd':
                 value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':
@@ -2692,3 +2700,181 @@ make        nonlinear_scale_cb(z, z_size)
           sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
+
+
+    def get_sources(self):
+        """
+        Return the source functions for all k, tau in the grid.
+
+        Returns
+        -------
+        sources : dictionary containing source functions.
+        k_array : numpy array containing k values.
+        tau_array: numpy array containing tau values.
+        """
+        sources = {}
+
+        cdef: 
+            int index_k, index_tau, i_index_type;
+            int index_type;
+            int index_md = self.pt.index_md_scalars;
+            double * k = self.pt.k[index_md];
+            double * tau = self.pt.tau_sampling;
+            int index_ic = self.pt.index_ic_ad;
+            int k_size = self.pt.k_size[index_md];
+            int tau_size = self.pt.tau_size;
+            int tp_size = self.pt.tp_size[index_md];
+            double *** sources_ptr = self.pt.sources;
+            double [:,:] tmparray = np.zeros((k_size, tau_size)) ;
+            double [:] k_array = np.zeros(k_size);
+            double [:] tau_array = np.zeros(tau_size);
+
+        names = []
+
+        for index_k in range(k_size):
+            k_array[index_k] = k[index_k]
+        for index_tau in range(tau_size):
+            tau_array[index_tau] = tau[index_tau]
+
+        indices = []
+
+        if self.pt.has_source_t:
+            indices.extend([
+                self.pt.index_tp_t0,
+                self.pt.index_tp_t1,
+                self.pt.index_tp_t2
+                ])
+            names.extend([
+                "t0",
+                "t1",
+                "t2"
+                ])
+        if self.pt.has_source_p:
+            indices.append(self.pt.index_tp_p)
+            names.append("p")
+        if self.pt.has_source_phi:
+            indices.append(self.pt.index_tp_phi)
+            names.append("phi")
+        if self.pt.has_source_phi_plus_psi:
+            indices.append(self.pt.index_tp_phi_plus_psi)
+            names.append("phi_plus_psi")
+        if self.pt.has_source_phi_prime:
+            indices.append(self.pt.index_tp_phi_prime)
+            names.append("phi_prime")
+        if self.pt.has_source_psi:
+            indices.append(self.pt.index_tp_psi)
+            names.append("psi")
+        if self.pt.has_source_H_T_Nb_prime:
+            indices.append(self.pt.index_tp_H_T_Nb_prime)
+            names.append("H_T_Nb_prime")
+        if self.pt.index_tp_k2gamma_Nb:
+            indices.append(self.pt.index_tp_k2gamma_Nb)
+            names.append("k2gamma_Nb")
+        if self.pt.has_source_h:
+            indices.append(self.pt.index_tp_h)
+            names.append("h")
+        if self.pt.has_source_h_prime:
+            indices.append(self.pt.index_tp_h_prime)
+            names.append("h_prime")
+        if self.pt.has_source_eta:
+            indices.append(self.pt.index_tp_eta)
+            names.append("eta")
+        if self.pt.has_source_eta_prime:
+            indices.append(self.pt.index_tp_eta_prime)
+            names.append("eta_prime")
+        if self.pt.has_source_delta_tot:
+            indices.append(self.pt.index_tp_delta_tot)
+            names.append("delta_tot")
+        if self.pt.has_source_delta_m:
+            indices.append(self.pt.index_tp_delta_m)
+            names.append("delta_m")
+        if self.pt.has_source_delta_cb:
+            indices.append(self.pt.index_tp_delta_cb)
+            names.append("delta_cb")
+        if self.pt.has_source_delta_g:
+            indices.append(self.pt.index_tp_delta_g)
+            names.append("delta_g")
+        if self.pt.has_source_delta_b:
+            indices.append(self.pt.index_tp_delta_b)
+            names.append("delta_b")
+        if self.pt.has_source_delta_cdm:
+            indices.append(self.pt.index_tp_delta_cdm)
+            names.append("delta_cdm")
+        if self.pt.has_source_delta_idm:
+            indices.append(self.pt.index_tp_delta_idm)
+            names.append("delta_idm")
+        if self.pt.has_source_delta_dcdm:
+            indices.append(self.pt.index_tp_delta_dcdm)
+            names.append("delta_dcdm")
+        if self.pt.has_source_delta_fld:
+            indices.append(self.pt.index_tp_delta_fld)
+            names.append("delta_fld")
+        if self.pt.has_source_delta_scf:
+            indices.append(self.pt.index_tp_delta_scf)
+            names.append("delta_scf")
+        if self.pt.has_source_delta_dr:
+            indices.append(self.pt.index_tp_delta_dr)
+            names.append("delta_dr")
+        if self.pt.has_source_delta_ur:
+            indices.append(self.pt.index_tp_delta_ur)
+            names.append("delta_ur")
+        if self.pt.has_source_delta_idr:
+            indices.append(self.pt.index_tp_delta_idr)
+            names.append("delta_idr")
+        if self.pt.has_source_delta_ncdm:
+            for incdm in range(self.ba.N_ncdm):
+              indices.append(self.pt.index_tp_delta_ncdm1+incdm)
+              names.append("delta_ncdm[{}]".format(incdm))
+        if self.pt.has_source_theta_tot:
+            indices.append(self.pt.index_tp_theta_tot)
+            names.append("theta_tot")
+        if self.pt.has_source_theta_m:
+            indices.append(self.pt.index_tp_theta_m)
+            names.append("theta_m")
+        if self.pt.has_source_theta_cb:
+            indices.append(self.pt.index_tp_theta_cb)
+            names.append("theta_cb")
+        if self.pt.has_source_theta_g:
+            indices.append(self.pt.index_tp_theta_g)
+            names.append("theta_g")
+        if self.pt.has_source_theta_b:
+            indices.append(self.pt.index_tp_theta_b)
+            names.append("theta_b")
+        if self.pt.has_source_theta_cdm:
+            indices.append(self.pt.index_tp_theta_cdm)
+            names.append("theta_cdm")
+        if self.pt.has_source_theta_idm:
+            indices.append(self.pt.index_tp_theta_idm)
+            names.append("theta_idm")
+        if self.pt.has_source_theta_dcdm:
+            indices.append(self.pt.index_tp_theta_dcdm)
+            names.append("theta_dcdm")
+        if self.pt.has_source_theta_fld:
+            indices.append(self.pt.index_tp_theta_fld)
+            names.append("theta_fld")
+        if self.pt.has_source_theta_scf:
+            indices.append(self.pt.index_tp_theta_scf)
+            names.append("theta_scf")
+        if self.pt.has_source_theta_dr:
+            indices.append(self.pt.index_tp_theta_dr)
+            names.append("theta_dr")
+        if self.pt.has_source_theta_ur:
+            indices.append(self.pt.index_tp_theta_ur)
+            names.append("theta_ur")
+        if self.pt.has_source_theta_idr:
+            indices.append(self.pt.index_tp_theta_idr)
+            names.append("theta_idr")
+        if self.pt.has_source_theta_ncdm:
+            for incdm in range(self.ba.N_ncdm):
+              indices.append(self.pt.index_tp_theta_ncdm1+incdm)
+              names.append("theta_ncdm[{}]".format(incdm))
+
+        for index_type, name in zip(indices, names):
+            tmparray = np.empty((k_size,tau_size))
+            for index_k in range(k_size):                 
+                for index_tau in range(tau_size):
+                    tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
+
+            sources[name] = np.asarray(tmparray)
+
+        return (sources, np.asarray(k_array), np.asarray(tau_array))

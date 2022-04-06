@@ -217,7 +217,7 @@ int primordial_init(
   /** - get kmin and kmax from perturbation structure. Test that they make sense. */
 
   k_min = ppt->k_min; /* first value, inferred from perturbations structure */
-  if(ppm->has_k_max_for_primordial_pk == _TRUE_){
+  if (ppm->has_k_max_for_primordial_pk == _TRUE_){
     k_max = ppm->k_max_for_primordial_pk; /* last value, user-defined (i.e. if specified in .ini file) */
   }
   else{
@@ -3293,7 +3293,7 @@ int primordial_external_spectrum_init(
     pkt = (double *)malloc(n_data_guess*sizeof(double));
   /* Prepare the command */
   /* If the command is just a "cat", no arguments need to be passed */
-  if(strncmp("cat ", ppm->command, 4) == 0) {
+  if (strncmp("cat ", ppm->command, 4) == 0) {
     sprintf(arguments, " ");
   }
   /* otherwise pass the list of arguments */
@@ -3323,7 +3323,7 @@ int primordial_external_spectrum_init(
     }
     /* Standard technique in C: if too many data, double the size of the vectors */
     /* (it is faster and safer that reallocating every new line) */
-    if((n_data+1) > n_data_guess) {
+    if ((n_data+1) > n_data_guess) {
       n_data_guess *= 2;
       tmp = (double *)realloc(k,   n_data_guess*sizeof(double));
       class_test(tmp == NULL,
@@ -3351,7 +3351,7 @@ int primordial_external_spectrum_init(
     }
     n_data++;
     /* Check ascending order of the k's */
-    if(n_data>1) {
+    if (n_data>1) {
       class_test(k[n_data-1] <= k[n_data-2],
                  ppm->error_message,
                  "The k's are not strictly sorted in ascending order, "

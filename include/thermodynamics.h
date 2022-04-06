@@ -15,8 +15,8 @@
  */
 
 enum recombination_algorithm {
-  recfast,
-  hyrec
+                              recfast,
+                              hyrec
 };
 
 /**
@@ -24,12 +24,12 @@ enum recombination_algorithm {
  */
 
 enum reionization_parametrization {
-  reio_none,       /**< no reionization */
-  reio_camb,       /**< reionization parameterized like in CAMB */
-  reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
-  reio_half_tanh,  /**< half a tanh, instead of the full tanh */
-  reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
-  reio_inter       /**< linear interpolation between specified points */
+                                   reio_none,       /**< no reionization */
+                                   reio_camb,       /**< reionization parameterized like in CAMB */
+                                   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
+                                   reio_half_tanh,  /**< half a tanh, instead of the full tanh */
+                                   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
+                                   reio_inter       /**< linear interpolation between specified points */
 };
 
 /**
@@ -37,8 +37,8 @@ enum reionization_parametrization {
  */
 
 enum reionization_z_or_tau {
-  reio_z,  /**< input = redshift */
-  reio_tau /**< input = tau */
+                            reio_z,  /**< input = redshift */
+                            reio_tau /**< input = tau */
 };
 
 /**
@@ -82,6 +82,12 @@ struct thermodynamics
 
   short compute_damping_scale; /**< do we want to compute the simplest analytic approximation to the photon damping (or diffusion) scale? */
 
+  /** parameters for interacting dark matter */
+
+  short has_idm_b;    /**< Do we have idm with baryons? */
+  short has_idm_g;    /**< Do we have idm with photons? */
+  short has_idm_dr;   /**< Do we have idm with dark radiation? */
+
   /** parameters for reio_camb */
 
   double reionization_width; /**< width of H reionization */
@@ -112,7 +118,7 @@ struct thermodynamics
 
   double many_tanh_width; /**< sharpness of tanh() steps */
 
-    /** parameters for reio_inter */
+  /** parameters for reio_inter */
 
   int reio_inter_num; /**< with how many jumps do we want to describe reionization? */
 
@@ -123,13 +129,13 @@ struct thermodynamics
   /** parameters for energy injection */
 
   short has_exotic_injection; /**< true if some exotic mechanism
-                                  injects energy and affects the
-                                  evolution of ionization and/or
-                                  temperature and/or other
-                                  thermodynamics variables that are
-                                  relevant for the calculation of CMB
-                                  anisotropies (and spectral
-                                  distorsions if requested). */
+                                 injects energy and affects the
+                                 evolution of ionization and/or
+                                 temperature and/or other
+                                 thermodynamics variables that are
+                                 relevant for the calculation of CMB
+                                 anisotropies (and spectral
+                                 distorsions if requested). */
 
   struct injection in; /**< structure to store exotic energy injections and their energy deposition */
 
@@ -140,35 +146,30 @@ struct thermodynamics
   double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /**< if this parameter is non-zero,
-				     the function F(z)=(f <sigma*v> /
-				     m_cdm)(z) will be a parabola in
-				     log-log scale between zmin and
-				     zmax, with a curvature given by
-				     annihlation_variation (must be
-				     negative), and with a maximum in
-				     zmax; it will be constant outside
-				     this range */
+                                    the function F(z)=(f <sigma*v> /
+                                    m_cdm)(z) will be a parabola in
+                                    log-log scale between zmin and
+                                    zmax, with a curvature given by
+                                    annihlation_variation (must be
+                                    negative), and with a maximum in
+                                    zmax; it will be constant outside
+                                    this range */
 
   double annihilation_z; /**< if annihilation_variation is non-zero,
-			     this is the value of z at which the
-			     parameter annihilation is defined, i.e.
-			     F(annihilation_z)=annihilation */
+                            this is the value of z at which the
+                            parameter annihilation is defined, i.e.
+                            F(annihilation_z)=annihilation */
 
   double annihilation_zmax; /**< if annihilation_variation is non-zero,
-				redshift above which annihilation rate
-				is maximal */
+                               redshift above which annihilation rate
+                               is maximal */
 
   double annihilation_zmin; /**< if annihilation_variation is non-zero,
-				redshift below which annihilation rate
-				is constant */
+                               redshift below which annihilation rate
+                               is constant */
 
   double annihilation_f_halo; /**< takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
-
-  double a_idm_dr;      /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
-  double b_idr;         /**< strength of the self coupling for interacting dark radiation (idr-idr) */
-  double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation */
-  double m_idm_dr;      /**< dark matter mass for idm_dr */
 
   /** parameters for varying fundamental constants */
 
@@ -189,15 +190,23 @@ struct thermodynamics
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
-  int index_th_dmu_idm_dr;    /**< scattering rate of idr with idm_dr (i.e. idr opacity to idm_dr scattering) (units 1/Mpc) */
-  int index_th_ddmu_idm_dr;   /**< derivative of this scattering rate */
-  int index_th_dddmu_idm_dr;  /**< second derivative of this scattering rate */
+  int index_th_T_idm;         /**< idm temperature \f$ T_idm \f$ */
+  int index_th_c2_idm;        /**< idm sound speed squared \f$ c_idm^2 \f$ */
+  int index_th_T_idr;         /**< idr temperature \f$ T_idr \f$ */
+  int index_th_dmu_idm_dr;    /**< scattering rate of idr with idm_g_dr (i.e. idr opacity to idm_g_dr scattering) (units 1/Mpc) */
+  int index_th_ddmu_idm_dr;   /**< derivative of the idm_g_dr scattering rate */
+  int index_th_dddmu_idm_dr;  /**< second derivative of the idm_g_dr scattering rate */
   int index_th_dmu_idr;       /**< idr self-interaction rate */
   int index_th_tau_idm_dr;    /**< optical depth of idm_dr (due to interactions with idr) */
   int index_th_tau_idr;       /**< optical depth of idr (due to self-interactions) */
   int index_th_g_idm_dr;      /**< visibility function of idm_idr */
-  int index_th_cidm_dr2;      /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
-  int index_th_Tidm_dr;       /**< temperature of DM interacting with DR \f$ T_{idm_dr} \f$ */
+  int index_th_dmu_idm_g;     /**< idm_g scattering rate \f$ d \mu / d \tau\f$  (analogous to Thomson scattering) (see 1802.06589 for details) */
+  int index_th_ddmu_idm_g;    /**< derivative of idm_g scattering, \f$ d^2 \mu / d \tau^2 \f$ */
+  int index_th_dddmu_idm_g;   /**< second derivative of idm_g scattering rate, \f$ d^3 \mu / d \tau^3 \f$ */
+  int index_th_exp_mu_idm_g;  /**< \f$ exp^{-\mu} \f$ */
+  int index_th_R_idm_b;       /**< idm_b interaction coefficient */
+  int index_th_dR_idm_b;      /**< derivative of idm_b interaction coefficient wrt conformal time */
+  int index_th_ddR_idm_b;     /**< second derivative of ibm_b interaction coefficient wrt conformal time */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_dTb;           /**< derivative of baryon temperature */
   int index_th_wb;            /**< baryon equation of state parameter \f$ w_b = k_B T_b / \mu \f$ */
@@ -260,8 +269,9 @@ struct thermodynamics
   double angular_rescaling;      /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
   double tau_free_streaming;     /**< minimum value of tau at which free-streaming approximation can be switched on */
   double tau_idr_free_streaming; /**< trigger for dark radiation free streaming approximation (idm-idr) */
-  double tau_idr;                /**< decoupling tau for idr */
-  double tau_idm_dr;             /**< decoupling tau for idm_dr */
+  double tau_idr;                /**< decoupling time for idr */
+  double tau_idm_dr;             /**< decoupling time for idm from idr*/
+
   //@}
 
   /** @name - initial conformal time at which thermodynamical variables have been be integrated */
@@ -278,6 +288,23 @@ struct thermodynamics
 
   double fHe;  /**< \f$ f_{He} \f$: primordial helium-to-hydrogen nucleon ratio 4*n_He/n_H */
   double n_e;  /**< total number density of electrons today (free or not) */
+
+  //@}
+
+  /** @name - parameters needed for idm */
+
+  //@{
+
+  double m_idm;          /**< dark matter mass for idm */
+  double a_idm_dr;       /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
+  double b_idr;          /**< strength of the self coupling for interacting dark radiation (idr-idr) */
+  double n_index_idm_dr; /**< temperature dependence of the interactions between dark matter and dark radiation */
+  double cross_idm_b;    /**< cross section between interacting dark matter and baryons */
+  int n_index_idm_b;     /**< temperature dependence of the interactions between dark matter and baryons */
+  double n_coeff_idm_b;  /**< numerical n-dependent coefficient for idm_b */
+  double cross_idm_g;    /**< cross section between interacting dark matter and photons */
+  double u_idm_g;        /**< ratio between idm_g cross section and idm mass */
+  int n_index_idm_g;     /**< temperature dependence of the interactions between dark matter and photons */
 
   //@}
 
@@ -321,7 +348,8 @@ struct thermo_vector {
 
   int index_ti_x_H;     /**< index for hydrogen fraction in y */
   int index_ti_x_He;    /**< index for helium fraction in y */
-  int index_ti_D_Tmat;  /**< index for T_mat - T_photon [Kelvin] in y */
+  int index_ti_D_Tmat;  /**< index for temperature difference between baryons and photons */
+  int index_ti_T_idm;   /**< index for idm temperature fraction in y */
 
   double * y;           /**< vector of quantities to be integrated */
   double * dy;          /**< time-derivative of the same vector */
@@ -345,14 +373,24 @@ struct thermo_diffeq_workspace {
 
   double Tmat;       /**< matter temperature */
 
+  double R_idm_b;       /**< idm_b interaction coefficient */
+  double T_idm;         /**< idm_g temperature \f$ T_{idm-g} \f$ */
+  double T_idm_prime;   /**< derivative of idm_g temperature */
+  double dmu_idm_g;     /**< scattering rate for idm_g \f& d \mu / d \tau \f$ */
+  double c2_idm;        /**< sound speed for idm_g \f$ c_{idm-g}^2  \f$*/
+  double dmu_idm_dr;    /**< scattering rate of idr with idm_g_dr (i.e. idr opacity to idm_g_dr scattering) (units 1/Mpc) */
+  double dmu_idr;       /**< idr self-interaction rate */
+  double Sinv_idm_dr;   /**< ratio of idm and idr densities */
+
   /* index of approximation schemes for the thermal history */
-  int index_ap_brec; /**< before H- and He-recombination */
-  int index_ap_He1;  /**< during 1st He-recombination (HeIII) */
-  int index_ap_He1f; /**< in between 1st and 2nd He recombination */
-  int index_ap_He2;  /**< beginning of 2nd He-recombination (HeII) */
-  int index_ap_H;    /**< beginning of H-recombination (HI) */
-  int index_ap_frec; /**< during and after full H- and HeII-recombination */
-  int index_ap_reio; /**< during reionization */
+  int index_ap_idmtca;/**< index for approximation during idm-g, idm-b or idm-dr tca*/
+  int index_ap_brec;  /**< before H- and He-recombination */
+  int index_ap_He1;   /**< during 1st He-recombination (HeIII) */
+  int index_ap_He1f;  /**< in between 1st and 2nd He recombination */
+  int index_ap_He2;   /**< beginning of 2nd He-recombination (HeII) */
+  int index_ap_H;     /**< beginning of H-recombination (HI) */
+  int index_ap_frec;  /**< during and after full H- and HeII-recombination */
+  int index_ap_reio;  /**< during reionization */
 
   int ap_current;     /** current approximation scheme index */
   int ap_size;        /**< number of approximation intervals used during evolver loop */
@@ -427,6 +465,9 @@ struct thermo_workspace {
   double const_Tion_H;         /**< ionization energy for HI as temperature */
   double const_Tion_HeI;       /**< ionization energy for HeI as temperature */
   double const_Tion_HeII;      /**< ionization energy for HeII as temperature */
+
+  short has_ap_idmtca;         /**< flag to determine if we have idm tight-coupling approximation */
+  double z_ap_idmtca;          /**< redshift at which we start idm tight-coupling approximation */
 
   double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
 
@@ -574,11 +615,6 @@ extern "C" {
   int thermodynamics_calculate_opticals(struct precision* ppr,
                                         struct thermodynamics* pth);
 
-  int thermodynamics_calculate_idm_dr_quantities(struct precision * ppr,
-                                                 struct background * pba,
-                                                 struct thermodynamics * pth,
-                                                 double* pvecback);
-
   int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
                                                         struct background * pba,
                                                         struct thermodynamics* pth,
@@ -603,6 +639,13 @@ extern "C" {
                                            struct thermo_reionization_parameters * preio,
                                            double * x);
 
+  int thermodynamics_obtain_z_ini(
+                                  struct precision * ppr,
+                                  struct background *pba,
+                                  struct thermodynamics *pth,
+                                  struct thermo_workspace * ptw
+                                  );
+
   int thermodynamics_output_titles(struct background * pba,
                                    struct thermodynamics *pth,
                                    char titles[_MAXTITLESTRINGLENGTH_]);
@@ -611,6 +654,24 @@ extern "C" {
                                  struct thermodynamics *pth,
                                  int number_of_titles,
                                  double *data);
+
+  int thermodynamics_calculate_idm_and_idr_quantities(struct precision * ppr,
+                                                      struct background * pba,
+                                                      struct thermodynamics * pth,
+                                                      double* pvecback);
+
+  int thermodynamics_idm_quantities(struct background * pba,
+                                    double z,
+                                    double * y,
+                                    double * dy,
+                                    struct thermodynamics * pth,
+                                    struct thermo_workspace * ptw,
+                                    double * pvecback);
+
+  int thermodynamics_idm_initial_temperature(struct background* pba,
+                                             struct thermodynamics* pth,
+                                             double z_ini,
+                                             struct thermo_diffeq_workspace * ptdw);
 
 #ifdef __cplusplus
 }

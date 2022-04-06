@@ -327,7 +327,7 @@ int array_integrate_all_trapzd_or_spline(
 					       double * result,
 					       int result_size, /** from 1 to n_columns */
 					       ErrorMsg errmsg);
-  // [NS]
+
   int array_spline_hunt(double* x_array,
                         int x_size,
                         double x,

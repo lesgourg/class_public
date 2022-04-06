@@ -1129,7 +1129,7 @@ int output_thermodynamics(
     fprintf(thermofile,"#       tau_d = baryon drag optical depth \n");
     if (pth->compute_damping_scale == _TRUE_)
       fprintf(thermofile,"#         r_d = approximate comoving value of photon damping scale \n");
-    if(pba->has_idm_dr == _TRUE_) {
+    if (pth->has_idm_dr == _TRUE_) {
       fprintf(thermofile,"#  dmu_idm_dr = scattering rate of idr with idm_dr (i.e. idr opacity to idm_dr scattering) (units 1/Mpc)\n");
       fprintf(thermofile,"# ddmu_idm_dr = derivative of this rate\n");
       fprintf(thermofile,"#  tau_idm_dr = optical depth of idm_dr (due to interactions with idr) \n");
@@ -1275,7 +1275,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
   int size_data_noninjection;
   int number_of_titles_noninjection;
 
-  if(pop->write_exotic_injection == _TRUE_){
+  if (pop->write_exotic_injection == _TRUE_){
 
     /* File name */
     sprintf(file_name_injection,"%s%s",pop->root,"exotic_injection.dat");
@@ -1303,7 +1303,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
                "w",
                pop->error_message);
 
-    if(pop->write_header == _TRUE_){
+    if (pop->write_header == _TRUE_){
       fprintf(out_injection,"# Table of energy injection and deposition from exotic processes \n");
       fprintf(out_injection,"# Heat is dE/dt|dep_h\n");
     }
@@ -1317,7 +1317,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
 
   }
 
-  if(pop->write_noninjection == _TRUE_){
+  if (pop->write_noninjection == _TRUE_){
 
     /* File name */
     sprintf(file_name_noninjection,"%s%s",pop->root,"photon_noninjection.dat");
@@ -1345,7 +1345,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
                "w",
                pop->error_message);
 
-    if(pop->write_header == _TRUE_){
+    if (pop->write_header == _TRUE_){
       fprintf(out_noninjection,"# Table of non-injected energy influencing the photon spectral distortions \n");
     }
 
@@ -1377,7 +1377,7 @@ int output_distortions(
   int size_data_heat, size_data_distortion;
   int number_of_titles_heat, number_of_titles_distortion;
 
-  if(pop->write_distortions==_TRUE_ && psd->has_distortions == _TRUE_){
+  if (pop->write_distortions==_TRUE_ && psd->has_distortions == _TRUE_){
 
     /* File name */
     sprintf(file_name_heat,"%s%s",pop->root,"sd_heating.dat");
@@ -1405,7 +1405,7 @@ int output_distortions(
                "w",
                pop->error_message);
 
-    if(pop->write_header == _TRUE_){
+    if (pop->write_header == _TRUE_){
       fprintf(out_heat,"# Heat is d(Q/rho)/dz\n");
       fprintf(out_heat,"# LHeat is d(Q/rho)/dlnz\n");
       fprintf(out_heat,"#\n");
@@ -1444,7 +1444,7 @@ int output_distortions(
                "w",
                pop->error_message);
 
-    if(pop->write_header == _TRUE_){
+    if (pop->write_header == _TRUE_){
       fprintf(out_distortion,"# SD_tot is the amplitude of the overall spectral distortion (SD)\n");
       fprintf(out_distortion,"# The SD[i] are the amplitudes of the individual SDs\n");
       fprintf(out_distortion,"# The SDs are given in units [10^-26 W m^-2 Hz^-1 sr^-1] \n");

@@ -252,7 +252,7 @@ int lensing_init(
               ple->error_message);
   icount += 4*num_mu*(ple->l_unlensed_max+1);
 
-  if(ple->has_te==_TRUE_) {
+  if (ple->has_te==_TRUE_) {
 
     class_alloc(d20,
                 num_mu*sizeof(double*),
@@ -606,9 +606,9 @@ int lensing_init(
         /* X_022 = exp(-(fac-1.)*sigma2[index_mu]); */
         X_022 = X_000 * (1+sigma2[index_mu]*(1+0.5*sigma2[index_mu])); /* Order 2 */
         X_p022 = -(fac-1.)*X_022; /* Old versions were missing the
-        minus sign in this line, which introduced a very small error
-        on the high-l C_l^TE lensed spectrum [credits for bug fix:
-        Selim Hotinli] */
+                                     minus sign in this line, which introduced a very small error
+                                     on the high-l C_l^TE lensed spectrum [credits for bug fix:
+                                     Selim Hotinli] */
 
         /* X_242 = 0.25*sqrt4[l] * exp(-(fac-5./2.)*sigma2[index_mu]); */
         X_242 = 0.25*sqrt4[l] * X_000; /* Order 0 */
@@ -1060,7 +1060,7 @@ int lensing_lensed_cl_tt(
   private (imu,index_l,cle)                     \
   schedule (static)
 
-  for(index_l=0; index_l<ple->l_size; index_l++){
+  for (index_l=0; index_l<ple->l_size; index_l++){
     cle=0;
     for (imu=0;imu<nmu;imu++) {
       cle += ksi[imu]*d00[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
@@ -1123,7 +1123,7 @@ int lensing_lensed_cl_te(
   private (imu,index_l,clte)                    \
   schedule (static)
 
-  for(index_l=0; index_l < ple->l_size; index_l++){
+  for (index_l=0; index_l < ple->l_size; index_l++){
     clte=0;
     for (imu=0;imu<nmu;imu++) {
       clte += ksiX[imu]*d20[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
@@ -1190,7 +1190,7 @@ int lensing_lensed_cl_ee_bb(
   private (imu,index_l,clp,clm)                 \
   schedule (static)
 
-  for(index_l=0; index_l < ple->l_size; index_l++){
+  for (index_l=0; index_l < ple->l_size; index_l++){
     clp=0; clm=0;
     for (imu=0;imu<nmu;imu++) {
       clp += ksip[imu]*d22[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
@@ -1273,7 +1273,7 @@ int lensing_d00(
     d00[index_mu][0]=dlm1*sqrt(2.);
     dl=mu[index_mu] * sqrt(3./2.); /*l=1*/
     d00[index_mu][1]=dl*sqrt(2./3.);
-    for(l=1;l<lmax;l++){
+    for (l=1;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d00 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*mu[index_mu]*dl - fac2[l]*dlm1;
@@ -1331,7 +1331,7 @@ int lensing_d11(
     d11[index_mu][1]=dlm1 * sqrt(2./3.);
     dl=(1.0+mu[index_mu])/2.*(2.0*mu[index_mu]-1.0) * sqrt(5./2.); /*l=2*/
     d11[index_mu][2] = dl * sqrt(2./5.);
-    for(l=2;l<lmax;l++){
+    for (l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d11 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
@@ -1388,7 +1388,7 @@ int lensing_d1m1(
     d1m1[index_mu][1]=dlm1 * sqrt(2./3.);
     dl=(1.0-mu[index_mu])/2.*(2.0*mu[index_mu]+1.0) * sqrt(5./2.); /*l=2*/
     d1m1[index_mu][2] = dl * sqrt(2./5.);
-    for(l=2;l<lmax;l++){
+    for (l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d1m1 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
@@ -1445,7 +1445,7 @@ int lensing_d2m2(
     d2m2[index_mu][1]=0;
     dl=(1.0-mu[index_mu])*(1.0-mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
     d2m2[index_mu][2] = dl * sqrt(2./5.);
-    for(l=2;l<lmax;l++){
+    for (l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d2m2 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
@@ -1502,7 +1502,7 @@ int lensing_d22(
     d22[index_mu][1]=0;
     dl=(1.0+mu[index_mu])*(1.0+mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
     d22[index_mu][2] = dl * sqrt(2./5.);
-    for(l=2;l<lmax;l++){
+    for (l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
@@ -1557,7 +1557,7 @@ int lensing_d20(
     d20[index_mu][1]=0;
     dl=sqrt(15.)/4.*(1-mu[index_mu]*mu[index_mu]); /*l=2*/
     d20[index_mu][2] = dl * sqrt(2./5.);
-    for(l=2;l<lmax;l++){
+    for (l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*mu[index_mu]*dl - fac3[l]*dlm1;
@@ -1615,7 +1615,7 @@ int lensing_d31(
     d31[index_mu][2]=0;
     dl=sqrt(105./2.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
     d31[index_mu][3] = dl * sqrt(2./7.);
-    for(l=3;l<lmax;l++){
+    for (l=3;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
@@ -1673,7 +1673,7 @@ int lensing_d3m1(
     d3m1[index_mu][2]=0;
     dl=sqrt(105./2.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
     d3m1[index_mu][3] = dl * sqrt(2./7.);
-    for(l=3;l<lmax;l++){
+    for (l=3;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
@@ -1731,7 +1731,7 @@ int lensing_d3m3(
     d3m3[index_mu][2]=0;
     dl=sqrt(7./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
     d3m3[index_mu][3] = dl * sqrt(2./7.);
-    for(l=3;l<lmax;l++){
+    for (l=3;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
@@ -1788,7 +1788,7 @@ int lensing_d40(
     d40[index_mu][3]=0;
     dl=sqrt(315.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
     d40[index_mu][4] = dl * sqrt(2./9.);
-    for(l=4;l<lmax;l++){
+    for (l=4;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*mu[index_mu]*dl - fac3[l]*dlm1;
@@ -1847,7 +1847,7 @@ int lensing_d4m2(
     d4m2[index_mu][3]=0;
     dl=sqrt(126.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
     d4m2[index_mu][4] = dl * sqrt(2./9.);
-    for(l=4;l<lmax;l++){
+    for (l=4;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
@@ -1906,7 +1906,7 @@ int lensing_d4m4(
     d4m4[index_mu][3]=0;
     dl=sqrt(9./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
     d4m4[index_mu][4] = dl * sqrt(2./9.);
-    for(l=4;l<lmax;l++){
+    for (l=4;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
       dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
