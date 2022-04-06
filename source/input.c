@@ -4848,8 +4848,8 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
       /* Print the conversion method */
       if (input_verbose > 1) {
-        if ((ppt->has_tensors == _TRUE_) && (ppm->gwb_conversion_factor == 0.)) {
-          fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with (4 - n_t), calculated at k_gwb=%g 1/Mpc\n", ppm->k_gwb);
+        if (ppm->gwb_conversion_factor == 0.) {
+          fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with gwb_conversion_factor=(4 - n_t), calculated at k_gwb=%g 1/Mpc\n", ppm->k_gwb);
         }
         else {
           fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with gwb_conversion_factor=%g\n", ppm->gwb_conversion_factor);
