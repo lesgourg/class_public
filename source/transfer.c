@@ -2406,8 +2406,8 @@ int transfer_sources(
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
         /* source function for gwb SW and (V)EISW term */
         sources[0] = (ppt->switch_gwb_sw / (1. + 4./15. * pba->f_dec)
-                      + ppt->switch_gwb_veisw * ((2. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
-                                                -(2. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec))
+                      + ppt->switch_gwb_pisw * ((2. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
+                                               -(2. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec))
                       + ppt->switch_gwb_eisw * (2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
                      ) * 2./3.;
 
