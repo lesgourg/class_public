@@ -1623,7 +1623,7 @@ int input_read_parameters_general(struct file_content * pfc,
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl",
                                 "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD","GWCL"};
   char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
-  char * options_gwb_contributions[8] = {"tsw","eisw","lisw","ini","TSW","EISW","LISW","Ini"};
+  char * options_gwb_contributions[10] = {"tsw","rel","eisw","lisw","ini","TSW","Rel","EISW","LISW","Ini"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
   char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
@@ -1822,9 +1822,11 @@ int input_read_parameters_general(struct file_content * pfc,
       if ((strstr(string1,"tsw") != NULL) || (strstr(string1,"TSW") != NULL)){
         ppt->switch_gwb_sw = 1;
       }
+      if ((strstr(string1,"rel") != NULL) || (strstr(string1,"Rel") != NULL)){
+        ppt->switch_gwb_veisw = 1;
+      }
       if ((strstr(string1,"eisw") != NULL) || (strstr(string1,"EISW") != NULL)){
         ppt->switch_gwb_eisw = 1;
-        ppt->switch_gwb_veisw = 1;
       }
       if ((strstr(string1,"lisw") != NULL) || (strstr(string1,"LISW") != NULL)){
         ppt->switch_gwb_lisw = 1;
@@ -1837,10 +1839,10 @@ int input_read_parameters_general(struct file_content * pfc,
                  errmsg,
                  errmsg);
       class_test(flag1==_FALSE_,
-                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','eisw','lisw','ini'}, you entered '%s'",string1);
-      class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
+                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','rel','eisw','lisw','ini'}, you entered '%s'",string1);
+      class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_veisw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
                  errmsg,
-                 "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','eisw','lisw','ini'}.",string1);
+                 "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','rel','eisw','lisw','ini'}.",string1);
 
       /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
       /* Read */
