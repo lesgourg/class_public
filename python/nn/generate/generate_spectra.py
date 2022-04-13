@@ -4,6 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import h5py as h5
 import classy
+from scipy import interpolate
 
 def generate_spectral_data(workspace, varying_params, fixed_params, path, processes=None, fixed_nn_only=None, use_nn=False):
     """
@@ -40,12 +41,14 @@ def generate_spectral_data(workspace, varying_params, fixed_params, path, proces
     #    params.append(param)
     #    cl_lenses.append(cl_lens)
     #    cl_rawes.append(cl_raw)
-
-    with multiprocessing.Pool(processes) as pool:
-        for param,cl_lens, cl_raw in tqdm(pool.imap(generate_spectra_function, args), total=count):
-            params.append(param)
-            cl_lenses.append(cl_lens)
-            cl_rawes.append(cl_raw)
+    processes = 4
+    # with multiprocessing.Pool(processes) as pool:
+    #     for param,cl_lens, cl_raw in tqdm(pool.imap(generate_spectra_function, args), total=count):
+    for arg in args:
+        param,cl_lens, cl_raw = generate_spectra_function(arg)
+        params.append(param)
+        cl_lenses.append(cl_lens)
+        cl_rawes.append(cl_raw)
 
     def create_group(f, name, data):
         g = f.create_group(name=name)
@@ -75,7 +78,8 @@ def generate_spectra_function(args):
     params = params.copy()
     params.update(cosmo_params)
     if use_nn==1:
-        params.update({'use_nn':'True'})
+        params.update({'use_nn':'yes'})
+        #params.update({'nn_verbose':3})
         params.update(fixed_nn_only)
     cosmo.set(**params)
 
@@ -92,14 +96,26 @@ def generate_spectra_function(args):
     kk = np.concatenate(([k_min], k_net[(k_net>k_min)&(k_net<params["P_k_max_1/Mpc"])]))
     kk_save=np.zeros(k_net.shape, dtype=float)
     pk_save=np.zeros(k_net.shape, dtype=float)
+
+    pk_class, k_class = cosmo.pk_at_z(0.0)
+    
+    class_interpolation = interpolate.interp1d(np.log(k_class), np.log(pk_class), kind='linear',fill_value='extrapolate')
+
     for j in range(len(kk)):
+        # if we did not overwrite the k-array we need to interpolate the k array
         kk_save[j]=kk[j]
-        pk_save[j]=cosmo.pk(kk[j],0)
+        pk_save[j]=np.exp(class_interpolation(np.log(kk[j])))
+
     cl_lensed["pk"]=pk_save
     cl_lensed["kk"]=kk_save
 
     cosmo.struct_cleanup()
-
+    del cosmo
     return params,cl_lensed,cl_raw
 
+
+def interpolate_pk(k_net,k_class_array,pk_class_array):
+
+    pk_net = 0
+    return pk_net
 

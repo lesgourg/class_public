@@ -114,7 +114,7 @@ class CLASSAdapter:
         cosmo_params = cosmo.nn_cosmological_parameters() #3e-5 sec
         ###################################################################
         # 1) process thermodynamical + background quantities
-        ###################################################################   # Takes 0.011 sec
+        ###################################################################   
         thermos = cosmo.get_thermos_for_NN() #takes 5e-4
         container.tau_th = thermos["tau"]
 
@@ -148,9 +148,6 @@ class CLASSAdapter:
 
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
-        a = time.time()
-        bg = cosmo.get_background() #takes 0.0166 sec
-        print('get_background',time.time()-a)
 
         bg_nn = cosmo.get_backgrounds_for_NN() #takes 1e-4
 
@@ -166,23 +163,12 @@ class CLASSAdapter:
         container.background.rho_g = rho_g
         container.background.D = bg_nn["D"]
         container.background.H = bg_nn["H"]
-        #container.background.Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"] 
-        # TODO SG 
+        container.background.Omega_m = bg_nn["Omega_m"]
 
         container.background.raw_D = bg_nn["D"]
         container.background.raw_H = bg_nn["H"]
-        container.background.raw_Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"]
+        container.background.raw_Omega_m = bg_nn["Omega_m"]
         
-        # print(container.background.raw_Omega_m/bg_nn["Omega_m"])
-
-        # fig,ax = plt.subplots()
-        # ax.plot(container.tau_bg,container.background.raw_Omega_m/bg_nn["Omega_m"])
-        # ax.set_xlabel(r'\\tau')
-        # ax.set_ylabel(r'\\Omega_{m,calc}/\\Omega_{m,CLASS}')
-        # ax.grid(True)
-        # fig.savefig('omega_m.pdf')
-
-        # sys.exit()
         container.thermo.e_kappa = thermos["e_kappa"]
         container.thermo.r_d = thermos["r_d"]
 

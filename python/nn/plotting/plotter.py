@@ -1,7 +1,7 @@
-from classynet.source_function_plotter import SourceFunctionPlotter
-from classynet.triangle_error_plotter import TrianglePlotter
-from classynet.spectra_plotter import SpectraPlotter
-from classynet.history_plotter import HistoryPlotter
+from classynet.plotting.source_function_plotter import SourceFunctionPlotter
+from classynet.plotting.triangle_error_plotter import TrianglePlotter
+from classynet.plotting.spectra_plotter import SpectraPlotter
+from classynet.plotting.history_plotter import HistoryPlotter
 
 class Plotter:
 

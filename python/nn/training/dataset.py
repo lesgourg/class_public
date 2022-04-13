@@ -13,7 +13,7 @@ import random
 from classy import Class
 
 from classynet.data_providers import SourceFileDataProvider, CLASSDataProvider
-from classynet import current_transformer
+from classynet.data_providers import current_transformer
 
 DEBUG_LOADING = False
 

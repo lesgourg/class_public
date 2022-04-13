@@ -8,14 +8,14 @@ import numpy as np
 import h5py as h5
 
 from classynet import training
-from classynet import plotter
+from classynet.plotting import plotter
 from classynet.generate import generator
 from classynet.testing import tester
-from classynet.benchmark import BenchmarkRunner
-from classynet.benchmark_plotter import BenchmarkPlotter
+from classynet.testing.benchmark import BenchmarkRunner
+from classynet.plotting.benchmark_plotter import BenchmarkPlotter
 from classynet.models import ALL_NETWORK_STRINGS
 
-from classynet.parameter_sampling import EllipsoidDomain
+from classynet.tools.parameter_sampling import EllipsoidDomain
 
 def create_dir(func):
     @wraps(func)

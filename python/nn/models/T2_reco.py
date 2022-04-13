@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from classynet.models import common
 from classynet.models.model import Model
-from classynet import time_slicing
+from classynet.tools import time_slicing
 
 class Net_ST2_Reco(Model):
 
@@ -25,6 +25,7 @@ class Net_ST2_Reco(Model):
         n_inputs_tau = 1
         n_k = len(k)
 
+        self.k = k
         self.net_cosmo = nn.Linear(n_inputs_cosmo, 20)
         self.net_tau = nn.Linear(n_inputs_tau, 140)
         self.net_combined = nn.Sequential(
@@ -40,6 +41,8 @@ class Net_ST2_Reco(Model):
             hp = Net_ST2_Reco.HYPERPARAMETERS_DEFAULTS
 
         self.learning_rate = hp["learning_rate"]
+        
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
 
     def forward(self, x):
         self.k_min = x["k_min"][0]
@@ -107,9 +110,15 @@ class Net_ST2_Reco(Model):
             torch.cat((
                 self.net_cosmo(inputs_cosmo),
                 self.net_tau(inputs_tau)
-            ), dim=1))
+            ), dim=1)) 
+        y = y * self.output_normalization#torch.tensor([0.0018118434977621952])
 
-        return y[:,k_min_idx:]
+        #Do interpolation here 
+        k_th = 1e-3
+        i_k_th = np.argmin(np.abs(self.k - k_th))
+        y[:,:i_k_th] = torch.outer(y[:,i_k_th] , (self.k[:i_k_th] / k_th)**2)
+
+        return torch.flatten(y[:,k_min_idx:])
 
 
 
@@ -139,7 +148,7 @@ class Net_ST2_Reco(Model):
         return loss
 
     def required_inputs(self):
-        return set(common.INPUTS_COSMO + ["k_min", "k", "r_s", "k_d", "tau_relative_to_reco", "g_reco"])
+        return set(common.INPUTS_COSMO + ["k_min", "tau_relative_to_reco", "g_reco"])
 
     def tau_training(self):
         return None

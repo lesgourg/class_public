@@ -4,9 +4,19 @@ from contextlib import contextmanager
 import time
 import torch
 
+# some constants
+
+# speed of light
+C = 2997.92458
+
 def chunk(it, size):
     it = iter(it)
     return iter(lambda: tuple(islice(it, size)), ())
+
+class dotdict(dict):
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 @contextmanager
 def timing(message=None, fmt="{:.3f}"):

@@ -1,6 +1,6 @@
 import os
 
-from classynet import pipeline
+from classynet.data_providers import pipeline
 
 
 def get_input_transformer():

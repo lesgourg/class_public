@@ -9,8 +9,8 @@ import h5py as h5
 
 from classynet.models.model import Model
 from classynet.models import common
-from classynet import utils
-from classynet import time_slicing
+from classynet.tools import utils
+from classynet.tools import time_slicing
 
 class Net_ST0_Reio(Model):
 
@@ -30,6 +30,9 @@ class Net_ST0_Reio(Model):
             nn.PReLU(),
             nn.Linear(500, n_k)
         )
+
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
+
     def forward(self, x):
         self.k_min = x["k_min"][0]
 
@@ -67,7 +70,7 @@ class Net_ST0_Reio(Model):
                 self.lin_tau(inputs_tau)
             ), dim=1)
         )
-        return prediction[:,k_min_idx:]
+        return torch.flatten(prediction[:,k_min_idx:] * self.output_normalization ) #torch.tensor([0.0003080444019967275]))
 
 
     def epochs(self):

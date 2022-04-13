@@ -398,6 +398,7 @@ cdef extern from "class.h":
         int index_tau_min_nl
         double * k
         double * ln_tau
+        double * ln_k
         double * tau
         double ** ln_pk_l
         double ** ln_pk_nl
@@ -509,6 +510,16 @@ cdef extern from "class.h":
         void * pnl,
         int pk_output,
         double k,
+        double z,
+        int index_pk,
+        double * out_pk,
+        double * out_pk_ic)
+
+    int nonlinear_pk_at_z(
+        void * pba,
+        void * pnl,
+        int linear_or_logarithmic,
+        int pk_output,
         double z,
         int index_pk,
         double * out_pk,

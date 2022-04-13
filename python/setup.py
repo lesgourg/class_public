@@ -53,7 +53,7 @@ setup(
         "classynet.data_providers": os.path.join(classy_folder, "nn", "data_providers"),
         "classynet.testing": os.path.join(classy_folder, "nn", "testing"),
         "classynet.plotting": os.path.join(classy_folder, "nn", "plotting"),
-        "classynet.tests": os.path.join(classy_folder, "nn", "tests"),
+        "classynet.tools": os.path.join(classy_folder, "nn", "tools"),
     },
     packages=[
         "classynet",
@@ -63,7 +63,7 @@ setup(
         "classynet.data_providers",
         "classynet.testing",
         "classynet.plotting",
-        "classynet.tests",
+        "classynet.tools",
     ],
     ext_modules=[
         Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
@@ -73,8 +73,8 @@ setup(
                   extra_link_args=['-lgomp'],
                   cython_directives={'language_level': "3" if sys.version_info.major>=3 else "2"}
                   ),
-        Extension("classynet.lhs",
-                  [os.path.join(classy_folder, "nn", "lhs_python.cpp")],
+        Extension("classynet.tools.lhs",
+                  [os.path.join(classy_folder, "nn/tools/", "lhs_python.cpp")],
                   extra_compile_args=["-fopenmp"],
                   extra_link_args=["-fopenmp"],
                   include_dirs=[nm.get_include()],

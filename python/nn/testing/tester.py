@@ -13,7 +13,7 @@ from classy import Class
 
 from classynet.generate.generate_cosmological_parameters import sample_cosmological_parameters
 from classynet.plotting.plot_tester_cls import *
-import classynet.utils as utils
+import classynet.tools.utils as utils
 
 
 '''
@@ -89,6 +89,7 @@ class Tester:
 
         FULL_para_list_of_dirs = utils.transpose_dict_of_lists(FULL_para)
 
+        # obtain chisqares for the test dataset
         chisq_list = []
         for i,dir in enumerate(FULL_para_list_of_dirs):
             _, chisq = domain.contains(dir)
@@ -97,34 +98,54 @@ class Tester:
         chisq_list = np.array(chisq_list)
 
         # spectra which should be plotted
-        spectra = ['tt','ee','bb','te','tp','pp','pk']
+        #spectra = ['tt','ee','bb','te','tp','pp','pk']
+        spectra = ['pk']
+
+        # list of comological parameters which are to investigated
+        cosmo_parameters = domain.parameter_names()
+        #cosmo_parameters = ['Omega_k']
 
         # Start with line plots which show ClassNN and CLassFULL in 1 plot
         os.makedirs(self.workspace.plots / 'cl_tests' / 'line_plots', exist_ok=True)
         os.makedirs(self.workspace.plots / 'cl_tests' / 'variance_plots', exist_ok=True)
         os.makedirs(self.workspace.plots / 'cl_tests' / 'contain_plots', exist_ok=True)
+        os.makedirs(self.workspace.plots / 'cl_tests' / 'chisq', exist_ok=True)
+
+        for parameter in cosmo_parameters:
+            os.makedirs(self.workspace.plots / 'cl_tests' / 'parameter_plots' / parameter, exist_ok=True)
 
         my_plotter = CL_plotter()
         for spectrum in spectra:
             print('plotting {}'.format(spectrum))
+            # do lineplots
             save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '.pdf')
             my_plotter.line_plots(FULL_cls,NN_cls,spectrum,save_dir,N=N_lines)
             save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '_dif_abs.pdf')
             my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs",N=N_lines)
-            save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '_dif_abs_chi.pdf')
-            my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs",chisq = chisq_list,N=N_lines)
             save_dir = self.workspace.plots / 'cl_tests' / 'line_plots' / (spectrum + '_dif_rel.pdf')
             my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="rel",N=N_lines)
 
+            # do chisqrare plots
+            save_dir = self.workspace.plots / 'cl_tests' / 'chisq' / (spectrum + '_dif_abs_chi.pdf')
+            my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs",chisq = chisq_list,N=N_lines)
 
+            # do variance plots
             save_dir = self.workspace.plots / 'cl_tests' / 'variance_plots' / (spectrum + '_cosmic_variance.pdf')
             my_plotter.line_plots(FULL_cls,NN_cls,spectrum,save_dir,cosmic_variance=True,N=N_lines)
 
+            # do contain plots
             sigmas=[0.99,0.95,0.68]
             save_dir = self.workspace.plots / 'cl_tests' / 'contain_plots' / (spectrum + '_dif_cont_error.pdf')
             my_plotter.line_plots_contain(FULL_cls,NN_cls,spectrum,save_dir,noise=True,sigmas = sigmas, N=N_contain)
             save_dir = self.workspace.plots / 'cl_tests' / 'contain_plots' / (spectrum + '_dif_cont.pdf')
             my_plotter.line_plots_contain(FULL_cls,NN_cls,spectrum,save_dir,noise=False,sigmas = sigmas, N=N_contain)
+
+            # do comological parameter plots
+            for parameter in cosmo_parameters:
+                save_dir = self.workspace.plots / 'cl_tests' / 'parameter_plots' / parameter / (spectrum + '.pdf')
+                value_list = [ dic[parameter] for dic in FULL_para_list_of_dirs]
+                my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs" , N=N_lines, parameter = parameter ,para_list = value_list)
+
 
 
 

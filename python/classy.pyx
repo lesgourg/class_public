@@ -272,7 +272,6 @@ cdef class Class:
         if default: self.set_default()
 
     def __dealloc__(self):
-        print("__DEALLOC__")
         if self.allocated:
           self.struct_cleanup()
         self.empty()
@@ -449,6 +448,7 @@ cdef class Class:
             for indices in self.NN_source_index_list:
                 self.pt.sources[indices[0]][indices[1]] = <double *> malloc(sizeof(double))
             self.NN_source_index_list = []
+            print(self.NN_prediction) # this has to be placed here to ensure that it is not deallocated prior :0 there is a more beautiful solution
             self.using_NN = False
         if self.module_list.contains("distortions"):
             distortions_free(&self.sd)
@@ -819,17 +819,23 @@ cdef class Class:
                 timer.end("neural network initialization")  # 4e-5 sec
 
                 timer.start("allocate numpy array of predictions")
+                
                 #try cython array init
-                #self.NN_prediction = cvarray(shape=(len(source_names),tau_size*k_NN_size),itemsize=sizeof(double),format='d')
                 self.NN_prediction = cvarray(shape=(len(source_names),tau_size*k_NN_size),itemsize=sizeof(double),format='d')
                 timer.end("allocate numpy array of predictions") # 1e-4 sec. Is at the 0.2% of runtime. But most likeli some space for improment ...
 
+                # da is nen problem irgjendwoh
+                for i in range(len(source_names)):
+                    for j in range(tau_size*k_NN_size):
+                        self.NN_prediction[i][j] = 0.0
+
                 timer.start("get all sources")
-                timer.start("predictor.predict_many")
                 # NN prediction of the source functions. They are stored in the self.NN_prediction array.
                 k_NN = self.predictor.predict_many(source_names, np.asarray(tau_CLASS), self.NN_prediction)
-                timer.end("predictor.predict_many") #0.07 sec
-                timer.end("get all sources")
+                timer.end("get all sources") #0.07 sec
+
+                # print('np.array(self.NN_prediction[0])')
+                # print(np.array(self.NN_prediction[0]))
 
 
                 timer.start("overwrite k array")
@@ -838,7 +844,7 @@ cdef class Class:
                 self.pt.k[index_md] = <double*>malloc(k_NN_size * sizeof(double))
                 for i_k in range(k_NN_size):
                     self.pt.k[index_md][i_k] = k_NN[i_k]
-
+   
                 self.pt.k_min = k_NN[0]
                 self.pt.k_max = k_NN[-1]
                 self.pt.k_size[index_md] = k_NN_size
@@ -922,7 +928,6 @@ cdef class Class:
                 timer.end("neural network complete")
 
             timer.end("perturb")
-            print(timer.times)
 
             if post_perturb_callback:
                 post_perturb_callback(self)
@@ -1339,6 +1344,43 @@ cdef class Class:
                 raise CosmoSevereError(self.nl.error_message)
 
         return pk
+
+    # Gives the total matter pk for a given (k,z)
+    def pk_at_z(self,double z):
+        """
+        Gives the total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+
+        k = np.zeros(self.nl.k_size,'float64')
+        pk = np.zeros(self.nl.k_size,'float64')
+
+        pk_out = <double*> malloc(self.nl.k_size*sizeof(double))
+        ln_pk_ic = <double*> malloc(self.nl.ic_ic_size*self.nl.k_size*sizeof(double))
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        # logarithmic = 1
+        if (self.nl.method == nl_none):
+            if nonlinear_pk_at_z(&self.ba,&self.nl,linear,pk_linear,z,self.nl.index_pk_m,pk_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+        else:
+            if nonlinear_pk_at_z(&self.ba,&self.nl,linear,pk_nonlinear,z,self.nl.index_pk_m,pk_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        for i in range(self.nl.k_size):
+            pk[i] = pk_out[i]
+            k[i] = np.exp(self.nl.ln_k[i])
+
+        free(ln_pk_ic)
+        free(pk_out)
+
+        return pk, k
 
     # Gives the cdm+b pk for a given (k,z)
     def pk_cb(self,double k,double z):

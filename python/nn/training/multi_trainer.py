@@ -2,12 +2,13 @@ import os
 from collections import namedtuple, defaultdict
 import enum
 import textwrap
+import copy
 
 import numpy as np
 import torch
 from tabulate import tabulate
 
-from classynet.timer import Timer
+from classynet.tools.utils import Timer
 from classynet.training import training_dashboard
 
 class Phase(enum.Enum):
@@ -16,6 +17,16 @@ class Phase(enum.Enum):
     Test = 2
 
 TrainingInfo = namedtuple("TrainingInfo", ["net", "optimizer", "criterion", "lr_scheduler"])
+
+NET_NAME_DICT = {
+    'Net_phi_plus_psi': 'psi_plus_phi',
+    'Net_ST0_ISM': 't0_isw',
+    'Net_ST0_Reco': 't0_reco_no_isw',
+    'Net_ST0_Reio': 't0_reio_no_isw',
+    'Net_ST1': 't1',
+    'Net_ST2_Reco': 't2_reco',
+    'Net_ST2_Reio': 't2_reio',
+}
 
 def build_info(net):
     optimizer = net.optimizer()
@@ -145,14 +156,23 @@ class MultiTrainer:
         self.save_models()
 
     def save_models(self, checkpoint=None):
+        # here we store both the trained weights and an output normalization
+        normalization_file = self.workspace.normalization_file()
+        normalization = {key: np.max(abs(normalization_file['max'][key]),abs(normalization_file['min'][key])) for key in normalization_file['max'].keys()}
+
         for cont in self.nets:
             net = cont.net
             if checkpoint is None:
                 path = self.workspace.model_path(net.name())
             else:
                 path = self.workspace.model_path_checkpoint(net.name(), checkpoint)
+
+            # we need to add the normalization constant to the networks
+            my_state_dict = copy.deepcopy(net.state_dict())
+            trans_net_name = NET_NAME_DICT[net.name()]
+            my_state_dict['output_normalization'] = torch.tensor([normalization[trans_net_name]])
             print("Saving model {} to {}".format(net.name(), path))
-            torch.save(net.state_dict(), path)
+            torch.save(my_state_dict, path)
 
     def run_epoch(self, phase, loader, epoch, print_interval=100):
         timer = Timer()

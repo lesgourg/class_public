@@ -17,36 +17,18 @@ class BenchmarkPlotter:
             self.print_titles = False
         else:
             pass
-
+    
+    # plot all 4 performance benchmark plots
     def plot_all(self):
         # load data
         df_no_nn, df_nn = self._load_data()
 
-        self.plot_perturbation_module()
         self.plot_absolute_perturb_time(df_no_nn, df_nn)
         self.plot_perturb_fraction(df_no_nn, df_nn)
         self.plot_perturb_speedup(df_no_nn, df_nn)
 
         self.figsize = (11,8)
         self.plot_perturb_contributions(df_no_nn, df_nn)
-
-        # plotting completed
-
-
-
-
-    def plot_perturbation_module(self):
-        df_no_nn, df_nn = self._load_data()
-
-        plot_functions = [
-            self.plot_absolute_perturb_time,
-            self.plot_perturb_fraction,
-            self.plot_perturb_speedup,
-            self.plot_perturb_contributions,
-        ]
-
-        for pf in plot_functions:
-            pf(df_no_nn, df_nn)
 
     def plot_absolute_perturb_time(self, df_no_nn, df_nn):
         """
@@ -100,7 +82,7 @@ class BenchmarkPlotter:
         df_speedup = pd.DataFrame({
             "ClassNet": df_no_nn.perturb / df_nn.perturb - 1,
         })
-
+        print(df_speedup)
         df_speedup.plot.bar(rot=0)
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
@@ -115,77 +97,89 @@ class BenchmarkPlotter:
         def trim_name(name):
             return name[name.find(":")+3:-1]
 
+        # search all individual network contributions
         network_fields = [f for f in df_nn.columns if f.startswith("indiv. network:")]
 
-            # # - df_nn[network_fields].sum(axis=1) \
-        # df_nn["misc"] = df_nn["get all sources"] \
-            # - df_nn["build predictor"] \
-            # - df_nn["predictor.predict"] \
-            # - df_nn[["neural network input transformation",
-            #          "neural network output transformation"]].sum(axis=1)
-        # network_fields.append("misc")
-
-        print("df_nn.perturb:", df_nn.perturb)
-
+        # contributions with are displayed in the plot and thus are not required to be considered when calculate the overhead
         subtract_fields = network_fields + [
             "neural network input transformation",
             "neural network output transformation",
-            #"update predictor",
-            "translate into output",
+            "perturb_init"
         ]
         df_nn["predict overhead"] = df_nn["get all sources"] - df_nn[subtract_fields].sum(axis=1)
+        
+        # sum CLASSY overhead functions
+        classy_overhead = ["update predictor",
+        "allocate unused source functions",
+        "overwrite source functions",
+        "perturb_init",
+        "overwrite k array",
+        "allocate numpy array of predictions",
+            ]
+        df_nn["CLASSY overhead"] = df_nn[classy_overhead].sum(axis=1)
+
+        # functions which are connected to the output processing of the NN predictions
+        output_comp = ["neural network output transformation",
+        "float to double transformation",
+            ]
+        df_nn["output processing + copying"] = df_nn[output_comp].sum(axis=1)
 
         fields_start = [
-            "perturb_init",
             "neural network input transformation",
-            #"update predictor",
-            "predict overhead",
-            "translate into output",
         ]
-        fields_end = ["neural network output transformation", "overwrite source functions"]
-        fields = fields_start + network_fields + fields_end
-
+        fields = fields_start + network_fields + ['CLASSY overhead'] + ["output processing + copying"] + ["predict overhead"]
         df_comp = df_nn[fields]
+
         # sort columns in ascending order of time taken
         sort_key = max(df_comp.index)
         df_comp = df_comp.sort_values(by=sort_key, axis=1, ascending=False)
 
+        # calculate mismatch of summed components to the total computation time due to functions calls or other unconsidered contributions. It is in fact in the magnitude of ~2%
         mismatch = (df_comp.sum(axis=1) - df_nn.perturb) / df_nn.perturb
-        print("relative MISMATCH:")
-        print(mismatch)
 
+        # seeked ordering of the contribtions
+        my_order = [
+        "output processing + copying",  "predict overhead","neural network input transformation", "CLASSY overhead", 
+        "indiv. network: 't0_reco_no_isw'",
+        "indiv. network: '('phi_plus_psi', 'delta_m', 'delta_cb')'",
+        "indiv. network: 't0_isw'",
+        "indiv. network: 't1'",
+        "indiv. network: 't2_reco'",
+        "indiv. network: 't0_reio_no_isw'", "indiv. network: 't2_reio'"]
+
+        df_comp=df_comp.reindex(columns=my_order)
         labels = []
+
         import re
         pat = re.compile(r"indiv. network: '(.*)'")
         replacements = {
-            "neural network output transformation": "output processing",
             "neural network input transformation": "input processing",
-            "t0_reco_no_isw": r"$S_{T_0,\mathrm{reco}}$",
-            "t0_reio_no_isw": r"$S_{T_0,\mathrm{reio}}$",
-            "t0_isw": r"$S_{T_0,\mathrm{ISW}}$",
-            "t1": r"$S_{T_1}$",
-            "t2_reco": r"$S_{T_2,\mathrm{reco}}$",
-            "t2_reio": r"$S_{T_2,\mathrm{reio}}$",
-            "('phi_plus_psi', 'delta_m', 'delta_cb')": r"$S_{\phi+\psi},S_{\delta_m},S_{\delta_{cb}}$",
-            "translate into output": "reshape/concatenate output",
-            "predict overhead": "module overhead"
+            "indiv. network: 't0_reco_no_isw'": r"$S_{T_0,\mathrm{reco}}$",
+            "indiv. network: 't0_reio_no_isw'": r"$S_{T_0,\mathrm{reio}}$",
+            "indiv. network: 't0_isw'": r"$S_{T_0,\mathrm{ISW}}$",
+            "indiv. network: 't1'": r"$S_{T_1}$",
+            "indiv. network: 't2_reco'": r"$S_{T_2,\mathrm{reco}}$",
+            "indiv. network: 't2_reio'": r"$S_{T_2,\mathrm{reio}}$",
+            "indiv. network: '('phi_plus_psi', 'delta_m', 'delta_cb')'": r"$S_{\phi+\psi},S_{\delta_m},S_{\delta_{cb}}$",
+            "predict overhead": "NN overhead"
         }
         for name in df_comp.columns:
-            match = pat.match(name)
-            if match:
-                sub = match.group(1)
-                labels.append(replacements.get(sub, sub))
-            elif name in replacements:
+            if name in replacements:
                 labels.append(replacements[name])
             else:
                 labels.append(name)
-
+        
+        # define required colormaps
+        cm1 = plt.get_cmap('Reds')
+        cm2 = plt.get_cmap('viridis')
+        my_colors = [cm1(i) for i in [0.8,0.6,0.4,0.2]] + [cm2(i) for i in [0.2,0.35,0.5,0.65,0.8,0.9,1.0]]
 
         # create enough unique colors
-        df_comp.plot.bar(stacked=True, rot=0, colormap='tab20')
+        df_comp.plot.bar(stacked=True, rot=0, color=my_colors)
         min_key = min(df_comp.index)
+
         # make some room for legend at top
-        plt.gca().set_ylim(0, 2.22 * df_comp.sum(axis=1).loc[min_key])
+        plt.gca().set_ylim(0, 2.00 * df_comp.sum(axis=1).loc[min_key])
         plt.gca().legend(labels, ncol=2, mode="expand")
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
@@ -207,11 +201,8 @@ class BenchmarkPlotter:
             fig.savefig(
                 path,
                 bbox_inches="tight",
-                # TODO increase for final
                 dpi=100
             )
-
-        save("png")
         save("pdf")
 
     def _load_data(self):

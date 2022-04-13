@@ -36,7 +36,6 @@ class InputPostProcessor:
         result = self.process_default(container, k, tau)
 
         add_approximations(result, k, tau, selection=selection)
-
         return result
 
     def add_relative_times(self, container, tau, result):

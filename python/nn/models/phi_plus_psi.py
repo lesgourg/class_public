@@ -10,9 +10,9 @@ import torch.nn.functional as F
 
 from classynet.models.model import Model
 from classynet.models import common
-from classynet import utils
+from classynet.tools import utils
 
-import classynet.constants as const_nn
+from classynet.tools.utils import C
 
 THESIS_MODE = False
 
@@ -89,7 +89,7 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
     p_c = 0.25*(5.0-torch.sqrt(1+24.0*f_cdm))
     p_cb = 0.25*(5.0-torch.sqrt(1+24.0*f_cb))
 
-    omega_denom = H*const_nn.C/hubble
+    omega_denom = H*C/hubble
     growth_k0 = z_equality/D
     D0 = 1.0
     growth_to_z0 = z_equality/D0
@@ -125,7 +125,6 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
     tf_cb = tf_master*growth_cb/growth_k0;
     tf_cbnu = tf_master*growth_cbnu/growth_k0;
     return tf_cb, tf_cbnu
-    #return tf_cbnu
 
 
 class Timer:
@@ -234,6 +233,8 @@ class Net_phi_plus_psi(Model):
         # contains values for current batch, set in `forward` and used for loss
         self.current = {}
 
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
+
     def forward(self, x):
         timer = Timer()
         timer.start("forward")
@@ -309,7 +310,7 @@ class Net_phi_plus_psi(Model):
         #normalization = 144534.5036053507
         timer.start("approx_delta_m")
         approx_delta_m = -alpha.item() * approx * \
-                (self.k2 + 3.*Omega_k*(h/const_nn.C)**2)#/normalization
+                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
         timer.stop("approx_delta_m")
 
         timer.start("copy delta_m")
@@ -317,7 +318,7 @@ class Net_phi_plus_psi(Model):
         timer.stop("copy delta_m")
 
         approx_delta_cb = -alpha.item() * approx_cb * \
-                (self.k2 + 3.*Omega_k*(h/const_nn.C)**2)#/normalization
+                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
         approx_stack[:, :, 2] = approx_delta_cb
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
@@ -372,6 +373,7 @@ class Net_phi_plus_psi(Model):
         D_md = x["D"][index_MD]
         alpha = tau_md**2 / 7.8 / D_md
 
+
         N_ur = x["raw_cosmos/N_ur"][0]
         # perform correction for N_ur != 0
         F = (1 + 0.2271 * (3.046 + N_ur)) / (1 + 0.2271 * 3.046)
@@ -396,14 +398,6 @@ class Net_phi_plus_psi(Model):
 
         approx_cb, approx = TFacc(self.k, z_d, Omega_m, Omega_b, Omega_ncdm, Omega_Lambda, D, H, h, rs_drag, k_eq, a_eq, z)
 
-        # if True:
-        #     import matplotlib
-        #     matplotlib.use("qt5agg")
-        #     import matplotlib.pyplot as plt
-        #     plt.loglog(x["raw_tau"].cpu().detach().numpy(), approx[:, 100].cpu().detach().numpy())
-        #     plt.grid()
-        #     plt.show()
-
         timer.stop("tfacc")
         timer.start("approx normalize")
         approx /= approx[:, [0]]
@@ -417,7 +411,7 @@ class Net_phi_plus_psi(Model):
         # for some reason this isn't working properly yet
         # approx_phi_plus_psi = approx * 3 * (H_tau**2 * Omega_m_tau * D_tau)[:, None]
         timer.start("copy phi+psi")
-        approx_stack[:, :, 0] = approx_phi_plus_psi = approx
+        approx_stack[:, :, 0] = approx * self.output_normalization #torch.tensor([1.2576383769339496]) 
         timer.stop("copy phi+psi")
 
         # divide approximation by the SAME normalization constant as delta_m
@@ -426,16 +420,17 @@ class Net_phi_plus_psi(Model):
         #normalization = 144534.5036053507
         timer.start("approx_delta_m")
         approx_delta_m = -alpha.item() * approx * \
-                (self.k2 + 3.*Omega_k*(h/const_nn.C)**2)#/normalization
+                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
         timer.stop("approx_delta_m")
 
         timer.start("copy delta_m")
-        approx_stack[:, :, 1] = approx_delta_m
+        approx_stack[:, :, 1] = approx_delta_m * D[:,None] #moved from untransform
         timer.stop("copy delta_m")
 
         approx_delta_cb = -alpha.item() * approx_cb * \
-                (self.k2 + 3.*Omega_k*(h/const_nn.C)**2)#/normalization
-        approx_stack[:, :, 2] = approx_delta_cb
+                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
+        
+        approx_stack[:, :, 2] = approx_delta_cb * D[:,None] #moved from untransform
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
         tau = x["tau"]
@@ -466,7 +461,8 @@ class Net_phi_plus_psi(Model):
 
         timer.stop("forward")
 
-        return result[:,k_min_idx:,:]
+        output = torch.flatten(result[:,k_min_idx:,:], start_dim=0,end_dim=1)
+        return output
 
 
 

@@ -1,5 +1,5 @@
 import collections
-from .utils import dotdict
+from classynet.tools.utils import dotdict
 
 class InputContainer:
     def __init__(self):

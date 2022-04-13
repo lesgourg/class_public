@@ -36,6 +36,8 @@ class Net_ST1(Model):
 
         self.learning_rate = 1e-3
 
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
+
 
     def forward(self, x):
         self.k_min = x["k_min"][0]
@@ -63,7 +65,7 @@ class Net_ST1(Model):
             ), dim=1)
         )
 
-        return prediction[:,k_min_idx:]
+        return torch.flatten(prediction[:,k_min_idx:] * self.output_normalization ) #torch.tensor([0.00020377613060535774]))
 
 
 

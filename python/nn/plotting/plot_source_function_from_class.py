@@ -10,9 +10,9 @@ def plot_source_function_from_CLASS(cosmo):
     print(sources.keys())
 
     fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(12, 12))
-    plot_source_function(ax[0, 0], k, tau, sources["t0"], tau_rec=tau_rec, title="$S_{T_0}$")
-    plot_source_function(ax[0, 1], k, tau, sources["t0_sw"], tau_rec=tau_rec, title="$S_{T_0}^{SW}$")
-    plot_source_function(ax[0, 2], k, tau, sources["t0_isw"], tau_rec=tau_rec, title="$S_{T_0}^{ISW}$")
+    plot_source_function(ax[0, 0], k, tau, sources["t0_isw"], tau_rec=tau_rec, title="$S_{T_0}$")
+    plot_source_function(ax[0, 1], k, tau, sources["t0_reco_no_isw"], tau_rec=tau_rec, title="$S_{T_0}^{SW}$")
+    plot_source_function(ax[0, 2], k, tau, sources["t0_reio_no_isw"], tau_rec=tau_rec, title="$S_{T_0}^{ISW}$")
     plot_source_function(ax[1, 0], k, tau, sources["t1"], tau_rec=tau_rec, title="$S_{T_1}$")
     ax[1, 1].remove()
     ax[1, 2].remove()
@@ -84,9 +84,9 @@ if __name__ == "__main__":
     # fig.savefig("plots/split_source_function.pdf", bbox_inches="tight")
     fig.savefig("plots/split_source_function.png", dpi=250, bbox_inches="tight")
 
-    fig, _ = plot_source_functions_vs_analytic_approx(cosmo)
-    # fig.tight_layout()
-    # fig.savefig("plots/analytic_approx.pdf", bbox_inches="tight")
-    fig.savefig("plots/analytic_approx.png", dpi=250, bbox_inches="tight")
+    # fig, _ = plot_source_functions_vs_analytic_approx(cosmo)
+    # # fig.tight_layout()
+    # # fig.savefig("plots/analytic_approx.pdf", bbox_inches="tight")
+    # fig.savefig("plots/analytic_approx.png", dpi=250, bbox_inches="tight")
 
     plt.show()

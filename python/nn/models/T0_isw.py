@@ -47,6 +47,8 @@ class Net_ST0_ISW(Model):
         weight = weight / weight.sum() * n_k
         self.loss_weight = nn.Parameter(torch.from_numpy(weight).float(), requires_grad=False)
 
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
+
         # loss_weight = torch.ones_like(k)
         # loss_weight[k < 5e-3] *= 100
         # loss_weight = loss_weight / loss_weight.sum() * len(k)
@@ -99,7 +101,7 @@ class Net_ST0_ISW(Model):
                 self.lin_tau(inputs_tau)
             ), dim=1)
         )
-        return prediction[:,k_min_idx:]
+        return torch.flatten(prediction[:,k_min_idx:] * self.output_normalization)#torch.tensor([0.0011569450645745045]))
 
 
 

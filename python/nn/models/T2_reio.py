@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from classynet.models.model import Model
 from classynet.models import common
-from classynet import time_slicing
+from classynet.tools import time_slicing
 
 class Net_ST2_Reio(Model):
 
@@ -39,6 +39,8 @@ class Net_ST2_Reio(Model):
 
         self.learning_rate = hp["learning_rate"]
 
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
+
     def forward(self, x):
         self.k_min = x["k_min"][0]
         y = self.net_merge(torch.cat((
@@ -62,7 +64,7 @@ class Net_ST2_Reio(Model):
         # correction = self.net_correction(x)
         # add = linear_combination + correction
 
-        return (x["g_reio"][:, None] * y)[:,k_min_idx:]
+        return torch.flatten((x["g_reio"][:, None] * y)[:,k_min_idx:] * self.output_normalization ) #torch.tensor([1.6214133778756243e-06]))
 
 
     def epochs(self):

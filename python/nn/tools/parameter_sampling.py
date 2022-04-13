@@ -3,12 +3,10 @@ import os
 import time
 import numpy as np
 import scipy.stats as ss
-from classynet.lhs import lhs, lhs_float
+from classynet.tools.lhs import lhs, lhs_float
 from tabulate import tabulate
 import json
 import h5py as h5
-
-import classynet.constants as const_nn
 
 class ParamDomain:
     def sample(self, count):

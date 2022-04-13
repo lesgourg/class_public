@@ -5,12 +5,14 @@ from matplotlib import rc
 import matplotlib as mpl
 import pkg_resources
 
+import scipy as sc
+
 # Settings for different spectra
 REQUIERES_ELL_FACTOR = ['tt','bb','ee','te','tp']
 SKIP_REL_DIF = ['te','tp']
 LOG_AXIS = ['pk','pp','tp']
-LOG_XAXIS = ['ee','te','pk']
-HAS_COSMIC_VARIANCE = ['tt','pp','ee']
+LOG_XAXIS = ['ee','te','pk','tt']
+HAS_COSMIC_VARIANCE = ['tt','pp','ee','te']
 HAS_NOISE = ['pp','tt','ee','te']
 LOG_YLIMITS= {'tt':1e-13,'pp':1e-18,'ee':1e-16}
 
@@ -24,6 +26,26 @@ LATEX_DICT = {
     'pk':r'P_k',
     'tp':r'\mathrm{T} \phi'
 }
+
+# latex dict parameters
+LATEX_DICT_PARAMETER = {
+    'omega_b':r'\Omega_b h^2',
+    'omega_cdm':r'\Omega_c h^2',
+    'h':r'h',
+    'tau_reio':r'\tau_\mathrm{reio}',
+    'w0_fld':r'w_0',
+    'wa_fld':r'w_a',
+    'N_ur':r'\triangle N_\mathrm{eff}',
+    'omega_ncdm':r'\Omega_\mathrm{ncdm} h^2',
+    'Omega_k':r'\\\Omega_k',
+}
+
+
+
+#
+# The following class is a collection of different routines.
+# It will be called numerous times in the tester class.
+#
 class CL_plotter:
 
     def __init__(self,
@@ -72,6 +94,9 @@ class CL_plotter:
             cv = np.sqrt(2/(2*ell+1))
             return cv
 
+    def calculate_cosmic_variance_te(self, ell, te, tt, ee):
+        return()
+
     def load_planck_noise(self,FULL_cls):
         resource_path = '/'.join(('plotting', 'approx_planck_noise.dat'))
         noise_path = pkg_resources.resource_stream('classynet', resource_path)
@@ -103,10 +128,9 @@ class CL_plotter:
         }
         return(noise_dict)
 
-
     def line_plots(self,FULL_cls,NN_cls,spectrum,save_path, N=100,cosmic_variance=False):
         """
-        This plot function is used to plot spectra using both CLs from ClassFULL and CLassNET.    
+        This plot function is used to plot spectra using both CLs from ClassFULL and CLassNET.   
         """
 
         if N>len(FULL_cls['kk']):
@@ -121,10 +145,21 @@ class CL_plotter:
         fig,ax = plt.subplots(figsize=self.figsize)
 
         if cosmic_variance:
-            ax.set_yscale('log')
-            cv = self.calculate_cosmic_variance(x[0],spectrum)
-            ax.fill_between(x[0],LOG_YLIMITS[spectrum],y_factor*cv*y_FULL[0],color="C0", label="Cosmic Variance",alpha=0.3)
-            ax.set_ylim((LOG_YLIMITS[spectrum],np.max(y_FULL[0]*y_factor)*10))
+            if spectrum == 'te':
+                # get tt and ee spectra for cosmic variance te calculation
+                _,y_FULL_tt,y_NN_tt,y_factor_tt = self.cut_datasets(FULL_cls,NN_cls,'tt',1)
+                _,y_FULL_ee,y_NN_ee,y_factor_ee = self.cut_datasets(FULL_cls,NN_cls,'ee',1)
+
+                # calc cosmic variance
+                cosmic_var_te = np.sqrt(1/(2*x[0]+1)) * np.sqrt( y_FULL[0]**2 + y_FULL_tt[0] * y_FULL_ee[0] ) 
+                ax.fill_between(x[0],-y_factor*cosmic_var_te,y_factor*cosmic_var_te,color="C0", label="Cosmic Variance",alpha=0.3)
+            else:
+                ax.set_yscale('log')
+                cv = self.calculate_cosmic_variance(x[0],spectrum)
+                ax.fill_between(x[0],LOG_YLIMITS[spectrum],y_factor*cv*y_FULL[0],color="C0", label="Cosmic Variance",alpha=0.3)
+                ax.set_ylim((LOG_YLIMITS[spectrum],np.max(y_FULL[0]*y_factor)*10))
+
+
 
         if spectrum=='pk':
             for i in range(N):
@@ -169,15 +204,16 @@ class CL_plotter:
 
 
         ax.grid(True)
-        ax.legend()
+        if cosmic_variance:
+            ax.legend(loc='upper left')
+        else:
+            ax.legend()
+
 
         fig.savefig(save_path, bbox_inches='tight')
-        del fig
+        plt.close()
 
-
-
-
-    def line_plots_difference(self,FULL_cls,NN_cls,spectrum,save_path, N=100, measure='abs', noise=False, chisq = None):
+    def line_plots_difference(self,FULL_cls,NN_cls,spectrum,save_path, N=100, measure='abs', noise=False, chisq = None, parameter = None, para_list= None):
         """
         This plot function is used to plot the difference using both CLs from ClassFULL and CLassNET.    
         """
@@ -193,11 +229,13 @@ class CL_plotter:
         if N>len(FULL_cls['kk']):
             print("More samples selected than caluclated. Reduce the number of plotted samples to {}".format(len(FULL_cls['kk'])))
             N = len(FULL_cls['kk'])
-        
+
         #cut data
         x,y_FULL,y_NN,y_factor = self.cut_datasets(FULL_cls,NN_cls,spectrum,N)
+
         fig,ax = plt.subplots(figsize=self.figsize)
         for i in range(N):
+            # first: calcuate difference
             if noise==True:
                 if spectrum=='pp':
                     x=x[:,:1998] #Cut down to 1998 datapoints
@@ -226,23 +264,38 @@ class CL_plotter:
                 else:
                     if measure == 'abs':
                         dif = (y_FULL[i]-y_NN[i])*y_factor
-                        if spectrum=='tt':
-                            if dif[100]>0.1e-10:
-                                print(i)
                     elif measure == 'rel':
                         dif = np.nan_to_num((y_FULL[i]-y_NN[i])/y_FULL[i])
                     else:
                         raise ValueError('measure either abs or rel')
             
+            # second: plot 
             if chisq is None:
-                if spectrum=='pk':
-                    ax.plot(x_instance,dif,c='red',linewidth = self.linewidth)
+                if parameter is not None:
+                    # cut parameter list if necessary
+                    para_list_cut = para_list[:max(N,len(para_list))]
+
+                    # normalize parameter values
+                    max_val = np.max(para_list_cut)
+                    min_val = np.min(para_list_cut)
+
+                    norm_val = (para_list_cut[i] - min_val) / (max_val - min_val)
+
+                    color = plt.cm.plasma(norm_val)
+                    if spectrum=='pk':
+                        ax.plot(x_instance,dif,c=color,linewidth = self.linewidth)
+                    else:
+                        ax.plot(x[i],dif,c=color,linewidth = self.linewidth)
+
                 else:
-                    ax.plot(x[i],dif,c='red',linewidth = self.linewidth)
+                    if spectrum=='pk':
+                        ax.plot(x_instance,dif,c='red',linewidth = self.linewidth)
+                    else:
+                        ax.plot(x[i],dif,c='red',linewidth = self.linewidth)
             else:
                 max_chi = np.max(chisq)
                 norm_chisq = chisq[i] / max_chi
-                color = plt.cm.jet(norm_chisq)
+                color = plt.cm.gist_rainbow(norm_chisq)
                 if spectrum=='pk':
                     ax.plot(x_instance,dif,c=color,linewidth = self.linewidth)
                 else:
@@ -253,11 +306,22 @@ class CL_plotter:
         ax.set_xlim([np.min(x[x!=0]),np.max(x)])
 
         if chisq is not None:
-            cmap = mpl.cm.jet
+            cmap = mpl.cm.gist_rainbow
             norm = mpl.colors.Normalize(vmin=0,vmax=max_chi)
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array([])
-            plt.colorbar(sm,boundaries=np.arange(-0.05,2.1,.1), label='chisq', ticks=4*np.arange(int(max_chi/4)+1))         
+            plt.colorbar(sm,boundaries=np.arange(-0.05,2.1,.1), label=r'$\triangle \chi^2$', ticks=4*np.arange(int(max_chi/4)+1))         
+
+        if parameter is not None:
+            cmap = mpl.cm.plasma
+            norm = mpl.colors.Normalize(vmin=min_val,vmax=max_val)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            import matplotlib.ticker as ticker
+            cb = plt.colorbar(sm,boundaries=np.arange(-0.05,2.1,.1), label=r"$%(x)s$"%{"x":LATEX_DICT_PARAMETER[parameter]})   
+            cb.locator = ticker.MaxNLocator(10)
+            cb.update_ticks()
+
 
         if measure == 'abs':
             if spectrum=='pk':
@@ -266,6 +330,8 @@ class CL_plotter:
             else:
                 ax.set_xlabel(r'$\ell$')
                 ax.set_ylabel(r"$\ell(\ell + 1)(C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s})$"%{"x":LATEX_DICT[spectrum]})
+            if spectrum in ['pp','tp']:
+                plt.yscale('symlog', linthresh=1e-17)
         elif measure == 'rel':
             if spectrum=='pk':
                 ax.set_xlabel(r'$k$')
@@ -280,6 +346,7 @@ class CL_plotter:
         ax.grid(True)
 
         fig.savefig(save_path, bbox_inches='tight')
+        plt.close()
 
     def line_plots_contain(self,FULL_cls,NN_cls,spectrum,save_path, N=1000, sigmas=[0.68,0.95,0.99], noise = False):
         """
@@ -295,15 +362,15 @@ class CL_plotter:
         elif (spectrum in HAS_NOISE) and (noise==True):
             noise_dict = self.load_planck_noise(FULL_cls)
 
-        # Containment plots for pk is difficult due to different coverage of k values and will be skipped here. Maybe something for somewhen else
-        if spectrum=='pk':
-            return
-
         #cut data
         x,y_FULL,y_NN,y_factor = self.cut_datasets(FULL_cls,NN_cls,spectrum,N)
         
         #define difference
-        y_difference = np.zeros((N,len(x[0])))
+        if spectrum == "pk":
+            y_difference = np.zeros((N,700))
+        else:
+            y_difference = np.zeros((N,len(x[0])))
+
         if noise:
             if spectrum not in HAS_NOISE:
                 return 
@@ -325,6 +392,19 @@ class CL_plotter:
             if spectrum in SKIP_REL_DIF:
                 for i in range(N):
                     y_difference[i] = abs(y_FULL[i]-y_NN[i])*y_factor
+            elif spectrum == 'pk':
+                k_min = x[:,0]
+                x_new = np.repeat([np.logspace(-4,1,num=700)],2,axis=0)
+
+                for i in range(N):
+                    # for pk we need to interpolate the values to get the same k bins
+                    full = sc.interpolate.interp1d(x[i], y_FULL[i])
+                    y_FULL_interpolate = full(x_new[0])
+                    net = sc.interpolate.interp1d(x[i], y_NN[i])
+                    y_NN_interpolate = net(x_new[0])
+                    y_difference[i] = np.nan_to_num(abs(y_FULL_interpolate-y_NN_interpolate)/y_FULL_interpolate)
+                x = x_new
+
             else:
                 for i in range(N):
                     y_difference[i] = np.nan_to_num(abs(y_FULL[i]-y_NN[i])/y_FULL[i])
@@ -334,16 +414,21 @@ class CL_plotter:
         # calculate sigma curves here
         sigma_curves = np.zeros((len(x[0]),len(sigmas)))
 
-        for i in range(len(x[0])):
-            for j,sigma in enumerate(sigmas):
-                sigma_curves[i,j] = np.sort(y_difference[:,i])[int(N*sigma)-1]
+        for i,val in enumerate(x[0]):
+            if spectrum == 'pk':
+                for j,sigma in enumerate(sigmas):
+                    mask = (k_min<val)
+                    sigma_curves[i,j] = np.sort(y_difference[mask,i])[int(sum(mask)*sigma)-1]
+            else:
+                for j,sigma in enumerate(sigmas):
+                    sigma_curves[i,j] = np.sort(y_difference[:,i])[int(N*sigma)-1]
 
         for j,sigma in enumerate(sigmas):
             ax.fill_between(x[0],sigma_curves[:,j],color='red', label = str(int(sigma*100)) + ' %', alpha=0.2+0.2*j)
         
-        if spectrum in LOG_AXIS:
+        if (spectrum in LOG_AXIS) and (spectrum not in ['pk','pp']):
             ax.set_yscale('log')
-            ax.set_ylim([np.min(sigma_curves),np.max(sigma_curves)*1.2])
+            ax.set_ylim([np.min(sigma_curves)*0.5,np.max(sigma_curves)*1.2])
         else:
             ax.set_ylim([0,np.max(sigma_curves)*1.2])
 
@@ -358,20 +443,21 @@ class CL_plotter:
             ax.set_ylabel(r"$|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|/\sigma_{\ell}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]})
         else:
             if spectrum in SKIP_REL_DIF:
+                ax.set_xlabel(r'$\ell$')
+                ax.set_ylabel(r"$\ell(\ell + 1)|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]})
+            else:
                 if spectrum=='pk':
                     ax.set_xlabel(r'$k$')
-                    ax.set_ylabel(r'$|P_{k,\mathrm{Full}}-P_{k,\mathrm{Net}}|$')
+                    ax.set_ylabel(r'$|P_{k,\mathrm{Full}}-P_{k,\mathrm{Net}}|/P_{k,\mathrm{Full}}$')
                 else:
                     ax.set_xlabel(r'$\ell$')
-                    ax.set_ylabel(r"$\ell(\ell + 1)|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]})
-            else:
-                ax.set_xlabel(r'$\ell$')
-                ax.set_ylabel(r"$|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|/|C_{\ell,\mathrm{Full}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]})
+                    ax.set_ylabel(r"$|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|/|C_{\ell,\mathrm{Full}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]})
 
 
         ax.legend()
         ax.grid(True)
 
         fig.savefig(save_path, bbox_inches='tight')
+        plt.close()
 
 

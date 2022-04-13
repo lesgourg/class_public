@@ -8,15 +8,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import pandas as pd
-
-from classynet import pytorch_spline
+from classynet.tools import pytorch_spline
 
 from classynet.models.model import Model
 # import classynet.models.common as common
 from classynet.models import common
-from classynet import utils
-from classynet import time_slicing
+from classynet.tools import utils
+from classynet.tools import time_slicing
 
 PLOT_MODE = False
 
@@ -158,65 +156,6 @@ class BasisDecompositionNet(nn.Module):
             B[None, :, :],
             ), dim=0)
 
-        if THESIS_MODE:
-            thesis_write("k", self.k.detach().cpu().numpy())
-            thesis_write("tau_rel", 10**x["tau_relative_to_reco"].detach().cpu().numpy())
-            thesis_write("spline", B)
-            thesis_write("trig", coefficients.T[..., None] * basis)
-            thesis_write("damping", damping)
-            thesis_write("trig + damping", coefficients.T[..., None] * basis * damping)
-            thesis_write("basis", result.sum(axis=0))
-
-        if PLOT_MODE:
-            contributions = coefficients.T[..., None] * basis * damping
-            import matplotlib
-            matplotlib.use("agg")
-            import matplotlib.pyplot as plt
-
-            i_tau = 170 + 15
-            print("@ tau/tau_rec ~", 10**(x["tau"][i_tau] - x["tau"][170]))
-
-            # plt.figure()
-            # plt.suptitle("damping")
-            # plt.semilogx(k_standard.K_STANDARD, torch.exp(-(k[i_tau]/k_d[i_tau])**2), label="CLASS")
-            # plt.semilogx(k_standard.K_STANDARD, damping[i_tau], label="NN")
-            # plt.semilogx(k_standard.K_STANDARD, step[i_tau], label="step function")
-            # plt.legend()
-            # plt.grid()
-            # plt.savefig(PLOT_DIR + "damping.png", dpi=200)
-            # low = step * linear_combination_low
-            # high = envelope * linear_combination_high
-
-            plt.figure(figsize=(12, 8))
-            plt.xlabel("$k [Mpc^{-1}]$")
-            plt.title("$\\tau = {:.3f} \\tau_{{rec}}$".format(10**x["tau_relative_to_reco"][i_tau]))
-            k = self.k
-            plt.semilogx(k, result[0, i_tau], label=r"$\cos(\varphi_0^{cos} + k r_s (1 + \delta r_s^{cos}) + \varphi_2^{cos} k^2)$")
-            plt.semilogx(k, result[1, i_tau], label=r"$\sin(\varphi_0^{sin} + k r_s (1 + \delta r_s^{sin}) + \varphi_2^{sin} k^2)/(k r_s)$")
-            ln, = plt.semilogx(k, B[i_tau], label="spline")
-            plt.scatter(self.k_spline, spline_values[i_tau], color=ln.get_color())
-
-
-            plt.semilogx(k, result.sum(dim=0)[i_tau], ls="-.", color="r", label="Basis Network prediction")
-            plt.semilogx(RESULT_K, RESULT[i_tau] / 0.08479736355112114, color="b", ls="-.", label="CLASS solution")
-
-            plt.legend(loc="lower right")
-            plt.grid()
-            plt.savefig(PLOT_DIR + "basis.png", dpi=200)
-            plt.xscale("linear")
-            plt.savefig(PLOT_DIR + "basis_linear.png", dpi=200)
-
-            plt.figure()
-            from plotting.plot_source_function import plot_source_function
-            plot_source_function(
-                plt.gca(),
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                B.T.cpu().numpy(),
-                levels=50
-            )
-            plt.savefig(PLOT_DIR + "offset_spline.png", dpi=200)
-
         return result
 
     def norm_sin(self, n):
@@ -347,6 +286,8 @@ class Net_ST0_Reco(Model):
         # rescale so that total weight is the same
         self.loss_weight = nn.Parameter(weight / weight.sum() * len(k), requires_grad=False)
 
+        self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
+
     def forward(self, x):
         self.k_min = x["k_min"][0]
 
@@ -437,7 +378,7 @@ class Net_ST0_Reco(Model):
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
 
-        return result[:,k_min_idx:]
+        return torch.flatten(result[:,k_min_idx:] * self.output_normalization )#torch.tensor([0.0860232589171328]))
 
 
     def epochs(self):

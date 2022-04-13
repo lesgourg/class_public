@@ -4,7 +4,7 @@ import os
 import sys
 import classy
 
-import classynet.utils as utils
+import classynet.tools.utils as utils
 
 class BenchmarkRunner:
 
@@ -57,10 +57,10 @@ class BenchmarkRunner:
         def run(use_nn, cosmo, list_of_settings):
             if use_nn:
                 print("USING NEURAL NETWORKS!")
-                cosmo.set({"use_nn": 'True'})
+                cosmo.set({"use_nn": 'yes'})
                 cosmo.set({"neural network path": self.workspace})
             else:
-                cosmo.set({"use_nn": 'False'})
+                cosmo.set({"use_nn": 'no'})
 
             return [self.run_class(cosmo,settings, use_nn=use_nn) for settings in list_of_settings]
 
@@ -77,7 +77,6 @@ class BenchmarkRunner:
         cosmo.set(params)
         timings = {}
         cosmo.compute(level=["perturb"],performance_report=timings) #         cosmo.compute(level=["perturb"], performance_report=timings)
-
         cosmo.struct_cleanup()
         return timings
 

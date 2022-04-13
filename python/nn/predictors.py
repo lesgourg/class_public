@@ -1,7 +1,6 @@
 import multiprocessing
 import functools
 import time
-from .predictor_cache import PredictorCache
 
 from .data_providers import CLASSDataProvider
 # from plotting.plot_source_function import plot_source_function
@@ -11,11 +10,11 @@ import h5py as h5
 import os
 from time import perf_counter
 import scipy.interpolate
-
+import math
 import torch
-
+import matplotlib.pyplot as plt
 from .models import ALL_NETWORK_CLASSES
-from . import current_transformer
+from .data_providers import current_transformer
 
 def lowest_k_index(k, k_min):
     idx = np.searchsorted(k, k_min)
@@ -24,10 +23,10 @@ def lowest_k_index(k, k_min):
 class BasePredictor:
     def __init__(self, cosmo, input_transformer, target_transformer, k):
         self.cosmo = cosmo
-
         self.k = k
 
         self.tau_size = 0
+        self.k_size = 0
 
         self.input_transformer = input_transformer
         self.target_transformer = target_transformer
@@ -57,10 +56,13 @@ class BasePredictor:
             "neural network input transformation":  0.0,
             "neural network output transformation": 0.0,
             "save source function in cache": 0.0,
-
-            "translate into output": 0.0,
+            "interpolate k_min": 0.0,
             "build DataProvider": 0.0,
             "single predictions complete":0.0,
+            "model load": 0.0,
+            "cache load": 0.0,
+            "rule application": 0.0,
+            "float to double transformation": 0.0,
         }
         self.time_prediction_per_network = {}
 
@@ -159,11 +161,8 @@ class BasePredictor:
 
         # load tau size
         self.tau_size = len(tau)
-        print("self.tau_size {}".format(self.tau_size))
-        print("k size", len(self.get_k()))
 
         # update min k from class
-
         return_sources = False
 
         if sources_array is None:
@@ -172,17 +171,19 @@ class BasePredictor:
             return_sources = True
         
         # TODO use self.provider?
-        start = perf_counter()
+        start_data_provider = perf_counter()
         provider = CLASSDataProvider(self.cosmo)
-        self.times["build DataProvider"] += perf_counter() - start #1e-5 sec
+        self.times["build DataProvider"] += perf_counter() - start_data_provider #1e-5 sec
         # Get ALL inputs (since we want to be doing this only _once_)
 
-        raw_inputs = provider.get_inputs(k=self.k, tau=tau, input_selection=self._all_network_input_names()) # 0.012 sec
+        start_get_inputs = perf_counter()
+        raw_inputs = provider.get_inputs(k=self.k, tau=tau, input_selection=self._all_network_input_names()) # 0.002 sec
         transformed_inputs = self.input_transformer.transform_inputs(raw_inputs) # 3e-4 sec
 
         # Construct a cache object simplifying the access
-        cache = PredictorCache(raw_inputs, transformed_inputs) # 3e-6 sec
-        self.times["neural network input transformation"] += perf_counter() - start # 0.014 sec
+        cache = PredictorCache(raw_inputs, transformed_inputs) # 3e-6 sec # actually using this cache takes quite a lot of time. Maybe we will find some workaround there ...
+
+        self.times["neural network input transformation"] += perf_counter() - start_get_inputs # 0.014 sec
 
         start_predict = perf_counter()
         for i in range(len(quantities)):
@@ -191,6 +192,9 @@ class BasePredictor:
 
         k = self.get_k()
         k_len = len(k)
+        # print(type(k))
+        # print(self.cosmo.k_min())
+        k=1.000001*k
 
         if return_sources:
             return k, sources_array
@@ -244,8 +248,10 @@ class TorchModel(ModelWrapper):
         with torch.no_grad():
             converted_inputs = self._convert_inputs(inputs)
             S_t = self.model.forward_reduced_mode(converted_inputs, k_min_idx)
-
-        return S_t.cpu().numpy()
+        start_trafo = time.time()
+        out = S_t.type(torch.DoubleTensor).cpu().numpy()
+        trafo_time = time.time()-start_trafo
+        return out, trafo_time
 
     def _convert_inputs(self, inputs):
         # ret = {k: v if v.ndim == 0 else torch.from_numpy(v).float().to(self.device) for k, v in inputs.items() if not isinstance(v, tuple)}
@@ -263,12 +269,13 @@ class TreePredictor(BasePredictor):
         self.funcs = funcs if funcs is not None else {}
         self.cache = {}
         self.verbose = False
+        self.k_size = len(self.get_k())
 
     def log(self, *args, **kwargs):
         if self.verbose:
             print(*args, **kwargs)
 
-    def update_predictor(self, cosmo):
+    def update_predictor(self, cosmo, device_name="cpu"):
         """
         If we reuse the predictor instance we need to reload the classy.Class instance to get the updated values.
         """
@@ -280,7 +287,28 @@ class TreePredictor(BasePredictor):
         self.reset_times()
 
         # If the workspace or evaluation models did change we need to reload k-array, transformation and models!
-        # [SG]: TODO
+        workspace = cosmo.nn_workspace()
+
+        device = torch.device(device_name)
+
+        k  = workspace.loader().k()
+
+        kt = torch.from_numpy(k).float().to(device)
+
+        models, rules = load_models(workspace, ALL_NETWORK_CLASSES, kt, device)
+
+        self.models = models
+        self.rules = rules
+
+        input_transformer, target_transformer = current_transformer.get_pair(workspace.normalization_file, k)
+            
+        self.input_transformer = input_transformer
+        self.target_transformer = target_transformer
+
+        self.k = k
+
+        self.k_size = len(self.get_k())
+
 
     def _all_network_input_names(self):
         from itertools import chain
@@ -317,18 +345,22 @@ class TreePredictor(BasePredictor):
         # TODO SG what is done here?
         #if quantity in self.funcs:
         #    self.funcs[quantity](S, raw_inputs)
-
         return source_array
 
     def _predict_from_model(self, quantity, cosmo, tau, provider, cache, source_array, rule = None):
         assert quantity not in self.rules
-
         if quantity in self.cache:
-            S = self.cache[quantity]
+            start_load_cache = perf_counter()
+            S_t, mask_bounds = self.cache[quantity]
+            elapsed = perf_counter() - start_load_cache
+            self.times["cache load"] += elapsed
         else:
-            model = self.models[quantity]
+            start_model_load = perf_counter()
 
+            model = self.models[quantity]
             in_select = model.required_inputs()
+            elapsed = perf_counter() - start_model_load
+            self.times["model load"] += elapsed
 
             self.log("Evaluating model for", quantity)
 
@@ -336,114 +368,110 @@ class TreePredictor(BasePredictor):
             slicing = model.slicing
             if slicing is not None:
                 mask = slicing.which(cosmo, tau)
-                tau_eval = tau[mask]
+                mask_indices = np.where(mask==True)
+                mask_bounds = (mask_indices[0][0] * self.k_size,(mask_indices[0][-1] + 1) * self.k_size)
             else:
-                tau_eval = tau
                 mask = None
+                mask_bounds = (0,self.tau_size*self.k_size)
 
             start_input_retrieval = perf_counter()
-            start = time.time()
-            raw_inputs = cache.get_raw_inputs(in_select, tau_mask=mask)
-            #print('raw input',time.time()-start)
-            start = time.time()
             inputs = cache.get_transformed_inputs(in_select, tau_mask=mask)
-            #print('get_transformed_inputs',time.time()-start)
+
             elapsed = perf_counter() - start_input_retrieval
             self.times["neural network input transformation"] += elapsed
 
             start_predict = perf_counter()
 
             #Find lowest index of the NN k-array which is yet to be used. It is until where the input array is to be filled up with
-            S_t = model.forward_reduced_mode(inputs, self.k_min_idx)
+            S_t, trafo_time = model.forward_reduced_mode(inputs, self.k_min_idx) #float type
             elapsed = perf_counter() - start_predict
-            self.time_prediction_per_network[quantity] = elapsed
+            self.time_prediction_per_network[quantity] = elapsed - trafo_time
+            self.times["float to double transformation"] += trafo_time
             self.times["neural network evaluation"] += elapsed
 
-            result_shape = list(S_t.shape)
 
-            result_shape[0] = tau.size
-
-            #copy here the network prediction to final source array address
-            result = np.zeros(result_shape)
-
-            if slicing is not None:
-                result[mask] = S_t
-                self.log("Slicing output for quantity", quantity)
-            else:
-                result[:, :] = S_t
-
-            S_t = result
-
+            #S_t = np.array(S_t,dtype=np.double)
             start_output = perf_counter()
-            # Swap k and tau axis
 
-
-
-
-
-
-            S_t = np.swapaxes(S_t, 0, 1)
-
-            if isinstance(quantity, tuple) or isinstance(quantity, list):
-                # If quantity is a 'container' for multiple quantities (e.g. phi+psi and delta_m),
-                # transform the components individually
-                #print('tuple qunat',quantity)
-                S = np.stack([self.untransform(q, S_t[..., i], raw_inputs) for i, q in enumerate(quantity)], axis=2)
-            else:
-                #print('else quant',quantity)
-                S = self.untransform(quantity, S_t, raw_inputs)
             self.times["neural network output transformation"] += perf_counter() - start_output
 
-
-            # TODO SG: put this somewhere else. Some historic artifact ...
-            if quantity == "t2_reco":
-                start = time.time()
-                k_th = 1e-3
-                i_k_th = np.argmin(np.abs(self.k - k_th))
-                S_th = S[i_k_th]
-                k = self.get_k()
-                k_mask = k < k_th
-                S[k_mask] = S_th * (k[k_mask] / k_th)[:, None]**2
-                #print('T2 RECO EXTRAPOLATION TOOK ',time.time()-start)
-
-
-
             save_cache = perf_counter()
-            self.cache[quantity] = S
+            self.cache[quantity] = (S_t, mask_bounds)
             self.times["save source function in cache"] += perf_counter() - save_cache
 
-        # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
-        # Therefore, the arrays with low k have to be replaced with a polyfit
-        #polyfit_k_min = perf_counter()
-        #z = np.polyfit(self.k[k_min_idx:k_min_idx+3], S[0:3], deg=2)
-        #S[0,:] = z[2] + z[1] * self.k_min_class + z[0] * self.k_min_class**2
-        #self.times["save source function in cache"] += perf_counter() - polyfit_k_min
-
-
+        start_output = perf_counter()
         if rule == sum:
-            S = self._interpolate_k_min(S)
-            source_array += S.T.flatten()
+            S_t = self._interpolate_k_min(S_t,quantity)
+            source_array[mask_bounds[0]:mask_bounds[1]] += np.copy(S_t, order='C')
         elif rule is None:
-            S = self._interpolate_k_min(S)
-            source_array = S.T.flatten()
+            S_t = self._interpolate_k_min(S_t,quantity)
+            source_array[mask_bounds[0]:mask_bounds[1]] = np.copy(S_t, order='C')
         elif type(rule) == Channel:
-            S = rule(S)
-            S = self._interpolate_k_min(S)
-            source_array = S.T.flatten()
+            S_t = rule(S_t)
+            S_t = self._interpolate_k_min(S_t,quantity)
+            source_array[mask_bounds[0]:mask_bounds[1]] = np.copy(S_t, order='C')
         elif rule == 't2_p':
-            S = self._interpolate_k_min(S)
-            source_array += S.T.flatten()*np.sqrt(6)
+            S_t = self._interpolate_k_min(S_t,quantity)
+            source_array[mask_bounds[0]:mask_bounds[1]] += np.copy(S_t*np.sqrt(6), order='C')
         else:
             print("NO RULE FOUND: RIBBIT!")
-
-
+        self.times["rule application"] += perf_counter() - start_output
+        self.times["neural network output transformation"] += perf_counter() - start_output
+        
         return source_array
 
-    def _interpolate_k_min(self,S):
+    def _interpolate_k_min(self,S,quantity):
         polyfit_k_min = perf_counter()
-        z = np.polyfit(self.k[self.k_min_idx:self.k_min_idx+3], S[0:3], deg=2)
-        S[0,:] = z[2] + z[1] * self.k_min_class + z[0] * self.k_min_class**2
-        self.times["save source function in cache"] += perf_counter() - polyfit_k_min
+        # z = np.polyfit(self.k[self.k_min_idx:self.k_min_idx+3], S[0:3], deg=2)
+        # S[0,:] = z[2] + z[1] * self.k_min_class + z[0] * self.k_min_class**2
+
+        # Do log extrapolation here
+        # if quantity == ('phi_plus_psi', 'delta_m', 'delta_cb'):
+        #     if S[0]<0: #only delta m delta cb is to be interpolated log
+        #         m = ( np.log10(-S[2::self.k_size]) - np.log10(-S[1::self.k_size])) / ( np.log10(self.k[self.k_min_idx+2]) - np.log10(self.k[self.k_min_idx+1]) )
+        #         S[0::self.k_size] = -10**( np.log10(-S[1::self.k_size]) + m * ( np.log10(self.k_min_class) - np.log10(self.k[self.k_min_idx]) ) )
+        #     else:
+        #         S[0::self.k_size] = S[1::self.k_size] + (S[2::self.k_size]-S[1::self.k_size])/(self.k[self.k_min_idx+2]-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx])
+        # else:
+        #     S[0::self.k_size] = S[1::self.k_size] + (S[2::self.k_size]-S[1::self.k_size])/(self.k[self.k_min_idx+2]-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx])
+        
+        #Do log interpolation here
+        # if quantity == ('phi_plus_psi', 'delta_m', 'delta_cb'):
+
+        #     agg = S[:15]
+        #     ks = self.k[self.k_min_idx:self.k_min_idx+15]
+        #     print(agg)
+        #     print(ks)
+        #     fig,ax = plt.subplots()
+        #     ax.plot(ks,agg)
+        #     ax.set_xscale('log')
+        #     #ax.set_yscale('log')
+        #     fig.savefig('erg.png')
+        #     sys.exit()
+
+        #     if S[0]<0: #only delta m delta cb is to be interpolated log
+        #         m = ( np.log10(-S[1::self.k_size]) - np.log10(-S[0::self.k_size])) / ( np.log10(self.k[self.k_min_idx+2]) - np.log10(self.k[self.k_min_idx]) )
+        #         S[0::self.k_size] = -10**( np.log10(-S[0::self.k_size]) + m * ( np.log10(self.k_min_class) - np.log10(self.k[self.k_min_idx]) ) )
+        #     else:
+        #         S[0::self.k_size] = S[0::self.k_size] + (S[1::self.k_size]-S[0::self.k_size])/(self.k[self.k_min_idx+1]-self.k[self.k_min_idx+0]) * (self.k_min_class-self.k[self.k_min_idx])
+        #     print(S[0::self.k_size])
+        #     print(S[1::self.k_size])
+        #     print(S[2::self.k_size])
+            
+
+        
+        
+        # else:
+        #     S[0::self.k_size] = S[0::self.k_size] + (S[1::self.k_size]-S[0::self.k_size])/(self.k[self.k_min_idx+1]-self.k[self.k_min_idx+0]) * (self.k_min_class-self.k[self.k_min_idx])
+
+        # Do quandratic lengrende interpolation
+        k1 = (self.k_min_class-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx] - self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx] - self.k[self.k_min_idx+2])
+        k2 = (self.k_min_class-self.k[self.k_min_idx]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx])
+        k3 = (self.k_min_class-self.k[self.k_min_idx]) * (self.k_min_class-self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx+1])
+        S[0::self.k_size] = S[0::self.k_size]*k1 + S[1::self.k_size]*k2 + S[2::self.k_size]*k3
+
+
+        self.times["interpolate k_min"] += perf_counter() - polyfit_k_min
         return S
 
 
@@ -533,6 +561,8 @@ def load_models(workspace, classes, k, device):
     times["model ctors"] += perf_counter() - start_models
     for model in models:
         start = perf_counter()
+        print("workspace.model_path(model.name())")
+        print(workspace.model_path(model.name()))
         state_dict = torch.load(workspace.model_path(model.name()), map_location=device)
         times["torch.load"] += perf_counter() - start
 
@@ -595,3 +625,26 @@ class Channel:
 
     def __call__(self, items):
         return items[..., self.n]
+
+
+
+class PredictorCache:
+    def __init__(self, raw_inputs, transformed_inputs):
+        self.raw_inputs = raw_inputs
+        self.transformed_inputs = transformed_inputs
+
+    def get_raw_inputs(self, names, tau_mask=None):
+        return self._get_inputs(self.raw_inputs, names, tau_mask=tau_mask)
+
+    def get_transformed_inputs(self, names, tau_mask=None):
+        return self._get_inputs(self.transformed_inputs, names, tau_mask=tau_mask)
+
+    def _get_inputs(self, source, names, tau_mask=None):
+        # TODO names
+        def cut(arr):
+            if tau_mask is None:
+                return arr
+            else:
+                return arr[tau_mask, ...]
+
+        return {k: cut(source[k]) for k in names}

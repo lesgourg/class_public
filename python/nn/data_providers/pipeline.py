@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import sys
-
+import time
 def compose(*transformers):
     are_input_transformers = all(isinstance(t, InputTransformer) for t in transformers)
     are_target_transformers = all(isinstance(t, TargetTransformer) for t in transformers)
@@ -11,6 +11,7 @@ def compose(*transformers):
     if are_input_transformers:
         return CompositeInputTransformer(transformers)
     else:
+        # this is actually called here
         return CompositeTargetTransformer(transformers)
 
 
@@ -115,8 +116,14 @@ class CompositeTargetTransformer(TargetTransformer):
         return targets
 
     def untransform_targets(self, targets, *args, **kwargs):
+        #print(targets)
         for transformer in reversed(self.transformers):
+            a = time.time()
+            #print(transformer)
             targets = transformer.untransform_targets(targets, *args, **kwargs)
+            #print(time.time()-a)
+            #print(targets)
+        #sys.exit()
         return targets
 
 
@@ -143,6 +150,7 @@ class CanonicalTargetTransformer(TargetTransformer):
         if inputs is not None:
             self.inputs = inputs
         # TODO SG: put this into the networks
+        #print('target',targets)
         if "delta_m" in targets:
             delta_m = targets["delta_m"]
             targets["delta_m"] = self._untransform_delta_m(delta_m)
@@ -184,7 +192,7 @@ class CanonicalTargetTransformer(TargetTransformer):
     def _untransform_delta_m(self, value):
         k = self.k
         D = self.inputs["D"]
-        return value * D[None, :]
+        return value #* D[None, :]
 
         k_eq = self._get_k_eq()
         k_th = self._get_k_th(k_eq)
@@ -381,4 +389,6 @@ class AbsMaxNormalizer(Normalizer, TargetTransformer):
 
         else:
             # TODO SG: put this into the network. It just takes to much time
+            print('self.abs_maxima[key]')
+            print(self.abs_maxima[key])
             return value * self.abs_maxima[key]

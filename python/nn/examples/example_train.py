@@ -7,7 +7,6 @@ This example script outlines how to generate training data, carry out the proces
 import os
 import sys
 from classynet.workspace import Workspace, GenerationalWorkspace
-from classynet.parameter_sampling import EllipsoidDomain
 
 import classy
 import numpy as np
