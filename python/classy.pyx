@@ -448,7 +448,6 @@ cdef class Class:
             for indices in self.NN_source_index_list:
                 self.pt.sources[indices[0]][indices[1]] = <double *> malloc(sizeof(double))
             self.NN_source_index_list = []
-            print(self.NN_prediction) # this has to be placed here to ensure that it is not deallocated prior :0 there is a more beautiful solution
             self.using_NN = False
         if self.module_list.contains("distortions"):
             distortions_free(&self.sd)
@@ -824,7 +823,7 @@ cdef class Class:
                 self.NN_prediction = cvarray(shape=(len(source_names),tau_size*k_NN_size),itemsize=sizeof(double),format='d')
                 timer.end("allocate numpy array of predictions") # 1e-4 sec. Is at the 0.2% of runtime. But most likeli some space for improment ...
 
-                # da is nen problem irgjendwoh
+                # da is nen problem irgjendwoh. I have to init them as 0, otherwise something goes wrong somewhere
                 for i in range(len(source_names)):
                     for j in range(tau_size*k_NN_size):
                         self.NN_prediction[i][j] = 0.0
@@ -922,7 +921,7 @@ cdef class Class:
                             index_md, index_ic,
                             index_tp_x,
                             k_NN_size, tau_size, 
-                            self.NN_prediction[i, :] #                            NN_prediction_numpy[i, :]
+                            self.NN_prediction[i, :]
                             )
                 timer.end("overwrite source functions") # this takes 3e-6 sec
                 timer.end("neural network complete")

@@ -30,7 +30,7 @@ params = {
     "Omega_k": -9.656155e-05,
     #"neural network path": os.path.expanduser("~/path/to/workspace"),
     "neural network path": os.path.expanduser("../../../CLASSnet_Workspace"),
-    "use_nn": "true"
+    "use_nn": "yes"
 }
 
 # merge both FIXED and adapted parameters
