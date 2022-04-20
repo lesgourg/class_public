@@ -3,11 +3,16 @@ from itertools import islice
 from contextlib import contextmanager
 import time
 import torch
+import contextlib
+
 
 # some constants
 
 # speed of light
 C = 2997.92458
+
+# theta of CMB
+THETA_CMB = 2.7255/2.7
 
 def chunk(it, size):
     it = iter(it)
@@ -174,8 +179,8 @@ class Timer:
         self._times = {}
 
     def start(self, name):
-        if name in self._start:
-            print("WARNING: Overwriting measurement {}".format(name))
+        # if name in self._start:
+        #     print("WARNING: Overwriting measurement {}".format(name))
         self._start[name] = time.perf_counter()
 
     def end(self, name):
@@ -183,10 +188,16 @@ class Timer:
             raise ValueError(
                "Measurement '{}' has not started; cannot end!".format(name)
                )
-        if name in self._end:
-            print("WARNING: Overwriting measurement {}".format(name))
+        # if name in self._end:
+        #     print("WARNING: Overwriting measurement {}".format(name))
         self._end[name] = time.perf_counter()
         self._times[name] = self._end[name] - self._start[name]
+
+    @contextlib.contextmanager
+    def __call__(self, name):
+        self.start(name)
+        yield
+        self.end(name)
 
     @property
     def times(self):

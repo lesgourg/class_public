@@ -6,7 +6,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 import os
 import h5py as h5
-
+import sys
 from tqdm import tqdm
 import classy
 from classy import Class
@@ -14,7 +14,8 @@ from classy import Class
 from classynet.generate.generate_cosmological_parameters import sample_cosmological_parameters
 from classynet.plotting.plot_tester_cls import *
 import classynet.tools.utils as utils
-
+import matplotlib.pyplot as plt
+from classynet.plotting.plot_source_function import plot_source_function_difference,plot_source_function
 
 '''
 The Tester class allows to obtain and plot all kinds of data and information from the ClassNet
@@ -28,8 +29,6 @@ class Tester:
         self.fixed = manifest["fixed"]
 
         self.WDIR = workspace.path
-
-
     
     def create_cls(self,pnames,N=1000):
         """
@@ -145,6 +144,99 @@ class Tester:
                 save_dir = self.workspace.plots / 'cl_tests' / 'parameter_plots' / parameter / (spectrum + '.pdf')
                 value_list = [ dic[parameter] for dic in FULL_para_list_of_dirs]
                 my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs" , N=N_lines, parameter = parameter ,para_list = value_list)
+
+    #
+    # This function takes a dict of CLASS parameters and returns the source functions
+    # If no parameters are provided, the center of the domain is taken
+    def get_source_functions(self, params = None, use_nn=True):
+
+        # get fixed CLASS parameters and cosmological parameter
+        manifest = self.workspace.loader().manifest()
+
+        if params is None:
+            domain = self.workspace.loader().domain_descriptor()
+
+            pnames = domain.pnames
+            best_fit = domain.best_fit
+
+            params = {name:value for name, value in zip(pnames, best_fit)}
+
+        params.update(manifest['fixed'])
+
+        if use_nn:
+            params.update({ 'use_nn': 'yes',
+                            'neural network path':os.path.expanduser(self.workspace.path),
+                            'nn_debug': True})
+        else:
+            params.update({'use_nn': 'no'})
+
+        cosmo = classy.Class()
+        cosmo.set(params)
+
+        cosmo.compute()
+        sources, k, tau = cosmo.get_sources()
+        cosmo.struct_cleanup()
+        print(sources.keys())
+        print(sources['t2_reco'])
+        
+        #sys.exit()
+        return sources, k, tau
+
+
+    #
+    # Plot all source functions
+    def plot_source_functions(self, source_functions, use_nn=True):
+        # create dir
+        os.makedirs(self.workspace.plots / 'source_functions' , exist_ok=True)
+
+        # load source functions
+        sources, k, tau = self.get_source_functions(use_nn=use_nn)
+
+        # plot source functions
+        ncol = np.min([3,len(source_functions)])
+        nrow = int((len(source_functions)-1)/3.0) + 1
+        fig, axes = plt.subplots(nrow,ncol,figsize=(14,44*(nrow/12)))
+        for i in range(len(source_functions)):
+            row = int(i/3.0)
+            col = i%3
+
+            if nrow>1:
+                ax = axes[row,col]
+            else:
+                ax = axes[col]
+
+            plot_source_function(ax, sources[source_functions[i]], k, tau, S_name = source_functions[i],use_nn = use_nn)
+
+        plt.tight_layout()
+
+        if use_nn:
+            fig.savefig(self.workspace.plots / 'source_functions' / 'sources_nn.pdf')
+        else:
+            fig.savefig(self.workspace.plots / 'source_functions' / 'sources_no_nn.pdf')
+
+    #
+    # Plot all source functions
+    def plot_source_functions_difference(self, source_functions):
+        # create dir
+        os.makedirs(self.workspace.plots / 'source_functions' , exist_ok=True)
+
+        sources_NN, k_NN, tau_NN = self.get_source_functions(use_nn=True)
+        sources_FULL, k_FULL, tau_FULL = self.get_source_functions(use_nn=False)
+
+        fig, axes = plt.subplots(len(source_functions),3,figsize=(14,44*(len(source_functions)/12)))
+        for i in range(len(source_functions)):
+            if len(source_functions)>1:
+                axs = axes[i,:]
+            else:
+                axs = axes[:]
+
+            plot_source_function_difference(axs, source_functions[i],
+                sources_NN[source_functions[i]], k_NN, tau_NN,
+                sources_FULL[source_functions[i]], k_FULL, tau_FULL)
+
+        plt.tight_layout()
+
+        fig.savefig(self.workspace.plots / 'source_functions' / 'sources_differences.pdf')
 
 
 

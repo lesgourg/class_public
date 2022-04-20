@@ -143,7 +143,7 @@ class Workspace:
     @property
     @create_dir
     def history(self):
-        return self.path / "history"
+        return self.path / "training_history"
 
     def history_for(self, name):
         return self.history / f"{name}.csv"

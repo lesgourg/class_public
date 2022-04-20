@@ -42,11 +42,10 @@ parser.add_argument('-p',
     help="Path to the covmat and bestfit file. These files should de denoted with {}.covmat and {}.bestfit. If no path is provided the data folder in the workspace directory is used.", 
     default=None, 
     type=str)
-parser.add_argument('-N',
+parser.add_argument('-n',
     help="List of networks to be retrained. Select from ['Net_ST0_Reco','Net_ST0_Reio','Net_ST0_ISW','Net_ST1','Net_ST2_Reco','Net_ST2_Reio','Net_phi_plus_psi']. Per default all networks are retrained.", 
-    default='all', 
-    nargs='?',
-    type=str)
+    action='append', 
+    nargs='+')
 parser.add_argument('-g', 
     help="Provides a generation nametag. The nametag is expected to an interger. ",
     default=None,
@@ -95,10 +94,11 @@ WORKSPACE_DIR = os.path.expanduser(args.w)
 
 # Select a list of networks withgeneration name tag
 full_network_list = ['Net_ST0_Reco','Net_ST0_Reio','Net_ST0_ISW','Net_ST1','Net_ST2_Reco','Net_ST2_Reio','Net_phi_plus_psi']
-my_network_list = args.N
-if 'all' in my_network_list:
+
+if args.n is None:
     my_network_list = full_network_list
 else:
+    my_network_list = args.n[0]
     for network in my_network_list:
         if network not in full_network_list:
             raise ValueError(network + " not known. Type -h for help.")
@@ -182,3 +182,6 @@ if 3 in steps:
     
     # train all selected networks
     workspace.trainer().train_models(network_list, 8)
+
+    # plot training progress
+    workspace.plotter().plot_training_histories()

@@ -48,9 +48,6 @@ class Net_ST2_Reio(Model):
             self.net_tau(x["tau_relative_to_reio"][:, None]),
         ), axis=1))
 
-        # linear_combination = self.net_basis(x)
-        # correction = self.net_correction(x)
-        # add = linear_combination + correction
         return x["g_reio"][:, None] * y
 
     def forward_reduced_mode(self, x, k_min_idx):
@@ -59,10 +56,6 @@ class Net_ST2_Reio(Model):
             self.net_cosmo(common.get_inputs_cosmo(x)),
             self.net_tau(x["tau_relative_to_reio"][:, None]),
         ), axis=1))
-
-        # linear_combination = self.net_basis(x)
-        # correction = self.net_correction(x)
-        # add = linear_combination + correction
 
         return torch.flatten((x["g_reio"][:, None] * y)[:,k_min_idx:] * self.output_normalization ) #torch.tensor([1.6214133778756243e-06]))
 

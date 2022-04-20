@@ -9,7 +9,10 @@ import torch
 from tabulate import tabulate
 
 from classynet.tools.utils import Timer
+from classynet.tools import utils as ut
 from classynet.training import training_dashboard
+
+import json
 
 class Phase(enum.Enum):
     Training = 0
@@ -19,8 +22,8 @@ class Phase(enum.Enum):
 TrainingInfo = namedtuple("TrainingInfo", ["net", "optimizer", "criterion", "lr_scheduler"])
 
 NET_NAME_DICT = {
-    'Net_phi_plus_psi': 'psi_plus_phi',
-    'Net_ST0_ISM': 't0_isw',
+    'Net_phi_plus_psi': 'phi_plus_psi',
+    'Net_ST0_ISW': 't0_isw',
     'Net_ST0_Reco': 't0_reco_no_isw',
     'Net_ST0_Reio': 't0_reio_no_isw',
     'Net_ST1': 't1',
@@ -142,7 +145,6 @@ class MultiTrainer:
 
                     # Save the updated history to file indicated by the
                     # current workspace
-                    print(val_loss_col,test_loss_col)
                     row = np.array([epoch, np.mean(loss_col), np.mean(val_loss_col), np.mean(test_loss_col)])
                     hist.append(row)
                     np.savetxt(self.workspace.history_for(container.net.name()), hist)
@@ -157,8 +159,9 @@ class MultiTrainer:
 
     def save_models(self, checkpoint=None):
         # here we store both the trained weights and an output normalization
-        normalization_file = self.workspace.normalization_file()
-        normalization = {key: np.max(abs(normalization_file['max'][key]),abs(normalization_file['min'][key])) for key in normalization_file['max'].keys()}
+        with open(self.workspace.normalization_file) as f:
+            normalization_file = json.load(f)
+        normalization = {key: np.max([abs(normalization_file['max'][key]),abs(normalization_file['min'][key])]) for key in normalization_file['max'].keys()}
 
         for cont in self.nets:
             net = cont.net

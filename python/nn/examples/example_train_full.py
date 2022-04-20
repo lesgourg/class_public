@@ -6,7 +6,7 @@ This example script outlines how to generate training data, carry out the proces
 
 import os
 import sys
-from classynet.workspace import Workspace, GenerationalWorkspace
+from classynet.workspace import Workspace
 
 import classy
 import numpy as np
@@ -47,38 +47,19 @@ FIXED_TRAINING_ONLY = {
     "reionization_optical_depth_tol": 1.e-5,
 }
 
-# PLANCK = {
-#         "omega_b":   (0.02242, 0.00014),
-#         "omega_cdm": (0.11933, 0.00091),
-#         "H0":        (67.66,   0.42),
-#         "tau_reio":  (0.0561,  0.0071)
-#         }
-# ## The domain on which the NNs should be trained is specified as a dict: name -> (min, max)
-# DOMAIN = {p: (mu - 5 * sigma, mu + 5 * sigma) for p, (mu, sigma) in PLANCK.items()}
+WORKSPACE_DIR = os.path.expanduser("../../../CLASSnet_Workspace")
 
-WORKSPACE_DIR = os.path.expanduser("~/software/class_versions/class_net/workspaces/test_training")
-
-# Select a generation name tag
-generations = {
-    "Net_ST0_Reco":     201,
-    "Net_ST0_Reio":     201,
-    "Net_ST0_ISW":      201,
-    "Net_ST1":          201,
-    "Net_ST2_Reco":     201,
-    "Net_ST2_Reio":     201,
-    "Net_phi_plus_psi": 201,
-}
-
-workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
+workspace = Workspace(WORKSPACE_DIR)
 
 assert isinstance(workspace, Workspace)
 
+# Here we define the cosmological parameters on which the training is to be carried out
 pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
 
 domain = workspace.domain_from_path(
     pnames         = pnames,
-    #bestfit_path   = "~/path/to/lcdm_11p_sn.bestfit",
-    #covmat_path    = "~/path/to/lcdm_11p_sn.covmat",
+    bestfit_path   = workspace.data,     #"~/path/to/lcdm_11p_sn.bestfit",
+    covmat_path    = workspace.data,     #"~/path/to/lcdm_11p_sn.covmat",
     sigma_train    = 6,
     sigma_validation = 5,
     sigma_test     = 5,
@@ -100,30 +81,16 @@ workspace.generator().generate_source_data(
     validation=validation,
     test=test,
     fixed_training_only=FIXED_TRAINING_ONLY,
-    processes=2)
-
+    processes=8)
 
 # Generate k array
 workspace.generator().generate_k_array()
 
-
 # Writing down the fixed and varying parameters which were used to generate the data
 workspace.generator().write_manifest(FIXED, training.keys())
 
-
 # Training: any subset of models can be trained at once
-workspace.trainer().train_all_models(workers=36)
+workspace.trainer().train_all_models(workers=12)
 
-# Allso possible to train individual networks:
-'''
-from classynet.models import Net_ST0_Reco, Net_ST0_Reio, Net_ST0_ISW, Net_ST1, Net_ST2_Reco, Net_ST2_Reio, Net_phi_plus_psi
-workspace.trainer().train_models([
-    Net_phi_plus_psi,
-    Net_ST0_Reco,
-    Net_ST0_Reio,
-    Net_ST0_ISW,
-    Net_ST1,
-    Net_ST2_Reco,
-    Net_ST2_Reio,
-], 8)
-'''
+# Plot the training history
+workspace.plotter().plot_training_histories()

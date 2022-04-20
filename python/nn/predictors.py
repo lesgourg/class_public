@@ -561,8 +561,6 @@ def load_models(workspace, classes, k, device):
     times["model ctors"] += perf_counter() - start_models
     for model in models:
         start = perf_counter()
-        print("workspace.model_path(model.name())")
-        print(workspace.model_path(model.name()))
         state_dict = torch.load(workspace.model_path(model.name()), map_location=device)
         times["torch.load"] += perf_counter() - start
 

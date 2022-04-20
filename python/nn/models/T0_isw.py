@@ -15,10 +15,12 @@ class Net_ST0_ISW(Model):
     def __init__(self, k):
         super().__init__(k)
 
+        # Input definitions
         n_inputs_cosmo = len(common.INPUTS_COSMO)
         n_inputs_tau = 2
         n_k = len(k)
 
+        # Declare networks
         self.lin_cosmo = nn.Linear(n_inputs_cosmo, 100)
         self.lin_tau = nn.Linear(2, 5 * 50)
 
@@ -31,28 +33,15 @@ class Net_ST0_ISW(Model):
             nn.Linear(n_k, n_k)
         )
 
-        # self.lin_cosmo = nn.Linear(n_inputs_cosmo, 20)
-        # self.lin_tau = nn.Linear(2, 133)
-
-        # self.lin_combined = nn.Sequential(
-        #     nn.PReLU(),
-        #     nn.Linear(self.lin_cosmo.out_features + self.lin_tau.out_features, 199),
-        #     nn.PReLU(),
-        #     nn.Linear(199, n_k)
-        # )
-
+        # Calculate weights for loss calculation
         k_np = k.cpu().detach().numpy()
         density = np.gradient(np.cumsum(np.ones_like(k_np)), np.log(k_np))
         weight = 1. / density
         weight = weight / weight.sum() * n_k
         self.loss_weight = nn.Parameter(torch.from_numpy(weight).float(), requires_grad=False)
 
+        # Output normalization
         self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
-
-        # loss_weight = torch.ones_like(k)
-        # loss_weight[k < 5e-3] *= 100
-        # loss_weight = loss_weight / loss_weight.sum() * len(k)
-        # self.loss_weight = nn.Parameter(loss_weight, requires_grad=False)
 
 
     def criterion(self):
@@ -66,18 +55,12 @@ class Net_ST0_ISW(Model):
             )
         return loss
 
-        # def loss(prediction, truth):
-        #     return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
-        # return loss
-
     def forward(self, x):
         self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = torch.stack((x["tau"], x["D"]), dim=1)
-        acc = torch.cat((
-                self.lin_cosmo(inputs_cosmo),
-                self.lin_tau(inputs_tau)
-            ), dim=1)
+
+        # Run network
         prediction = x["e_kappa"][:, None] * self.lin_combined(
             torch.cat((
                 self.lin_cosmo(inputs_cosmo),
@@ -91,17 +74,17 @@ class Net_ST0_ISW(Model):
         self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = torch.stack((x["tau"], x["D"]), dim=1)
-        acc = torch.cat((
-                self.lin_cosmo(inputs_cosmo),
-                self.lin_tau(inputs_tau)
-            ), dim=1)
+
+        # Run network
         prediction = x["e_kappa"][:, None] * self.lin_combined(
             torch.cat((
                 self.lin_cosmo(inputs_cosmo),
                 self.lin_tau(inputs_tau)
             ), dim=1)
         )
-        return torch.flatten(prediction[:,k_min_idx:] * self.output_normalization)#torch.tensor([0.0011569450645745045]))
+
+        # Cut output and rescale
+        return torch.flatten(prediction[:,k_min_idx:] * self.output_normalization)
 
 
 
@@ -121,19 +104,11 @@ class Net_ST0_ISW(Model):
             "k_min",
             "tau",
             "D",
-            # "tau_relative_to_reco",
             "e_kappa",
             ])
 
     def tau_training(self):
         return None
-        # with h5.File(os.path.join(os.path.expandvars("$CLASSNET_DATA"), "tau_array.h5"), "r") as f:
-        #     tau_training = f["tau"][()]
-        # return tau_training
 
     def source_functions(self):
         return ["t0_isw"]
-
-if __name__ == "__main__":
-    iface = interface.TrainingInterface(Net_ST0_ISW)
-    iface.run()

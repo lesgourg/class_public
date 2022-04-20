@@ -67,28 +67,6 @@ class Net_ST1(Model):
 
         return torch.flatten(prediction[:,k_min_idx:] * self.output_normalization ) #torch.tensor([0.00020377613060535774]))
 
-
-
-
-        self.learning_rate = hp["learning_rate"]
-
-    # def forward(self, x):
-    #     # linear_combination = self.net_basis(x)
-    #     correction = self.net_correction(x)
-
-    #     inputs_cosmo = common.get_inputs_cosmo(x)
-    #     inputs_tau = torch.stack((x["tau"], x["e_kappa"]), dim=1)
-    #     inputs_cosmo_tau = torch.cat((inputs_cosmo, inputs_tau), dim=1)
-    #     # correction = self.net_correction(inputs_cosmo_tau)
-
-    #     factor = self.net_factor(inputs_cosmo_tau)
-
-    #     approximation = factor * x["psi_minus_phi"]
-
-    #     # add = approximation + correction
-
-    #     return x["e_kappa"][:, None] * self.k[None, :] * (approximation + correction)
-
     def epochs(self):
         return 40
 
@@ -101,31 +79,14 @@ class Net_ST1(Model):
 
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-        # return torch.optim.Adam([
-        #     {"params": self.net_basis.parameters()},
-        #     {"params": self.net_correction.parameters()}
-        #     ], lr=self.learning_rate)
-
     def required_inputs(self):
         return set(common.INPUTS_COSMO + ["k_min", "k", "r_s", "k_d", "tau", "e_kappa"])
 
     def tau_training(self):
         return None
-        # with h5.File(os.path.join(os.path.expandvars("$CLASSNET_DATA"), "tau_array.h5"), "r") as f:
-        #     tau_training = f["tau"][()]
-        # return tau_training
 
     def source_functions(self):
         return ["t1"]
 
     def lr_scheduler(self, opt):
         return torch.optim.lr_scheduler.LambdaLR(opt, lambda epoch: np.exp(-epoch / 8))
-
-        # return torch.optim.lr_scheduler.LambdaLR(opt, [
-        #     lambda epoch: np.exp(-epoch / 5),
-        #     lambda epoch: 0 if epoch == 0 else np.exp(-epoch / 5),
-        #     ])
-
-if __name__ == "__main__":
-    iface = interface.TrainingInterface(Net_ST1)
-    iface.run()

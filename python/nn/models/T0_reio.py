@@ -106,7 +106,3 @@ class Net_ST0_Reio(Model):
         def loss(prediction, truth):
             return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
-
-if __name__ == "__main__":
-    iface = interface.TrainingInterface(Net_ST0_Reio)
-    iface.run()

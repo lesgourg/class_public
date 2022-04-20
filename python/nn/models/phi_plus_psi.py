@@ -5,68 +5,44 @@ import numpy as np
 import h5py as h5
 
 import torch
+from torch import pow, log
 import torch.nn as nn
 import torch.nn.functional as F
 
 from classynet.models.model import Model
 from classynet.models import common
-from classynet.tools import utils
+from classynet.tools.utils import Timer
 
-from classynet.tools.utils import C
+# import constants
+from classynet.tools.utils import C, THETA_CMB
 
-THESIS_MODE = False
+#
+# Approximation for the source functions S_cb, S_m, S_{phi_plus_psi}.
+# Further outlined in appendix A1 of "CosmicNet II" paper
+#
+def TFacc(kk, 
+    z_d, 
+    Omega_matter, 
+    Omega_baryon, 
+    Omega_ncdm, 
+    Omega_lambda, 
+    D, 
+    H, 
+    hubble, 
+    rs_drag, 
+    keq, 
+    a_eq, 
+    redshift):
 
-def thesis_write(name, value):
-    import os
-    import pickle
-    path = os.path.expanduser("~/masterarbeit/data/delta_m.pickle")
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            data = pickle.load(f)
-    else:
-        data = {}
-
-    data[name] = value
-    print("writing quantity", name)
-    with open(path, "wb") as f:
-        pickle.dump(data, f)
-
-
-def fitfunc_old(k, keq, Omega_b, Omega0_cdm, h, rs_drag):
-  # Taken from http://background.uchicago.edu/~whu/transfer/tf_fit.c
-    q = k/keq/13.41
-    f_baryon = Omega_b / Omega0_cdm
-    omhh = Omega0_cdm * h**2
-    alpha_gamma = 1-0.328*torch.log(431.0*omhh)*f_baryon + 0.38*torch.log(22.3*omhh)*f_baryon**2
-    gamma_eff = omhh*(alpha_gamma+(1-alpha_gamma)/(1+(0.43*rs_drag)**4))
-    q_eff = q*omhh/gamma_eff
-    q = q_eff
-    T_0_L0 = torch.log(2.0*np.e+1.8*q)
-    T_0_C0 = 14.2 + 731.0/(1+62.5*q)
-    # return q*q*T_0_L0/(T_0_L0+T_0_C0*q*q)
-    # corresponds to phi,psi and delta_m/k^2
-    return T_0_L0/(T_0_L0+T_0_C0*q*q)
-
-
-
-def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, hubble, rs_drag, keq, a_eq, redshift):
-    #temporary_dictionary = {"kk":kk,"z_d":z_d,"Omega_matter":Omega_matter, "Omega_baryon":Omega_baryon, "Omega_ncdm":Omega_ncdm, "Omega_lambda": Omega_lambda,"D":D,"H": H,"hubble":hubble, "rs_drag":rs_drag, "keq":keq, "a_eq":a_eq,"redshift": redshift}
-    #temporary_file=h5.File(os.path.expanduser("~/TFacc_last_called_parameters.h5"),"w")
-    #for key in temporary_dictionary:
-    #    temporary_file.create_dataset(key,data=temporary_dictionary[key])
-    #temporary_file.close()
-
-    theta_cmb = 2.7255/2.7
 
     kk = kk[None, :]
     D = D[:, None]
     H = H[:, None]
     redshift = redshift[:, None]
 
-    # GS changed to 3
     degen_hdm = torch.tensor(3.).to(H.device)
-    # degen_hdm = 1
 
+    # derived quantities
     Omega_curv = 1.0-Omega_matter-Omega_lambda;
     omhh = Omega_matter*hubble**2
     obhh = Omega_baryon*hubble**2
@@ -80,7 +56,6 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
     z_equality = 1./a_eq
     k_equality = keq
 
-    from torch import pow, log
     z_drag = z_d
     y_drag = z_equality/(1.0+z_drag)
 
@@ -126,24 +101,6 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
     tf_cbnu = tf_master*growth_cbnu/growth_k0;
     return tf_cb, tf_cbnu
 
-
-class Timer:
-    def __init__(self):
-        self._start = {}
-        self.times = {}
-
-    def start(self, name):
-        self._start[name] = time.perf_counter()
-
-    def stop(self, name):
-        assert name in self._start
-        self.times[name] = time.perf_counter() - self._start[name]
-        del self._start[name]
-
-    def pprint(self):
-        import pprint
-        pprint.pprint(self.times)
-
 def geomspace(start, stop, *args, **kwargs):
     return torch.logspace(np.log10(start), np.log10(stop), *args, **kwargs)
 
@@ -172,32 +129,6 @@ def subsample_tau(tau, tau_):
     """
     # return np.unique(np.argmin(np.abs(tau_[:, None] - tau[None, :]), axis=1))
     return torch.argmin(torch.abs(tau_[:, None] - tau[None, :]), axis=1)
-
-
-def debug_plot_tau_sampling(tau):
-    # TODO REMOVE THIS FUNCTION
-    import matplotlib as mpl
-    mpl.use("agg")
-    import matplotlib.pyplot as plt
-
-    # tau = self.raw_tau.cpu().detach().numpy()
-    tau = self.raw_tau
-    tau_mid = 10000
-    tau_indices = torch.unique(subsample_tau(tau, split_tau(tau, tau_mid=tau_mid)))
-    tau_ = tau[tau_indices]
-
-    np_tau = tau.cpu().detach().numpy()
-    np_tau_ = tau_.cpu().detach().numpy()
-
-    bins = np.geomspace(np_tau.min().item(), np_tau.max().item(), 50)
-    plt.hist(np_tau, bins=bins, histtype="step", label="original sampling")
-    plt.hist(np_tau_, bins=bins, histtype="step", label="updated sampling")
-    plt.axvline(tau_mid, label="$\\tau_\mathrm{mid}$")
-    plt.legend()
-    plt.xscale("log")
-    plt.xlabel("$\\tau$")
-    plt.title("$\\tau$ sampling")
-    plt.savefig("/home/samaras/TAU_SAMPLING.png", dpi=250)
 
 class Net_phi_plus_psi(Model):
 
@@ -250,20 +181,18 @@ class Net_phi_plus_psi(Model):
         H = x["H"] # tau_size array
         D = x["D"] # tau_size array
 
-
+        # Calculate constant factor alpha
         index_MD = torch.argmin(torch.abs(z - 50.0)) #gives the index where z is 50
         tau_md = raw_tau[index_MD]
         D_md = x["D"][index_MD]
         alpha = tau_md**2 / 7.8 / D_md
 
-        N_ur = x["raw_cosmos/N_ur"][0]
         # perform correction for N_ur != 0
+        N_ur = x["raw_cosmos/N_ur"][0]
         F = (1 + 0.2271 * (3.046 + N_ur)) / (1 + 0.2271 * 3.046)
 
-        # H0 = x["raw_cosmos/H0"][0]
-        # h = (H0 / 100) / torch.sqrt(F)
+        # derive required quantities
         h = x["raw_cosmos/h"][0] / torch.sqrt(F)
-        # h = x["raw_cosmos/h"][0] / torch.sqrt(F)
         Omega_b = x["raw_cosmos/omega_b"][0] / h**2 / F
         Omega_ncdm = x["raw_cosmos/omega_ncdm"][0] / h**2 / F
         Omega_cdm = x["raw_cosmos/omega_cdm"][0] / h**2 / F
@@ -271,55 +200,41 @@ class Net_phi_plus_psi(Model):
         rs_drag = x["rs_drag"][0]
         z_d = x["z_d"][0]
 
-        # approx = fitfunc_old(self.k, k_eq[0], Omega_b, Omega_cdm,h, rs_drag)
         Omega_m = Omega_b + Omega_cdm + Omega_ncdm
         Omega_Lambda = 1.0 - Omega_b - Omega_cdm - Omega_k
 
+        # Calculate approximation
         timer.start("tfacc")
-
-
         approx_cb, approx = TFacc(self.k, z_d, Omega_m, Omega_b, Omega_ncdm, Omega_Lambda, D, H, h, rs_drag, k_eq, a_eq, z)
+        timer.end("tfacc")
 
-        # if True:
-        #     import matplotlib
-        #     matplotlib.use("qt5agg")
-        #     import matplotlib.pyplot as plt
-        #     plt.loglog(x["raw_tau"].cpu().detach().numpy(), approx[:, 100].cpu().detach().numpy())
-        #     plt.grid()
-        #     plt.show()
-
-        timer.stop("tfacc")
         timer.start("approx normalize")
         approx /= approx[:, [0]]
         approx_cb /= approx_cb[:,[0]]
-        timer.stop("approx normalize")
+        timer.end("approx normalize")
 
         timer.start("create approx_stack")
         approx_stack = torch.empty((len(x["tau"]), len(self.k), 3), device=self.k.device)
-        timer.stop("create approx_stack")
+        timer.end("create approx_stack")
 
-        # for some reason this isn't working properly yet
-        # approx_phi_plus_psi = approx * 3 * (H_tau**2 * Omega_m_tau * D_tau)[:, None]
         timer.start("copy phi+psi")
-        approx_stack[:, :, 0] = approx_phi_plus_psi = approx
-        timer.stop("copy phi+psi")
+        approx_stack[:, :, 0] = approx
+        timer.end("copy phi+psi")
 
-        # divide approximation by the SAME normalization constant as delta_m
-        # TODO IMPORTANT WARNING DANGER do not hardcode this!
-        
-        #normalization = 144534.5036053507
         timer.start("approx_delta_m")
         approx_delta_m = -alpha.item() * approx * \
-                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
-        timer.stop("approx_delta_m")
+                (self.k2 + 3.*Omega_k*(h/C)**2)
+        timer.end("approx_delta_m")
 
         timer.start("copy delta_m")
         approx_stack[:, :, 1] = approx_delta_m
-        timer.stop("copy delta_m")
+        timer.end("copy delta_m")
 
+        timer.start("approx_delta_cb")
         approx_delta_cb = -alpha.item() * approx_cb * \
-                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
+                (self.k2 + 3.*Omega_k*(h/C)**2)
         approx_stack[:, :, 2] = approx_delta_cb
+        timer.end("approx_delta_cb")
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
         tau = x["tau"]
@@ -330,25 +245,19 @@ class Net_phi_plus_psi(Model):
                 self.lin_cosmo(inputs_cosmo),
                 self.lin_tau(inputs_tau),
             ), dim=1)
-        timer.stop("concat lin_cosmo, lin_tau")
-
-        # shape: (n_k, 2)
-        # approx_stack = torch.stack((approx, approx_delta_m), dim=2)
-        timer.start("stack approx")
-        # approx_stack = torch.stack((approx_phi_plus_psi, approx_delta_m), dim=2)
-        timer.stop("stack approx")
+        timer.end("concat lin_cosmo, lin_tau")
 
         timer.start("net_merge_corr")
         correction = self.net_merge_corr(y)
-        timer.stop("net_merge_corr")
+        timer.end("net_merge_corr")
 
         correction = correction.view(len(tau), -1, 3)
 
         timer.start("compute result")
         result = (1. + correction) * approx_stack
-        timer.stop("compute result")
+        timer.end("compute result")
 
-        timer.stop("forward")
+        timer.end("forward")
 
         return result
 
@@ -367,21 +276,18 @@ class Net_phi_plus_psi(Model):
         H = x["H"] # tau_size array
         D = x["D"] # tau_size array
 
-
+        # Calculate constant factor alpha
         index_MD = torch.argmin(torch.abs(z - 50.0)) #gives the index where z is 50
         tau_md = raw_tau[index_MD]
         D_md = x["D"][index_MD]
         alpha = tau_md**2 / 7.8 / D_md
 
-
-        N_ur = x["raw_cosmos/N_ur"][0]
         # perform correction for N_ur != 0
+        N_ur = x["raw_cosmos/N_ur"][0]
         F = (1 + 0.2271 * (3.046 + N_ur)) / (1 + 0.2271 * 3.046)
 
-        # H0 = x["raw_cosmos/H0"][0]
-        # h = (H0 / 100) / torch.sqrt(F)
+        # derive required quantities
         h = x["raw_cosmos/h"][0] / torch.sqrt(F)
-        # h = x["raw_cosmos/h"][0] / torch.sqrt(F)
         Omega_b = x["raw_cosmos/omega_b"][0] / h**2 / F
         Omega_ncdm = x["raw_cosmos/omega_ncdm"][0] / h**2 / F
         Omega_cdm = x["raw_cosmos/omega_cdm"][0] / h**2 / F
@@ -389,48 +295,41 @@ class Net_phi_plus_psi(Model):
         rs_drag = x["rs_drag"][0]
         z_d = x["z_d"][0]
 
-        # approx = fitfunc_old(self.k, k_eq[0], Omega_b, Omega_cdm,h, rs_drag)
         Omega_m = Omega_b + Omega_cdm + Omega_ncdm
         Omega_Lambda = 1.0 - Omega_b - Omega_cdm - Omega_k
 
+        # Calculate approximation
         timer.start("tfacc")
-
-
         approx_cb, approx = TFacc(self.k, z_d, Omega_m, Omega_b, Omega_ncdm, Omega_Lambda, D, H, h, rs_drag, k_eq, a_eq, z)
+        timer.end("tfacc")
 
-        timer.stop("tfacc")
         timer.start("approx normalize")
         approx /= approx[:, [0]]
         approx_cb /= approx_cb[:,[0]]
-        timer.stop("approx normalize")
+        timer.end("approx normalize")
 
         timer.start("create approx_stack")
         approx_stack = torch.empty((len(x["tau"]), len(self.k), 3), device=self.k.device)
-        timer.stop("create approx_stack")
+        timer.end("create approx_stack")
 
-        # for some reason this isn't working properly yet
-        # approx_phi_plus_psi = approx * 3 * (H_tau**2 * Omega_m_tau * D_tau)[:, None]
         timer.start("copy phi+psi")
-        approx_stack[:, :, 0] = approx * self.output_normalization #torch.tensor([1.2576383769339496]) 
-        timer.stop("copy phi+psi")
+        approx_stack[:, :, 0] = approx * self.output_normalization
+        timer.end("copy phi+psi")
 
-        # divide approximation by the SAME normalization constant as delta_m
-        # TODO IMPORTANT WARNING DANGER do not hardcode this!
-        
-        #normalization = 144534.5036053507
         timer.start("approx_delta_m")
         approx_delta_m = -alpha.item() * approx * \
-                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
-        timer.stop("approx_delta_m")
+                (self.k2 + 3.*Omega_k*(h/C)**2)
+        timer.end("approx_delta_m")
 
         timer.start("copy delta_m")
-        approx_stack[:, :, 1] = approx_delta_m * D[:,None] #moved from untransform
-        timer.stop("copy delta_m")
+        approx_stack[:, :, 1] = approx_delta_m * D[:,None]
+        timer.end("copy delta_m")
 
+        timer.start("approx_delta_cb")
         approx_delta_cb = -alpha.item() * approx_cb * \
-                (self.k2 + 3.*Omega_k*(h/C)**2)#/normalization
-        
-        approx_stack[:, :, 2] = approx_delta_cb * D[:,None] #moved from untransform
+                (self.k2 + 3.*Omega_k*(h/C)**2)
+        approx_stack[:, :, 2] = approx_delta_cb * D[:,None]
+        timer.end("approx_delta_cb")
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
         tau = x["tau"]
@@ -441,30 +340,22 @@ class Net_phi_plus_psi(Model):
                 self.lin_cosmo(inputs_cosmo),
                 self.lin_tau(inputs_tau),
             ), dim=1)
-        timer.stop("concat lin_cosmo, lin_tau")
-
-        # shape: (n_k, 2)
-        # approx_stack = torch.stack((approx, approx_delta_m), dim=2)
-        timer.start("stack approx")
-        # approx_stack = torch.stack((approx_phi_plus_psi, approx_delta_m), dim=2)
-        timer.stop("stack approx")
+        timer.end("concat lin_cosmo, lin_tau")
 
         timer.start("net_merge_corr")
         correction = self.net_merge_corr(y)
-        timer.stop("net_merge_corr")
+        timer.end("net_merge_corr")
 
         correction = correction.view(len(tau), -1, 3)
 
         timer.start("compute result")
         result = (1. + correction) * approx_stack
-        timer.stop("compute result")
-
-        timer.stop("forward")
+        timer.end("compute result")
 
         output = torch.flatten(result[:,k_min_idx:,:], start_dim=0,end_dim=1)
+
+        timer.end("forward")
         return output
-
-
 
     def epochs(self):
         return 25
@@ -484,33 +375,6 @@ class Net_phi_plus_psi(Model):
         def loss(prediction, truth):
             nonlocal iterations
             print("using custom loss for phi+psi")
-
-            do_plot = False
-            if do_plot and iterations % 1000 == 0:
-                pdm0 = prediction[-1, :, 1].cpu().detach()
-                tdm0 = truth[-1, :, 1].cpu().detach()
-                k = self.k.cpu().detach()
-
-                import matplotlib; matplotlib.use("qt4agg")
-                import matplotlib.pyplot as plt
-
-                plt.subplot(211)
-                # plt.semilogx(self.k.cpu().detach(), pdm0.cpu().detach(), label="pred")
-                # plt.semilogx(self.k.cpu().detach(), tdm0.cpu().detach(), label="truth")
-                plt.loglog(k, -pdm0, label="pred")
-                plt.loglog(k, -tdm0, label="truth")
-                plt.axvline(self.k_min, c="k", ls="--", label="k_min")
-                plt.grid()
-                plt.legend()
-
-                plt.subplot(212, sharex=plt.gca())
-                rel_res = (pdm0 - tdm0) / tdm0
-                plt.semilogx(k, rel_res)
-                plt.grid()
-
-                plt.show()
-
-            iterations += 1
 
             # return torch.mean(((prediction - truth) / truth)**2)
 

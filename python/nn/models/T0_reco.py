@@ -16,27 +16,10 @@ from classynet.models import common
 from classynet.tools import utils
 from classynet.tools import time_slicing
 
-PLOT_MODE = False
 
-# TODO remove this in final
-THESIS_MODE = False
-
-def thesis_write(name, value):
-    import os
-    import pickle
-    path = os.path.expanduser("~/masterarbeit/data/t0_reco.pickle")
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            data = pickle.load(f)
-    else:
-        data = {}
-
-    data[name] = value
-    print("writing quantity", name)
-    with open(path, "wb") as f:
-        pickle.dump(data, f)
-
-
+#
+#
+#
 class BasisDecompositionNet(nn.Module):
 
     HYPERPARAMETERS_DEFAULTS = {
@@ -236,7 +219,6 @@ class CorrectionNet(nn.Module):
                 self.lin_corr_3,
         ]
 
-        # self.relu = nn.LeakyReLU(hp["relu_slope_corr"])
         self.relu = nn.PReLU()
         self.init_with_zero()
 
@@ -283,7 +265,7 @@ class Net_ST0_Reco(Model):
 
         weight = torch.ones_like(self.k)
         weight[self.k < 5e-3] *= 10
-        # rescale so that total weight is the same
+
         self.loss_weight = nn.Parameter(weight / weight.sum() * len(k), requires_grad=False)
 
         self.output_normalization = nn.Parameter(torch.ones(1), requires_grad=False)
@@ -293,41 +275,6 @@ class Net_ST0_Reco(Model):
 
         linear_combination = self.net_basis(x)
         correction = self.net_correction(x)
-
-        if PLOT_MODE:
-            import matplotlib
-            matplotlib.use("agg")
-            import matplotlib.pyplot as plt
-            from plotting.plot_source_function import plot_source_function
-
-            fig, axes = plt.subplots(2, 2, figsize=(2 * 4, 2 * 4))
-
-            plot_source_function(
-                axes[0, 0],
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                linear_combination.sum(dim=0).cpu().numpy().T,
-                levels=50,
-                title="linear combination"
-            )
-            plot_source_function(
-                axes[0, 1],
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                correction.cpu().numpy().T,
-                levels=50,
-                title="correction"
-            )
-            plot_source_function(
-                axes[1, 0],
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                (linear_combination.sum(dim=0) + correction).cpu().numpy().T,
-                levels=50,
-                title="total"
-            )
-
-            fig.savefig(PLOT_DIR + "parts.png", dpi=300)
 
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
@@ -340,45 +287,10 @@ class Net_ST0_Reco(Model):
         linear_combination = self.net_basis(x)
         correction = self.net_correction(x)
 
-        if PLOT_MODE:
-            import matplotlib
-            matplotlib.use("agg")
-            import matplotlib.pyplot as plt
-            from plotting.plot_source_function import plot_source_function
-
-            fig, axes = plt.subplots(2, 2, figsize=(2 * 4, 2 * 4))
-
-            plot_source_function(
-                axes[0, 0],
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                linear_combination.sum(dim=0).cpu().numpy().T,
-                levels=50,
-                title="linear combination"
-            )
-            plot_source_function(
-                axes[0, 1],
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                correction.cpu().numpy().T,
-                levels=50,
-                title="correction"
-            )
-            plot_source_function(
-                axes[1, 0],
-                self.k,
-                10**x["tau_relative_to_reco"].cpu().numpy(),
-                (linear_combination.sum(dim=0) + correction).cpu().numpy().T,
-                levels=50,
-                title="total"
-            )
-
-            fig.savefig(PLOT_DIR + "parts.png", dpi=300)
-
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
 
-        return torch.flatten(result[:,k_min_idx:] * self.output_normalization )#torch.tensor([0.0860232589171328]))
+        return torch.flatten(result[:,k_min_idx:] * self.output_normalization )
 
 
     def epochs(self):
@@ -425,6 +337,3 @@ class Net_ST0_Reco(Model):
         def loss(prediction, truth):
             return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
-        # def loss(prediction, truth):
-        #     return torch.mean((prediction - truth)**2)
-        # return loss
