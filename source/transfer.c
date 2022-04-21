@@ -2404,8 +2404,8 @@ int transfer_sources(
       /* GWB initial and SW contribution, only need initial time*/
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw)) {
-        /* source function for gwb SW and (V)EISW term */
-        sources[0] = (ppt->switch_gwb_sw / (1. + 4./15. * pba->f_dec)
+        /* source function for gwb SW, adiabatic IC, PISW and EISW term */
+        sources[0] = ((ppt->switch_gwb_sw - 0.5*ppt->switch_gwb_ad) / (1. + 4./15. * pba->f_dec)
                       + ppt->switch_gwb_pisw * ((2. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
                                                -(2. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec))
                       + ppt->switch_gwb_eisw * (2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)
