@@ -19,7 +19,7 @@ enum primordial_spectrum_type {
 /** enum defining how the primordial GWB spectrum should be computed */
 
 enum primordial_gwb_spectrum_type {
-  adiabatic_ic_gwb,
+  scalar_Pk_gwb,
   analytic_Pk_gwb,
   external_Pk_gwb
 };
@@ -209,7 +209,7 @@ struct primordial {
   /* - parameters describing the intial GWB spectrum */
   enum primordial_gwb_spectrum_type primordial_gwb_spec_type; /**< type of primordial GWB spectrum */
   
-  double gwb_ini_adiabatic; /**< propotionality factor between the initial GWB spectrum and the scalar spectrum */
+  double gwb_ini_scalar; /**< propotionality factor between the initial GWB spectrum and the scalar spectrum */
   
   double A_gwb;  /**< Amplitude for GWB inital spectrum*/
   double n_gwb;  /**< Spectral index for GWB intial spectrum*/

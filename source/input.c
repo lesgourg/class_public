@@ -4365,8 +4365,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
               errmsg);
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
-      if (strcmp(string1,"adiabatic_ic") == 0){
-        ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
+      if (strcmp(string1,"scalar_Pk") == 0){
+        ppm->primordial_gwb_spec_type = scalar_Pk_gwb;
       }
       else if (strcmp(string1,"analytic_Pk") == 0){
         ppm->primordial_gwb_spec_type = analytic_Pk_gwb;
@@ -4376,11 +4376,11 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
       else{
         class_stop(errmsg,
-                  "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'adiabatic_ic, analytic_Pk, external_Pk'}.",string1);
+                  "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'scalar_Pk, analytic_Pk, external_Pk'}.",string1);
       }
     }
-    /* activate gwb_ini adiabatic ic: index_ic_gwb */
-    if (ppm->primordial_gwb_spec_type != adiabatic_ic_gwb) {
+    /* activate gwb_ini: index_ic_gwb */
+    if (ppm->primordial_gwb_spec_type != scalar_Pk_gwb) {
         ppt->has_gwb_ini=_TRUE_;
     }
     /* Test */
@@ -4421,10 +4421,10 @@ int input_read_parameters_primordial(struct file_content * pfc,
       ppt->T_ini_gwb = param3;
     }
 
-    /** 2.b) For type 'adiabatic_Pk' */
-    if (ppm->primordial_gwb_spec_type == adiabatic_ic_gwb) {
+    /** 2.b) For type 'scalar_Pk' */
+    if (ppm->primordial_gwb_spec_type == scalar_Pk_gwb) {
       /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-      class_read_double("gwb_ini_adiabatic",ppm->gwb_ini_adiabatic);
+      class_read_double("gwb_ini_scalar",ppm->gwb_ini_scalar);
     }
 
     /** 2.c) For type 'analytic_Pk' */
@@ -5914,15 +5914,15 @@ int input_default_params(struct background *pba,
   /** 2) Primordial/Inital spectrum of GWB */
   /** 2.a) General parameters */
   /** 2.a.1) Primordial spectrum type of GWB */
-  ppm->primordial_gwb_spec_type = adiabatic_ic_gwb;
+  ppm->primordial_gwb_spec_type = scalar_Pk_gwb;
   /** 2.a.2) inital time for GWB*/
   ppt->tau_ini_gwb=0.1;
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
   
-  /** 2.b) For type 'adiabatic_Pk' */
+  /** 2.b) For type 'scalar_Pk' */
   /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-  ppm->gwb_ini_adiabatic=0.;
+  ppm->gwb_ini_scalar=0.;
 
   /** 2.c) For type 'analytic_Pk' */
   /** 2.c.1) Amplitude */
