@@ -6,7 +6,7 @@ import h5py as h5
 import classy
 from scipy import interpolate
 
-def generate_spectral_data(workspace, varying_params, fixed_params, path, processes=None, fixed_nn_only=None, use_nn=False):
+def generate_spectral_data(workspace, varying_params, fixed_params, path, processes= 4, fixed_nn_only=None, use_nn=False):
     """
     Generate training/validation/testing set of size `count` by sampling the `domain` of cosmological parameters.
 
@@ -36,19 +36,19 @@ def generate_spectral_data(workspace, varying_params, fixed_params, path, proces
     params = []
     cl_lenses = []
     cl_rawes = []
-    #for arg in tqdm(args, total=count):
-    #    param,cl_lens, cl_raw = generate_spectra_function(arg)
-    #    params.append(param)
-    #    cl_lenses.append(cl_lens)
-    #    cl_rawes.append(cl_raw)
-    processes = 4
+    for arg in tqdm(args, total=count):
+       param,cl_lens, cl_raw = generate_spectra_function(arg)
+       params.append(param)
+       cl_lenses.append(cl_lens)
+       cl_rawes.append(cl_raw)
+
+    # TODO SG here occurs some bug
+    # print("--- Start generating {} spectra with {} processes ---".format(str(len(args),str(processes))))
     # with multiprocessing.Pool(processes) as pool:
     #     for param,cl_lens, cl_raw in tqdm(pool.imap(generate_spectra_function, args), total=count):
-    for arg in args:
-        param,cl_lens, cl_raw = generate_spectra_function(arg)
-        params.append(param)
-        cl_lenses.append(cl_lens)
-        cl_rawes.append(cl_raw)
+    #         params.append(param)
+    #         cl_lenses.append(cl_lens)
+    #         cl_rawes.append(cl_raw)
 
     def create_group(f, name, data):
         g = f.create_group(name=name)
@@ -81,6 +81,7 @@ def generate_spectra_function(args):
         params.update({'use_nn':'yes'})
         #params.update({'nn_verbose':3})
         params.update(fixed_nn_only)
+
     cosmo.set(**params)
 
     # run CLASS
@@ -96,26 +97,26 @@ def generate_spectra_function(args):
     kk = np.concatenate(([k_min], k_net[(k_net>k_min)&(k_net<params["P_k_max_1/Mpc"])]))
     kk_save=np.zeros(k_net.shape, dtype=float)
     pk_save=np.zeros(k_net.shape, dtype=float)
+    pk_cb_save=np.zeros(k_net.shape, dtype=float)
 
     pk_class, k_class = cosmo.pk_at_z(0.0)
+    pk_cb_class, k_class = cosmo.pk_cb_at_z(0.0)
     
-    class_interpolation = interpolate.interp1d(np.log(k_class), np.log(pk_class), kind='linear',fill_value='extrapolate')
+    # We need to interpolate the spectra to fit the same k grid, such that we can compare them to another.
+    # This is done with a cubic fit in the log space. Linear or non-log fit lead to systemtics for low k!
+    class_pk_interpolation = interpolate.interp1d(np.log(k_class), np.log(pk_class), kind='cubic',fill_value='extrapolate')
+    class_pk_cb_interpolation = interpolate.interp1d(np.log(k_class), np.log(pk_cb_class), kind='cubic',fill_value='extrapolate')
 
     for j in range(len(kk)):
         # if we did not overwrite the k-array we need to interpolate the k array
         kk_save[j]=kk[j]
-        pk_save[j]=np.exp(class_interpolation(np.log(kk[j])))
+        pk_save[j]=np.exp(class_pk_interpolation(np.log(kk[j])))
+        pk_cb_save[j]=np.exp(class_pk_cb_interpolation(np.log(kk[j])))
 
     cl_lensed["pk"]=pk_save
+    cl_lensed["pk_cb"]=pk_cb_save
     cl_lensed["kk"]=kk_save
 
     cosmo.struct_cleanup()
     del cosmo
     return params,cl_lensed,cl_raw
-
-
-def interpolate_pk(k_net,k_class_array,pk_class_array):
-
-    pk_net = 0
-    return pk_net
-

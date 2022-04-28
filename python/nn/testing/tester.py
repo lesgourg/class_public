@@ -97,8 +97,8 @@ class Tester:
         chisq_list = np.array(chisq_list)
 
         # spectra which should be plotted
-        #spectra = ['tt','ee','bb','te','tp','pp','pk']
-        spectra = ['pk']
+        spectra = ['tt','ee','bb','te','tp','pp','pk','pk_cb']
+        #spectra = ['pk','pk_cb']
 
         # list of comological parameters which are to investigated
         cosmo_parameters = domain.parameter_names()
