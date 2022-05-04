@@ -240,6 +240,7 @@ class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshi
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
 class_precision_parameter(k_max_tau0_over_l_max,double,2.4) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
+class_precision_parameter(k_max_tau0_over_l_max_gwb,double,12.0) /**< number defining k_max for the computation of gwCl's (dimensionless): (k_max tau_0)/l_max, usually chosen five times of k_max_tau0_over_l_max */
 class_precision_parameter(k_step_sub,double,0.05) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
 class_precision_parameter(k_step_super,double,0.002) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */
 class_precision_parameter(k_step_transition,double,0.2) /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
