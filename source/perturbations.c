@@ -1564,7 +1564,7 @@ int perturbations_timesampling_for_sources(
   double tau_lower;
   double tau_upper;
   double tau_mid;
-  double tau_ini_gwb; /*< initial time if only GWB is condisered */
+  double tau_ini_gwb; /*< initial time if GWB is requested */
 
   double timescale_source;
   double rate_thermo;
@@ -1726,9 +1726,9 @@ int perturbations_timesampling_for_sources(
                ppt->error_message);
   }
 
-  if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: Okay to implement in this way? - Tests are convergent wrt. step_size
+  if (ppt->has_source_gwb == _TRUE_) {
 
-    /* calculate tau_ini_gwb */
+    /* calculate ppt->tau_ini_gwb */
     if (ppt->z_ini_gwb != 0.) {
       background_tau_of_z(pba, ppt->z_ini_gwb, &tau_ini_gwb);
       ppt->tau_ini_gwb = tau_ini_gwb;
@@ -1824,7 +1824,41 @@ int perturbations_timesampling_for_sources(
 
     }
 
-    tau_ini_gwb = ppt->tau_ini_gwb;
+    /** set the initial time either to physical time tau_ini_gwb or precision parameter for the sources to be convergent */
+    tau_ini_gwb = ppr->start_sources_at_tau_gwb;
+    if (ppt->tau_ini_gwb != 0.) {
+      if (ppt->tau_ini_gwb < tau_ini_gwb)
+        tau_ini_gwb = ppt->tau_ini_gwb;
+      
+      /* calculate z_ini_gwb, T_ini_gwb and set values of first_index_back/thermo */
+      class_call(background_at_tau(pba,
+                                    ppt->tau_ini_gwb,
+                                    short_info,
+                                    inter_normal,
+                                    &first_index_back,
+                                    pvecback),
+                  pba->error_message,
+                  ppt->error_message);
+      ppt->z_ini_gwb = 1./pvecback[pba->index_bg_a]-1.;  /* redshift z=1/a-1 */
+
+      class_call(thermodynamics_at_z(pba,
+                                      pth,
+                                      ppt->z_ini_gwb,
+                                      inter_normal,
+                                      &first_index_thermo,
+                                      pvecback,
+                                      pvecthermo),
+                  pth->error_message,
+                  ppt->error_message);
+
+      ppt->T_ini_gwb = pvecthermo[pth->index_th_Tb];
+
+      if (ppt->perturbations_verbose > 0) {
+        printf(" -> The GWB is created at tau_ini_gwb=%g Mpc <=> z_ini_gwb=%g <=> T_ini_gwb=%g K \n",
+                ppt->tau_ini_gwb, ppt->z_ini_gwb, ppt->T_ini_gwb);
+      }
+    }
+    
     class_test(tau_ini_gwb < pba->tau_table[0],
                 ppt->error_message,
                 "your choice of initial time for GWB sources is inappropriate: it corresponds to an earlier time than the one at which the integration of background variables started (tau=%g). You should either increase 'tau_ini_gwb' or decrease 'a_ini_over_a_today_default'\n",
@@ -1834,52 +1868,6 @@ int perturbations_timesampling_for_sources(
                 "your choice of initial time for GWB sources is inappropriate: it corresponds to a time after today (tau=%g). You should decrease 'tau_ini_gwb'\n",
                 pba->conformal_age);
 
-    /* calculate z_ini_gwb, T_ini_gwb and set values of first_index_back/thermo */
-    class_call(background_at_tau(pba,
-                                  tau_ini_gwb,
-                                  short_info,
-                                  inter_normal,
-                                  &first_index_back,
-                                  pvecback),
-                pba->error_message,
-                ppt->error_message);
-    ppt->z_ini_gwb = 1./pvecback[pba->index_bg_a]-1.;  /* redshift z=1/a-1 */
-
-    class_call(thermodynamics_at_z(pba,
-                                    pth,
-                                    ppt->z_ini_gwb,
-                                    inter_normal,
-                                    &first_index_thermo,
-                                    pvecback,
-                                    pvecthermo),
-                pth->error_message,
-                ppt->error_message);
-
-    ppt->T_ini_gwb = pvecthermo[pth->index_th_Tb];
-
-    if (ppt->perturbations_verbose > 0) {
-      printf(" -> The GWB is created at tau_ini_gwb=%g Mpc <=> z_ini_gwb=%g <=> T_ini_gwb=%g K \n",
-              ppt->tau_ini_gwb, ppt->z_ini_gwb, ppt->T_ini_gwb);
-    }
-
-    if (tau_ini_gwb < tau_ini) {
-
-      if (ppt->perturbations_verbose > 0) {
-        printf(" -> evolution starts at tau_ini_gwb=%g Mpc \n", tau_ini_gwb);
-      }
-
-      /* values of first_index_back/thermo already set before*/
-
-    }
-    else {
-
-      if (ppt->perturbations_verbose > 0) {
-        printf(" -> evolution starts at tau_ini=%g Mpc \n", tau_ini);
-      }
-
-      /* be aware, values of first_index_back/thermo already overwriten before*/
-
-    }
   }
 
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:
