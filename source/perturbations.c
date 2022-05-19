@@ -7727,7 +7727,7 @@ int perturbations_sources(
         switch_gwb_isw = 0;
       }
 
-      //GWB ISW only start after tau_ini_gwb //TODO_GWB: Ok like this?
+      //GWB only start after tau_ini_gwb
       if (tau < ppt->tau_ini_gwb) {
         switch_gwb_isw = 0;
       }
@@ -8134,7 +8134,11 @@ int perturbations_sources(
 
     /* tensor gwb */
     if (ppt->has_source_gwb == _TRUE_) { //TODO_GWB: check the prefactors
-      _set_source_(ppt->index_tp_gwb2) = - y[ppw->pv->index_pt_gwdot];
+      //GWB only start after tau_ini_gwb
+      if (tau < ppt->tau_ini_gwb) {
+        switch_gwb_isw = 0; //reuse switch for ISW
+      }
+      _set_source_(ppt->index_tp_gwb2) = -switch_gwb_isw * y[ppw->pv->index_pt_gwdot];
     }
 
     /* tensor polarization */

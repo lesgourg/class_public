@@ -4841,7 +4841,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         class_call(parser_read_string(pfc,"k_gwb",&string1,&flag2,errmsg),
                     errmsg,
                     errmsg);
-        class_test((flag1 == _TRUE_) && (flag2 == _TRUE_), errmsg, "Only one of gwb_conversion_factor and k_gwb can be given!")
+        class_test((flag1 == _TRUE_) && (flag2 == _TRUE_), errmsg, "Only one of gwb_conversion_factor and k_gwb can be given!");
         if ((flag2 == _TRUE_) && !((strstr(string1,"k_pivot") != NULL) || (strstr(string1,"k pivot") != NULL))){
           class_read_double("k_gwb",ppm->k_gwb);
         }
@@ -4864,6 +4864,10 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
     /** 4.b) Fraction of decoupled relativistic particles at time of GWB generation  */
     class_read_double("f_dec",pba->f_dec);
+    class_test(
+      (pba->f_dec != -1) && ((ppt->tau_ini_gwb != 0.) || (ppt->z_ini_gwb != 0.) || (ppt->T_ini_gwb != 0.)),
+      errmsg,
+      "You can not use f_dec if the intial time tau_ini_gwb (z_ini_gwb, T_ini_gwb) is specified!"); //TODO_GWB: Should this be a warning or an error?
   }
 
   return _SUCCESS_;
@@ -5921,7 +5925,7 @@ int input_default_params(struct background *pba,
   /** 2.a.1) Primordial spectrum type of GWB */
   ppm->primordial_gwb_spec_type = scalar_Pk_gwb;
   /** 2.a.2) inital time for GWB*/
-  ppt->tau_ini_gwb=0.1;
+  ppt->tau_ini_gwb=0.;
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
   
