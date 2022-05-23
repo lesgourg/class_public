@@ -1843,7 +1843,7 @@ int input_read_parameters_general(struct file_content * pfc,
                  errmsg,
                  errmsg);
       class_test(flag1==_FALSE_,
-                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','pisw','eisw','lisw','ini'}, you entered '%s'",string1);
+                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw', 'ad','pisw','eisw','lisw','ini'}, you entered '%s'",string1);
       class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_ad == 0) && (ppt->switch_gwb_pisw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
                  errmsg,
                  "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','ad','pisw','eisw','lisw','ini'}.",string1);
