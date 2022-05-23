@@ -1828,13 +1828,7 @@ int perturbations_timesampling_for_sources(
       ppt->tau_ini_gwb = tau_mid;
 
     }
-
-    /** set the initial time either to physical time tau_ini_gwb or precision parameter for the sources to be convergent */
-    tau_ini_gwb = ppr->start_sources_at_tau_gwb;
     if (ppt->tau_ini_gwb != 0.) {
-      if (ppt->tau_ini_gwb < tau_ini_gwb)
-        tau_ini_gwb = ppt->tau_ini_gwb;
-      
       /* calculate z_ini_gwb, T_ini_gwb and set values of first_index_back/thermo */
       class_call(background_at_tau(pba,
                                     ppt->tau_ini_gwb,
@@ -1864,14 +1858,17 @@ int perturbations_timesampling_for_sources(
       }
     }
     
-    class_test(tau_ini_gwb < pba->tau_table[0],
+
+    /** set the initial time either to physical time tau_ini_gwb or precision parameter for the sources to be convergent */
+    tau_ini_gwb = ppr->start_sources_at_tau_gwb;
+    if ((ppt->tau_ini_gwb != 0.) && (ppt->tau_ini_gwb < tau_ini_gwb))
+      tau_ini_gwb = ppt->tau_ini_gwb;
+    class_test(tau_ini_gwb < 1.e-2,
                 ppt->error_message,
-                "your choice of initial time for GWB sources is inappropriate: it corresponds to an earlier time than the one at which the integration of background variables started (tau=%g). You should either increase 'tau_ini_gwb' or decrease 'a_ini_over_a_today_default'\n",
-                pba->tau_table[0]);
-    class_test(tau_ini_gwb > pba->conformal_age,
+                "your choice of initial time for GWB sources is inappropriate: for times 'tau_ini < 1e-2 Mpc' the evolver diverges. You should increase 'tau_ini_gwb' or set it to 0 (uses earliest possible time).\n");
+    class_test(tau_ini_gwb > 1.,
                 ppt->error_message,
-                "your choice of initial time for GWB sources is inappropriate: it corresponds to a time after today (tau=%g). You should decrease 'tau_ini_gwb'\n",
-                pba->conformal_age);
+                "your choice of initial time for GWB sources is inappropriate: for times 'tau_ini > 1 Mpc' the initial conditions are unstable. You should decrease the precision parameter 'start_sources_at_tau_gwb'.\n");
 
   }
 

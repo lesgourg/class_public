@@ -279,7 +279,13 @@ class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h,double,0.015)
 class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k,double,0.01)
 
 class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
-class_precision_parameter(start_sources_at_tau_gwb,double,0.1) /**< conformal time in Mpc to start the sampling of the sources if the GWB is requested (needed because the Newtonian gauge has a problem) */
+
+/**
+ * conformal time in Mpc to start the sampling of the sources if the GWB is requested.
+ * !!! Do not change this parameter!!!
+ * For earlier times the evolver diverges, for later times the inital conditions are unstable.
+ */
+class_precision_parameter(start_sources_at_tau_gwb,double,0.1)
 
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
 

@@ -4814,12 +4814,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
   /** 4) Gravitational Wave Background */
   if (ppt->has_cl_gwb == _TRUE_) {
-    //set evolover to rk
-    ppr->evolver = rk;
-    if (input_verbose > 1) {
-      fprintf(stdout,"The evolver is changed to 'rk' because the GWB is requested\n");
-    }
-
     /** 4.a) Convert GWB to energy density  */
     /* Read */
     flag1 = _FALSE_;
