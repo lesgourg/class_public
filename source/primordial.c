@@ -3520,6 +3520,11 @@ int primordial_external_spectrum_init(
              "The program failed to set the environment for the external command. Maybe you ran out of memory.");
   /* Read output and store it */
   while (fgets(line, sizeof(line)-1, process) != NULL) {
+    /* Skip comments */
+    while (line[0] == '#') {
+      fgets(line, sizeof(line)-1, process);
+    }
+
     if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
       if (ppt->has_tensors == _TRUE_) {
         sscanf(line, "%lf %lf %lf %lf", &this_k, &this_pks, &this_pkgwb, &this_pkt);
