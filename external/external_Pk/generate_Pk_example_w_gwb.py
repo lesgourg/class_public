@@ -22,6 +22,7 @@ try :
     n_t           = float(sys.argv[5])
     A_gwb         = float(sys.argv[6])
     n_gwb         = float(sys.argv[7])
+    c_ad_gwb      = float(sys.argv[8])
 
 # Error control, no need to touch
 except IndexError :
@@ -61,5 +62,5 @@ while ks[-1] <= float(k_max) :
 
 # Filling the array of Pk's
 for k in ks :
-    print("%.18g %.18g %.18g %.18g" % (k, P_s(k), P_gwb(k), P_t(k)))
+    print("%.18g %.18g %.18g %.18g %.18g" % (k, P_s(k), P_gwb(k), c_ad_gwb, P_t(k)))
 

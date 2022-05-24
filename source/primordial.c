@@ -413,6 +413,7 @@ int primordial_init(
   }
 
   /**  - deal with spectrum for GWB */
+
   if (ppt->has_gwb_ini == _TRUE_) {
     if (ppm->primordial_verbose > 0)
       printf("Computing primordial GWB spectra");
@@ -699,7 +700,7 @@ int primordial_init(
   
   if ((ppt->has_cl_gwb == _TRUE_) && (ppm->convert_gwb_to_energydensity == _TRUE_) && (ppm->gwb_conversion_factor == 0.)) {
     
-    /** - hande case if has_tensors = FLASE first as standart case */
+    /** - handle case for has_tensors = FLASE first as standart case */
     ppm->gwb_conversion_factor =  4. - ppm->n_t;
 
     if (ppt->has_tensors == _TRUE_)  {
@@ -3482,8 +3483,9 @@ int primordial_external_spectrum_init(
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   FILE *process;
   int n_data_guess, n_data = 0;
-  double *k = NULL, *pks = NULL, *pkgwb = NULL, *pkt = NULL, *tmp = NULL;
-  double this_k, this_pks, this_pkgwb, this_pkt;
+  double *k = NULL, *pks = NULL, *pkgwb = NULL, *crossgwb = NULL, *pkt = NULL, *tmp = NULL;
+  double this_k, this_pks, this_pkgwb, this_crossgwb, this_pkt;
+  short has_crossgwb = _FALSE_;
   int status;
   int index_k, index_ic1_ic2;
 
@@ -3492,8 +3494,10 @@ int primordial_external_spectrum_init(
   n_data_guess = 100;
   k   = (double *)malloc(n_data_guess*sizeof(double));
   pks = (double *)malloc(n_data_guess*sizeof(double));
-  if (ppm->primordial_gwb_spec_type == external_Pk_gwb)
+  if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
     pkgwb = (double *)malloc(n_data_guess*sizeof(double));
+    crossgwb = (double *)malloc(n_data_guess*sizeof(double));
+  }
   if (ppt->has_tensors == _TRUE_)
     pkt = (double *)malloc(n_data_guess*sizeof(double));
   /* Prepare the command */
@@ -3524,13 +3528,13 @@ int primordial_external_spectrum_init(
     while (line[0] == '#') {
       fgets(line, sizeof(line)-1, process);
     }
-
+    /* Read values */
     if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
       if (ppt->has_tensors == _TRUE_) {
-        sscanf(line, "%lf %lf %lf %lf", &this_k, &this_pks, &this_pkgwb, &this_pkt);
+        sscanf(line, "%lf %lf %lf %lf %lf", &this_k, &this_pks, &this_pkgwb, &this_crossgwb, &this_pkt);
       }
       else {
-        sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkgwb);
+        sscanf(line, "%lf %lf %lf %lf", &this_k, &this_pks, &this_pkgwb, &this_crossgwb);
       }
     }
     else {
@@ -3561,6 +3565,11 @@ int primordial_external_spectrum_init(
                    ppm->error_message,
                    "Error allocating memory to read the external spectrum.\n");
         pkgwb = tmp;
+        tmp = (double *)realloc(crossgwb, n_data_guess*sizeof(double));
+        class_test(tmp == NULL,
+                   ppm->error_message,
+                   "Error allocating memory to read the external spectrum.\n");
+        crossgwb = tmp;
       };
       if (ppt->has_tensors == _TRUE_) {
         tmp = (double *)realloc(pkt, n_data_guess*sizeof(double));
@@ -3575,6 +3584,7 @@ int primordial_external_spectrum_init(
     pks[n_data]   = this_pks;
     if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
       pkgwb[n_data] = this_pkgwb;
+      crossgwb[n_data] = this_crossgwb;
     }
     if (ppt->has_tensors == _TRUE_) {
       pkt[n_data] = this_pkt;
@@ -3639,6 +3649,9 @@ int primordial_external_spectrum_init(
     if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
       index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
       ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pkgwb[index_k]);
+      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+      ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = crossgwb[index_k];
+      has_crossgwb = (crossgwb[index_k] != 0.) || has_crossgwb; /* update for ppm->is_non_zero */
     }
     if (ppt->has_tensors == _TRUE_)
       ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
@@ -3653,8 +3666,10 @@ int primordial_external_spectrum_init(
   /** - Release the memory used locally */
   free(k);
   free(pks);
-  if (ppm->primordial_gwb_spec_type == external_Pk_gwb)
+  if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
     free(pkgwb);
+    free(crossgwb);
+  }
   if (ppt->has_tensors == _TRUE_)
     free(pkt);
   /** - Tell CLASS that there are scalar (and tensor) modes */
@@ -3663,6 +3678,8 @@ int primordial_external_spectrum_init(
   if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
     index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
     ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+    ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = has_crossgwb;
   }
   if (ppt->has_tensors == _TRUE_)
     ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
