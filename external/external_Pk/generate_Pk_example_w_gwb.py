@@ -61,6 +61,8 @@ while ks[-1] <= float(k_max) :
     ks.append(ks[-1]*10.**(1./float(k_per_decade_primordial)))
 
 # Filling the array of Pk's
+print("# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k)")
+print("# k [1/Mpc]                P_scalar(k)                P_gwb(k)                   ad x gwb                   P_tensor(k)")
 for k in ks :
-    print("%.18g %.18g %.18g %.18g %.18g" % (k, P_s(k), P_gwb(k), c_ad_gwb, P_t(k)))
+    print("%.18e   %.18e   %.18e   %.18e   %.18e" % (k, P_s(k), P_gwb(k), c_ad_gwb, P_t(k)))
 
