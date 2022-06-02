@@ -4797,7 +4797,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
     ppt->tau_ini_gwb = 0.;
     ppt->z_ini_gwb = 0.;
     ppt->T_ini_gwb = 0.;
-    pba->f_dec = -1.;
+    pba->f_dec_ini = -1.;
     if (flag1 == _TRUE_)
       ppt->tau_ini_gwb = param1;
     if (flag2 == _TRUE_)
@@ -4805,7 +4805,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
     if (flag3 == _TRUE_)
       ppt->T_ini_gwb = param3;
     if (flag4 == _TRUE_)
-      pba->f_dec = param4; //TODO_GWB: Change variable name.
+      pba->f_dec_ini = param4;
 
 
     /** 4.b) Convert GWB to energy density  */
@@ -5967,7 +5967,7 @@ int input_default_params(struct background *pba,
   ppt->tau_ini_gwb=0.;
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
-  pba->f_dec=-1; // f_dec = -1 means not to consider the effect!
+  pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
   /** 4.b) Convert GWB to energy density */
   ppm->convert_gwb_to_energydensity=_FALSE_;
   /** 4.b.1) Parameters for conversion */

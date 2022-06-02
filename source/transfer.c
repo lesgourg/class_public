@@ -2427,7 +2427,7 @@ int transfer_sources(
         }
 
         sources[0] = (-ppt->switch_gwb_pisw) 
-                      * interpolated_sources[index_tau] * ((1. + 2./5. * pba->f_dec) / (1. + 4./15. * pba->f_dec)) / ((1. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)) //phi(tau_ini)
+                      * interpolated_sources[index_tau] * ((1. + 2./5. * pba->f_dec_ini) / (1. + 4./15. * pba->f_dec_ini)) / ((1. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)) //phi(tau_ini)
                       + (ppt->switch_gwb_pisw + ppt->switch_gwb_eisw)
                       * interpolated_sources[index_tau]; //phi(tau_BBN)
 
@@ -2452,7 +2452,7 @@ int transfer_sources(
         }
 
         sources[0] = (ppt->switch_gwb_sw - 0.5 * ppt->switch_gwb_ad - ppt->switch_gwb_pisw)
-                      * interpolated_sources[index_tau] * (1. + 4./15. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec) //psi(tau_ini)
+                      * interpolated_sources[index_tau] * (1. + 4./15. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_ini) //psi(tau_ini)
                       + (ppt->switch_gwb_pisw - ppt->switch_gwb_eisw)
                       * interpolated_sources[index_tau]; //psi(tau_BBN)
 
