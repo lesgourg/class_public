@@ -86,7 +86,7 @@ int primordial_spectrum_at_k(
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
-    class_test((ppm->primordial_gwb_spec_type != analytic_Pk_gwb) || (ppm->primordial_gwb_spec_type != scalar_Pk_gwb),
+    class_test((ppm->gwb_source_type != analytic_gwb) || (ppm->gwb_source_type != scalar_gwb),
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
@@ -440,7 +440,7 @@ int primordial_init(
       printf("Computing primordial GWB spectra");
 
     /** - deal with case of analytic primordial GWB spectrum */
-    if (ppm->primordial_gwb_spec_type == analytic_Pk_gwb) {
+    if (ppm->gwb_source_type == analytic_gwb) {
 
       if (ppm->primordial_verbose > 0)
         printf(" (analytic spectrum)\n");
@@ -514,7 +514,7 @@ int primordial_init(
       }
     }
 
-    else if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+    else if (ppm->gwb_source_type == external_gwb) {
       /** - the gwb spectrum is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init*/
 
       if (ppm->primordial_verbose > 0)
@@ -675,7 +675,7 @@ int primordial_init(
 
   }
 
-  if ((ppt->has_gwb_ini == _TRUE_) && (ppm->primordial_gwb_spec_type != analytic_Pk_gwb))  {
+  if ((ppt->has_gwb_ini == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
 
     dlnk = log(10.)/ppr->k_per_decade_primordial;
 
@@ -783,7 +783,7 @@ int primordial_free(
 
   if (ppm->lnk_size > 0) {
 
-    if ((ppm->primordial_spec_type == analytic_Pk) || (ppm->primordial_gwb_spec_type == analytic_Pk_gwb)) {
+    if ((ppm->primordial_spec_type == analytic_Pk) || (ppm->gwb_source_type == analytic_gwb)) {
       for (index_md = 0; index_md < ppm->md_size; index_md++) {
         free(ppm->amplitude[index_md]);
         free(ppm->tilt[index_md]);
@@ -3564,7 +3564,7 @@ int primordial_external_spectrum_init(
   n_data_guess = 100;
   k   = (double *)malloc(n_data_guess*sizeof(double));
   pks = (double *)malloc(n_data_guess*sizeof(double));
-  if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+  if (ppm->gwb_source_type == external_gwb) {
     pkgwb = (double *)malloc(n_data_guess*sizeof(double));
     crossgwb = (double *)malloc(n_data_guess*sizeof(double));
   }
@@ -3599,7 +3599,7 @@ int primordial_external_spectrum_init(
       fgets(line, sizeof(line)-1, process);
     }
     /* Read values */
-    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+    if (ppm->gwb_source_type == external_gwb) {
       if (ppt->has_tensors == _TRUE_) {
         sscanf(line, "%lf %lf %lf %lf %lf", &this_k, &this_pks, &this_pkgwb, &this_crossgwb, &this_pkt);
       }
@@ -3629,7 +3629,7 @@ int primordial_external_spectrum_init(
                  ppm->error_message,
                  "Error allocating memory to read the external spectrum.\n");
       pks = tmp;
-      if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+      if (ppm->gwb_source_type == external_gwb) {
         tmp = (double *)realloc(pkgwb, n_data_guess*sizeof(double));
         class_test(tmp == NULL,
                    ppm->error_message,
@@ -3652,7 +3652,7 @@ int primordial_external_spectrum_init(
     /* Store */
     k  [n_data]   = this_k;
     pks[n_data]   = this_pks;
-    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+    if (ppm->gwb_source_type == external_gwb) {
       pkgwb[n_data] = this_pkgwb;
       crossgwb[n_data] = this_crossgwb;
     }
@@ -3716,7 +3716,7 @@ int primordial_external_spectrum_init(
     ppm->lnk[index_k] = log(k[index_k]);
     index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
     ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pks[index_k]);
-    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+    if (ppm->gwb_source_type == external_gwb) {
       index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
       ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pkgwb[index_k]);
       index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
@@ -3736,7 +3736,7 @@ int primordial_external_spectrum_init(
   /** - Release the memory used locally */
   free(k);
   free(pks);
-  if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+  if (ppm->gwb_source_type == external_gwb) {
     free(pkgwb);
     free(crossgwb);
   }
@@ -3745,7 +3745,7 @@ int primordial_external_spectrum_init(
   /** - Tell CLASS that there are scalar (and tensor) modes */
   index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
   ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
-  if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+  if (ppm->gwb_source_type == external_gwb) {
     index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
     ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
     index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);

@@ -1918,7 +1918,7 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
-        /* index_ic_gwb and has_gwb_ini is handled by Pk_gwb_ini_type
+        /* index_ic_gwb and has_gwb_ini is handled by gwb_source_type //TODO_GWB
         // if ((strstr(string1,"gwb") != NULL) || (strstr(string1,"GWB") != NULL)){
         //   ppt->has_gwb_ini=_TRUE_;
         // }
@@ -4362,41 +4362,41 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
 
   /** 2) Primordial/Initial spectrum of the Graviational Wave Background (GWB) */
-  if (ppt->has_cl_gwb == _TRUE_) {
+  if (ppt->has_cl_gwb == _TRUE_) { //TODO_GWB: rewrite this part!
     /** 2.a) General parameters*/
     /** 2.a.1) Primordial spectrum type of the GWB*/
     /* Read */
-    class_call(parser_read_string(pfc,"Pk_gwb_ini_type",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"gwb_source_type",&string1,&flag1,errmsg),
               errmsg,
               errmsg);
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
-      if (strcmp(string1,"scalar_Pk") == 0){
-        ppm->primordial_gwb_spec_type = scalar_Pk_gwb;
+      if (strcmp(string1,"analytic_Pk") == 0){
+        ppm->gwb_source_type = analytic_gwb;
       }
-      else if (strcmp(string1,"analytic_Pk") == 0){
-        ppm->primordial_gwb_spec_type = analytic_Pk_gwb;
+      else if (strcmp(string1,"scalar_Pk") == 0){
+        ppm->gwb_source_type = scalar_gwb;
       }
       else if (strcmp(string1,"external_Pk") == 0){
-        ppm->primordial_gwb_spec_type = external_Pk_gwb;
+        ppm->gwb_source_type = external_gwb;
       }
       else{
         class_stop(errmsg,
-                  "You specified 'Pk_gwb_ini_type' as '%s'. It has to be one of {'scalar_Pk, analytic_Pk, external_Pk'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_Pk, scalar_Pk, external_Pk'}.",string1);
       }
     }
     /* activate gwb_ini: index_ic_gwb */
-    if (ppm->primordial_gwb_spec_type != scalar_Pk_gwb) {
+    if (ppm->gwb_source_type != scalar_gwb) {
         ppt->has_gwb_ini=_TRUE_;
     }
     /* Test */
-    if (ppm->primordial_gwb_spec_type == external_Pk_gwb) {
+    if (ppm->gwb_source_type == external_gwb) {
       class_test(ppm->primordial_spec_type != external_Pk,errmsg,
                  "To use the external_Pk for the GWB you must use the external_Pk for all modes!");
     }
 
     /** 2.c) For type 'analytic_Pk' */
-    if (ppm->primordial_gwb_spec_type == analytic_Pk_gwb) {
+    if (ppm->gwb_source_type == analytic_gwb) {
       /** 2.c.1) Amplitude */
       class_read_double("A_gwb",ppm->A_gwb);
       /** 2.c.2) Spectral index */
@@ -5902,7 +5902,7 @@ int input_default_params(struct background *pba,
   /** 2) Primordial/Inital spectrum of GWB */
   /** 2.a) General parameters */
   /** 2.a.1) Primordial spectrum type of GWB */
-  ppm->primordial_gwb_spec_type = scalar_Pk_gwb;
+  ppm->gwb_source_type = scalar_gwb;
   /** 2.a.2) inital time for GWB*/
 
   /** 2.c) For type 'analytic_Pk' */

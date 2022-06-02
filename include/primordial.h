@@ -16,12 +16,12 @@ enum primordial_spectrum_type {
   external_Pk
 };
 
-/** enum defining how the primordial GWB spectrum should be computed */
+/** enum defining how the GWB energy density and inital spectrum should be computed */
 
-enum primordial_gwb_spectrum_type {
-  scalar_Pk_gwb,
-  analytic_Pk_gwb,
-  external_Pk_gwb
+enum gwb_source_type {
+  analytic_gwb,
+  scalar_gwb, //TODO_GWB: remove, but usefull template for later
+  external_gwb
 };
 
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
@@ -206,8 +206,8 @@ struct primordial {
   double custom9;  /**< one parameter of the primordial computed in 'external_Pk' */
   double custom10; /**< one parameter of the primordial computed in 'external_Pk' */
 
-  /* - parameters describing the intial GWB spectrum */
-  enum primordial_gwb_spectrum_type primordial_gwb_spec_type; /**< type of primordial GWB spectrum */
+  /* - parameters describing the GWB background energy density and intial spectrum */
+  enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
   
   double gwb_ini_scalar; /**< proportionality factor between inital GWB spectrum and scalar spectrum*/
   
