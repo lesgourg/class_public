@@ -209,7 +209,7 @@ struct primordial {
   /* - parameters describing the intial GWB spectrum */
   enum primordial_gwb_spectrum_type primordial_gwb_spec_type; /**< type of primordial GWB spectrum */
   
-  double gwb_ini_scalar; /**< propotionality factor between the initial GWB spectrum and the scalar spectrum */
+  double gwb_ini_scalar; /**< proportionality factor between inital GWB spectrum and scalar spectrum*/
   
   double A_gwb;  /**< Amplitude for GWB inital spectrum*/
   double n_gwb;  /**< Spectral index for GWB intial spectrum*/
@@ -236,9 +236,9 @@ struct primordial {
   double alpha_gwb_niv; /**< GWBxNIV cross-correlation running */
 
   /* - parameters for converting the GWB to the energy density */
-  int convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
+  short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
   double gwb_conversion_factor;  /**< factor for conversion of the GWB to energy desnity */
-  double k_gwb;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
+  double f_obs;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

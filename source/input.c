@@ -4833,11 +4833,11 @@ int input_read_parameters_spectra(struct file_content * pfc,
       /* Complete set of parameters */
       if (flag1 == _TRUE_){
         ppm->gwb_conversion_factor = param1;
-        ppm->k_gwb = 0.; //TODO_GWB: Change parameter
+        ppm->f_obs = 0.;
       }
       if (flag2 == _TRUE_){
         ppm->gwb_conversion_factor = 0.;
-        ppm->k_gwb = param2;
+        ppm->f_obs = param2;
       }      
     }
 
@@ -5972,8 +5972,8 @@ int input_default_params(struct background *pba,
   ppm->convert_gwb_to_energydensity=_FALSE_;
   /** 4.b.1) Parameters for conversion */
   ppm->gwb_conversion_factor = 0.;
-  ppm->k_gwb = 0.; //TODO: Change parameter and give a good standard value
-  /** 4.c) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+  ppm->f_obs = 1e-3;
+  /** 4.c) proportionality factor between inital GWB spectrum and scalar spectrum  */
   ppm->gwb_ini_scalar=0.;
 
   /**

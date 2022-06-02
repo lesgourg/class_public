@@ -699,11 +699,18 @@ int primordial_init(
   /** - derive conversion factor for GWB to energy density */
   
   if ((ppt->has_cl_gwb == _TRUE_) && (ppm->convert_gwb_to_energydensity == _TRUE_) && (ppm->gwb_conversion_factor == 0.)) {
-    
-    /** - handle case for has_tensors = FLASE first as standart case */
+    //TODO_GWB: Change this section to use OmGW
+
+    /** - handle case for 'has_tensors = FLASE'*/
     ppm->gwb_conversion_factor =  4. - ppm->n_t;
+  
+    /* calculate k_obs: f_obs = 1 /(2 pi) * k/a_0 with a_0 = 1 in CLASS */
+    k =  2. * _PI_ * ppm->f_obs; //TODO_GWB: forgott facotrs of c and Mpc!
 
     if (ppt->has_tensors == _TRUE_)  {
+      class_test(log(k) >= ppm->lnk[ppm->lnk_size-2], ppm->error_message,"f_obs is to big to calculate gwb_conversion_factor in CLASS. Try giving 'gwb_conversion_factor' as input instead.")
+      class_test(log(k) <= ppm->lnk[1], ppm->error_message,"f_obs is to small to calculate gwb_conversion_factor in CLASS. Try giving 'gwb_conversion_factor' as input instead.")
+
       dlnk = log(10.)/ppr->k_per_decade_primordial;
 
       class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_tensors]*sizeof(double), ppt->error_message);
@@ -712,7 +719,7 @@ int primordial_init(
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_tensors,
                                           logarithmic,
-                                          log(ppm->k_gwb)+dlnk,
+                                          log(k)+dlnk,
                                           tmp),
                   ppm->error_message,
                   ppm->error_message);
@@ -721,7 +728,7 @@ int primordial_init(
       class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_tensors,
                                           logarithmic,
-                                          log(ppm->k_gwb)-dlnk,
+                                          log(k)-dlnk,
                                           tmp),
                   ppm->error_message,
                   ppm->error_message);
@@ -731,7 +738,7 @@ int primordial_init(
     }
 
     if (ppm->primordial_verbose > 0)
-      printf(" -> gwb_conversion_factor=%g <=> n_t=%g, calculated at k_gwb=%g 1/Mpc\n",ppm->gwb_conversion_factor,4.-ppm->gwb_conversion_factor,ppm->k_gwb);
+      printf(" -> gwb_conversion_factor=%g <=> n_t=%g, calculated at f_obs=%g Hz <=> k=%g 1/Mpc\n",ppm->gwb_conversion_factor,4.-ppm->gwb_conversion_factor,ppm->f_obs,k);
   }
 
   return _SUCCESS_;
