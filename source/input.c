@@ -1556,7 +1556,6 @@ int input_read_parameters(struct file_content * pfc,
 
   /** Read parameters for spectra quantities */
   class_call(input_read_parameters_spectra(pfc,ppr,pba,ppm,ppt,ptr,phr,pop,
-                                           input_verbose,
                                            errmsg),
              errmsg,
              errmsg);
@@ -3780,7 +3779,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2, flag3;
+  int flag1, flag2;
   double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_ARGUMENT_LENGTH_MAX_];
@@ -4393,44 +4392,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
                  "To use the external_Pk for the GWB you must use the external_Pk for all modes!");
     }
 
-    /** 2.a.2) Initial time for GWB in Mpc */
-    /* Read */
-    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"z_ini_gwb",&param2,&flag2,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
-                errmsg,
-                errmsg);
-    /* Test */
-    class_test(class_at_least_two_of_three(flag1, flag2, flag3),
-                errmsg,
-                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb or 'T_ini_gwb'.");
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_){
-      ppt->tau_ini_gwb = param1;
-      ppt->z_ini_gwb = 0.;
-      ppt->T_ini_gwb = 0.;
-    }
-    if (flag2 == _TRUE_){
-      ppt->tau_ini_gwb = 0.;
-      ppt->z_ini_gwb = param2;
-      ppt->T_ini_gwb = 0.;
-    }
-    if (flag3 == _TRUE_){
-      ppt->tau_ini_gwb = 0.;
-      ppt->z_ini_gwb = 0.;
-      ppt->T_ini_gwb = param3;
-    }
-
-    /** 2.b) For type 'scalar_Pk' */
-    if (ppm->primordial_gwb_spec_type == scalar_Pk_gwb) {
-      /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-      class_read_double("gwb_ini_scalar",ppm->gwb_ini_scalar);
-    }
-
     /** 2.c) For type 'analytic_Pk' */
     if (ppm->primordial_gwb_spec_type == analytic_Pk_gwb) {
       /** 2.c.1) Amplitude */
@@ -4500,14 +4461,13 @@ int input_read_parameters_spectra(struct file_content * pfc,
                                   struct transfer * ptr,
                                   struct harmonic *phr,
                                   struct output * pop,
-                                  int input_verbose,
                                   ErrorMsg errmsg){
 
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2;
-  double param1, param2;
+  int flag1, flag2, flag3, flag4;
+  double param1, param2, param3, param4;
   char string1[_ARGUMENT_LENGTH_MAX_];
   int int1;
   double * pointer1;
@@ -4814,54 +4774,75 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
   /** 4) Gravitational Wave Background */
   if (ppt->has_cl_gwb == _TRUE_) {
-    /** 4.a) Convert GWB to energy density  */
+
+    /** 4.a) Physical time of GWB production*/
+    /* Read */ //TODO_GWB: Can we further simplify this logic?
+    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"z_ini_gwb",&param2,&flag2,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"f_dec_ini",&param4,&flag4,errmsg),
+                errmsg,
+                errmsg);
+    /* Test */
+    class_test(class_at_least_two_of_four(flag1, flag2, flag3, flag4),
+                errmsg,
+                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb', 'T_ini_gwb' or 'f_dec_ini'.");
+    /* Complete set of parameters */
+    ppt->tau_ini_gwb = 0.;
+    ppt->z_ini_gwb = 0.;
+    ppt->T_ini_gwb = 0.;
+    pba->f_dec = -1.;
+    if (flag1 == _TRUE_)
+      ppt->tau_ini_gwb = param1;
+    if (flag2 == _TRUE_)
+      ppt->z_ini_gwb = param2;
+    if (flag3 == _TRUE_)
+      ppt->T_ini_gwb = param3;
+    if (flag4 == _TRUE_)
+      pba->f_dec = param4; //TODO_GWB: Change variable name.
+
+
+    /** 4.b) Convert GWB to energy density  */
     /* Read */
     flag1 = _FALSE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
     ppm->convert_gwb_to_energydensity = flag1;
     
-    /** 4.a.1) Parameter for conversion */
+    /** 4.b.1) Parameter for conversion */
     if (ppm->convert_gwb_to_energydensity == _TRUE_) {
-      /* Read gwb_conversion_factor*/
-      class_call(parser_read_string(pfc,"gwb_conversion_factor",&string1,&flag1,errmsg),
+      /* Read */
+      class_call(parser_read_double(pfc,"gwb_conversion_factor",&param1,&flag1,errmsg),
                   errmsg,
                   errmsg);
+      class_call(parser_read_double(pfc,"f_obs",&param2,&flag2,errmsg),
+                  errmsg,
+                  errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                errmsg,
+                "You can only enter one of 'gwb_conversion_factor' or 'f_obs'.");
+      class_test((flag2 == _TRUE_) && (ppt->has_tensors == _FALSE_),
+                errmsg,
+                "You can only enter 'f_obs' if you have tensor modes.");
+      /* Complete set of parameters */
       if (flag1 == _TRUE_){
-        class_read_double("gwb_conversion_factor",ppm->gwb_conversion_factor);
+        ppm->gwb_conversion_factor = param1;
+        ppm->k_gwb = 0.; //TODO_GWB: Change parameter
       }
-
-      /* Read k_gwb only if tensor modes are given*/
-      if (ppt->has_tensors) {
-        class_call(parser_read_string(pfc,"k_gwb",&string1,&flag2,errmsg),
-                    errmsg,
-                    errmsg);
-        class_test((flag1 == _TRUE_) && (flag2 == _TRUE_), errmsg, "Only one of gwb_conversion_factor and k_gwb can be given!");
-        if ((flag2 == _TRUE_) && !((strstr(string1,"k_pivot") != NULL) || (strstr(string1,"k pivot") != NULL))){
-          class_read_double("k_gwb",ppm->k_gwb);
-        }
-        else {
-          ppm->k_gwb = ppm->k_pivot; //set to k_pivot as a standart value.
-        }
-      }
-
-      /* Print the conversion method */
-      if (input_verbose > 1) {
-        if (ppm->gwb_conversion_factor == 0.) {
-          fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with gwb_conversion_factor=(4 - n_t), calculated at k_gwb=%g 1/Mpc\n", ppm->k_gwb);
-        }
-        else {
-          fprintf(stdout,"The GWB spectrum is given in terms of the energy density 'delta_{GW}' by a multiplication with gwb_conversion_factor=%g\n", ppm->gwb_conversion_factor);
-        }
-      }
-
+      if (flag2 == _TRUE_){
+        ppm->gwb_conversion_factor = 0.;
+        ppm->k_gwb = param2;
+      }      
     }
 
-    /** 4.b) Fraction of decoupled relativistic particles at time of GWB generation  */
-    class_read_double("f_dec",pba->f_dec);
-    class_test(
-      (pba->f_dec != -1) && ((ppt->tau_ini_gwb != 0.) || (ppt->z_ini_gwb != 0.) || (ppt->T_ini_gwb != 0.)),
-      errmsg,
-      "You can not use f_dec if the intial time tau_ini_gwb (z_ini_gwb, T_ini_gwb) is specified!"); //TODO_GWB: Should this be a warning or an error?
+    /** 4.c) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+    class_read_double("gwb_ini_scalar",ppm->gwb_ini_scalar);
   }
 
   return _SUCCESS_;
@@ -5564,7 +5545,7 @@ int input_default_params(struct background *pba,
   ppt->switch_gwb_pisw = 1;
   ppt->switch_gwb_eisw = 1;
   ppt->switch_gwb_lisw = 1;
-  ppt->switch_gwb_ini = 1;
+  ppt->switch_gwb_ini = 0; // Inital contribution is turned off by default
 
   /** 2) Perturbed recombination */
   ppt->has_perturbed_recombination=_FALSE_;
@@ -5919,13 +5900,6 @@ int input_default_params(struct background *pba,
   /** 2.a.1) Primordial spectrum type of GWB */
   ppm->primordial_gwb_spec_type = scalar_Pk_gwb;
   /** 2.a.2) inital time for GWB*/
-  ppt->tau_ini_gwb=0.;
-  ppt->z_ini_gwb=0.;
-  ppt->T_ini_gwb=0.;
-  
-  /** 2.b) For type 'scalar_Pk' */
-  /** 2.b.1) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-  ppm->gwb_ini_scalar=0.;
 
   /** 2.c) For type 'analytic_Pk' */
   /** 2.c.1) Amplitude */
@@ -5989,13 +5963,18 @@ int input_default_params(struct background *pba,
   ppt->z_max_pk=0.;
 
   /** 4) Gravitational Wave Background */
-  /** 4.a) Convert GWB to energy density */
+  /** 4.a) Physical time of GWB production */
+  ppt->tau_ini_gwb=0.;
+  ppt->z_ini_gwb=0.;
+  ppt->T_ini_gwb=0.;
+  pba->f_dec=-1; // f_dec = -1 means not to consider the effect!
+  /** 4.b) Convert GWB to energy density */
   ppm->convert_gwb_to_energydensity=_FALSE_;
-  /** 4.a.1) Parameters for conversion */
+  /** 4.b.1) Parameters for conversion */
   ppm->gwb_conversion_factor = 0.;
-  ppm->k_gwb = 0.05;
-  /** 4.b) Fraction of decoupled relativistic particles at time of GWB generation */
-  pba->f_dec=-1; //standart is not to consider the effect!
+  ppm->k_gwb = 0.; //TODO: Change parameter and give a good standard value
+  /** 4.c) propotrionality factor between inital GWB spectrum and scalar spectrum  */
+  ppm->gwb_ini_scalar=0.;
 
   /**
    * Default to input_read_parameters_lensing
