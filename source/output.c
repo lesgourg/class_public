@@ -169,6 +169,15 @@ int output_init(
 
   }
 
+  /** - deal with Omega_GW */
+
+  if (ppt->has_omega_gwb) {
+
+    class_call(output_omega_gw(ppt,ppm,pop),
+               pop->error_message,
+               pop->error_message);
+
+  }
   /** - deal with background quantities */
 
   if (pop->write_background == _TRUE_) {
@@ -1249,6 +1258,50 @@ int output_primordial(
   class_open(out,file_name,"w",pop->error_message);
   if (pop->write_header == _TRUE_) {
     fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
+  }
+
+  output_print_data(out,
+                    titles,
+                    data,
+                    size_data);
+
+  free(data);
+  fclose(out);
+
+  return _SUCCESS_;
+}
+
+int output_omega_gw(
+                      struct perturbations * ppt,
+                      struct primordial * ppm,
+                      struct output * pop
+                      ) {
+  //TODO_GWB: simplify this output, more in line with Cl output
+  FileName file_name;
+  FILE * out;
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
+
+  sprintf(file_name,"%s%s",pop->root,"OmegaGW.dat");
+
+  class_call(primordial_output_titles_omega_gw(ppt,ppm,titles),
+             ppm->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*ppm->lnf_size;
+  class_alloc(data,sizeof(double)*size_data,pop->error_message);
+  class_call(primordial_output_omega_gw(ppt,
+                                        ppm,
+                                        number_of_titles,
+                                        data),
+             ppm->error_message,
+             pop->error_message);
+
+  class_open(out,file_name,"w",pop->error_message);
+  if (pop->write_header == _TRUE_) {
+    fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
+    fprintf(out,"# Dimensionless graviational wave background energy density Omega_GW(f) \n");
   }
 
   output_print_data(out,

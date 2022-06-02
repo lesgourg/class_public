@@ -260,6 +260,22 @@ int primordial_init(
              ppm->error_message,
              ppm->error_message);
 
+  /*** - allocate and fill values of \f$ \ln{f} \f$'s */
+
+  ppm->has_OmGW = ppt->has_omega_gwb;
+
+  if (ppm->has_OmGW) {
+    class_call(primordial_get_lnf_list(ppm,
+                                      ppr->f_min,
+                                      ppr->f_max,
+                                      ppr->f_per_decade_primordial
+                                      ),
+              ppm->error_message,
+              ppm->error_message);
+  } else {
+    ppm->lnf_size = 0;
+  }
+
   /** - define indices and allocate tables in primordial structure */
 
   class_call(primordial_indices(ppt,
@@ -412,6 +428,11 @@ int primordial_init(
 
   }
 
+  /** Here starts the section for the GWB sources.
+      Here we calculate the background energy desnity \f$ \Omega_\mathrm{GW} \f$
+      and the inital perturbation \f$ \Gamma_I \f$ (index_ic_gwb) */
+
+  //TODO_GWB: Rewrite this part to include energy density OmGW
   /**  - deal with spectrum for GWB */
 
   if (ppt->has_gwb_ini == _TRUE_) {
@@ -843,6 +864,13 @@ int primordial_indices(
 
   }
 
+  if (ppm->has_OmGW) {
+
+    class_alloc(ppm->lnOmGW,ppm->lnf_size*sizeof(double),ppm->error_message);
+
+    class_alloc(ppm->ddlnOmGW,ppm->lnf_size*sizeof(double),ppm->error_message);
+  }
+
   return _SUCCESS_;
 
 }
@@ -877,6 +905,41 @@ int primordial_get_lnk_list(
 
   for (i=0; i<ppm->lnk_size; i++)
     ppm->lnk[i]=log(kmin)+i*log(10.)/k_per_decade;
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * This routine allocates and fills the list of GW frequencies f
+ *
+ *
+ * @param ppm  Input/output: pointer to primordial structure
+ * @param fmin Input: first value
+ * @param fmax Input: last value that we should encompass
+ * @param f_per_decade Input: number of f per decade
+ * @return the error status
+ */
+
+int primordial_get_lnf_list(
+                            struct primordial * ppm,
+                            double fmin,
+                            double fmax,
+                            double f_per_decade
+                            ) {
+
+  int i;
+
+  class_test((fmin <= 0.) || (fmax <= fmin),
+             ppm->error_message,
+             "inconsistent values of fmin=%e, fmax=%e",fmin,fmax);
+
+  ppm->lnf_size = (int)(log(fmax/fmin)/log(10.)*f_per_decade) + 2;
+
+  class_alloc(ppm->lnf,ppm->lnf_size*sizeof(double),ppm->error_message);
+
+  for (i=0; i<ppm->lnf_size; i++)
+    ppm->lnf[i]=log(fmin)+i*log(10.)/f_per_decade;
 
   return _SUCCESS_;
 
@@ -4033,6 +4096,46 @@ int primordial_output_data(struct perturbations * ppt,
     }
   }
 
+
+  return _SUCCESS_;
+
+}
+
+int primordial_output_titles_omega_gw(struct perturbations * ppt,
+                             struct primordial * ppm,
+                             char titles[_MAXTITLESTRINGLENGTH_]
+                             ){
+  
+  if (ppm->has_OmGW) {
+    class_store_columntitle(titles,"f [Hz]",_TRUE_);
+    class_store_columntitle(titles,"Omega_GW(f)",_TRUE_);
+  }
+
+  return _SUCCESS_;
+
+}
+
+int primordial_output_omega_gw(struct perturbations * ppt,
+                           struct primordial * ppm,
+                           int number_of_titles,
+                           double *data){
+
+  int index_f, storeidx;
+  double *dataptr;
+
+  if (ppm->has_OmGW) {
+    class_test(number_of_titles != 2,
+              ppm->error_message,
+              "Error in saving Omega_GW");
+    
+    for (index_f=0; index_f<ppm->lnf_size; index_f++) {
+      dataptr = data + index_f*number_of_titles;
+      storeidx = 0;
+
+      class_store_double(dataptr, exp(ppm->lnf[index_f]), _TRUE_,storeidx);
+      class_store_double(dataptr, exp(ppm->lnOmGW[index_f]), _TRUE_,storeidx);
+    }
+  }
 
   return _SUCCESS_;
 

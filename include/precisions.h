@@ -382,6 +382,10 @@ class_type_parameter(evolver,int,enum evolver_type,ndf15)
 
 class_precision_parameter(k_per_decade_primordial,double,10.0) /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
+class_precision_parameter(f_min,double,1.0e-3) /**< f_min for the computation of Omega_GW in Hz */
+class_precision_parameter(f_max,double,1.0e2)  /**< f_max for the computation of Omega_GW in Hz */
+class_precision_parameter(f_per_decade_primordial,double,10.0) /**< logarithmic sampling for Omega_GW (number of points per decade in f space) */
+
 class_precision_parameter(primordial_inflation_ratio_min,double,100.0) /**< for each k, start following wavenumber when aH = k/primordial_inflation_ratio_min */
 class_precision_parameter(primordial_inflation_ratio_max,double,1.0/50.0) /**< for each k, stop following wavenumber, at the latest, when aH = k/primordial_inflation_ratio_max */
 class_precision_parameter(primordial_inflation_phi_ini_maxit,int,10000)      /**< maximum number of iteration when searching a suitable initial field value phi_ini (value reached when no long-enough slow-roll period before the pivot scale) */

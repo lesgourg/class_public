@@ -286,6 +286,22 @@ struct primordial {
 
   //@}
 
+  /** @name - pre-computed table of the graviational wave energy density Omega_GW */
+
+  //@{
+
+  short has_OmGW;  /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$ */
+
+  int lnf_size;    /**< number of ln(f) values */
+
+  double * lnf;    /**< list of ln(f) values lnf[index_f], with f the graviational wave frequency in Hz */
+
+  double * lnOmGW; /**< list of ln(Omega_GW(f)) values, with Omega_GW the GW background ernergy density */
+
+  double ** ddlnOmGW; /**< second derivative of above array, for spline interpolation. */ //TODO_GWB: do we need this quantitiy?
+
+  //@}
+
   //@{
 
   /** @name - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
@@ -407,6 +423,13 @@ extern "C" {
                               double kmin,
                               double kmax,
                               double k_per_decade
+                              );
+
+  int primordial_get_lnf_list(
+                              struct primordial * ppm,
+                              double fmin,
+                              double fmax,
+                              double f_per_decade
                               );
 
   int primordial_analytic_spectrum_init(
@@ -558,6 +581,16 @@ extern "C" {
                                );
 
   int primordial_output_data(struct perturbations * ppt,
+                             struct primordial * ppm,
+                             int number_of_titles,
+                             double *data);
+
+  int primordial_output_titles_omega_gw(struct perturbations * ppt,
+                               struct primordial * ppm,
+                               char titles[_MAXTITLESTRINGLENGTH_]
+                               );
+
+  int primordial_output_omega_gw(struct perturbations * ppt,
                              struct primordial * ppm,
                              int number_of_titles,
                              double *data);

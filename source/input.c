@@ -1618,9 +1618,9 @@ int input_read_parameters_general(struct file_content * pfc,
   int flag1,flag2;
   double param1,param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  char * options_output[36] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd","gwCl",
-                                "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl",
-                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD","GWCL"};
+  char * options_output[39] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd","gwCl","OmGw",
+                                "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl","OmGW",
+                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD","GWCL","OMGW"};
   char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
   char * options_gwb_contributions[12] = {"tsw","ad","pisw","eisw","lisw","ini","TSW","Ad","PISW","EISW","LISW","Ini"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
@@ -1688,13 +1688,16 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
     }
+    if ((strstr(string1,"OmGw") != NULL) || (strstr(string1,"OmGW") != NULL) || (strstr(string1,"OMGW") != NULL)) {
+      ppt->has_omega_gwb = _TRUE_; //TODO_GWB: ask for perturbations or so...
+    }
 
     /* Test */
-    class_call(parser_check_options(string1, options_output, 36, &flag1),
+    class_call(parser_check_options(string1, options_output, 39, &flag1),
                errmsg,
                errmsg);
     class_test(flag1==_FALSE_,
-               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl'}, you entered '%s'",string1);
+               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl','OmGw'}, you entered '%s'",string1);
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -5524,6 +5527,7 @@ int input_default_params(struct background *pba,
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
   ppt->has_cl_gwb = _FALSE_;
+  ppt->has_omega_gwb = _FALSE_;
   /** 1.a) 'tCl' case */
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;

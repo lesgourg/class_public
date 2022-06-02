@@ -138,6 +138,7 @@ struct perturbations
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
   short has_cl_gwb;                   /**< do we need \f$ C_l \f$'s for GWB? */
+  short has_omega_gwb;                /**< do we need to output the energy denstiy of the GWB \f$ \Omega_\mathrm{GW}(f) \f$? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
