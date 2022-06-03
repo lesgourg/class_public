@@ -206,11 +206,21 @@ struct primordial {
   double custom9;  /**< one parameter of the primordial computed in 'external_Pk' */
   double custom10; /**< one parameter of the primordial computed in 'external_Pk' */
 
-  /* - parameters describing the GWB background energy density and intial spectrum */
+  /** - parameters describing the GWB background energy density and intial spectrum */
+
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
-  
+
+  double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double gwb_ini_scalar; /**< proportionality factor between inital GWB spectrum and scalar spectrum*/
   
+  /* - parameters for converting the GWB phase space perturbation \f$ \Gamma \f$ to energy density perturbations */
+  
+  short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
+  double gwb_conversion_factor;  /**< factor for conversion of the GWB to energy desnity */
+  double f_obs;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
+
+  /* - parameters describing analytic_gwb */
+
   double A_gwb;  /**< Amplitude for GWB inital spectrum*/
   double n_gwb;  /**< Spectral index for GWB intial spectrum*/
   double alpha_gwb; /**< GWB running */
@@ -234,11 +244,6 @@ struct primordial {
   double c_gwb_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
   double n_gwb_niv; /**< GWBxNIV cross-correlation tilt */
   double alpha_gwb_niv; /**< GWBxNIV cross-correlation running */
-
-  /* - parameters for converting the GWB to the energy density */
-  short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
-  double gwb_conversion_factor;  /**< factor for conversion of the GWB to energy desnity */
-  double f_obs;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

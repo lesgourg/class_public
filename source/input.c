@@ -1689,7 +1689,7 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_cls = _TRUE_;
     }
     if ((strstr(string1,"OmGw") != NULL) || (strstr(string1,"OmGW") != NULL) || (strstr(string1,"OMGW") != NULL)) {
-      ppt->has_omega_gwb = _TRUE_; //TODO_GWB: ask for perturbations or so...
+      ppt->has_omega_gwb = _TRUE_;
     }
 
     /* Test */
@@ -1698,6 +1698,8 @@ int input_read_parameters_general(struct file_content * pfc,
                errmsg);
     class_test(flag1==_FALSE_,
                errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl','OmGw'}, you entered '%s'",string1);
+    class_test(((ppt->has_cl_gwb != ppt->has_omega_gwb)),
+                errmsg, "For now please always ask for both gwCl and OmGW!"); //TODO_GWB: improve input logic!
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -1918,7 +1920,7 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
-        /* index_ic_gwb and has_gwb_ini is handled by gwb_source_type //TODO_GWB
+        /* index_ic_gwb and has_gwb_ini is handled by gwb_source_type
         // if ((strstr(string1,"gwb") != NULL) || (strstr(string1,"GWB") != NULL)){
         //   ppt->has_gwb_ini=_TRUE_;
         // }
@@ -4361,41 +4363,42 @@ int input_read_parameters_primordial(struct file_content * pfc,
   }
 
 
-  /** 2) Primordial/Initial spectrum of the Graviational Wave Background (GWB) */
-  if (ppt->has_cl_gwb == _TRUE_) { //TODO_GWB: rewrite this part!
-    /** 2.a) General parameters*/
-    /** 2.a.1) Primordial spectrum type of the GWB*/
+  /** 2) Graviational Wave Background (GWB) source type (define the energy density and intial spectrum) */
+  if (((ppt->has_cl_gwb == _TRUE_) && (ppt->switch_gwb_ini == 1) ) || (ppt->has_omega_gwb == _TRUE_)) {
+    /* activate gwb_ini: index_ic_gwb */
+    ppt->has_gwb_ini=_TRUE_;
     /* Read */
     class_call(parser_read_string(pfc,"gwb_source_type",&string1,&flag1,errmsg),
               errmsg,
               errmsg);
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
-      if (strcmp(string1,"analytic_Pk") == 0){
+      if (strcmp(string1,"analytic_gwb") == 0){
         ppm->gwb_source_type = analytic_gwb;
       }
-      else if (strcmp(string1,"scalar_Pk") == 0){
+      else if (strcmp(string1,"scalar_gwb") == 0){
         ppm->gwb_source_type = scalar_gwb;
       }
-      else if (strcmp(string1,"external_Pk") == 0){
+      else if (strcmp(string1,"external_gwb") == 0){
         ppm->gwb_source_type = external_gwb;
       }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_Pk, scalar_Pk, external_Pk'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, scalar_gwb, external_gwb'}.",string1);
       }
     }
-    /* activate gwb_ini: index_ic_gwb */
-    if (ppm->gwb_source_type != scalar_gwb) {
-        ppt->has_gwb_ini=_TRUE_;
-    }
-    /* Test */
-    if (ppm->gwb_source_type == external_gwb) {
-      class_test(ppm->primordial_spec_type != external_Pk,errmsg,
-                 "To use the external_Pk for the GWB you must use the external_Pk for all modes!");
-    }
 
-    /** 2.c) For type 'analytic_Pk' */
+    /* Test */
+    class_test((ppm->gwb_source_type == external_gwb) && (ppm->primordial_spec_type != external_Pk),
+               errmsg,
+               "To use the 'external_gwb' for the GWB sources you must also use the 'external_Pk' for 'Pk_ini_type'!");
+
+    /** 2.a) Pivot scale in Hz */
+    /* Read */
+    class_read_double("f_pivot",ppm->f_pivot);
+  
+    /** 2.b) For type 'analytic_gwb' */
+    //TODO_GWB: rewrite this part!
     if (ppm->gwb_source_type == analytic_gwb) {
       /** 2.c.1) Amplitude */
       class_read_double("A_gwb",ppm->A_gwb);
@@ -5899,13 +5902,13 @@ int input_default_params(struct background *pba,
   ppm->custom9=0.;
   ppm->custom10=0.;
 
-  /** 2) Primordial/Inital spectrum of GWB */
-  /** 2.a) General parameters */
-  /** 2.a.1) Primordial spectrum type of GWB */
-  ppm->gwb_source_type = scalar_gwb;
-  /** 2.a.2) inital time for GWB*/
+  /** 2) GWB source type */
+  ppm->gwb_source_type = analytic_gwb;
+  /** 2.a) Pivot scale in Hz */
+  ppm->f_pivot = 1.;
 
-  /** 2.c) For type 'analytic_Pk' */
+  /** 2.b) For type 'analytic_gwb' */
+  //TODO_GWB: rewrite this part
   /** 2.c.1) Amplitude */
   ppm->A_gwb = 2.100549e-09;
   /** 2.c.2) Spectral index */
@@ -5972,7 +5975,7 @@ int input_default_params(struct background *pba,
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
   pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
-  /** 4.b) Convert GWB to energy density */
+  /** 4.b) Convert GWB phase space perturbation to energy density contrast */
   ppm->convert_gwb_to_energydensity=_FALSE_;
   /** 4.b.1) Parameters for conversion */
   ppm->gwb_conversion_factor = 0.;
