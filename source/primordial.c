@@ -179,6 +179,114 @@ int primordial_spectrum_at_k(
 }
 
 /**
+ * GWB energy density for arbitrary argument.
+ *
+ * This routine evaluates the GWB energy density at a given value of f by
+ * interpolating in the pre-computed table.
+ *
+ * When f is not in the pre-computed range but the energy density can be found
+ * analytically, it finds it. Otherwise returns an error.
+ *
+ * Can be called in two modes; linear or logarithmic:
+ *
+ * - linear: takes f, returns Omega_GW(f)
+ *
+ * - logarithmic: takes ln(f), return ln(Omega_GW(f))
+ *
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * primordial_init() has been called before, and primordial_free() has not
+ * been called yet.
+ *
+ * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum
+ * @param mode       Input: linear or logarithmic
+ * @param input      Input: frequency in Hz (linear mode) or its logarithm (logarithmic mode)
+ * @param output     Output: GWB energy density Omega_GW(f) (linear mode), or its logarithm (logarithmic mode)
+ * @return the error status
+ */
+
+int primordial_omega_gw_at_f(
+                             struct primordial * ppm,
+                             enum linear_or_logarithmic mode,
+                             double input,
+                             double * output
+                             ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  double lnf;
+  int last_index;
+
+  /** - infer ln(f) from input. In linear mode, reject negative value of input f value. */
+
+  if (mode == linear) {
+    class_test(input<=0.,
+               ppm->error_message,
+               "f = %e",input);
+    lnf=log(input);
+  }
+  else {
+    lnf = input;
+  }
+
+  /** - if ln(f) is not in the interpolation range, return an error, unless
+      we are in the case of a analytic gwb, for which a direct computation is possible */
+
+  if ((lnf > ppm->lnf[ppm->lnf_size-1]) || (lnf < ppm->lnf[0])) {
+
+    class_test(ppm->gwb_source_type != analytic_gwb,
+               ppm->error_message,
+               "f=%e out of range [%e : %e]",exp(lnf),exp(ppm->lnf[0]),exp(ppm->lnf[ppm->lnf_size-1]));
+
+    /* direct computation */
+
+    class_call(primordial_analytic_omega_gw(ppm,
+                                            exp(lnf),
+                                            output),
+                ppm->error_message,
+                ppm->error_message);
+
+    /* if mode==linear, output is already in the correct format. Otherwise, apply necessary transformation. */
+
+    if (mode == logarithmic) {
+
+      *output = log(*output);
+    }
+  }
+
+  /** - otherwise, interpolate in the pre-computed table */
+
+  else {
+
+    class_call(array_interpolate_spline(
+                                        ppm->lnf,
+                                        ppm->lnf_size,
+                                        ppm->lnOmGW,
+                                        ppm->ddlnOmGW,
+                                        1,
+                                        lnf,
+                                        &last_index,
+                                        output,
+                                        1,
+                                        ppm->error_message),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* if mode==logarithmic, output is already in the correct format. Otherwise, apply necessary transformation. */
+
+    if (mode == linear) {
+
+        *output = exp(*output);
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+/**
  * This routine initializes the primordial structure (in particular, it computes table of primordial spectrum values)
  *
  * @param ppr Input: pointer to precision structure (defines method and precision for all computations)
@@ -561,6 +669,22 @@ int primordial_init(
                                         ppm->lnpk[index_md],
                                         ppm->ic_ic_size[index_md],
                                         ppm->ddlnpk[index_md],
+                                        _SPLINE_EST_DERIV_,
+                                        ppm->error_message),
+               ppm->error_message,
+               ppm->error_message);
+
+  }
+
+  /** - compute second derivative for Omega_GW */
+
+  if (ppm->has_OmGW == _TRUE_) {
+
+    class_call(array_spline_table_lines(ppm->lnf,
+                                        ppm->lnf_size,
+                                        ppm->lnOmGW,
+                                        1,
+                                        ppm->ddlnOmGW,
                                         _SPLINE_EST_DERIV_,
                                         ppm->error_message),
                ppm->error_message,

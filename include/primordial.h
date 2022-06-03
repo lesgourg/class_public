@@ -307,7 +307,7 @@ struct primordial {
 
   double * lnOmGW; /**< list of ln(Omega_GW(f)) values, with Omega_GW the GW background ernergy density */
 
-  double ** ddlnOmGW; /**< second derivative of above array, for spline interpolation. */ //TODO_GWB: do we need this quantitiy?
+  double * ddlnOmGW; /**< second derivative of above array, for spline interpolation. */
 
   //@}
 
@@ -410,6 +410,13 @@ extern "C" {
                                enum linear_or_logarithmic mode,
                                double k,
                                double * pk
+                               );
+
+  int primordial_omega_gw_at_f(
+                               struct primordial * ppm,
+                               enum linear_or_logarithmic mode,
+                               double f,
+                               double * OmGW
                                );
 
   int primordial_init(
