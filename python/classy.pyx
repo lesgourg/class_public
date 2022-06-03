@@ -1668,6 +1668,28 @@ cdef class Class:
         free(data)
         return omega_gw
 
+    def Omega_GW(self, double f):
+        """
+        Return the GWB energy density Omega_GW at the frequency f
+
+        Parameters
+        ----------
+        f : double
+                Frequency of the GW in Hz.
+
+        Returns
+        -------
+        omega_gw : double
+                GWB energy density Omega_GW at frequency f.
+        """
+        cdef double omega_gw
+
+        # Use mode = 0 to be in the linear case!
+        if primordial_omega_gw_at_f(&self.pm, 0, f, &omega_gw)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        return omega_gw
+
     def get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested
