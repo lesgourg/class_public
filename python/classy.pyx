@@ -1629,6 +1629,45 @@ cdef class Class:
         free(data)
         return primordial
 
+    def get_omega_gw(self):
+        """
+        Return the GWB background density Omega_GW(f).
+        'output' must be set to 'OmGW'.
+
+        Returns
+        -------
+        omega_gw : dictionary containing f-vector and GWB energy density Omega_GW(f).
+        """
+        cdef char *titles
+        cdef double* data
+
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if primordial_output_titles_omega_gw(&self.pt, &self.pm, titles)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        tmp = <bytes> titles
+        tmp = str(tmp.decode())
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.pm.lnf_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if primordial_output_omega_gw(&self.pt, &self.pm, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        omega_gw = {}
+
+        for i in range(number_of_titles):
+            omega_gw[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                omega_gw[names[i]][index] = data[index*number_of_titles+i]
+
+        free(titles)
+        free(data)
+        return omega_gw
+
     def get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested

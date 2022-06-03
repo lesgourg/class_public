@@ -205,6 +205,7 @@ cdef extern from "class.h":
         double phi_min
         double phi_max
         int lnk_size
+        int lnf_size
 
     cdef struct harmonic:
         ErrorMsg error_message
@@ -366,6 +367,8 @@ cdef extern from "class.h":
 
     int primordial_output_titles(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
     int primordial_output_data(void *ppt, void *ppm, int number_of_titles, double *data)
+    int primordial_output_titles_omega_gw(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
+    int primordial_output_omega_gw(void *ppt, void *ppm, int number_of_titles, double *data)
 
     int harmonic_cl_at_l(void* phr,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)

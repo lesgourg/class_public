@@ -171,13 +171,14 @@ int output_init(
 
   /** - deal with Omega_GW */
 
-  if (ppt->has_omega_gwb) {
+  if (ppt->has_omega_gwb == _TRUE_) {
 
     class_call(output_omega_gw(ppt,ppm,pop),
                pop->error_message,
                pop->error_message);
 
   }
+
   /** - deal with background quantities */
 
   if (pop->write_background == _TRUE_) {
@@ -1271,12 +1272,19 @@ int output_primordial(
   return _SUCCESS_;
 }
 
+/**
+ * This routines writes the output in files for GWB energy density \f$ \Omega_\mathrm{rm} \f$'s.
+ *
+ * @param ppt Input: pointer perturbation structure
+ * @param ppm Input: pointer primordial structure
+ * @param pop Input: pointer to output structure
+ */
+
 int output_omega_gw(
                       struct perturbations * ppt,
                       struct primordial * ppm,
                       struct output * pop
                       ) {
-  //TODO_GWB: simplify this output, more in line with Cl output
   FileName file_name;
   FILE * out;
   char titles[_MAXTITLESTRINGLENGTH_]={0};
@@ -1300,7 +1308,6 @@ int output_omega_gw(
 
   class_open(out,file_name,"w",pop->error_message);
   if (pop->write_header == _TRUE_) {
-    fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
     fprintf(out,"# Dimensionless graviational wave background energy density Omega_GW(f) \n");
   }
 
