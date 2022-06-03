@@ -211,39 +211,43 @@ struct primordial {
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
-  double gwb_ini_scalar; /**< proportionality factor between inital GWB spectrum and scalar spectrum*/
+  double gwb_ini_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum*/
   
   /* - parameters for converting the GWB phase space perturbation \f$ \Gamma \f$ to energy density perturbations */
-  
+
   short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
   double gwb_conversion_factor;  /**< factor for conversion of the GWB to energy desnity */
   double f_obs;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
 
   /* - parameters describing analytic_gwb */
 
-  double A_gwb;  /**< Amplitude for GWB inital spectrum*/
-  double n_gwb;  /**< Spectral index for GWB intial spectrum*/
-  double alpha_gwb; /**< GWB running */
+  double A_gw;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
+  double n_gw;  /**< Spectral index for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
+  double alpha_gw; /**< GWB running */
 
-  double c_gwb_ad; /**< GWBxAD cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwb_ad; /**< GWBxAD cross-correlation tilt */
-  double alpha_gwb_ad; /**< GWBxAD cross-correlation running */
+  double A_ini;  /**< Amplitude for GWB intial perturbations \f$ \Gamma_{ini} \f$*/
+  double n_ini;  /**< Spectral index for GWB intial perturbations \f$ \Gamma_{ini} \f$*/
+  double alpha_ini; /**< GWB ini running */
 
-  double c_gwb_bi; /**< GWBxBI cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwb_bi; /**< GWBxBI cross-correlation tilt */
-  double alpha_gwb_bi; /**< GWBxBI cross-correlation running */
+  double c_ini_ad; /**< GWBxAD cross-correlation at pivot scale, from -1 to 1 */
+  double n_ini_ad; /**< GWBxAD cross-correlation tilt */
+  double alpha_ini_ad; /**< GWBxAD cross-correlation running */
 
-  double c_gwb_cdi; /**< GWBxCDI cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwb_cdi; /**< GWBxCDI cross-correlation tilt */
-  double alpha_gwb_cdi; /**< GWBxCDI cross-correlation running */
+  double c_ini_bi; /**< GWBxBI cross-correlation at pivot scale, from -1 to 1 */
+  double n_ini_bi; /**< GWBxBI cross-correlation tilt */
+  double alpha_ini_bi; /**< GWBxBI cross-correlation running */
 
-  double c_gwb_nid; /**< GWBxNID cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwb_nid; /**< GWBxNID cross-correlation tilt */
-  double alpha_gwb_nid; /**< GWBxNID cross-correlation running */
+  double c_ini_cdi; /**< GWBxCDI cross-correlation at pivot scale, from -1 to 1 */
+  double n_ini_cdi; /**< GWBxCDI cross-correlation tilt */
+  double alpha_ini_cdi; /**< GWBxCDI cross-correlation running */
 
-  double c_gwb_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwb_niv; /**< GWBxNIV cross-correlation tilt */
-  double alpha_gwb_niv; /**< GWBxNIV cross-correlation running */
+  double c_ini_nid; /**< GWBxNID cross-correlation at pivot scale, from -1 to 1 */
+  double n_ini_nid; /**< GWBxNID cross-correlation tilt */
+  double alpha_ini_nid; /**< GWBxNID cross-correlation running */
+
+  double c_ini_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_ini_niv; /**< GWBxNIV cross-correlation tilt */
+  double alpha_ini_niv; /**< GWBxNIV cross-correlation running */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

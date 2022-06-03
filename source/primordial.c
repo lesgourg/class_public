@@ -709,12 +709,12 @@ int primordial_init(
                 ppm->error_message);
     lnpk_minus = tmp[index_ic1_ic2];
 
-    ppm->A_gwb = exp(lnpk_pivot);
-    ppm->n_gwb = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
-    ppm->alpha_gwb = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+    ppm->A_ini = exp(lnpk_pivot);
+    ppm->n_ini = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
+    ppm->alpha_ini = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
 
     if (ppm->primordial_verbose > 0)
-      printf(" -> A_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->A_gwb,ppm->n_gwb,ppm->alpha_gwb);
+      printf(" -> A_ini=%g  n_ini=%g  alpha_ini=%g\n",ppm->A_ini,ppm->n_ini,ppm->alpha_ini);
   }
 
   /** - derive conversion factor for GWB to energy density */
@@ -3816,10 +3816,10 @@ int primordial_gwb_analytic_spectrum_init(
 
   /* diagonal coefficient */
   if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
-    one_amplitude = ppm->A_gwb;
-    // one_tilt = ppm->n_gwb;
-    one_tilt = ppm->n_gwb+1.; /* +1 to match definition of n_gwb wrt. 0 (equivalent to n_s-1) */
-    one_running = ppm->alpha_gwb;
+    one_amplitude = ppm->A_ini;
+    // one_tilt = ppm->n_ini;
+    one_tilt = ppm->n_ini+1.; /* +1 to match definition of n_ini wrt. 0 (equivalent to n_s-1) */
+    one_running = ppm->alpha_ini;
   }
 
   class_test(one_amplitude <= 0.,
@@ -3842,41 +3842,41 @@ int primordial_gwb_analytic_spectrum_init(
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_) &&
             (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_ad)) ||
               ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_ad)))) {
-          one_correlation = ppm->c_gwb_ad;
-          one_tilt = ppm->n_gwb_ad;
-          one_running = ppm->alpha_gwb_ad;
+          one_correlation = ppm->c_ini_ad;
+          one_tilt = ppm->n_ini_ad;
+          one_running = ppm->alpha_ini_ad;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_bi == _TRUE_) &&
             (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_bi)) ||
               ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_bi)))) {
-          one_correlation = ppm->c_gwb_bi;
-          one_tilt = ppm->n_gwb_bi;
-          one_running = ppm->alpha_gwb_bi;
+          one_correlation = ppm->c_ini_bi;
+          one_tilt = ppm->n_ini_bi;
+          one_running = ppm->alpha_ini_bi;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
             (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_cdi)) ||
               ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_cdi)))) {
-          one_correlation = ppm->c_gwb_cdi;
-          one_tilt = ppm->n_gwb_cdi;
-          one_running = ppm->alpha_gwb_cdi;
+          one_correlation = ppm->c_ini_cdi;
+          one_tilt = ppm->n_ini_cdi;
+          one_running = ppm->alpha_ini_cdi;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_nid == _TRUE_) &&
             (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_nid)) ||
               ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_nid)))) {
-          one_correlation = ppm->c_gwb_nid;
-          one_tilt = ppm->n_gwb_nid;
-          one_running = ppm->alpha_gwb_nid;
+          one_correlation = ppm->c_ini_nid;
+          one_tilt = ppm->n_ini_nid;
+          one_running = ppm->alpha_ini_nid;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_niv == _TRUE_) &&
             (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_niv)) ||
               ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_niv)))) {
-          one_correlation = ppm->c_gwb_niv;
-          one_tilt = ppm->n_gwb_niv;
-          one_running = ppm->alpha_gwb_niv;
+          one_correlation = ppm->c_ini_niv;
+          one_tilt = ppm->n_ini_niv;
+          one_running = ppm->alpha_ini_niv;
         }
 
       class_test((one_correlation < -1) || (one_correlation > 1),
