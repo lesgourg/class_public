@@ -309,6 +309,7 @@ int primordial_init(
   int index_md,index_ic1,index_ic2,index_ic1_ic2,index_k,index_f;
   double pk,pk1,pk2,OmGW;
   double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus,lnpk_minusminus,lnpk_plusplus;
+  double dlnf,lnOmGW_pivot,lnOmGW_minus,lnOmGW_plus;
   double *tmp;
   /* uncomment if you use optional test below
      (for correlated isocurvature modes) */
@@ -821,7 +822,6 @@ int primordial_init(
 
   }
 
-  //TODO_GWB: Rewrite this part to include energy density OmGW
   if ((ppt->has_gwb_ini == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
 
     dlnk = log(10.)/ppr->k_per_decade_primordial;
@@ -857,11 +857,53 @@ int primordial_init(
     lnpk_minus = tmp[index_ic1_ic2];
 
     ppm->A_ini = exp(lnpk_pivot);
-    ppm->n_ini = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
+    ppm->n_ini = (lnpk_plus-lnpk_minus)/(2.*dlnk);
     ppm->alpha_ini = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+
+    if (ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] == _FALSE_) {
+      ppm->A_ini = 0;
+      ppm->n_ini = 0;
+      ppm->alpha_ini = 0;
+    }
 
     if (ppm->primordial_verbose > 0)
       printf(" -> A_ini=%g  n_ini=%g  alpha_ini=%g\n",ppm->A_ini,ppm->n_ini,ppm->alpha_ini);
+  }
+
+  /** - derive spectral parameters from numerically computed GWB energy density
+      (also used to calculate the conversion to GWB energy density contrast) */
+  
+  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
+
+    dlnf = log(10.)/ppr->f_per_decade_primordial;
+
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_pivot),
+                                        &lnOmGW_pivot),
+                ppm->error_message,
+                ppm->error_message);
+
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_pivot)+dlnf,
+                                        &lnOmGW_plus),
+                ppm->error_message,
+                ppm->error_message);
+
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_pivot)-dlnf,
+                                        &lnOmGW_minus),
+                ppm->error_message,
+                ppm->error_message);
+
+    ppm->A_gw = exp(lnOmGW_pivot);
+    ppm->n_gw = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
+    ppm->alpha_gw = (lnOmGW_plus-2.*lnOmGW_pivot+lnOmGW_minus)/pow(dlnf,2);
+
+    if (ppm->primordial_verbose > 0)
+      printf(" -> A_gw=%g  n_gw=%g  alpha_gw=%g\n",ppm->A_gw,ppm->n_gw,ppm->alpha_gw);
   }
 
   /** - derive conversion factor for GWB to energy density */
