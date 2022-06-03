@@ -579,6 +579,13 @@ extern "C" {
                                         struct primordial * ppm
                                         );
 
+
+  int primordial_analytic_omega_gw(
+                                   struct primordial * ppm,
+                                   double f,
+                                   double * OmGW
+                                   );
+
   int primordial_gwb_analytic_spectrum_init(
                                         struct perturbations   * ppt,
                                         struct primordial * ppm
