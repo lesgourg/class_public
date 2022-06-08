@@ -20,6 +20,7 @@ enum primordial_spectrum_type {
 
 enum gwb_source_type {
   analytic_gwb,
+  PBH_gwb,
   scalar_gwb, //TODO_GWB: remove, but usefull template for later
   external_gwb
 };
@@ -248,6 +249,12 @@ struct primordial {
   double c_ini_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
   double n_ini_niv; /**< GWBxNIV cross-correlation tilt */
   double alpha_ini_niv; /**< GWBxNIV cross-correlation running */
+
+  /* - parameters describing PBH_gwb */
+
+  double A_star; /**< Enhancement amplitude for scalar spectrum */
+  double f_star; /**< Enhancement scale for scakar spectrum (as observed GWB frequency in Hz) */
+  double f_NL;   /**< Non-Gaussianity parameter */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */

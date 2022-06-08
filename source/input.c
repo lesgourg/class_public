@@ -4376,6 +4376,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
       if (strcmp(string1,"analytic_gwb") == 0){
         ppm->gwb_source_type = analytic_gwb;
       }
+      else if (strcmp(string1,"PBH_gwb") == 0){
+        ppm->gwb_source_type = PBH_gwb;
+      }
       else if (strcmp(string1,"scalar_gwb") == 0){
         ppm->gwb_source_type = scalar_gwb;
       }
@@ -4384,7 +4387,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, scalar_gwb, external_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, scalar_gwb, external_gwb'}.",string1);
       }
     }
 
@@ -4408,14 +4411,14 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("alpha_gw",ppm->alpha_gw);
 
       /** 2.b.2) GWB intial perturbations Gamma_I */
-      /** 2.c.1) Amplitude */
+      /** 2.b.2.1) Amplitude */
       class_read_double("A_ini",ppm->A_ini);
-      /** 2.c.2) Spectral index */
+      /** 2.b.2.2) Spectral index */
       class_read_double("n_ini",ppm->n_ini);
-      /** 2.c.3) GWB ini running */
+      /** 2.b.2.3) GWB ini running */
       class_read_double("alpha_ini",ppm->alpha_ini);
 
-      /** 2.c.3) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
+      /** 2.b.3) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
       if (ppm->primordial_spec_type == analytic_Pk) {
         /* Read */
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_)) {
@@ -4444,6 +4447,18 @@ int input_read_parameters_primordial(struct file_content * pfc,
           class_read_double_one_of_two("alpha_ini_niv","alpha_niv_ini",ppm->alpha_ini_niv);
         }
       }
+    }
+
+    /** 2.c) For type 'PBH_gwb' */
+    if (ppm->gwb_source_type == PBH_gwb) {
+      /** 2.c.1) Delta peak enhancement of the scalar spectrum */
+      /** 2.c.1.1) Enhancement Amplitude */
+      class_read_double("A_star",ppm->A_star);
+      /** 2.c.1.2) Enhancement scale */
+      class_read_double("f_star",ppm->f_star);
+
+      /** 2.c.2) Non-Gaussianity parameter */
+      class_read_double("f_NL",ppm->f_NL);
     }
   }
 
@@ -5946,6 +5961,15 @@ int input_default_params(struct background *pba,
   ppm->c_ini_niv = 0.;
   ppm->n_ini_niv = 0.;
   ppm->alpha_ini_niv = 0.;
+
+  /** 2.c) For type 'PBH_gwb' */
+  /** 2.c.1) Delta peak enhancement of the scalar spectrum */
+  /** 2.c.1.1) Enhancement Amplitude */
+  ppm->A_star = 0.;
+  /** 2.c.1.2) Enhancement scale */
+  ppm->f_star = 1.;
+  /** 2.c.2) Non-Gaussianity parameter */
+  ppm->f_NL = 0.;
 
   /**
    * Default to input_read_parameters_spectra
