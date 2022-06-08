@@ -86,7 +86,7 @@ int primordial_spectrum_at_k(
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
-    class_test((ppm->gwb_source_type != analytic_gwb) || (ppm->gwb_source_type != scalar_gwb),
+    class_test((ppm->gwb_source_type != analytic_gwb),
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
@@ -395,6 +395,7 @@ int primordial_init(
   /*** - allocate and fill values of \f$ \ln{f} \f$'s */
 
   ppm->has_OmGW = ppt->has_omega_gwb;
+  ppm->gwb_ini_scalar = 0.;
 
   if (ppm->has_OmGW) {
     class_call(primordial_get_lnf_list(ppm,

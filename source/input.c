@@ -4379,15 +4379,12 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"PBH_gwb") == 0){
         ppm->gwb_source_type = PBH_gwb;
       }
-      else if (strcmp(string1,"scalar_gwb") == 0){
-        ppm->gwb_source_type = scalar_gwb;
-      }
       else if (strcmp(string1,"external_gwb") == 0){
         ppm->gwb_source_type = external_gwb;
       }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, scalar_gwb, external_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb'}.",string1);
       }
     }
 
@@ -4872,9 +4869,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
         ppm->f_obs = param2;
       }      
     }
-
-    /** 4.c) propotrionality factor between inital GWB spectrum and scalar spectrum  */
-    class_read_double("gwb_ini_scalar",ppm->gwb_ini_scalar);
   }
 
   return _SUCCESS_;
@@ -6022,8 +6016,6 @@ int input_default_params(struct background *pba,
   /** 4.b.1) Parameters for conversion */
   ppm->gwb_conversion_factor = 0.;
   ppm->f_obs = 1e-3;
-  /** 4.c) proportionality factor between inital GWB spectrum and scalar spectrum  */
-  ppm->gwb_ini_scalar=0.;
 
   /**
    * Default to input_read_parameters_lensing

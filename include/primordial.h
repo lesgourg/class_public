@@ -21,7 +21,6 @@ enum primordial_spectrum_type {
 enum gwb_source_type {
   analytic_gwb,
   PBH_gwb,
-  scalar_gwb, //TODO_GWB: remove, but usefull template for later
   external_gwb
 };
 
