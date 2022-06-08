@@ -396,7 +396,7 @@ cdef class Class:
             self.ncp.add("perturb")
 
         if "primordial" in level:
-            if primordial_init(&(self.pr), &(self.pt),
+            if primordial_init(&(self.pr), &(self.ba), &(self.pt),
                                &(self.pm)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)

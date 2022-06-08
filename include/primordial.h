@@ -428,6 +428,7 @@ extern "C" {
 
   int primordial_init(
                       struct precision  * ppr,
+                      struct background * pba,
                       struct perturbations   * ppt,
                       struct primordial * ppm
                       );

@@ -297,6 +297,7 @@ int primordial_omega_gw_at_f(
 
 int primordial_init(
                     struct precision  * ppr,
+                    struct background * pba,
                     struct perturbations   * ppt,
                     struct primordial * ppm
                     ) {

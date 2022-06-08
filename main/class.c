@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
+  if (primordial_init(&pr,&ba,&pt,&pm) == _FAILURE_) {
     printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }

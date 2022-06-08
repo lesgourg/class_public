@@ -343,7 +343,7 @@ cdef extern from "class.h":
     int background_init(void*,void*)
     int thermodynamics_init(void*,void*,void*)
     int perturbations_init(void*,void*,void*,void*)
-    int primordial_init(void*,void*,void*)
+    int primordial_init(void*,void*,void*,void*)
     int fourier_init(void*,void*,void*,void*,void*,void*)
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int harmonic_init(void*,void*,void*,void*,void*,void*,void*)
