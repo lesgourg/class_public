@@ -4459,6 +4459,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** 2.c.2) Non-Gaussianity parameter */
       class_read_double("f_NL",ppm->f_NL);
+
+      /* The initial spectrum is not independent, but proportional to the scalar spectrum. */
+      ppt->has_gwb_ini = _FALSE_;
     }
   }
 
@@ -5965,7 +5968,7 @@ int input_default_params(struct background *pba,
   /** 2.c) For type 'PBH_gwb' */
   /** 2.c.1) Delta peak enhancement of the scalar spectrum */
   /** 2.c.1.1) Enhancement Amplitude */
-  ppm->A_star = 0.;
+  ppm->A_star = 1e-9;
   /** 2.c.1.2) Enhancement scale */
   ppm->f_star = 1.;
   /** 2.c.2) Non-Gaussianity parameter */

@@ -255,6 +255,7 @@ struct primordial {
   double A_star; /**< Enhancement amplitude for scalar spectrum */
   double f_star; /**< Enhancement scale for scakar spectrum (as observed GWB frequency in Hz) */
   double f_NL;   /**< Non-Gaussianity parameter */
+  double prefactor_OmGW;   /**< prefactor for OmGW */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */
@@ -605,6 +606,19 @@ extern "C" {
                                         struct perturbations   * ppt,
                                         struct primordial * ppm
                                         );
+
+  int primordial_PBH_gwb_init(
+                              struct precision * ppr,
+                              struct background * pba,
+                              struct perturbations * ppt,
+                              struct primordial * ppm
+                              );
+
+int primordial_PBH_omega_gw(
+                            struct primordial * ppm,
+                            double f,
+                            double * OmGW
+                            );
 
   int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,
