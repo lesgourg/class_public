@@ -4836,39 +4836,11 @@ int input_read_parameters_spectra(struct file_content * pfc,
     if (flag4 == _TRUE_)
       pba->f_dec_ini = param4;
 
-
     /** 4.b) Convert GWB to energy density  */
     /* Read */
     flag1 = _FALSE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
-    ppm->convert_gwb_to_energydensity = flag1;
-    
-    /** 4.b.1) Parameter for conversion */
-    if (ppm->convert_gwb_to_energydensity == _TRUE_) {
-      /* Read */
-      class_call(parser_read_double(pfc,"gwb_conversion_factor",&param1,&flag1,errmsg),
-                  errmsg,
-                  errmsg);
-      class_call(parser_read_double(pfc,"f_obs",&param2,&flag2,errmsg),
-                  errmsg,
-                  errmsg);
-      /* Test */
-      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-                errmsg,
-                "You can only enter one of 'gwb_conversion_factor' or 'f_obs'.");
-      class_test((flag2 == _TRUE_) && (ppt->has_tensors == _FALSE_),
-                errmsg,
-                "You can only enter 'f_obs' if you have tensor modes.");
-      /* Complete set of parameters */
-      if (flag1 == _TRUE_){
-        ppm->gwb_conversion_factor = param1;
-        ppm->f_obs = 0.;
-      }
-      if (flag2 == _TRUE_){
-        ppm->gwb_conversion_factor = 0.;
-        ppm->f_obs = param2;
-      }      
-    }
+    ppt->convert_gwb_to_energydensity = flag1;
   }
 
   return _SUCCESS_;
@@ -6012,10 +5984,7 @@ int input_default_params(struct background *pba,
   ppt->T_ini_gwb=0.;
   pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
   /** 4.b) Convert GWB phase space perturbation to energy density contrast */
-  ppm->convert_gwb_to_energydensity=_FALSE_;
-  /** 4.b.1) Parameters for conversion */
-  ppm->gwb_conversion_factor = 0.;
-  ppm->f_obs = 1e-3;
+  ppt->convert_gwb_to_energydensity=_FALSE_;
 
   /**
    * Default to input_read_parameters_lensing

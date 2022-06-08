@@ -1062,10 +1062,10 @@ int harmonic_compute_cl(
 
       }
 
-      if (ppm->convert_gwb_to_energydensity == _TRUE_) {
+      if (ppt->convert_gwb_to_energydensity == _TRUE_) {
 
-        transfer_ic1_gwb *= ppm->gwb_conversion_factor;
-        transfer_ic2_gwb *= ppm->gwb_conversion_factor;
+        transfer_ic1_gwb *= 4. - ppm->n_gw;
+        transfer_ic2_gwb *= 4. - ppm->n_gw;
 
       }
 

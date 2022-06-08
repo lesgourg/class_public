@@ -213,12 +213,6 @@ struct primordial {
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double gwb_ini_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum*/
   
-  /* - parameters for converting the GWB phase space perturbation \f$ \Gamma \f$ to energy density perturbations */
-
-  short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
-  double gwb_conversion_factor;  /**< factor for conversion of the GWB to energy desnity */
-  double f_obs;  /**< scale/wavenumber of the GWB to calculate gwb_conversion_factor */
-
   /* - parameters describing analytic_gwb */
 
   double A_gw;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/

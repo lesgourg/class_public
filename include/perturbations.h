@@ -182,6 +182,8 @@ struct perturbations
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
   
+  short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
+  
   double tau_ini_gwb; /**< the inital time for the graviational wave background in Mpc. This will then also fix the initial sampling time of the sources. */
   double z_ini_gwb; /**< the inital redshift for the graviational wave background. */
   double T_ini_gwb; /**< the inital temperature for the graviational wave background in K. */
