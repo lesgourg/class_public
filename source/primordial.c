@@ -4230,8 +4230,8 @@ int primordial_PBH_omega_gw(
                                  double f,
                                  double * OmGW
                                  ) {
-  double x, heaviside, width, I2;
-  width = 1e-1;
+  double x, heaviside, I2;
+  double width = 1e-5;
 
   x = f / ppm->f_star;
 

@@ -1859,16 +1859,14 @@ int perturbations_timesampling_for_sources(
     }
     
 
-    /** set the initial time either to physical time tau_ini_gwb or precision parameter for the sources to be convergent */
+    /** set the initial time to precision parameter for the sources to be convergent */
     tau_ini_gwb = ppr->start_sources_at_tau_gwb;
-    if ((ppt->tau_ini_gwb != 0.) && (ppt->tau_ini_gwb < tau_ini_gwb))
-      tau_ini_gwb = ppt->tau_ini_gwb;
     class_test(tau_ini_gwb < 1.e-2,
                 ppt->error_message,
-                "your choice of initial time for GWB sources is inappropriate: for times 'tau_ini < 1e-2 Mpc' the evolver diverges. You should increase 'tau_ini_gwb' or set it to 0 (uses earliest possible time).\n");
+                "your choice of initial time for GWB sources is inappropriate: for times 'start_sources_at_tau_gwb < 1e-2 Mpc' the evolver diverges. You should increase 'start_sources_at_tau_gwb'.\n");
     class_test(tau_ini_gwb > 1.,
                 ppt->error_message,
-                "your choice of initial time for GWB sources is inappropriate: for times 'tau_ini > 1 Mpc' the initial conditions are unstable. You should decrease the precision parameter 'start_sources_at_tau_gwb'.\n");
+                "your choice of initial time for GWB sources is inappropriate: for times 'start_sources_at_tau_gwb > 1 Mpc' the initial conditions are unstable. You should decrease 'start_sources_at_tau_gwb'.\n");
 
   }
 

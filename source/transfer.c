@@ -2413,7 +2413,7 @@ int transfer_sources(
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw0)) {
         
         /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        if (ppt->tau_ini_gwb == 0.) {
+        if (ppt->tau_ini_gwb < ppr->start_sources_at_tau_gwb) {
           index_tau = 0;
         }
         else {
@@ -2438,7 +2438,7 @@ int transfer_sources(
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw1)) {
         
         /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        if (ppt->tau_ini_gwb == 0.) {
+        if (ppt->tau_ini_gwb < ppr->start_sources_at_tau_gwb) {
           index_tau = 0;
         }
         else {
