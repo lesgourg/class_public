@@ -1046,7 +1046,7 @@ int harmonic_compute_cl(
           + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
           + ppm->gwb_ini_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
         
-        if (ppt->has_gwb_ini) { //TODO_GWB: Is there a nicer way to implement this?
+        if (ppt->has_gwb_ini) {
           if (index_ic1 == ppt->index_ic_gwb)
             transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb_ini];
           if (index_ic2 == ppt->index_ic_gwb)
@@ -1172,19 +1172,6 @@ int harmonic_compute_cl(
         * transfer_ic1_gwb
         * transfer_ic2_gwb
         * factor;
-      
-      if (phr->harmonic_verbose > 2) { //TODO_GWB: only for testing purpose - remove!
-        if ((index_l == 0) && (index_q == 0)) {
-            printf("# index_l, index_q, l, q, k, p(k), transfer1, transfer2, integrant\n");
-        }
-
-        if ((index_l%1 == 0) && (index_q%1 == 0)) {
-          printf("%i, %i, %i, %e, %e,  %e, %e, %e,  %e \n",
-                  index_l, index_q, ptr->l[index_l], ptr->q[index_q], k,
-                  primordial_pk[index_ic1_ic2], transfer_ic1_gwb, transfer_ic2_gwb,
-                  cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb]);
-        }
-      }
     }
 
     if (phr->has_tgwb == _TRUE_)

@@ -1615,8 +1615,8 @@ int input_read_parameters_general(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
-  int flag1,flag2;
-  double param1,param2;
+  int flag1,flag2,flag3,flag4;
+  double param1,param2,param3,param4;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char * options_output[39] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd","gwCl","OmGw",
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl","OmGW",
@@ -1698,8 +1698,8 @@ int input_read_parameters_general(struct file_content * pfc,
                errmsg);
     class_test(flag1==_FALSE_,
                errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl','OmGw'}, you entered '%s'",string1);
-    class_test(((ppt->has_cl_gwb != ppt->has_omega_gwb)),
-                errmsg, "For now please always ask for both gwCl and OmGW!"); //TODO_GWB: improve input logic!
+    class_test(((ppt->has_omega_gwb == _TRUE_) && (ppt->has_cl_gwb == _FALSE_)),
+                errmsg, "If you ask for 'OmGW' you also have to ask for 'gwCl'!");
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -1847,7 +1847,7 @@ int input_read_parameters_general(struct file_content * pfc,
                  errmsg,
                  errmsg);
       class_test(flag1==_FALSE_,
-                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw', 'ad','pisw','eisw','lisw','ini'}, you entered '%s'",string1);
+                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','ad','pisw','eisw','lisw','ini'}, you entered '%s'",string1);
       class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_ad == 0) && (ppt->switch_gwb_pisw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
                  errmsg,
                  "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','ad','pisw','eisw','lisw','ini'}.",string1);
@@ -2241,6 +2241,54 @@ int input_read_parameters_general(struct file_content * pfc,
   if(pba->varconst_dep!=varconst_none){
     /* 10.b) Sensitivity of bbn to a variation of the fine structure constant */
     class_read_double("bbn_alpha_sensitivity",pth->bbn_alpha_sensitivity);
+  }
+
+  /** 11) Gravitational Wave Background */
+  if (ppt->has_cl_gwb == _TRUE_) {
+
+    /** 11.a) Physical time of GWB production*/
+    /* Read */
+    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"z_ini_gwb",&param2,&flag2,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
+                errmsg,
+                errmsg);
+    class_call(parser_read_double(pfc,"f_dec_ini",&param4,&flag4,errmsg),
+                errmsg,
+                errmsg);
+    /* Test */
+    class_test(class_at_least_two_of_four(flag1, flag2, flag3, flag4),
+                errmsg,
+                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb', 'T_ini_gwb' or 'f_dec_ini'.");
+    /* Complete set of parameters */
+    ppt->tau_ini_gwb = 0.;
+    ppt->z_ini_gwb = 0.;
+    ppt->T_ini_gwb = 0.;
+    pba->f_dec_ini = -1.;
+    if (flag1 == _TRUE_)
+      ppt->tau_ini_gwb = param1;
+    if (flag2 == _TRUE_)
+      ppt->z_ini_gwb = param2;
+    if (flag3 == _TRUE_)
+      ppt->T_ini_gwb = param3;
+    if (flag4 == _TRUE_)
+      pba->f_dec_ini = param4;
+
+    /** 11.b) Convert GWB to energy density  */
+    /* Read */
+    flag1 = _FALSE_;
+    class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
+    ppt->convert_gwb_to_energydensity = flag1;
+    /* Test */
+    class_test((ppt->convert_gwb_to_energydensity == _TRUE_) && (ppt->has_omega_gwb == _FALSE_),
+                errmsg,
+                "CLASS can not convert the GWB perturbations to energergy density without knowing the GWB background energy density.");
+
+    //TODO
   }
 
   return _SUCCESS_;
@@ -4365,8 +4413,14 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
   /** 2) Graviational Wave Background (GWB) source type (define the energy density and intial spectrum) */
   if (((ppt->has_cl_gwb == _TRUE_) && (ppt->switch_gwb_ini == 1) ) || (ppt->has_omega_gwb == _TRUE_)) {
-    /* activate gwb_ini: index_ic_gwb */
+    /* Test */
+    class_test((ppt->switch_gwb_ini == 1) && (ppt->has_omega_gwb == _FALSE_),
+               errmsg,
+               "If you want to calculate the inital contribution to gwCl, you also have to calculate OmGW!");
+
+    /* activate gwb_ini: index_ic_gwb, may be deactivatd again depending on the source type */
     ppt->has_gwb_ini=_TRUE_;
+
     /* Read */
     class_call(parser_read_string(pfc,"gwb_source_type",&string1,&flag1,errmsg),
               errmsg,
@@ -4387,15 +4441,18 @@ int input_read_parameters_primordial(struct file_content * pfc,
                   "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb'}.",string1);
       }
     }
-
     /* Test */
     class_test((ppm->gwb_source_type == external_gwb) && (ppm->primordial_spec_type != external_Pk),
                errmsg,
                "To use the 'external_gwb' for the GWB sources you must also use the 'external_Pk' for 'Pk_ini_type'!");
-
+    
     /** 2.a) Pivot scale in Hz */
     /* Read */
     class_read_double("f_pivot",ppm->f_pivot);
+    /** 2.a.1) Minimum GWB frequency in Hz */
+    class_read_double("f_min",ppm->f_min);
+    /** 2.a.2) Maximum GWB frequency in Hz */
+    class_read_double("f_max",ppm->f_max);
   
     /** 2.b) For type 'analytic_gwb' */
     if (ppm->gwb_source_type == analytic_gwb) {
@@ -4414,6 +4471,11 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("n_ini",ppm->n_ini);
       /** 2.b.2.3) GWB ini running */
       class_read_double("alpha_ini",ppm->alpha_ini);
+
+      /** Test */
+      if (ppm->A_ini == 0.) {
+        ppt->has_gwb_ini = _FALSE_;
+      }
 
       /** 2.b.3) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
       if (ppm->primordial_spec_type == analytic_Pk) {
@@ -4510,8 +4572,8 @@ int input_read_parameters_spectra(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2, flag3, flag4;
-  double param1, param2, param3, param4;
+  int flag1, flag2;
+  double param1, param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
   int int1;
   double * pointer1;
@@ -4814,48 +4876,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
       }
       /* Now we have checked all contributions that could change z_max_pk */
     }
-  }
-
-  /** 4) Gravitational Wave Background */
-  if (ppt->has_cl_gwb == _TRUE_) {
-
-    /** 4.a) Physical time of GWB production*/
-    /* Read */ //TODO_GWB: Can we further simplify this logic?
-    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"z_ini_gwb",&param2,&flag2,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"f_dec_ini",&param4,&flag4,errmsg),
-                errmsg,
-                errmsg);
-    /* Test */
-    class_test(class_at_least_two_of_four(flag1, flag2, flag3, flag4),
-                errmsg,
-                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb', 'T_ini_gwb' or 'f_dec_ini'.");
-    /* Complete set of parameters */
-    ppt->tau_ini_gwb = 0.;
-    ppt->z_ini_gwb = 0.;
-    ppt->T_ini_gwb = 0.;
-    pba->f_dec_ini = -1.;
-    if (flag1 == _TRUE_)
-      ppt->tau_ini_gwb = param1;
-    if (flag2 == _TRUE_)
-      ppt->z_ini_gwb = param2;
-    if (flag3 == _TRUE_)
-      ppt->T_ini_gwb = param3;
-    if (flag4 == _TRUE_)
-      pba->f_dec_ini = param4;
-
-    /** 4.b) Convert GWB to energy density  */
-    /* Read */
-    flag1 = _FALSE_;
-    class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
-    ppt->convert_gwb_to_energydensity = flag1;
   }
 
   return _SUCCESS_;
@@ -5555,11 +5575,11 @@ int input_default_params(struct background *pba,
   ppt->has_metricpotential_transfers = _FALSE_;
   /** 1.d) 'gwCl' case */
   ppt->switch_gwb_sw = 1;
-  ppt->switch_gwb_ad = 1;
-  ppt->switch_gwb_pisw = 1;
+  ppt->switch_gwb_ad = 0; // turned off by default
+  ppt->switch_gwb_pisw = 0; // turned off by default
   ppt->switch_gwb_eisw = 1;
   ppt->switch_gwb_lisw = 1;
-  ppt->switch_gwb_ini = 0; // Inital contribution is turned off by default
+  ppt->switch_gwb_ini = 0; // turned off by default
 
   /** 2) Perturbed recombination */
   ppt->has_perturbed_recombination=_FALSE_;
@@ -5630,6 +5650,15 @@ int input_default_params(struct background *pba,
   pba->varconst_me = 1.;
   pth->bbn_alpha_sensitivity = 1.;
   pba->varconst_transition_redshift = 50.;
+
+  /** 11) Gravitational Wave Background */
+  /** 11.a) Physical time of GWB production */
+  ppt->tau_ini_gwb=0.;
+  ppt->z_ini_gwb=0.;
+  ppt->T_ini_gwb=0.;
+  pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
+  /** 11.b) Convert GWB phase space perturbation to energy density contrast */
+  ppt->convert_gwb_to_energydensity=_FALSE_;
 
   /**
    * Default to input_read_parameters_species
@@ -5913,6 +5942,10 @@ int input_default_params(struct background *pba,
   ppm->gwb_source_type = analytic_gwb;
   /** 2.a) Pivot scale in Hz */
   ppm->f_pivot = 1.;
+  /** 2.a.1) Minimum GWB frequency in Hz */
+  ppm->f_min = 1.e-3;
+  /** 2.a.2) Maximum GWB frequency in Hz */
+  ppm->f_max = 1.e2;
 
   /** 2.b) For type 'analytic_gwb' */
   /** 2.b.1) GWB energy density Omega_GW */
@@ -5995,15 +6028,6 @@ int input_default_params(struct background *pba,
   pop->z_pk[0] = 0.;
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
-
-  /** 4) Gravitational Wave Background */
-  /** 4.a) Physical time of GWB production */
-  ppt->tau_ini_gwb=0.;
-  ppt->z_ini_gwb=0.;
-  ppt->T_ini_gwb=0.;
-  pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
-  /** 4.b) Convert GWB phase space perturbation to energy density contrast */
-  ppt->convert_gwb_to_energydensity=_FALSE_;
 
   /**
    * Default to input_read_parameters_lensing

@@ -211,6 +211,8 @@ struct primordial {
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
+  double f_min;   /**< minimum GWB frequency in Hz */
+  double f_max;   /**< maximum GWB frequency in Hz */
   double gwb_ini_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum*/
   
   /* - parameters describing analytic_gwb */

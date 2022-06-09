@@ -219,6 +219,12 @@ int primordial_omega_gw_at_f(
   double lnf;
   int last_index;
 
+  /** - test */
+  
+  class_test(ppm->has_OmGW == _FALSE_,
+             ppm->error_message,
+             "Omega_gw is not calculated");
+
   /** - infer ln(f) from input. In linear mode, reject negative value of input f value. */
 
   if (mode == linear) {
@@ -399,8 +405,8 @@ int primordial_init(
 
   if (ppm->has_OmGW) {
     class_call(primordial_get_lnf_list(ppm,
-                                      ppr->f_min,
-                                      ppr->f_max,
+                                      ppm->f_min,
+                                      ppm->f_max,
                                       ppr->f_per_decade_primordial
                                       ),
               ppm->error_message,
@@ -4353,16 +4359,16 @@ int primordial_external_gwb_init(
              "The attempt to launch the external command was unsuccessful. "
              "Try doing it by hand to check for errors.");
   /* Test limits of the k's */
-  class_test(f[1] > ppr->f_min,
+  class_test(f[1] > ppm->f_min,
              ppm->error_message,
              "Your table for the Omega_GW does not have "
              "at least 2 points before the minimum value of f: %e . "
-             "The splines interpolation would not be safe.",ppr->f_min);
-  class_test(f[n_data-2] < ppr->f_max,
+             "The splines interpolation would not be safe.",ppm->f_min);
+  class_test(f[n_data-2] < ppm->f_max,
              ppm->error_message,
              "Your table for the Omega_GW does not have "
              "at least 2 points after the maximum value of f: %e . "
-             "The splines interpolation would not be safe.",ppr->f_max);
+             "The splines interpolation would not be safe.",ppm->f_max);
 
   /** - Store the read results into CLASS structures */
   ppm->lnf_size = n_data;
