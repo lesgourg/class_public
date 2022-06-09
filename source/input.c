@@ -4460,6 +4460,21 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /* The initial spectrum is not independent, but proportional to the scalar spectrum. */
       ppt->has_gwb_ini = _FALSE_;
     }
+
+    /** 2.d) For type 'external_gwb' */
+    if (ppm->gwb_source_type == external_gwb) {
+      /** 2.d.1) Command generating the table */
+      /* Read */
+      class_call(parser_read_string(pfc, "command_gwb", &string1, &flag1, errmsg),
+                errmsg, errmsg);
+      /* Test */
+      class_test(strlen(string1) == 0,
+                errmsg,
+                "You omitted to write a command for the external Omgea_GW");
+      /* Complete set of parameters */
+      ppm->command_gwb = (char *) malloc (strlen(string1) + 1);
+      strcpy(ppm->command_gwb, string1);
+    }
   }
 
   return _SUCCESS_;
@@ -5939,6 +5954,10 @@ int input_default_params(struct background *pba,
   ppm->f_star = 1.;
   /** 2.c.2) Non-Gaussianity parameter */
   ppm->f_NL = 0.;
+
+  /** 2.d) For type 'external_gwb' */
+  /** 2.d.1) Command generating the table for Omega_GW */
+  ppm->command_gwb=NULL;
 
   /**
    * Default to input_read_parameters_spectra

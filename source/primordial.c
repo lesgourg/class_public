@@ -678,11 +678,20 @@ int primordial_init(
     }
 
     else if (ppm->gwb_source_type == external_gwb) {
-      //TODO_GWB: Implement external_gwb
-      /** - the gwb spectrum is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init*/
-
       if (ppm->primordial_verbose > 0)
-        printf(" (Pk calculated externally)\n");
+        printf(" (GWB calculated externally)\n");
+
+      /** - the GWB initial perturbations \Gamma_I is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init */
+
+    class_test(ppm->has_OmGW == _FALSE_,
+               ppm->error_message,
+               "external GWB module cannot work if you do not ask for Omega_GW");
+
+      /** - read the GWB energy density Omega_GW */
+      class_call_except(primordial_external_gwb_init(ppr,ppm),
+                        ppm->error_message,
+                        ppm->error_message,
+                        primordial_free(ppm));
     }
 
     else {
@@ -4246,6 +4255,140 @@ int primordial_PBH_omega_gw(
   
   return _SUCCESS_;
 
+}
+
+/**
+ * This routine reads the GWB energy density from an external command,
+ * and stores the tabulated values.
+ * The sampling of the f's given by the external command is preserved.
+ * Compare to primotdial_external_spectrum_init
+ *
+ * @param ppr  Input/output: pointer to precision structure
+ * @param ppm  Input/output: pointer to primordial structure
+ * @return the error status
+ */
+
+int primordial_external_gwb_init(
+                                  struct precision * ppr,
+                                  struct primordial * ppm
+                                  ) {
+  /** Summary: */
+
+  char arguments[_ARGUMENT_LENGTH_MAX_];
+  char line[_LINE_LENGTH_MAX_];
+  char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
+  FILE *process;
+  int n_data_guess, n_data = 0;
+  double *f = NULL, *OmGW = NULL, *tmp = NULL;
+  double this_f, this_OmGW;
+  int status;
+  int index_f;
+
+  /** - Initialization */
+  /* Prepare the data (with some initial size) */
+  n_data_guess = 100;
+  f    = (double *)malloc(n_data_guess*sizeof(double));
+  OmGW = (double *)malloc(n_data_guess*sizeof(double));
+  /* Prepare the command */
+  /* If the command is just a "cat", no arguments need to be passed */
+  if(strncmp("cat ", ppm->command_gwb, 4) == 0) {
+    sprintf(arguments, " ");
+  }
+  /* otherwise pass the list of arguments */
+  else {
+    sprintf(arguments, " %g %g %g %g %g %g %g %g %g %g",
+            ppm->custom1, ppm->custom2, ppm->custom3, ppm->custom4, ppm->custom5,
+            ppm->custom6, ppm->custom7, ppm->custom8, ppm->custom9, ppm->custom10);
+  }
+  /* write the actual command in a string */
+  sprintf(command_with_arguments, "%s %s", ppm->command_gwb, arguments);
+  if (ppm->primordial_verbose > 0)
+    printf(" -> running: %s\n",command_with_arguments);
+
+  /** - Launch the command and retrieve the output */
+  /* Launch the process */
+  process = popen(command_with_arguments, "r");
+  class_test(process == NULL,
+             ppm->error_message,
+             "The program failed to set the environment for the external command. Maybe you ran out of memory.");
+  /* Read output and store it */
+  while (fgets(line, sizeof(line)-1, process) != NULL) {
+    /* Skip comments */
+    while (line[0] == '#') {
+      fgets(line, sizeof(line)-1, process);
+    }
+    /* Read values */
+    sscanf(line, "%lf %lf", &this_f, &this_OmGW);
+    /* Standard technique in C: if too many data, double the size of the vectors */
+    /* (it is faster and safer that reallocating every new line) */
+    if((n_data+1) > n_data_guess) {
+      n_data_guess *= 2;
+      tmp = (double *)realloc(f,   n_data_guess*sizeof(double));
+      class_test(tmp == NULL,
+                 ppm->error_message,
+                 "Error allocating memory to read the external spectrum.\n");
+      f = tmp;
+      tmp = (double *)realloc(OmGW, n_data_guess*sizeof(double));
+      class_test(tmp == NULL,
+                 ppm->error_message,
+                 "Error allocating memory to read the external spectrum.\n");
+      OmGW = tmp;
+    };
+    /* Store */
+    f  [n_data]   = this_f;
+    OmGW[n_data]   = this_OmGW;
+    n_data++;
+    /* Check ascending order of the f's */
+    if(n_data>1) {
+      class_test(f[n_data-1] <= f[n_data-2],
+                 ppm->error_message,
+                 "The f's are not strictly sorted in ascending order, "
+                 "as it is required for the calculation of the splines.\n");
+    }
+  }
+  /* Close the process */
+  status = pclose(process);
+  class_test(status != 0.,
+             ppm->error_message,
+             "The attempt to launch the external command was unsuccessful. "
+             "Try doing it by hand to check for errors.");
+  /* Test limits of the k's */
+  class_test(f[1] > ppr->f_min,
+             ppm->error_message,
+             "Your table for the Omega_GW does not have "
+             "at least 2 points before the minimum value of f: %e . "
+             "The splines interpolation would not be safe.",ppr->f_min);
+  class_test(f[n_data-2] < ppr->f_max,
+             ppm->error_message,
+             "Your table for the Omega_GW does not have "
+             "at least 2 points after the maximum value of f: %e . "
+             "The splines interpolation would not be safe.",ppr->f_max);
+
+  /** - Store the read results into CLASS structures */
+  ppm->lnf_size = n_data;
+  /** - Make room */
+  class_realloc(ppm->lnf,
+                ppm->lnf,
+                ppm->lnf_size*sizeof(double),
+                ppm->error_message);
+  class_realloc(ppm->lnOmGW,
+                ppm->lnOmGW,
+                ppm->lnf_size*sizeof(double),
+                ppm->error_message);
+  class_realloc(ppm->ddlnOmGW,
+                ppm->ddlnOmGW,
+                ppm->lnf_size*sizeof(double),
+                ppm->error_message);
+  /** - Store values */
+  for (index_f=0; index_f<ppm->lnf_size; index_f++) {
+    ppm->lnf[index_f] = log(f[index_f]);
+    ppm->lnOmGW[index_f] = log(OmGW[index_f]);
+  };
+  /** - Release the memory used locally */
+  free(f);
+  free(OmGW);
+
+  return _SUCCESS_;
 }
 
 int primordial_output_titles(struct perturbations * ppt,

@@ -68,17 +68,22 @@ The command must generate an output separated into lines, each containing a tupl
 * There must be at least two points `(k, P(k))` before and after the interval of `k` requested by CLASS, in order not to introduce unnecessary interpolation error. Otherwise, an error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1 1/Mpc` should be more than enough.
 
 
-Output for the GWB external primordial spectrum
------------------------------------------------
+Including the GWB external primordial spectrum
+----------------------------------------------
 
 If also the GWB primordial spectrum is given via the external module, each line is structured like the following:
 
  `k in 1/Mpc` `P_s(k)` `P_gwb(k)` `s x gwb` (`P_t(k)` if tensor)
 
- where `s x gwb` stands for the cross correlation coefficient between the scalar and GWB spectrum (between 0 and 1).
+where `s x gwb` stands for the cross correlation coefficient between the scalar and GWB spectrum (between 0 and 1).
 
 Be aware to not confuse this with the notation when only scalars and tensors but no GWB is requested.
 
+Furthermore, a second independent file/command must be specified to give the GWB background energy density. This must output a table in the following format:
+
+ `f in Hz` `Omega_GW(f)`
+
+ For an example of a Python program that can calculate both the GWB energy density and the primordial spectrum, have a look at `generate_PK_example_w_gwb.py`s
 
 Precision
 ---------
