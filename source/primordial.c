@@ -401,6 +401,7 @@ int primordial_init(
   /*** - allocate and fill values of \f$ \ln{f} \f$'s */
 
   ppm->has_OmGW = ppt->has_omega_gwb;
+  ppm->has_gwb_ini = ppt->has_gwb_ini;
   ppm->gwb_ini_scalar = 0.;
 
   if (ppm->has_OmGW) {
@@ -573,7 +574,7 @@ int primordial_init(
 
   /**  - deal with spectrum for \f$ \Omega_\mathrm{GW} \f$ and \f$ \Gamma_I \f$ */
 
-  if ((ppt->has_gwb_ini == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
+  if ((ppm->has_gwb_ini == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
     if (ppm->primordial_verbose > 0)
       printf("Computing GWB source");
 
@@ -602,7 +603,7 @@ int primordial_init(
       }
 
       /** - calculate \f$ \Gamma_I \f$ */
-      if (ppt->has_gwb_ini == _TRUE_) {
+      if (ppm->has_gwb_ini == _TRUE_) {
 
         class_call_except(primordial_gwb_analytic_spectrum_init(ppt,
                                                                 ppm),
@@ -870,7 +871,7 @@ int primordial_init(
 
   }
 
-  if ((ppt->has_gwb_ini == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
+  if ((ppm->has_gwb_ini == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
 
     dlnk = log(10.)/ppr->k_per_decade_primordial;
 
@@ -975,7 +976,7 @@ int primordial_free(
 
   if (ppm->lnk_size > 0) {
 
-    if ((ppm->primordial_spec_type == analytic_Pk) || (ppm->gwb_source_type == analytic_gwb)) {
+    if ((ppm->primordial_spec_type == analytic_Pk) || ((ppm->has_gwb_ini == _TRUE_) && (ppm->gwb_source_type == analytic_gwb))) {
       for (index_md = 0; index_md < ppm->md_size; index_md++) {
         free(ppm->amplitude[index_md]);
         free(ppm->tilt[index_md]);

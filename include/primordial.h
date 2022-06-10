@@ -210,6 +210,9 @@ struct primordial {
 
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
+  short has_OmGW;    /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
+  short has_gwb_ini; /**< do we calculate the initial GWB peturbation \f$ \Gamma_I \f$? */
+
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
   double f_max;   /**< maximum GWB frequency in Hz */
@@ -305,8 +308,6 @@ struct primordial {
   /** @name - pre-computed table of the graviational wave energy density Omega_GW */
 
   //@{
-
-  short has_OmGW;  /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$ */
 
   int lnf_size;    /**< number of ln(f) values */
 
