@@ -17,6 +17,9 @@ def read_parameter(argv=[]):
     par['A_s']     = 2.215e-09
     par['n_s']     = 0.9624
     par['alpha_s'] = 0.
+    par['r']       = 0.07
+    par['n_t']     = -0.1
+    par['alpha_t'] = 0.
 
     par['A_lin']   = 0.
     par['w_lin']   = 0.
@@ -32,7 +35,10 @@ def read_parameter(argv=[]):
         par['k_pivot'] = float(argv[0])
         par['A_s']     = float(argv[1])
         par['n_s']     = float(argv[2])
-        par['alpha_s'] = float(argv[3])
+        # par['alpha_s'] = float(argv[3])
+        par['r']       = float(argv[3])
+        # par['n_t']     = float(argv[4])
+        # par['alpha_t'] = float(argv[5])
 
         par['A_lin']   = float(argv[4])
         par['w_lin']   = float(argv[5])
@@ -63,18 +69,18 @@ def P_s(k, par):
             * (1. + par['A_log'] * np.cos(par['w_log']*np.log(k/par['k_ref']) + par['phi_log']))
 
 def P_t(k, par):
-    # Tensor modes are not implementetd yet!
-    return 0
+    x = np.log(k / par['k_pivot'])
+    return par['r']*par['A_s'] * np.exp(par['n_t'] * x + 0.5 * par['alpha_t'] * x**2) \
+            * (1. + par['A_lin'] * np.cos(par['w_lin']*k + par['phi_lin'])) \
+            * (1. + par['A_log'] * np.cos(par['w_log']*np.log(k/par['k_ref']) + par['phi_log']))
 
 
 # Print functions
 def print_Pks(ks, par):
     print("# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k)")
-    # print("# k [1/Mpc]                P_scalar(k)                P_tensor(k)")
-    print("# k [1/Mpc]                P_scalar(k)")
+    print("# k [1/Mpc]                P_scalar(k)                P_tensor(k)")
     for k in ks:
-        # print("%.18e   %.18e   %.18e" % (k, P_s(k, par), P_t(k, par)))
-        print("%.18e   %.18e" % (k, P_s(k, par)))
+        print("%.18e   %.18e   %.18e" % (k, P_s(k, par), P_t(k, par)))
 
 
 def main(argv):
