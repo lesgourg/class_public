@@ -22,13 +22,13 @@ def read_parameter(argv=[]):
     par['n_s']     = 0.9624
     par['r']       = 0.07
     par['n_t']     = -0.1
-    par['A_ini']   = 1e-10
-    par['n_ini']   = 0.
-    par['c_s_ini'] = 0.
+    par['A_gwi']   = 1e-10
+    par['n_gwi']   = 0.
+    par['c_s_gwi'] = 0.
 
     par['f_pivot'] = 1. # Hz
-    par['A_gw']    = 1e-5
-    par['n_gw']    = 0.
+    par['A_gwb']   = 1e-5
+    par['n_gwb']   = 0.
     
     # Read input parameter
     try:
@@ -36,12 +36,12 @@ def read_parameter(argv=[]):
         par['n_s']     = float(argv[1])
         par['r']       = float(argv[2])
         par['n_t']     = float(argv[3])
-        par['A_ini']   = float(argv[4])
-        par['n_ini']   = float(argv[5])
-        par['c_s_ini'] = float(argv[6])
+        par['A_gwi']   = float(argv[4])
+        par['n_gwi']   = float(argv[5])
+        par['c_s_gwi'] = float(argv[6])
 
-        par['A_gw']    = float(argv[7])
-        par['n_gw']    = float(argv[8])
+        par['A_gwb']   = float(argv[7])
+        par['n_gwb']   = float(argv[8])
     except IndexError:
         pass
     except ValueError:
@@ -75,23 +75,23 @@ def P_s(k, par):
 def P_t(k, par):
     return par['r']*par['A_s'] * (k/par['k_pivot'])**(par['n_t'])
 
-def P_gwb(k, par):
-    return par['A_ini'] * (k/par['k_pivot'])**(par['n_ini'])
+def P_gwi(k, par):
+    return par['A_gwi'] * (k/par['k_pivot'])**(par['n_gwi'])
 
-def cross_s_gwb(k, par):
-    return par['c_s_ini']
+def cross_s_gwi(k, par):
+    return par['c_s_gwi']
 
 # Background energy density of GWs
 def Omega_GW(f, par):
-    return par['A_gw'] * (f/par['f_pivot'])**(par['n_gw'])
+    return par['A_gwb'] * (f/par['f_pivot'])**(par['n_gwb'])
 
 
 # Print functions
 def print_Pks(ks, par):
     print("# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k)")
-    print("# k [1/Mpc]                P_scalar(k)                P_gwb(k)                   ad x gwb                   P_tensor(k)")
+    print("# k [1/Mpc]                P_scalar(k)                P_gwi(k)                   ad x gwi                   P_tensor(k)")
     for k in ks:
-        print("%.18e   %.18e   %.18e   %.18e   %.18e" % (k, P_s(k, par), P_gwb(k, par), cross_s_gwb(k, par), P_t(k, par)))
+        print("%.18e   %.18e   %.18e   %.18e   %.18e" % (k, P_s(k, par), P_gwi(k, par), cross_s_gwi(k, par), P_t(k, par)))
 
 def print_Omega_GW(fs, par):
     print("# Dimensionless graviational wave background energy density Omega_GW(f)")
