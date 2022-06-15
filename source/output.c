@@ -403,7 +403,7 @@ int output_cl(
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar adiabatic (AD) mode");
             }
 
-            if ((ppt->has_gwb_ini == _TRUE_) &&
+            if ((ppt->has_gwi == _TRUE_) &&
                 (index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_gwi)) {
 
               sprintf(file_name,"%s%s",pop->root,"cls_gwi.dat");

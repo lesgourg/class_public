@@ -1920,9 +1920,9 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
-        /* index_ic_gwi and has_gwb_ini is handled by gwb_source_type
+        /* index_ic_gwi and has_gwi is handled by gwb_source_type
         // if ((strstr(string1,"gwi") != NULL) || (strstr(string1,"GWI") != NULL)){
-        //   ppt->has_gwb_ini=_TRUE_;
+        //   ppt->has_gwi=_TRUE_;
         // }
         */
         if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL)){
@@ -4418,8 +4418,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
                errmsg,
                "If you want to calculate the inital contribution to gwCl, you also have to calculate OmGW!");
 
-    /* activate gwb_ini: index_ic_gwi, may be deactivatd again depending on the source type */
-    ppt->has_gwb_ini=_TRUE_;
+    /* activate inital GWB perturbation mode: index_ic_gwi, may be deactivatd again depending on the source type */
+    ppt->has_gwi=_TRUE_;
 
     /* Read */
     class_call(parser_read_string(pfc,"gwb_source_type",&string1,&flag1,errmsg),
@@ -4474,33 +4474,33 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** Test */
       if (ppm->A_gwi == 0.) {
-        ppt->has_gwb_ini = _FALSE_;
+        ppt->has_gwi = _FALSE_;
       }
 
       /** 2.b.3) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
       if (ppm->primordial_spec_type == analytic_Pk) {
         /* Read */
-        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_)) {
+        if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_)) {
           class_read_double_one_of_two("c_gwi_ad","c_ad_gwi",ppm->c_gwi_ad);
           class_read_double_one_of_two("n_gwi_ad","n_ad_gwi",ppm->n_gwi_ad);
           class_read_double_one_of_two("alpha_gwi_ad","alpha_ad_gwi",ppm->alpha_gwi_ad);
         }
-        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_bi == _TRUE_)) {
+        if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_)) {
           class_read_double_one_of_two("c_gwi_bi","c_bi_gwi",ppm->c_gwi_bi);
           class_read_double_one_of_two("n_gwi_bi","n_bi_gwi",ppm->n_gwi_bi);
           class_read_double_one_of_two("alpha_gwi_bi","alpha_bi_gwi",ppm->alpha_gwi_bi);
         }
-        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
+        if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
           class_read_double_one_of_two("c_gwi_cdi","c_cdi_gwi",ppm->c_gwi_cdi);
           class_read_double_one_of_two("n_gwi_cdi","n_cdi_gwi",ppm->n_gwi_cdi);
           class_read_double_one_of_two("alpha_gwi_cdi","alpha_cdi_gwi",ppm->alpha_gwi_cdi);
         }
-        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_nid == _TRUE_)) {
+        if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
           class_read_double_one_of_two("c_gwi_nid","c_nid_gwi",ppm->c_gwi_nid);
           class_read_double_one_of_two("n_gwi_nid","n_nid_gwi",ppm->n_gwi_nid);
           class_read_double_one_of_two("alpha_gwi_nid","alpha_nid_gwi",ppm->alpha_gwi_nid);
         }
-        if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+        if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_)) {
           class_read_double_one_of_two("c_gwi_niv","c_niv_gwi",ppm->c_gwi_niv);
           class_read_double_one_of_two("n_gwi_niv","n_niv_gwi",ppm->n_gwi_niv);
           class_read_double_one_of_two("alpha_gwi_niv","alpha_niv_gwi",ppm->alpha_gwi_niv);
@@ -4520,7 +4520,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("f_NL",ppm->f_NL);
 
       /* The initial spectrum is not independent, but proportional to the scalar spectrum. */
-      ppt->has_gwb_ini = _FALSE_;
+      ppt->has_gwi = _FALSE_;
     }
 
     /** 2.d) For type 'external_gwb' */
@@ -5589,7 +5589,7 @@ int input_default_params(struct background *pba,
   ppt->has_tensors=_FALSE_;
   /** 3.a) Initial conditions for scalars */
   ppt->has_ad=_TRUE_;
-  ppt->has_gwb_ini=_FALSE_;
+  ppt->has_gwi=_FALSE_;
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
