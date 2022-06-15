@@ -1920,7 +1920,7 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
-        /* index_ic_gwb and has_gwb_ini is handled by gwb_source_type
+        /* index_ic_gwi and has_gwb_ini is handled by gwb_source_type
         // if ((strstr(string1,"gwi") != NULL) || (strstr(string1,"GWI") != NULL)){
         //   ppt->has_gwb_ini=_TRUE_;
         // }
@@ -4418,7 +4418,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
                errmsg,
                "If you want to calculate the inital contribution to gwCl, you also have to calculate OmGW!");
 
-    /* activate gwb_ini: index_ic_gwb, may be deactivatd again depending on the source type */
+    /* activate gwb_ini: index_ic_gwi, may be deactivatd again depending on the source type */
     ppt->has_gwb_ini=_TRUE_;
 
     /* Read */

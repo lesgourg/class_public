@@ -570,7 +570,7 @@ int primordial_init(
 
   /** Here starts the section for the GWB sources.
       Here we calculate the background energy desnity \f$ \Omega_\mathrm{GW} \f$
-      and the inital perturbation \f$ \Gamma_I \f$ (index_ic_gwb) */
+      and the inital perturbation \f$ \Gamma_I \f$ (index_ic_gwi) */
 
   /**  - deal with spectrum for \f$ \Omega_\mathrm{GW} \f$ and \f$ \Gamma_I \f$ */
 
@@ -615,7 +615,7 @@ int primordial_init(
 
           k=exp(ppm->lnk[index_k]);
           index_md = ppt->index_md_scalars;
-          index_ic1 = ppt->index_ic_gwb;
+          index_ic1 = ppt->index_ic_gwi;
 
           for (index_ic2 = 0; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
 
@@ -876,7 +876,7 @@ int primordial_init(
     dlnk = log(10.)/ppr->k_per_decade_primordial;
 
     class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_scalars]*sizeof(double), ppt->error_message);
-    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwi,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
 
     class_call(primordial_spectrum_at_k(ppm,
                                         ppt->index_md_scalars,
@@ -1259,7 +1259,7 @@ int primordial_analytic_spectrum_init(
       ppm->running[index_md][index_ic1_ic2] = one_running;
 
       /* The GWB inital spectrum is handeled in a different function! */
-      if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+      if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
         ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
       }
     }
@@ -1384,7 +1384,7 @@ int primordial_analytic_spectrum_init(
         }
 
         /* The GWB inital spectrum is handeled in a different function! */
-        if ((ppt->has_gwb_ini == _TRUE_) && ((index_ic1 == ppt->index_ic_gwb)||(index_ic2 == ppt->index_ic_gwb))) {
+        if ((ppt->has_gwb_ini == _TRUE_) && ((index_ic1 == ppt->index_ic_gwi)||(index_ic2 == ppt->index_ic_gwi))) {
           ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
         }
       }
@@ -3919,9 +3919,9 @@ int primordial_external_spectrum_init(
     index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
     ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pks[index_k]);
     if (ppm->gwb_source_type == external_gwb) {
-      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwi,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
       ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = log(pkgwb[index_k]);
-      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+      index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
       ppm->lnpk[ppt->index_md_scalars][index_k*ppm->ic_ic_size[ppt->index_md_scalars]+index_ic1_ic2] = crossgwb[index_k];
       has_crossgwb = (crossgwb[index_k] != 0.) || has_crossgwb; /* update for ppm->is_non_zero */
     }
@@ -3948,9 +3948,9 @@ int primordial_external_spectrum_init(
   index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_ad,ppm->ic_size[ppt->index_md_scalars]);
   ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
   if (ppm->gwb_source_type == external_gwb) {
-    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwb,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwi,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
     ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = _TRUE_;
-    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwb,ppm->ic_size[ppt->index_md_scalars]);
+    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ad,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
     ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] = has_crossgwb;
   }
   if (ppt->has_tensors == _TRUE_)
@@ -4033,14 +4033,14 @@ int primordial_gwb_analytic_spectrum_init(
   }
 
   index_md = ppt->index_md_scalars;
-  index_ic1 = ppt->index_ic_gwb;
+  index_ic1 = ppt->index_ic_gwi;
 
   class_test(index_ic1 >= ppm->ic_size[index_md],
              ppm->error_message,
              "The index of the GWB is out of range. This should not happen!");
 
   /* diagonal coefficient */
-  if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+  if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
     one_amplitude = ppm->A_gwi;
     // one_tilt = ppm->n_gwi;
     one_tilt = ppm->n_gwi+1.; /* +1 to match definition of n_gwi wrt. 0 (equivalent to n_s-1) */
@@ -4068,40 +4068,40 @@ int primordial_gwb_analytic_spectrum_init(
     for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_ad == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_ad)) ||
-              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_ad)))) {
+            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_ad)) ||
+              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_ad)))) {
           one_correlation = ppm->c_gwi_ad;
           one_tilt = ppm->n_gwi_ad;
           one_running = ppm->alpha_gwi_ad;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_bi == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_bi)) ||
-              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_bi)))) {
+            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_bi)) ||
+              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_bi)))) {
           one_correlation = ppm->c_gwi_bi;
           one_tilt = ppm->n_gwi_bi;
           one_running = ppm->alpha_gwi_bi;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_cdi)) ||
-              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_cdi)))) {
+            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_cdi)) ||
+              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_cdi)))) {
           one_correlation = ppm->c_gwi_cdi;
           one_tilt = ppm->n_gwi_cdi;
           one_running = ppm->alpha_gwi_cdi;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_nid)) ||
-              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_nid)))) {
+            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_nid)) ||
+              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_nid)))) {
           one_correlation = ppm->c_gwi_nid;
           one_tilt = ppm->n_gwi_nid;
           one_running = ppm->alpha_gwi_nid;
         }
 
         if ((ppt->has_gwb_ini == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwb) && (index_ic2 == ppt->index_ic_niv)) ||
-              ((index_ic2 == ppt->index_ic_gwb) && (index_ic1 == ppt->index_ic_niv)))) {
+            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_niv)) ||
+              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_niv)))) {
           one_correlation = ppm->c_gwi_niv;
           one_tilt = ppm->n_gwi_niv;
           one_running = ppm->alpha_gwi_niv;
@@ -4427,7 +4427,7 @@ int primordial_output_titles(struct perturbations * ppt,
           class_store_columntitle(titles,"P_ni(k)",_TRUE_);
         }
 
-        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwb)) {
+        if ((ppt->has_gwb_ini == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
           class_store_columntitle(titles,"P_gwi(k)",_TRUE_);
         }
       }
@@ -4470,8 +4470,8 @@ int primordial_output_titles(struct perturbations * ppt,
           }
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_gwb)) ||
-                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_gwb)))) {
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_gwi)))) {
             class_store_columntitle(titles,"ad x gwi",_TRUE_);
           }
 
@@ -4494,8 +4494,8 @@ int primordial_output_titles(struct perturbations * ppt,
           }
 
           if ((ppt->has_bi == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_gwb)) ||
-                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_gwb)))) {
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_gwi)))) {
             class_store_columntitle(titles,"bi x gwi",_TRUE_);
           }
 
@@ -4512,8 +4512,8 @@ int primordial_output_titles(struct perturbations * ppt,
           }
 
           if ((ppt->has_cdi == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_gwb)) ||
-                ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_gwb)))) {
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_gwi)))) {
             class_store_columntitle(titles,"cdi x gwi",_TRUE_);
           }
 
@@ -4524,8 +4524,8 @@ int primordial_output_titles(struct perturbations * ppt,
           }
 
           if ((ppt->has_nid == _TRUE_) && (ppt->has_gwb_ini == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_gwb)) ||
-                ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_gwb)))) {
+              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_gwi)))) {
             class_store_columntitle(titles,"nid x gwi",_TRUE_);
           }
         }
