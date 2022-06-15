@@ -21,7 +21,8 @@ enum primordial_spectrum_type {
 enum gwb_source_type {
   analytic_gwb,
   PBH_gwb,
-  external_gwb
+  external_gwb,
+  adiabatic_gwb
 };
 
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
@@ -216,7 +217,7 @@ struct primordial {
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
   double f_max;   /**< maximum GWB frequency in Hz */
-  double gwb_ini_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum*/
+  double gwi_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum s*/
   
   /* - parameters describing analytic_gwb */
 

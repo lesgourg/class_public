@@ -1622,7 +1622,7 @@ int input_read_parameters_general(struct file_content * pfc,
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl","OmGW",
                                 "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD","GWCL","OMGW"};
   char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
-  char * options_gwb_contributions[12] = {"tsw","ad","pisw","eisw","lisw","ini","TSW","Ad","PISW","EISW","LISW","Ini"};
+  char * options_gwb_contributions[10] = {"tsw","pisw","eisw","lisw","ini","TSW","PISW","EISW","LISW","INI"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
   char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
@@ -1819,16 +1819,12 @@ int input_read_parameters_general(struct file_content * pfc,
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
       ppt->switch_gwb_sw = 0;
-      ppt->switch_gwb_ad = 0;
       ppt->switch_gwb_pisw = 0;
       ppt->switch_gwb_eisw = 0;
       ppt->switch_gwb_lisw = 0;
       ppt->switch_gwb_ini = 0;
       if ((strstr(string1,"tsw") != NULL) || (strstr(string1,"TSW") != NULL)){
         ppt->switch_gwb_sw = 1;
-      }
-      if ((strstr(string1,"ad") != NULL) || (strstr(string1,"Ad") != NULL)){
-        ppt->switch_gwb_ad = 1;
       }
       if ((strstr(string1,"pisw") != NULL) || (strstr(string1,"PISW") != NULL)){
         ppt->switch_gwb_pisw = 1;
@@ -1839,18 +1835,18 @@ int input_read_parameters_general(struct file_content * pfc,
       if ((strstr(string1,"lisw") != NULL) || (strstr(string1,"LISW") != NULL)){
         ppt->switch_gwb_lisw = 1;
       }
-      if ((strstr(string1,"ini") != NULL) || (strstr(string1,"Ini") != NULL)){
+      if ((strstr(string1,"ini") != NULL) || (strstr(string1,"INI") != NULL)){
         ppt->switch_gwb_ini = 1;
       }
       /* Test */
-      class_call(parser_check_options(string1, options_gwb_contributions, 12, &flag1),
+      class_call(parser_check_options(string1, options_gwb_contributions, 10, &flag1),
                  errmsg,
                  errmsg);
       class_test(flag1==_FALSE_,
-                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','ad','pisw','eisw','lisw','ini'}, you entered '%s'",string1);
-      class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_ad == 0) && (ppt->switch_gwb_pisw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
+                 errmsg, "The options for 'gravitational_wave_contributions' are {'tsw','pisw','eisw','lisw','ini'}, you entered '%s'",string1);
+      class_test((ppt->switch_gwb_sw == 0) && (ppt->switch_gwb_pisw == 0) && (ppt->switch_gwb_eisw == 0) && (ppt->switch_gwb_lisw == 0) && (ppt->switch_gwb_ini == 0),
                  errmsg,
-                 "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','ad','pisw','eisw','lisw','ini'}.",string1);
+                 "You specified 'gravitational_wave_contributions' as '%s'. It has to contain some of {'tsw','pisw','eisw','lisw','ini'}.",string1);
 
       /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
       /* Read */
@@ -4436,9 +4432,12 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"external_gwb") == 0){
         ppm->gwb_source_type = external_gwb;
       }
+      else if (strcmp(string1,"adiabatic_gwb") == 0){
+        ppm->gwb_source_type = adiabatic_gwb;
+      }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb, adiabatic_gwb'}.",string1);
       }
     }
     /* Test */
@@ -4536,6 +4535,26 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /* Complete set of parameters */
       ppm->command_gwb = (char *) malloc (strlen(string1) + 1);
       strcpy(ppm->command_gwb, string1);
+    }
+  
+    /** 2.e) For type 'adiabtic_gwb' */
+    if (ppm->gwb_source_type == adiabatic_gwb) {
+      /** 2.e.1) GWB energy density Omega_GW */
+      /** 2.e.1.1) Amplitude */
+      class_read_double("A_gwb",ppm->A_gwb);
+      /** 2.e.1.2) Spectral index */
+      class_read_double("n_gwb",ppm->n_gwb);
+      /** 2.e.1.3) GWB running */
+      class_read_double("alpha_gwb",ppm->alpha_gwb);
+
+      /** 2.e.2) GWB intial perturbations Gamma_I, gwi_adiabatic */
+      /* Standard value*/
+      ppt->gwi_adiabatic = -0.5;
+      /* Read */
+      class_read_double("gwi_adiabatic",ppt->gwi_adiabatic);
+
+      /** We need no special gwi mode */
+      ppt->has_gwi = _FALSE_;
     }
   }
 
@@ -5575,7 +5594,6 @@ int input_default_params(struct background *pba,
   ppt->has_metricpotential_transfers = _FALSE_;
   /** 1.d) 'gwCl' case */
   ppt->switch_gwb_sw = 1;
-  ppt->switch_gwb_ad = 0; // turned off by default
   ppt->switch_gwb_pisw = 0; // turned off by default
   ppt->switch_gwb_eisw = 1;
   ppt->switch_gwb_lisw = 1;
@@ -5991,6 +6009,10 @@ int input_default_params(struct background *pba,
   /** 2.d) For type 'external_gwb' */
   /** 2.d.1) Command generating the table for Omega_GW */
   ppm->command_gwb=NULL;
+
+  /** 2.e) For type 'adiabtic_gwb' */
+  /** 2.e.2) gwi_adiabatic, turn it off, if activated standard value is -0.5 */
+  ppt->gwi_adiabatic = 0.;
 
   /**
    * Default to input_read_parameters_spectra

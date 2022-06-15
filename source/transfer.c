@@ -2451,7 +2451,7 @@ int transfer_sources(
                     ptr->error_message);
         }
 
-        sources[0] = (ppt->switch_gwb_sw - 0.5 * ppt->switch_gwb_ad - ppt->switch_gwb_pisw)
+        sources[0] = (ppt->switch_gwb_sw - ppt->gwi_adiabatic * ppt->switch_gwb_ini - ppt->switch_gwb_pisw)
                       * interpolated_sources[index_tau] * (1. + 4./15. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_ini) //psi(tau_ini)
                       + (ppt->switch_gwb_pisw - ppt->switch_gwb_eisw)
                       * interpolated_sources[index_tau]; //psi(tau_BBN)

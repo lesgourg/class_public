@@ -112,7 +112,7 @@ struct perturbations
   short has_tensors; /**< do we need tensors? */
 
   short has_ad;      /**< do we need adiabatic mode? */
-  short has_gwi; /**< do we need GWB initial perturbation mode? */
+  short has_gwi;     /**< do we need GWB initial perturbation mode? */
   short has_bi;      /**< do we need isocurvature bi mode? */
   short has_cdi;     /**< do we need isocurvature cdi mode? */
   short has_nid;     /**< do we need isocurvature nid mode? */
@@ -167,8 +167,7 @@ struct perturbations
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
 
   int switch_gwb_sw;   /**< in graviational wave calculation, do we want to include the Sachs Wolfe term? */
-  int switch_gwb_ad;   /**< in graviational wave calculation, do we want to include the adiabatic IC term? */
-  int switch_gwb_pisw;/**< in graviational wave calculation, do we want to include the primordial integrated Sachs Wolfe term (effect of f_dec)? */
+  int switch_gwb_pisw; /**< in graviational wave calculation, do we want to include the primordial integrated Sachs Wolfe term (effect of f_dec)? */
   int switch_gwb_eisw; /**< in graviational wave calculation, do we want to include the early integrated Sachs Wolfe term? */
   int switch_gwb_lisw; /**< in graviational wave calculation, do we want to include the late integrated Sachs Wolfe term? */
   int switch_gwb_ini;  /**< in graviational wave calculation, do we want to include the initial term? */
@@ -187,6 +186,8 @@ struct perturbations
   double tau_ini_gwb; /**< the inital time for the graviational wave background in Mpc. This will then also fix the initial sampling time of the sources. */
   double z_ini_gwb; /**< the inital redshift for the graviational wave background. */
   double T_ini_gwb; /**< the inital temperature for the graviational wave background in K. */
+  
+  double gwi_adiabatic; /**< proportionality factor between initial GWB spectrum and Psi, -0.5 for adiabtic IC */
 
   double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm_fr-idr */
   double * beta_idr;  /**< Angular contribution to collisional term at l>=2 for idr-idr */

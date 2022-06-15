@@ -86,7 +86,7 @@ int primordial_spectrum_at_k(
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
-    class_test((ppm->gwb_source_type != analytic_gwb),
+    class_test((ppm->has_gwi == _TRUE_) && (ppm->gwb_source_type != analytic_gwb),
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
@@ -264,7 +264,7 @@ int primordial_omega_gw_at_f(
 
   if ((lnf > ppm->lnf[ppm->lnf_size-1]) || (lnf < ppm->lnf[0])) {
 
-    class_test(ppm->gwb_source_type != analytic_gwb,
+    class_test((ppm->gwb_source_type != analytic_gwb) && (ppm->gwb_source_type != adiabatic_gwb),
                ppm->error_message,
                "f=%e out of range [%e : %e]",exp(lnf),exp(ppm->lnf[0]),exp(ppm->lnf[ppm->lnf_size-1]));
 
@@ -402,7 +402,7 @@ int primordial_init(
 
   ppm->has_OmGW = ppt->has_omega_gwb;
   ppm->has_gwi = ppt->has_gwi;
-  ppm->gwb_ini_scalar = 0.;
+  ppm->gwi_scalar = 0.;
 
   if (ppm->has_OmGW) {
     class_call(primordial_get_lnf_list(ppm,
@@ -701,6 +701,34 @@ int primordial_init(
                         primordial_free(ppm));
     }
 
+    else if (ppm->gwb_source_type == adiabatic_gwb) {
+
+      if (ppm->primordial_verbose > 0)
+        printf(" (adiabatic GWB)\n");
+      
+      /** - calculate \f$ \Omega_\mathrm{GW} \f$ */
+      if (ppm->has_OmGW == _TRUE_) {
+
+        for (index_f = 0; index_f < ppm->lnf_size; index_f++) {
+
+          f=exp(ppm->lnf[index_f]);
+
+          class_call(primordial_analytic_omega_gw(ppm,
+                                                  f,
+                                                  &OmGW),
+                    ppm->error_message,
+                    ppm->error_message);
+
+
+          ppm->lnOmGW[index_f] = log(OmGW);
+        }
+      }
+
+      /** - nothing to calculate for \f$ \Gamma_I \f$ */
+      if (ppm->primordial_verbose > 0)
+        printf(" -> gwi_adiabatic=%g\n",ppt->gwi_adiabatic);
+    }
+
     else {
 
       class_test(0==0,
@@ -922,7 +950,7 @@ int primordial_init(
   /** - derive spectral parameters from numerically computed GWB energy density
       (also used to calculate the conversion to GWB energy density contrast) */
   
-  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
+  if ((ppm->has_OmGW == _TRUE_) && ((ppm->gwb_source_type != analytic_gwb) && (ppm->gwb_source_type != adiabatic_gwb)))  {
 
     dlnf = log(10.)/ppr->f_per_decade_primordial;
 
@@ -4222,11 +4250,11 @@ int primordial_PBH_gwb_init(
 
   ppm->n_gwb = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
 
-  /** - calculate gwb_ini_scalar */
-  ppm->gwb_ini_scalar = 576. / 25. * ppm->f_NL*ppm->f_NL / ((4. - ppm->n_gwb) * (4. - ppm->n_gwb));
+  /** - calculate gwi_scalar */
+  ppm->gwi_scalar = 576. / 25. * ppm->f_NL*ppm->f_NL / ((4. - ppm->n_gwb) * (4. - ppm->n_gwb));
 
   if (ppm->primordial_verbose > 0)
-    printf(" -> gwb_ini_scalar=%g\n",ppm->gwb_ini_scalar);
+    printf(" -> gwi_scalar=%g\n",ppm->gwi_scalar);
 
   return _SUCCESS_;
 
