@@ -22,7 +22,8 @@ enum gwb_source_type {
   analytic_gwb,
   PBH_gwb,
   external_gwb,
-  adiabatic_gwb
+  adiabatic_gwb,
+  PT_gwb,
 };
 
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
@@ -255,6 +256,15 @@ struct primordial {
   double f_star; /**< Enhancement scale for scakar spectrum (as observed GWB frequency in Hz) */
   double f_NL;   /**< Non-Gaussianity parameter */
   double prefactor_OmGW;   /**< prefactor for OmGW */
+
+  /* - parameters describing PT_gwb */
+
+  double alpha_PT;  /**< Strength parameter of PT */
+  double v_PT;      /**< Bubble wall velocity for PT */
+  double kappa_phi; /**< Energy realease efficiency for PT */
+  double RH_star;   /**< Scaled mean bubble wall velocity for PT */
+  double g_star;    /**< Effective degrees of freedom at PT */
+  double T_star;    /**< GW generation temperature in MeV */ //TODO_GWB: Use T_ini_gwb instead!
 
   /* - parameters for external_gwb */
 
@@ -625,6 +635,13 @@ int primordial_PBH_omega_gw(
                                     struct precision * ppr,
                                     struct primordial * ppm
                                     );
+
+  int primordial_PT_gwb_init(
+                              struct precision * ppr,
+                              struct background * pba,
+                              struct perturbations * ppt,
+                              struct primordial * ppm
+                              );
 
   int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,

@@ -4435,9 +4435,12 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"adiabatic_gwb") == 0){
         ppm->gwb_source_type = adiabatic_gwb;
       }
+      else if (strcmp(string1,"PT_gwb") == 0){
+        ppm->gwb_source_type = PT_gwb;
+      }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb, adiabatic_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb, adiabatic_gwb, PT_gwb'}.",string1);
       }
     }
     /* Test */
@@ -4555,6 +4558,26 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** We need no special gwi mode */
       ppt->has_gwi = _FALSE_;
+    }
+
+    /** 2.f) For type 'PT_gwb' */
+    if (ppm->gwb_source_type == PT_gwb) {
+      /** 2.f.1) Strength parameter of PT */
+      class_read_double("alpha_PT",ppm->alpha_PT);
+      /** 2.f.2) Bubble wall velocity in units of c */
+      class_read_double("v_PT",ppm->v_PT);
+      /** 2.f.3) Energy relase efficency */
+      class_read_double("kappa_phi",ppm->kappa_phi);
+      /** 2.f.4) Scaled mean bubble seperation */
+      class_read_double("RH_star",ppm->RH_star);
+      /** 2.f.5) Effective degrees of freedom at PT */
+      class_read_double("g_star",ppm->g_star);
+      /** 2.f.6) GW genreation temperature in MeV */
+      class_read_double("T_star",ppm->T_star);
+
+      /* The initial spectrum is not independent, but uses adiabtic IC */
+      ppt->has_gwi = _FALSE_;
+      ppt->gwi_adiabatic = -0.5;
     }
   }
 
@@ -6013,6 +6036,20 @@ int input_default_params(struct background *pba,
   /** 2.e) For type 'adiabtic_gwb' */
   /** 2.e.2) gwi_adiabatic, turn it off, if activated standard value is -0.5 */
   ppt->gwi_adiabatic = 0.;
+
+  /** 2.f) For type 'PT_gwb' */
+  /** 2.f.1) Strength parameter of PT */
+  ppm->alpha_PT = 0.9;
+  /** 2.f.2) Bubble wall velocity in units of c */
+  ppm->v_PT = 0.8;
+  /** 2.f.3) Energy relase efficency */
+  ppm->kappa_phi = 0.1;
+  /** 2.f.4) Scaled mean bubble seperation */
+  ppm->RH_star = 0.15;
+  /** 2.f.5) Effective degrees of freedom at PT */
+  ppm->g_star = 10.;
+  /** 2.f.6) GW genreation temperature in MeV */
+  ppm->T_star = 1.;
 
   /**
    * Default to input_read_parameters_spectra
