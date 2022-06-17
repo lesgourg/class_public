@@ -4251,7 +4251,7 @@ int primordial_PBH_gwb_init(
   ppm->n_gwb = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
 
   /** - calculate gwi_scalar */
-  ppm->gwi_scalar = 576. / 25. * ppm->f_NL*ppm->f_NL / ((4. - ppm->n_gwb) * (4. - ppm->n_gwb));
+  ppm->gwi_scalar = 3./5. * 8. * ppm->f_NL / (4. - ppm->n_gwb);
 
   if (ppm->primordial_verbose > 0)
     printf(" -> gwi_scalar=%g\n",ppm->gwi_scalar);
@@ -4279,14 +4279,14 @@ int primordial_PBH_omega_gw(
 
   x = f / ppm->f_star;
 
-  heaviside = 0.5 * tanh((2. / sqrt(3) / x - 1.) / width) + 0.5;
+  heaviside = 0.5 * tanh((2. / sqrt(3.) / x - 1.) / width) + 0.5;
   I2 = 729./16. * pow(x, 12) * pow(3. - 2./(x*x), 4)
         * (pow(4. / (2. - 3. * x*x) - log(fabs(1. - 4./3. / (x*x))), 2)
           +_PI_*_PI_ * heaviside);
   
   heaviside = 0.5 * tanh((2*ppm->f_star - f) / width) + 0.5;
 
-  *OmGW = ppm->prefactor_OmGW * x*x * (4*x*x - 1)*(4*x*x - 1) * heaviside * I2;
+  *OmGW = ppm->prefactor_OmGW * x*x * (4./(x*x) - 1.)*(4./(x*x) - 1.) * heaviside * I2;
   
   return _SUCCESS_;
 
