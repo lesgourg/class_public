@@ -20,6 +20,7 @@ from libc.string cimport *
 import cython
 cimport cython
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import UnivariateSpline
 
 # Nils : Added for python 3.x and python 2.x compatibility
 import sys
@@ -1565,7 +1566,7 @@ cdef class Class:
         """
         scale_independent_growth_factor_f(z)
 
-        Return the scale invariant growth factor f(z)=d ln D / d ln a for CDM perturbations
+        Return the scale independent growth factor f(z)=d ln D / d ln a for CDM perturbations
         (exactly, the quantity defined by Class as index_bg_f in the background module)
 
         Parameters
@@ -1588,12 +1589,85 @@ cdef class Class:
         return f
 
     #################################
-    # gives f(z)*sigma8(z) where f9z) is the scale-inbdependent growth factor
+    def scale_dependent_growth_factor_f(self, k, z, h_units=False, nonlinear=False, Nz=20):
+        """
+        scale_dependent_growth_factor_f(k,z)
+
+        Return the scale dependent growth factor
+        f(z)= 1/2 * [d ln P(k,a) / d ln a]
+            = - 0.5 * (1+z) * [d ln P(k,z) / d z]
+        where P(k,z) is the total matter power spectrum
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        k : float
+                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+        """
+
+        # build array of z values at wich P(k,z) was pre-computed by class (for numerical derivative)
+        # check that P(k,z) was stored at different zs
+        if self.fo.ln_tau_size > 1:
+            # check that input z is in stored range
+            z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
+            if (z<0) or (z>z_max):
+                raise CosmoSevereError("You asked for f(k,z) at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
+            # create array of zs in growing z order (decreasing tau order)
+            z_array = np.empty(self.fo.ln_tau_size)
+            for i in xrange(self.fo.ln_tau_size):
+                z_array[i] = self.z_of_tau(np.exp(self.fo.ln_tau[self.fo.ln_tau_size-1-i]))
+            # due to interpolation errors, z_array[0] might be different from zero; round it to its true value.
+            z_array[0]=0.
+        else:
+            raise CosmoSevereError("You asked for the scale-dependent growth factor: this requires numerical derivation of P(k,z) w.r.t z, and thus passing a non-zero input parameter z_max_pk")
+
+        # if needed, convert k to units of 1/Mpc
+        if h_units:
+            k = k*self.ba.h
+
+        # Allocate an array of P(k,z[...]) values
+        Pk_array = np.empty_like(z_array)
+
+        # Choose whether to use .pk() or .pk_lin()
+        # The linear pk is in .pk_lin if nonlinear corrections have been computed, in .pk otherwise
+        # The non-linear pk is in .pk if nonlinear corrections have been computed
+        if nonlinear == False:
+            if self.fo.method == nl_none:
+                use_pk_lin = False
+            else:
+                use_pk_lin = True
+        else:
+            if self.fo.method == nl_none:
+                raise CosmoSevereError("You asked for the scale-dependent growth factor of non-linear matter fluctuations, but you did not ask for non-linear calculations at all")
+            else:
+                use_pk_lin = False
+
+        # Get P(k,z) and array P(k,z[...])
+        if use_pk_lin == False:
+            Pk = self.pk(k,z)
+            for iz, zval in enumerate(z_array):
+                Pk_array[iz] = self.pk(k,zval)
+        else:
+            Pk = self.pk_lin(k,z)
+            for iz, zval in enumerate(z_array):
+                Pk_array[iz] = self.pk_lin(k,zval)
+
+        # Compute derivative (d ln P / d ln z)
+        dPkdz = UnivariateSpline(z_array,Pk_array,s=0).derivative()(z)
+
+        # Compute growth factor f
+        f = -0.5*(1+z)*dPkdz/Pk
+
+        return f
+
+    #################################
+    # gives f(z)*sigma8(z) where f(z) is the scale-independent growth factor
     def scale_independent_f_sigma8(self, z):
         """
         scale_independent_f_sigma8(z)
 
-        Return the scale invariant growth factor f(z) multiplied by sigma8(z)
+        Return the scale independent growth factor f(z) multiplied by sigma8(z)
 
         Parameters
         ----------
@@ -1665,7 +1739,7 @@ cdef class Class:
         z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
 
         if (z<0) or (z>z_max):
-            raise CosmoSevereError("You asked for effective_f_sigma8 at a redshift %e outside of the computed range [0,%e"%(z,z_max))
+            raise CosmoSevereError("You asked for effective_f_sigma8 at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
 
         if (z<0.1):
             z_array = np.linspace(0, 0.2, num = Nz)
@@ -2714,7 +2788,7 @@ make        nonlinear_scale_cb(z, z_size)
         """
         sources = {}
 
-        cdef: 
+        cdef:
             int index_k, index_tau, i_index_type;
             int index_type;
             int index_md = self.pt.index_md_scalars;
@@ -2871,7 +2945,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         for index_type, name in zip(indices, names):
             tmparray = np.empty((k_size,tau_size))
-            for index_k in range(k_size):                 
+            for index_k in range(k_size):
                 for index_tau in range(tau_size):
                     tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
 
