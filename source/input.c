@@ -5617,10 +5617,10 @@ int input_default_params(struct background *pba,
   ppt->has_metricpotential_transfers = _FALSE_;
   /** 1.d) 'gwCl' case */
   ppt->switch_gwb_sw = 1;
-  ppt->switch_gwb_pisw = 0; // turned off by default
+  ppt->switch_gwb_pisw = 1;
   ppt->switch_gwb_eisw = 1;
   ppt->switch_gwb_lisw = 1;
-  ppt->switch_gwb_ini = 0; // turned off by default
+  ppt->switch_gwb_ini = 1;
 
   /** 2) Perturbed recombination */
   ppt->has_perturbed_recombination=_FALSE_;
