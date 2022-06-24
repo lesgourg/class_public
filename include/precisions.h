@@ -462,6 +462,10 @@ class_precision_parameter(transfer_neglect_delta_k_V_b,double,1.0)  /**< same fo
 class_precision_parameter(transfer_neglect_delta_k_T_t2,double,0.2) /**< same for temperature source function T2 of tensor mode */
 class_precision_parameter(transfer_neglect_delta_k_T_e,double,0.25)  /**< same for polarization source function E of tensor mode */
 class_precision_parameter(transfer_neglect_delta_k_T_b,double,0.1)  /**< same for polarization source function B of tensor mode */
+/** The transfer neglect parameters for the GWB are choosen such, that there are no diviations until l=1000, if you want lager l increase these values! */
+class_precision_parameter(transfer_neglect_delta_k_S_gwb0,double,0.3) /**< same for GWB source function GWB0 of scalar mode */
+class_precision_parameter(transfer_neglect_delta_k_S_gwb1,double,0.2) /**< same for GWB source function GWB1 of scalar mode */
+class_precision_parameter(transfer_neglect_delta_k_T_gwb2,double,0.2)  /**< same for GWB source function GWB2 of tensor mode */
 
 class_precision_parameter(transfer_neglect_late_source,double,400.0)  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 

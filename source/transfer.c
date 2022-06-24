@@ -3798,6 +3798,10 @@ int transfer_can_be_neglected(
 
     else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*ra_rec)) *neglect = _TRUE_;
 
+    else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb0) && (l < (k-ppr->transfer_neglect_delta_k_S_gwb0)*ra_rec)) *neglect = _TRUE_;
+
+    else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb1) && (l < (k-ppr->transfer_neglect_delta_k_S_gwb1)*ra_rec)) *neglect = _TRUE_;
+
   }
 
   else if (_vectors_) {
@@ -3819,6 +3823,8 @@ int transfer_can_be_neglected(
     else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*ra_rec)) *neglect = _TRUE_;
 
     else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*ra_rec)) *neglect = _TRUE_;
+
+    else if ((ppt->has_cl_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb2) && (l < (k-ppr->transfer_neglect_delta_k_T_gwb2)*ra_rec)) *neglect = _TRUE_;
 
   }
 
@@ -3850,6 +3856,10 @@ int transfer_late_source_can_be_neglected(
       }
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         if (index_tt == ptr->index_tt_e)
+          *neglect = _TRUE_;
+      }
+      if (ppt->has_cl_gwb == _TRUE_) {
+        if (index_tt == ptr->index_tt_gwb1)
           *neglect = _TRUE_;
       }
     }

@@ -1225,7 +1225,6 @@ int perturbations_indices(
 
   if (ppt->has_cl_gwb == _TRUE_) {
     ppt->has_source_gwb = _TRUE_;
-    // ppt->has_cmb = _TRUE_;
   }
 
   index_type = 0;
