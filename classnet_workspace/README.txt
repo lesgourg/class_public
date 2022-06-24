@@ -7,9 +7,9 @@ Basics:
 This is a ClassNet workspace that can be used to run Class in the Neural Network mode.
 In this mode, the Source functions ST0, ST1, ST2, phi+psi, delta_m and delta_cb will be 
 estimated with networks if the input parametersa are in a region where the networks are valid.
-To do so, pass the parameter "neural_network_path" to Class. It should be set to your ClassNet
+To do so, pass the parameter "workspace_path" to Class. It should be set to your ClassNet
 Workspace directory, like this one: 
-"neural_network_path":"/path/to/this/class_folder/CLASSnet_Workspace/"
+"workspace_path":"/path/to/this/class_folder/classnet_workspace/"
 
 
 
@@ -33,7 +33,7 @@ training/normalization.json
 
 
 Additional Parameters:
-(only pass them if you set neural_network_path as well)
+(only pass them if you set workspace_path as well)
 
    nn_verbose
 Additionally, you can use "nn_verbose" to toggle the verbose of the ClassNet mode. 
