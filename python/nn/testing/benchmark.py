@@ -58,10 +58,18 @@ class BenchmarkRunner:
             if use_nn:
                 print("USING NEURAL NETWORKS!")
                 cosmo.set({"use_nn": 'yes'})
-                cosmo.set({"neural network path": self.workspace})
+                cosmo.set({"workspace_path": self.workspace})
             else:
                 cosmo.set({"use_nn": 'no'})
+            # print(list_of_settings)
 
+            for i in range(len(list_of_settings)):
+                settings = list_of_settings[i]
+                settings['non linear'] = 'no'
+                settings['P_k_max_1/Mpc'] = 100
+
+                list_of_settings[i] = settings
+            
             return [self.run_class(cosmo,settings, use_nn=use_nn) for settings in list_of_settings]
 
         self._show_msg("performing run WITH neural networks")
@@ -76,8 +84,8 @@ class BenchmarkRunner:
     def run_class(self, cosmo, params, use_nn=False, verbose=0):
         cosmo.set(params)
         timings = {}
-        cosmo.compute(level=["perturb"],performance_report=timings) #         cosmo.compute(level=["perturb"], performance_report=timings)
-        cosmo.struct_cleanup()
+        cosmo.compute(performance_report=timings) #         cosmo.compute(level=["perturb"], performance_report=timings)
+        #cosmo.struct_cleanup()
         return timings
 
     def _save_results(self, results):

@@ -302,7 +302,7 @@ cdef class Class:
     def use_nn(self):
         """
         Utility methods that returns whether neural networks are enabled
-        by checking whether 'neural network path' is in the input parameters.
+        by checking whether 'workspace_path' is in the input parameters.
         Also checks the 'nn_verbose' parameter to determine how much information 
         to print about the usage of neural networks.
         """
@@ -317,9 +317,9 @@ cdef class Class:
             if not self.pars["use_nn"].lower()=='yes':
                 return False
         
-        if not "neural network path" in self._pars:
-                raise ValueError("use_nn is yes but no neural network path is not provided!")
-        elif "neural network path" in self.pars:
+        if not "workspace_path" in self._pars:
+                raise ValueError("use_nn is yes but no workspace_path is not provided!")
+        elif "workspace_path" in self.pars:
             self.using_NN = self.can_use_nn()
             if nn_verbose>1:
                 if not self.using_NN:
@@ -360,8 +360,8 @@ cdef class Class:
     def can_use_nn(self):
         """ may only be called if neural networks are enabled """
 
-        # first check whether a neural network path is given
-        if not "neural network path" in self._pars:
+        # first check whether a workspace_path is given
+        if not "workspace_path" in self._pars:
             return False
         
         workspace = self.nn_workspace()
@@ -642,7 +642,7 @@ cdef class Class:
             problematic_parameters = []
             # GS: added this because neural network arguments are not relevant
             # to the C code.
-            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug","nn_verbose","use_nn","Net_phi_plus_psi","Net_ST0_ISW","Net_ST0_Reco","Net_ST0_Reio","Net_ST1","Net_ST2_Reco","Net_ST2_Reio"])
+            problematic_exceptions = set(["workspace_path", "nn_force", "nn_verbose","use_nn","Net_phi_plus_psi","Net_ST0_ISW","Net_ST0_Reco","Net_ST0_Reio","Net_ST1","Net_ST2_Reco","Net_ST2_Reio"])
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
                     name = self.fc.name[i].decode()
@@ -751,7 +751,8 @@ cdef class Class:
 
                 tp_size = self.pt.tp_size[index_md];
 
-                k_NN_size = len(self.predictor.get_k())
+                k_NN = self.predictor.get_k()
+                k_NN_size = len(k_NN)
 
                 #load requested tau values
                 tau_CLASS = np.zeros((tau_size))
@@ -824,18 +825,14 @@ cdef class Class:
                 timer.end("allocate numpy array of predictions") # 1e-4 sec. Is at the 0.2% of runtime. But most likeli some space for improment ...
 
                 # da is nen problem irgjendwoh. I have to init them as 0, otherwise something goes wrong somewhere
-                for i in range(len(source_names)):
-                    for j in range(tau_size*k_NN_size):
-                        self.NN_prediction[i][j] = 0.0
+                # for i in range(len(source_names)):
+                #     for j in range(tau_size*k_NN_size):
+                #         self.NN_prediction[i][j] = 0.0
 
                 timer.start("get all sources")
                 # NN prediction of the source functions. They are stored in the self.NN_prediction array.
-                k_NN = self.predictor.predict_many(source_names, np.asarray(tau_CLASS), self.NN_prediction)
+                self.predictor.predict_many(source_names, np.asarray(tau_CLASS), self.NN_prediction)
                 timer.end("get all sources") #0.07 sec
-
-                # print('np.array(self.NN_prediction[0])')
-                # print(np.array(self.NN_prediction[0]))
-
 
                 timer.start("overwrite k array")
                 # Copy k values from NN
@@ -1344,9 +1341,10 @@ cdef class Class:
 
         return pk
 
-    # Gives the total matter pk for a given (k,z)
+    # Gives the total matter pk for a given (z)
     def pk_at_z(self,double z):
         """
+
         Gives the total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
         .. note::
@@ -1380,6 +1378,45 @@ cdef class Class:
         free(pk_out)
 
         return pk, k
+
+
+    # Gives the total matter pk for a given (z)
+    def pk_cb_at_z(self,double z):
+        """
+
+        Gives the cdm + b pk (in Mpc**3) for a given z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+
+        k = np.zeros(self.nl.k_size,'float64')
+        pk_cb = np.zeros(self.nl.k_size,'float64')
+
+        pk_cb_out = <double*> malloc(self.nl.k_size*sizeof(double))
+        ln_pk_ic = <double*> malloc(self.nl.ic_ic_size*self.nl.k_size*sizeof(double))
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        # logarithmic = 1
+        if (self.nl.method == nl_none):
+            if nonlinear_pk_at_z(&self.ba,&self.nl,linear,pk_linear,z,self.nl.index_pk_cb,pk_cb_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+        else:
+            if nonlinear_pk_at_z(&self.ba,&self.nl,linear,pk_nonlinear,z,self.nl.index_pk_cb,pk_cb_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        for i in range(self.nl.k_size):
+            pk_cb[i] = pk_cb_out[i]
+            k[i] = np.exp(self.nl.ln_k[i])
+
+        free(ln_pk_ic)
+        free(pk_cb_out)
+
+        return pk_cb, k
 
     # Gives the cdm+b pk for a given (k,z)
     def pk_cb(self,double k,double z):
@@ -3207,7 +3244,7 @@ make        nonlinear_scale_cb(z, z_size)
 
     def nn_workspace(self):
         # TODO don't do this here
-        workspace = self._pars["neural network path"]
+        workspace = self._pars["workspace_path"]
         if any(isinstance(workspace, t) for t in [str, bytes, os.PathLike]):
             # Check whether any generations are requested for nn
             joint = list(set(self._pars).intersection(classynet.models.ALL_NETWORK_STRINGS))
@@ -3251,12 +3288,6 @@ make        nonlinear_scale_cb(z, z_size)
                 raise ValueError("Unknown parameter: '{}'".format(name))
 
         return result
-
-    def nn_cheat_enabled(self):
-        return "nn_cheat" in self._pars
-
-    def nn_cheat_sources(self):
-        return self._pars["nn_cheat"]
 
     def nn_debug_enabled(self):
         return bool(self._pars.get("nn_debug", False))

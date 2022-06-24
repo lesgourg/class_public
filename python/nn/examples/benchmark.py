@@ -7,7 +7,7 @@ import numpy as np
 # This script is called by the bash script /nn/examples/run_benchmark.sh
 # It takes the arguments number of warmup rounds and iterations.
 
-WORKSPACE_DIR = os.path.expanduser("../../../CLASSnet_Workspace")
+WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("threads", type=int,
@@ -16,7 +16,7 @@ parser.add_argument("threads", type=int,
                             "TO THE SAME VALUE SINCE IT CANNOT BE SET FROM WITHIN PYTHON!"
                     )
 parser.add_argument("-w", "--warmup-iterations", type=int, help="number of warmup iterations", default=5)
-parser.add_argument("-i", "--iterations",        type=int, help="number of actual benchmark iterations", default=25)
+parser.add_argument("-i", "--iterations",        type=int, help="number of actual benchmark iterations", default=50)
 args = parser.parse_args()
 
 nthreads = args.threads

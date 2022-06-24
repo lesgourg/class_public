@@ -76,17 +76,17 @@ class Workspace:
     @property
     @create_dir
     def training_data(self):
-        return self.path / "training"
+        return self.path / "training_data"
 
     @property
     @create_dir
     def validation_data(self):
-        return self.path / "validation"
+        return self.path / "validation_data"
 
     @property
     @create_dir
     def test_data(self):
-        return self.path / "test"
+        return self.path / "test_data"
 
     @property
     @create_dir
@@ -106,7 +106,7 @@ class Workspace:
     @create_dir
     def data(self):
         """
-        path to standard k array
+        path to network data, such as the manifest or the used bestfit / covmat 
         """
         return self.path / "data"
 
@@ -131,7 +131,7 @@ class Workspace:
 
     @property
     def manifest(self):
-        return self.path / "manifest.json"
+        return self.data / "manifest.json"
 
     @property
     def k(self):
@@ -261,7 +261,7 @@ class Loader:
     def k(self):
         return np.load(self.workspace.k)
 
-    def cosmological_parameters(self, file_name = 'parameters'):
+    def cosmological_parameters(self, file_name = 'parameter_sample'):
         def load(my_set):
             my_path = self.workspace.path / my_set / '{}.h5'.format(file_name)
             if os.path.isfile(my_path):

@@ -40,7 +40,7 @@ def generate_data(varying, fixed_params, directory, processes=None):
     in the same `directory`.
 
     In addition, the global minima and maxima for each quantity over the
-    entire set are written to the file "normalization.json" in `directory`
+    entire set are written to the file "min_max.json" in `directory`
     as well.
 
     This function will return a Dict[str, np.ndarray] of the sampled cosmological parameters.
@@ -62,7 +62,7 @@ def generate_data(varying, fixed_params, directory, processes=None):
     minima, maxima = generate_source_functions_for(fixed_params, varying, directory, processes=processes)
 
     # save minima and maxima
-    with open(os.path.join(directory, "normalization.json"), "w") as out:
+    with open(os.path.join(directory, "min_max.json"), "w") as out:
         json.dump({"min": minima, "max": maxima}, out)
 
     # save cosmological parameters

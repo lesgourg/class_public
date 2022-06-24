@@ -25,7 +25,7 @@ class BenchmarkPlotter:
 
         self.plot_absolute_perturb_time(df_no_nn, df_nn)
         self.plot_perturb_fraction(df_no_nn, df_nn)
-        self.plot_perturb_speedup(df_no_nn, df_nn)
+        self.plot_speedup(df_no_nn, df_nn)
 
         self.figsize = (11,8)
         self.plot_perturb_contributions(df_no_nn, df_nn)
@@ -48,7 +48,6 @@ class BenchmarkPlotter:
             plt.title("Time spent in Perturbation Module")
         plt.ylabel("time (s)")
         plt.xlabel("number of threads")
-
         # NOTE: matplotlib plots vs. the INDEX of the bin, i.e. starting at 0 for threads = 1!
         self._savefig("perturb_abs_time")
         plt.close()
@@ -67,30 +66,39 @@ class BenchmarkPlotter:
         df_fraction.plot.bar(rot=0)
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
+        plt.gca().set_ylim(0,100)
         if self.print_titles:
             plt.title("Fraction of Run Time spent in Perturbation Module")
-        plt.ylabel("%")
+        plt.ylabel(r"runtime in \texttt{pert} module [\%]")
         plt.xlabel("number of threads")
+        plt.legend(loc="upper right")
         self._savefig("perturb_time_fraction")
         plt.close()
 
-    def plot_perturb_speedup(self, df_no_nn, df_nn):
+    def plot_speedup(self, df_no_nn, df_nn):
         """
         create a bar char showing the speedup of the perturbation module (i.e.
         the ratio `time(Class) / time(ClassNet) - 1`.
         """
+
         df_speedup = pd.DataFrame({
-            "ClassNet": df_no_nn.perturb / df_nn.perturb - 1,
+            "Perturbation": df_no_nn.perturb / df_nn.perturb - 1,
+            "Overall EBS": (df_no_nn.compute-df_no_nn.nonlinear) / (df_nn.compute-df_nn.nonlinear) - 1,
         })
-        print(df_speedup)
+        print(df_no_nn.perturb / df_nn.perturb - 1)
+        print((df_no_nn.compute-df_no_nn.nonlinear) / (df_nn.compute-df_nn.nonlinear) - 1)
         df_speedup.plot.bar(rot=0)
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(True)
+        plt.gca().set_yscale("log")
+        plt.gca().set_ylabel("speedup")
+        plt.gca().set_ylim(1,1000)
+
         if self.print_titles:
             plt.title("speedup (time(Class) / time(ClassNet) - 1)")
         plt.xlabel("number of threads")
-        plt.gca().get_legend().remove()
-        self._savefig("perturb_speedup")
+        #plt.gca().get_legend().remove()
+        self._savefig("speedup")
         plt.close()
 
     def plot_perturb_contributions(self, df_no_nn, df_nn):

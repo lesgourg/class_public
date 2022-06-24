@@ -7,14 +7,21 @@ import pkg_resources
 
 import scipy as sc
 
+from classynet.generate.generate_spectra import PK_M_AT_Z,PK_CB_AT_Z
+
 # Settings for different spectra
 REQUIERES_ELL_FACTOR = ['tt','bb','ee','te','tp']
+REQUIERES_ELL_SQUARE_FACTOR = ['pp']
 SKIP_REL_DIF = ['te','tp']
-LOG_AXIS = ['pk','pk_cb','pp','tp']
-LOG_XAXIS = ['ee','te','pk','pk_cb','tt']
-HAS_COSMIC_VARIANCE = ['tt','pp','ee','te']
+LOG_AXIS = ['pk','pk_cb','tp']
+SYMLOG_AXIS = ['te']
+SYMLOG_LIN_THRESHOLD = {'te':1e-12,'pp':1e-11}
+LOG_XAXIS = ['ee','te','pk','pk_cb','tt','pp', 'bb']
+HAS_COSMIC_VARIANCE = ['tt','pp','ee','te','bb']
 HAS_NOISE = ['pp','tt','ee','te']
-LOG_YLIMITS= {'tt':1e-13,'pp':1e-18,'ee':1e-16}
+LOG_YLIMITS= {'tt':1e-13,'pp':1e-12,'ee':1e-16,'bb':1e-22}
+HAS_ELL = ['ee','te','tt','bb']
+HAS_ELL2 = ['pp']
 
 # latex dict
 LATEX_DICT = {
@@ -23,22 +30,23 @@ LATEX_DICT = {
     'ee':r'\mathrm{EE}',
     'te':r'\mathrm{TE}',
     'pp':r'\phi \phi',
-    'pk':r'P_{k,\mathrm{m}}',
-    'pk_cb':r'P_{k,\mathrm{cb}}',
+    'pk':r'P_{\mathrm{m}}',
+    'pk_cb':r'P_{\mathrm{cb}}',
     'tp':r'\mathrm{T} \phi'
 }
 
 # latex dict parameters
 LATEX_DICT_PARAMETER = {
-    'omega_b':r'\Omega_b h^2',
-    'omega_cdm':r'\Omega_c h^2',
+    'omega_b':r'\Omega_\mathrm{b} h^2',
+    'omega_cdm':r'\Omega_\mathrm{c} h^2',
+    'omega_m':r'\Omega_\mathrm{m} h^2',
     'h':r'h',
-    'tau_reio':r'\tau_\mathrm{reio}',
+    'tau_reio':r'\kappa_\mathrm{reio}',
     'w0_fld':r'w_0',
     'wa_fld':r'w_a',
     'N_ur':r'\triangle N_\mathrm{eff}',
     'omega_ncdm':r'\Omega_\mathrm{ncdm} h^2',
-    'Omega_k':r'\\\Omega_k',
+    'Omega_k':r'\Omega_\mathrm{k}',
 }
 
 
@@ -85,13 +93,18 @@ class CL_plotter:
             y_FULL = y_FULL[:N,2:]
             y_NN = y_NN[:N,2:]
 
-            y_factor = x[0] * (x[0] + 1)
+            if spectrum in HAS_ELL2:
+                y_factor = (x[0] * (x[0] + 1))**2
+            elif spectrum in HAS_ELL:
+                y_factor = x[0] * (x[0] + 1)
+            else:
+                y_factor = np.ones(len(x[0]))
 
         return(x,y_FULL,y_NN,y_factor)
 
     def calculate_cosmic_variance(self, ell, spectrum):
 
-        if spectrum in ["ee","tt","pp"]:
+        if spectrum in ["ee","tt","pp","bb"]:
             cv = np.sqrt(2/(2*ell+1))
             return cv
 
@@ -112,7 +125,12 @@ class CL_plotter:
         # calculate different noise contributions
         tt_noise = np.sqrt(2/(2*FULL_cls["ell"][0][2:]+1))*noise[:,1]/FULL_cls['tt'][0][2:]/(2.726*10**6)**2
         ee_noise = np.sqrt(2/(2*FULL_cls["ell"][0][2:]+1))*noise[:,2]/FULL_cls['ee'][0][2:]/(2.726*10**6)**2
-        pp_noise = np.sqrt(2/(2*l_pp+1))*noise[:1998,3]/FULL_cls['pp'][0][2:2000]/(2.726*10**6)**2
+
+        # transform deflection spectrum into lensing potential        
+        dd_noise = noise[:1998,3] / ((l_pp+1)*l_pp)**2 * 2 * np.math.pi #/(2.726*10**6)**2
+
+        # calculate the relative lensing noise
+        pp_noise = np.sqrt(2/(2*l_pp+1))*dd_noise/FULL_cls['pp'][0][2:2000]
 
         # caclualte TE component
         cv_term = FULL_cls['te'][0][2:] * FULL_cls['te'][0][2:]
@@ -124,9 +142,32 @@ class CL_plotter:
             'l_pp': l_pp,
             'tt': tt_noise+tt_cv,
             'ee': ee_noise+ee_cv,
-            'pp': pp_noise*l_pp*(l_pp+1)/(2*np.math.pi)*l_pp*(l_pp+1)+pp_cv,
+            'pp': pp_noise+pp_cv,
             'te': te_noise
         }
+
+        fig,ax = plt.subplots()
+        ax.plot(noise[:,0],tt_noise/tt_cv)
+        ax.set_xlabel(r'$\ell$')
+        ax.set_yscale('log')
+        ax.grid(True)
+        ax.set_ylabel(r'$N_\ell^{TT}/C_\ell^{CV}$')
+        fig.savefig('TT_noise.pdf')
+        fig,ax = plt.subplots()
+        ax.plot(noise[:,0],ee_noise/ee_cv)
+        ax.set_xlabel(r'$\ell$')
+        ax.set_yscale('log')
+        ax.grid(True)
+        ax.set_ylabel(r'$N_\ell^{EE}/C_\ell^{CV}$')
+        fig.savefig('EE_noise.pdf')
+        fig,ax = plt.subplots()
+        ax.plot(l_pp,pp_noise/pp_cv)
+        ax.set_xlabel(r'$\ell$')
+        ax.set_yscale('log')
+        ax.grid(True)
+        ax.set_ylabel(r'$N_\ell^{\phi\phi}/C_\ell^{CV}$')
+        fig.savefig('pp_noise.pdf')
+
         return(noise_dict)
 
     def line_plots(self,FULL_cls,NN_cls,spectrum,save_path, N=100,cosmic_variance=False):
@@ -173,9 +214,9 @@ class CL_plotter:
                         _ = "\mathrm{m}"
                     else:
                         _ = "\mathrm{cb}"
-                    ax.plot(x_instance,y_FULL_instance*y_factor_instance,c='green',label=r'$P_{k,'+_+',\mathrm{Full}}$',linewidth = self.linewidth)
-                    ax.plot(x_instance,y_NN_instance*y_factor_instance,c='blue',label= r"$P_{k,"+_+",\mathrm{Net}}$",linewidth = self.linewidth)
-                    ax.plot(x_instance,abs(y_FULL_instance-y_NN_instance)*y_factor_instance,c='red',label=r"$|P_{k,"+_+",\mathrm{Dif}}|$",linewidth = self.linewidth)
+                    ax.plot(x_instance,y_FULL_instance*y_factor_instance,c='green',label=r'$P_{'+_+',\mathrm{Full}}$',linewidth = self.linewidth)
+                    ax.plot(x_instance,y_NN_instance*y_factor_instance,c='blue',label= r"$P_{"+_+",\mathrm{Net}}$",linewidth = self.linewidth)
+                    ax.plot(x_instance,abs(y_FULL_instance-y_NN_instance)*y_factor_instance,c='red',label=r"$|P_{"+_+",\mathrm{Dif}}|$",linewidth = self.linewidth)
                 else:
                     ax.plot(x_instance,y_FULL_instance*y_factor_instance,c='green',linewidth = self.linewidth)
                     ax.plot(x_instance,y_NN_instance*y_factor_instance,c='blue',linewidth = self.linewidth)
@@ -186,11 +227,18 @@ class CL_plotter:
                 if i==0:
                     ax.plot(x[i],y_FULL[i]*y_factor,c='green',label=r"$C_{\ell,\mathrm{Full}}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]},linewidth = self.linewidth)
                     ax.plot(x[i],y_NN[i]*y_factor,c='blue',label=r"$C_{\ell,\mathrm{Net}}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]},linewidth = self.linewidth)
-                    ax.plot(x[i],abs(y_FULL[i]-y_NN[i])*y_factor,c='red',label=r"$|C_{\ell,\mathrm{Diff}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]},linewidth = self.linewidth)
+                    if spectrum == 'te':
+                        ax.plot(x[i],(y_FULL[i]-y_NN[i])*y_factor,c='red',label=r"$C_{\ell,\mathrm{Diff}}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]},linewidth = self.linewidth)
+                    else:
+                        ax.plot(x[i],abs(y_FULL[i]-y_NN[i])*y_factor,c='red',label=r"$|C_{\ell,\mathrm{Diff}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]},linewidth = self.linewidth)
                 else:
                     ax.plot(x[i],y_FULL[i]*y_factor,c='green',linewidth = self.linewidth)
                     ax.plot(x[i],y_NN[i]*y_factor,c='blue',linewidth = self.linewidth)
                     ax.plot(x[i],abs(y_FULL[i]-y_NN[i])*y_factor,c='red',linewidth = self.linewidth)
+                    if spectrum == 'te':
+                        ax.plot(x[i],(y_FULL[i]-y_NN[i])*y_factor,c='red',linewidth = self.linewidth)
+                    else:
+                        ax.plot(x[i],abs(y_FULL[i]-y_NN[i])*y_factor,c='red',linewidth = self.linewidth)
 
         if spectrum in LOG_XAXIS:
             ax.set_xscale('log')
@@ -199,13 +247,24 @@ class CL_plotter:
         if spectrum in LOG_AXIS:
             ax.set_yscale('log')
 
+        if spectrum in SYMLOG_AXIS:
+            ax.set_yscale('symlog', linthresh=SYMLOG_LIN_THRESHOLD[spectrum])
+
 
         if spectrum in ['pk','pk_cb']:
-            ax.set_xlabel(r'$k$')
-            ax.set_ylabel(r'${}$'.format(LATEX_DICT[spectrum]))
+            ax.set_xlabel(r'$k$ [$h$/Mpc$^{-1}$]')
+            if spectrum == 'pk':
+                ax.set_ylabel(r"${%(x)s}(k,z)$ [$h^{-1}$/Mpc$^{3}$]"%{"x":LATEX_DICT[spectrum]})
+            else:
+                ax.set_ylabel(r"${%(x)s}(k,z)$ [$h^{-1}$/Mpc$^{3}$]"%{"x":LATEX_DICT[spectrum]})
         else:
             ax.set_xlabel(r'$\ell$')
-            ax.set_ylabel(r"$\ell(\ell + 1)(C_{\ell}^{%(x)s})$"%{"x":LATEX_DICT[spectrum]})
+            if spectrum in HAS_ELL2:
+                ax.set_ylabel(r"$\ell^2(\ell + 1)^2C_{\ell}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]})
+            elif spectrum in HAS_ELL:
+                ax.set_ylabel(r"$\ell(\ell + 1)C_{\ell}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]})
+            else:
+                ax.set_ylabel(r"$C_{\ell}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]})
 
 
         ax.grid(True)
@@ -298,9 +357,17 @@ class CL_plotter:
                     else:
                         ax.plot(x[i],dif,c='red',linewidth = self.linewidth)
             else:
-                max_chi = np.max(chisq)
-                norm_chisq = chisq[i] / max_chi
-                color = plt.cm.gist_rainbow(norm_chisq)
+                # constants for the colorbar
+                max_sigma = 5
+                scale_power = 3
+
+                # Here we calculate from chisquare to the distance to the center of the ellipsoid in sigmata.
+                prob = sc.stats.chi2.sf(chisq[i],9) #here we make an asumption on the dof. To be changed in other cases.
+                n_sigma = -sc.stats.norm.ppf(prob/2)
+
+                norm_sigma = n_sigma**scale_power / max_sigma**scale_power
+
+                color = plt.cm.gist_rainbow(norm_sigma)
                 if spectrum in ['pk','pk_cb']:
                     ax.plot(x_instance,dif,c=color,linewidth = self.linewidth)
                 else:
@@ -312,11 +379,11 @@ class CL_plotter:
 
         if chisq is not None:
             cmap = mpl.cm.gist_rainbow
-            norm = mpl.colors.Normalize(vmin=0,vmax=max_chi)
+            norm = mpl.colors.PowerNorm(gamma=scale_power, vmin=0.0,vmax=max_sigma)
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array([])
-            plt.colorbar(sm,boundaries=np.arange(-0.05,2.1,.1), label=r'$\triangle \chi^2$', ticks=4*np.arange(int(max_chi/4)+1))         
-
+            plt.colorbar(sm,boundaries=np.arange(-0.05,2.1,.1), label=r'distance from center of domain [$\sigma$]', ticks=np.arange(5)+1)         
+        
         if parameter is not None:
             cmap = mpl.cm.plasma
             norm = mpl.colors.Normalize(vmin=min_val,vmax=max_val)
@@ -334,21 +401,26 @@ class CL_plotter:
                     _ = '\mathrm{m}'
                 else:
                     _ = '\mathrm{cb}'
-                ax.set_xlabel(r'$k$')
-                ax.set_ylabel(r'$P_{k,'+_+',\mathrm{Full}}-P_{k,'+_+',\mathrm{Net}}$')
+                ax.set_xlabel(r'$k$ [$h$/Mpc$^{-1}$]')
+                ax.set_ylabel(r'$(P_{'+_+',\mathrm{Full}}(k,z)-P_{'+_+',\mathrm{Net}}(k,z))$ [$h^{-1}$/Mpc$^{3}$]')
             else:
                 ax.set_xlabel(r'$\ell$')
-                ax.set_ylabel(r"$\ell(\ell + 1)(C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s})$"%{"x":LATEX_DICT[spectrum]})
-            if spectrum in ['pp','tp']:
-                plt.yscale('symlog', linthresh=1e-17)
+                if spectrum in HAS_ELL2:
+                    ax.set_ylabel(r"$\ell^2(\ell + 1)^2(C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s})$"%{"x":LATEX_DICT[spectrum]})
+                elif spectrum in HAS_ELL:
+                    ax.set_ylabel(r"$\ell(\ell + 1)(C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s})$"%{"x":LATEX_DICT[spectrum]})
+                else:
+                    ax.set_ylabel(r"$(C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s})$"%{"x":LATEX_DICT[spectrum]})
+            # if spectrum in SYMLOG_AXIS:
+            #     plt.yscale('symlog', linthresh=SYMLOG_LIN_THRESHOLD[spectrum])
         elif measure == 'rel':
             if spectrum in ['pk','pk_cb']:
                 if spectrum == 'pk':
                     _ = '\mathrm{m}'
                 else:
                     _ = '\mathrm{cb}'
-                ax.set_xlabel(r'$k$')
-                ax.set_ylabel(r'$(P_{k,'+_+',\mathrm{Full}}-P_{k,'+_+',\mathrm{Net}})/P_{k,'+_+',\mathrm{Full}}$')
+                ax.set_xlabel(r'$k$ [$h$/Mpc$^{-1}$]')
+                ax.set_ylabel(r'$(P_{'+_+',\mathrm{Full}}(k,z)-P_{'+_+',\mathrm{Net}}(k,z))/P_{'+_+',\mathrm{Full}}(k,z)$ ')
             else:
                 ax.set_xlabel(r'$\ell$')
                 ax.set_ylabel(r"$(C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s})/C_{\ell,\mathrm{Full}}^{%(x)s}$"%{"x":LATEX_DICT[spectrum]})
@@ -460,8 +532,18 @@ class CL_plotter:
                 ax.set_ylabel(r"$\ell(\ell + 1)|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]})
             else:
                 if spectrum in ['pk','pk_cb']:
-                    ax.set_xlabel(r'$k$')
-                    ax.set_ylabel(r'$|P_{k,\mathrm{Full}}-P_{k,\mathrm{Net}}|/P_{k,\mathrm{Full}}$')
+                    ax.set_ylabel(r'$|P_{\mathrm{Full}}(k,z)-P_{\mathrm{Net}}(k,z)|/P_{\mathrm{Full}}(k,z)$')
+                    ax.set_xlabel(r'$k$ [$h$/Mpc$^{-1}$]')
+                    if spectrum == 'pk':
+                        _name_full = 'P_{\mathrm{m,Full}}'
+                        _name_net = 'P_{\mathrm{m,Full}}'
+                    else:
+                        _name_full = 'P_{\mathrm{cb,Full}}'
+                        _name_net = 'P_{\mathrm{cb,Full}}'
+
+                    ax.set_ylabel(r"$|%(x)s-%(y)s|/%(x)s$"%{"x":_name_full, "y":_name_net})
+
+
                 else:
                     ax.set_xlabel(r'$\ell$')
                     ax.set_ylabel(r"$|C_{\ell,\mathrm{Full}}^{%(x)s}-C_{\ell,\mathrm{Net}}^{%(x)s}|/|C_{\ell,\mathrm{Full}}^{%(x)s}|$"%{"x":LATEX_DICT[spectrum]})

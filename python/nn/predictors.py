@@ -24,7 +24,6 @@ class BasePredictor:
     def __init__(self, cosmo, input_transformer, target_transformer, k):
         self.cosmo = cosmo
         self.k = k
-
         self.tau_size = 0
         self.k_size = 0
 
@@ -190,16 +189,12 @@ class BasePredictor:
             sources_array[i] = self.predict(sources_array[i], quantities[i], tau, provider, cache=cache)
         self.times["predictor.predict"] = perf_counter() - start_predict # 0.05 sec
 
-        k = self.get_k()
-        k_len = len(k)
-        # print(type(k))
-        # print(self.cosmo.k_min())
-        k=1.000001*k
 
         if return_sources:
+            k = self.get_k()
             return k, sources_array
         else:
-            return k
+            return
 
 
     def predict_all(self, tau):
@@ -209,7 +204,6 @@ class BasePredictor:
         start = perf_counter()
         result = self.target_transformer.untransform_target(quantity, value, inputs=raw_inputs)
         elapsed = perf_counter() - start
-        #print('unstraform ',quantity,elapsed)
         self.times["neural network output transformation"] += elapsed
 
         return result
@@ -282,33 +276,14 @@ class TreePredictor(BasePredictor):
         # Update cosmo instance
         self.cosmo = cosmo
 
+        # store new minimal value for k, derive new size of output k
+        self.k_min_class = self.cosmo.k_min()
+        self.k_min_idx = lowest_k_index(self.k, self.k_min_class)
+        self.k_size = len(self.get_k())
+
         # Clean Cache and reset times
         self.reset_cache()
         self.reset_times()
-
-        # If the workspace or evaluation models did change we need to reload k-array, transformation and models!
-        workspace = cosmo.nn_workspace()
-
-        device = torch.device(device_name)
-
-        k  = workspace.loader().k()
-
-        kt = torch.from_numpy(k).float().to(device)
-
-        models, rules = load_models(workspace, ALL_NETWORK_CLASSES, kt, device)
-
-        self.models = models
-        self.rules = rules
-
-        input_transformer, target_transformer = current_transformer.get_pair(workspace.normalization_file, k)
-            
-        self.input_transformer = input_transformer
-        self.target_transformer = target_transformer
-
-        self.k = k
-
-        self.k_size = len(self.get_k())
-
 
     def _all_network_input_names(self):
         from itertools import chain
@@ -322,29 +297,6 @@ class TreePredictor(BasePredictor):
         else:
             source_array = self._predict_from_combine(quantity, cosmo, tau, provider, cache, source_array)
 
-        # TODO SG THIS CURRENTLY DOES NOT WORK
-        if cosmo.nn_cheat_enabled() and quantity in cosmo.nn_cheat_sources():
-            # Here, the `quantity` should not be predicted by a network, but
-            # instead be taken from CLASS.
-            # First, emit a warning message to make sure that this is not
-            # accidentally enabled
-            print("WARNING: 'CHEATING' IS ENABLED FOR QUANTITY '{}'".format(quantity))
-            # It is guaranteed that if `cosmo.nn_cheat_mode()` is true,
-            # the perturbation module has been fully executed and we can
-            # thus simply take the source function in question from there.
-            # This is done after evaluating a networks, because we also need
-            # to return the raw inputs, i.e. we only replace the source function.
-            S_cheat, k_cheat, tau_cheat = cosmo.get_sources()
-            # it remains to perform interpolation of the source function onto
-            # the desired (k, tau)-grid.
-
-            spline = scipy.interpolate.RectBivariateSpline(k_cheat, tau_cheat, S_cheat[quantity])
-            # this function must also return the `raw_inputs` dict
-            return spline(self.k, tau)
-
-        # TODO SG what is done here?
-        #if quantity in self.funcs:
-        #    self.funcs[quantity](S, raw_inputs)
         return source_array
 
     def _predict_from_model(self, quantity, cosmo, tau, provider, cache, source_array, rule = None):
@@ -526,7 +478,6 @@ def build_predictor(cosmo, device_name="cpu"):
     timer.start("move k to device")
     kt = torch.from_numpy(k).float().to(device)
     timer.end("move k to device")
-
     timer.start("load models")
     models, rules = load_models(workspace, ALL_NETWORK_CLASSES, kt, device)
     timer.end("load models")

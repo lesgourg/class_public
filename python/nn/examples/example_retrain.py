@@ -1,6 +1,6 @@
 """
 This script is written to manually parse arguments of the retrain (or fully train) process. The arguments are:
-- w:    Path of the workspace where the networks and training data are to be stored. Per default it will point to ../../../CLASSnet_Workspace
+- w:    Path of the workspace where the networks and training data are to be stored. Per default it will point to ../../../classnet_workspace
 - N:    List of networks to be retrained.
         select from ['Net_ST0_Reco','Net_ST0_Reio','Net_ST0_ISW','Net_ST1','Net_ST2_Reco','Net_ST2_Reio','Net_phi_plus_psi']
 - g:    Provides a generation nametag. The nametag is expected to an interger. 
@@ -35,8 +35,8 @@ parser = argparse.ArgumentParser(
     description='This script is written to manually parse arguments of the retrain (or fully train) process'
 )
 parser.add_argument('-w', 
-    help="Path of the workspace where the networks and training data are to be stored. Per default it will point to ../../../CLASSnet_Workspace", 
-    default='../../../CLASSnet_Workspace', 
+    help="Path of the workspace where the networks and training data are to be stored. Per default it will point to ../../../classnet_workspace", 
+    default='../../../classnet_workspace', 
     type=str)
 parser.add_argument('-p', 
     help="Path to the covmat and bestfit file. These files should de denoted with {}.covmat and {}.bestfit. If no path is provided the data folder in the workspace directory is used.", 
@@ -148,8 +148,8 @@ if 1 in steps:
     #Save the domain within the workspace
     domain.save(workspace.domain_descriptor)
 
-    #Sample parameters according to the domain and save them in the workspace as "samples.h5"
-    domain.sample_save(training_count=100, validation_count=10, test_count=10)
+    #Sample parameters according to the domain and save them in the workspace for each dataset as "parameter_sample.h5"
+    domain.sample_save(training_count=10000, validation_count=1000, test_count=1000)
 
 if 2 in steps:
     #Load the data sets of parameters

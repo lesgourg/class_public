@@ -147,7 +147,7 @@ class EllipsoidDomain(ParamDomain):
 
         return samples
 
-    def sample_save(self, training_count=0, validation_count=0, test_count=0, file_name = 'parameters'):
+    def sample_save(self, training_count=0, validation_count=0, test_count=0, file_name = 'parameter_sample'):
         def create_group(f, name, count, sigma):
             samples = self.sample(count, sigma=sigma)
             print("Saving group '{}' of {}".format(name, len(samples)))
@@ -157,16 +157,16 @@ class EllipsoidDomain(ParamDomain):
 
         # Write and sample
         if training_count!=0:
-            os.makedirs(self.workspace.path / 'training', exist_ok=True)
-            with h5.File(self.workspace.path / 'training' / '{}.h5'.format(file_name), "w") as out:
+            os.makedirs(self.workspace.training_data, exist_ok=True)
+            with h5.File(self.workspace.training_data / '{}.h5'.format(file_name), "w") as out:
                 create_group(out, "training", training_count, sigma=self.sigma_train)
         if validation_count!=0:
-            os.makedirs(self.workspace.path / 'validation', exist_ok=True)
-            with h5.File(self.workspace.path / 'validation' / '{}.h5'.format(file_name), "w") as out:
+            os.makedirs(self.workspace.validation_data, exist_ok=True)
+            with h5.File(self.workspace.validation_data / '{}.h5'.format(file_name), "w") as out:
                 create_group(out, "validation", validation_count, sigma=self.sigma_validation)
         if test_count!=0:
-            os.makedirs(self.workspace.path / 'test', exist_ok=True)
-            with h5.File(self.workspace.path / 'test' / '{}.h5'.format(file_name), "w") as out:
+            os.makedirs(self.workspace.test_data, exist_ok=True)
+            with h5.File(self.workspace.test_data / '{}.h5'.format(file_name), "w") as out:
                 create_group(out, "test", test_count, sigma=self.sigma_test)
 
     def parameter_names(self):
@@ -225,138 +225,6 @@ class EllipsoidDomain(ParamDomain):
             sigma_validation = data["sigma_validation"],
             sigma_test = data["sigma_test"],
         )
-
-
-# [SG] TODO DELETE
-"""
-
-class DefaultParamDomain(ParamDomain):
-    def __init__(self, covmat_planck_path, sigma):
-        self.sigma = sigma
-        self.planck_names = ["omega_b", "omega_cdm", "tau_reio", "H0"]
-        self.ndf = len(self.planck_names)
-        self.best_fit_planck = np.array([
-            # omega_b
-            0.02236,
-            # omega_cdm
-            0.1202,
-            # tau_reio
-            0.0544,
-            # H0
-            67.27,
-        ])
-        self.other_names = ["w0_fld", "wa_fld", "N_ur", "omega_ncdm", "Omega_k"]
-        self.other_bounds = np.array([
-            # w0_fld
-            [-1.5, -0.5],
-            # wa_fld
-            [-5.0, -0.4],
-            # N_ur
-            [ 0.0,  0.1],
-            # omega_ncdm:
-            # lower bound is minimum value that doesn't crash class
-            # upper bound is such that m_tot ~ 0.9eV
-            [8.147986e-5, 0.00966],
-            # Omega_k
-            [-0.03, 0.03],
-        ])
-        self.names = self.planck_names + self.other_names
-        self.ndf_total = len(self.names)
-        self.covmat, self.inv_covmat = load_montepython_covmat(covmat_planck_path, self.planck_names)
-
-    def index(self, name):
-        return self.names.index(name)
-
-    def sample(self, count, tol=100, maxiter=10):
-        fraction = 1.0
-        for _ in range(maxiter):
-            new_count = int(count / fraction)
-            samples = self._sample(new_count)
-            print("-----------------------------------------------")
-            if abs(len(samples) - count) < tol:
-                return samples
-            fraction = len(samples) / new_count
-        raise ValueError("Couldn't get {} samples with tol={}".format(count, tol))
-
-
-    def _sample(self, count):
-        deltachi2 = get_delta_chi2(self.ndf, self.sigma)
-        bbox_planck = find_bounding_box(self.best_fit_planck, self.covmat, deltachi2)
-
-        # combined bounding box
-        bbox = np.concatenate((bbox_planck, self.other_bounds))
-        lower, upper = bbox[:, 0], bbox[:, 1]
-
-        from time import perf_counter
-        start = perf_counter()
-        # samples = lhs(self.ndf_total, samples=count)
-        samples = lhs_float(self.ndf_total, count).T
-        elapsed = perf_counter() - start
-
-        print("lhs took {}s".format(elapsed))
-        samples = lower[None, :] + samples * (upper - lower)[None, :]
-        print("samples.shape", samples.shape)
-        samples_planck = samples[:, :len(self.planck_names)]
-
-
-        inside_planck_ellipsoid = is_inside_ellipsoid(
-            self.inv_covmat,
-            samples_planck, self.best_fit_planck,
-            self.ndf, self.sigma)
-        count_planck = inside_planck_ellipsoid.sum()
-        ratio_planck = count_planck / len(samples)
-        print("fraction of kept points (planck only):", ratio_planck)
-
-        tau_large_enough = samples_planck[:, self.index("tau_reio")] > 0.004
-        count_tau = tau_large_enough.sum()
-        ratio_tau = count_tau / len(samples)
-        print("fraction of kept points (tau_reio only):", ratio_tau)
-
-        fld_consistent = samples[:, self.index("w0_fld")] + samples[:, self.index("wa_fld")] < 0.
-        count_fld = fld_consistent.sum()
-        ratio_fld = count_fld / len(samples)
-        print("fraction of kept points (fld only):", ratio_fld)
-
-        inside_mask = inside_planck_ellipsoid & tau_large_enough & fld_consistent
-        count_inside = inside_mask.sum()
-        ratio_inside = count_inside / len(samples)
-        print("count_inside:", count_inside)
-        print("fraction of kept points:", ratio_inside)
-
-        samples = samples[inside_mask]
-
-        return samples
-
-    def sample_save(self, training_count, validation_count, path):
-        def create_group(f, name, count):
-            samples = self.sample(count)
-            print("Saving group '{}' of {} samples to {}".format(name, len(samples), path))
-            g = f.create_group(name=name)
-            for name, column in zip(self.names, samples.T):
-                g.create_dataset(name, data=column)
-
-        with h5.File(path, "w") as out:
-            create_group(out, "training", training_count)
-            create_group(out, "validation", validation_count)
-
-    def contains(self, parameters):
-        raise NotImplementedError
-
-    def save(self, path):
-        d = {
-            "fields": list(self.names),
-            "best_fit_planck": list(self.best_fit_planck),
-            "covmat": [list(row) for row in self.covmat],
-            "inv_covmat": [list(row) for row in self.inv_covmat],
-            "other_bounds": list(self.other_bounds)
-        }
-        with open(path, "w") as out:
-            json.dump(d, out)
-
-    def load(self, path):
-        raise NotImplementedError
-
-"""
 
 def load_montepython_file(fname):
     with open(fname) as f:

@@ -6,6 +6,10 @@ import h5py as h5
 import classy
 from scipy import interpolate
 
+# At which z we want the powerspectra to be evaluated at
+PK_M_AT_Z = 0.0
+PK_CB_AT_Z = 2.0
+
 def generate_spectral_data(workspace, varying_params, fixed_params, path, processes= 4, fixed_nn_only=None, use_nn=False):
     """
     Generate training/validation/testing set of size `count` by sampling the `domain` of cosmological parameters.
@@ -79,8 +83,11 @@ def generate_spectra_function(args):
     params.update(cosmo_params)
     if use_nn==1:
         params.update({'use_nn':'yes'})
-        #params.update({'nn_verbose':3})
         params.update(fixed_nn_only)
+
+    # for the purpose of testing we are interested in the linear matter power spectrum
+    params['non linear'] = 'no'
+    params['z_max_pk'] = '5'
 
     cosmo.set(**params)
 
@@ -99,8 +106,8 @@ def generate_spectra_function(args):
     pk_save=np.zeros(k_net.shape, dtype=float)
     pk_cb_save=np.zeros(k_net.shape, dtype=float)
 
-    pk_class, k_class = cosmo.pk_at_z(0.0)
-    pk_cb_class, k_class = cosmo.pk_cb_at_z(0.0)
+    pk_class, k_class = cosmo.pk_at_z(PK_M_AT_Z)
+    pk_cb_class, k_class = cosmo.pk_cb_at_z(PK_CB_AT_Z)
     
     # We need to interpolate the spectra to fit the same k grid, such that we can compare them to another.
     # This is done with a cubic fit in the log space. Linear or non-log fit lead to systemtics for low k!
@@ -117,6 +124,6 @@ def generate_spectra_function(args):
     cl_lensed["pk_cb"]=pk_cb_save
     cl_lensed["kk"]=kk_save
 
-    cosmo.struct_cleanup()
+    #cosmo.struct_cleanup()
     del cosmo
     return params,cl_lensed,cl_raw

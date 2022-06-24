@@ -316,11 +316,11 @@ class CanonicalInputNormalizer(Normalizer, InputTransformer):
                 "phi_prime",
                 "psi",
                 "psi_minus_phi",
-            "z",
-            "a_eq",
-            "k_eq",
-            "H",
-            "z_d",
+                "z",
+                "a_eq",
+                "k_eq",
+                "H",
+                "z_d",
                 )
 
     def _should_normalize_by_maximum(self, key):

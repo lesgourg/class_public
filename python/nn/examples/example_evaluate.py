@@ -28,8 +28,8 @@ params = {
     "wa_fld": -0.2810646,
     "N_ur": 0.06651194,
     "Omega_k": -9.656155e-05,
-    #"neural network path": os.path.expanduser("~/path/to/workspace"),
-    "neural network path": os.path.expanduser("../../../CLASSnet_Workspace"),
+    #"workspace_path": os.path.expanduser("~/path/to/workspace"),
+    "workspace_path": os.path.expanduser("../../../classnet_workspace"),
     "use_nn": "yes"
 }
 

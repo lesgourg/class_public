@@ -11,7 +11,7 @@ import numpy as np
 
 import torch
 
-WORKSPACE_DIR = os.path.expanduser("../../../CLASSnet_Workspace")
+WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
 
 #create workspace instance
 workspace = Workspace(WORKSPACE_DIR)

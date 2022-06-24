@@ -6,7 +6,7 @@ This example script outlines how to generate training data, carry out the proces
 
 import os
 import sys
-from classynet.workspace import Workspace
+from classynet.workspace import Workspace, GenerationalWorkspace
 
 import classy
 import numpy as np
@@ -47,9 +47,20 @@ FIXED_TRAINING_ONLY = {
     "reionization_optical_depth_tol": 1.e-5,
 }
 
-WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
+WORKSPACE_DIR = os.path.expanduser("~/software/class_versions/class_net/workspaces/test_training")
 
-workspace = Workspace(WORKSPACE_DIR)
+# Select a generation name tag
+generations = {
+    "Net_ST0_Reco":     201,
+    "Net_ST0_Reio":     201,
+    "Net_ST0_ISW":      201,
+    "Net_ST1":          201,
+    "Net_ST2_Reco":     201,
+    "Net_ST2_Reio":     201,
+    "Net_phi_plus_psi": 201,
+}
+
+workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
 
 assert isinstance(workspace, Workspace)
 
@@ -58,8 +69,8 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 
 domain = workspace.domain_from_path(
     pnames         = pnames,
-    bestfit_path   = './lcdm_11p_sn.bestfit',
-    covmat_path    = './lcdm_11p_sn.covmat', #workspace.data,     #"~/path/to/lcdm_11p_sn.covmat", #workspace.data,
+    bestfit_path   = "/home/guenther/software/class_versions/class_net/workspaces/lcdm_11p_sn.bestfit",
+    covmat_path    = "/home/guenther/software/class_versions/class_net/workspaces/lcdm_11p_sn.covmat",
     sigma_train    = 6,
     sigma_validation = 5,
     sigma_test     = 5,
@@ -68,8 +79,8 @@ domain = workspace.domain_from_path(
 #Save the domain within the workspace
 domain.save(workspace.domain_descriptor)
 
-#Sample parameters according to the domain and save them in the workspace for each dataset as "parameter_sample.h5"
-domain.sample_save(training_count=100, validation_count=10, test_count=10)
+#Sample parameters according to the domain and save them in the workspace as "samples.h5"
+domain.sample_save(training_count=1000, validation_count=100, test_count=100)
 
 #Load the data sets of parameters
 training, validation, test = workspace.loader().cosmological_parameters()
@@ -83,8 +94,28 @@ workspace.generator().generate_source_data(
     fixed_training_only=FIXED_TRAINING_ONLY,
     processes=8)
 
+
+# Generate k array
+workspace.generator().generate_k_array()
+
+
+# Writing down the fixed and varying parameters which were used to generate the data
+workspace.generator().write_manifest(FIXED, training.keys())
+
+
 # Training: any subset of models can be trained at once
 workspace.trainer().train_all_models(workers=12)
 
-# Plot the training history
-workspace.plotter().plot_training_histories()
+# Allso possible to train individual networks:
+'''
+from classynet.models import Net_ST0_Reco, Net_ST0_Reio, Net_ST0_ISW, Net_ST1, Net_ST2_Reco, Net_ST2_Reio, Net_phi_plus_psi
+workspace.trainer().train_models([
+    Net_phi_plus_psi,
+    Net_ST0_Reco,
+    Net_ST0_Reio,
+    Net_ST0_ISW,
+    Net_ST1,
+    Net_ST2_Reco,
+    Net_ST2_Reio,
+], 8)
+'''

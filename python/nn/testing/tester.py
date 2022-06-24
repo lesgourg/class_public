@@ -98,11 +98,10 @@ class Tester:
 
         # spectra which should be plotted
         spectra = ['tt','ee','bb','te','tp','pp','pk','pk_cb']
-        #spectra = ['pk','pk_cb']
+        #spectra = ['pp','pk','pk_cb']
 
         # list of comological parameters which are to investigated
-        cosmo_parameters = domain.parameter_names()
-        #cosmo_parameters = ['Omega_k']
+        cosmo_parameters = domain.parameter_names() + ['omega_m']
 
         # Start with line plots which show ClassNN and CLassFULL in 1 plot
         os.makedirs(self.workspace.plots / 'cl_tests' / 'line_plots', exist_ok=True)
@@ -127,6 +126,8 @@ class Tester:
             # do chisqrare plots
             save_dir = self.workspace.plots / 'cl_tests' / 'chisq' / (spectrum + '_dif_abs_chi.pdf')
             my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs",chisq = chisq_list,N=N_lines)
+            save_dir = self.workspace.plots / 'cl_tests' / 'chisq' / (spectrum + '_dif_rel_chi.pdf')
+            my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="rel",chisq = chisq_list,N=N_lines)
 
             # do variance plots
             save_dir = self.workspace.plots / 'cl_tests' / 'variance_plots' / (spectrum + '_cosmic_variance.pdf')
@@ -142,7 +143,11 @@ class Tester:
             # do comological parameter plots
             for parameter in cosmo_parameters:
                 save_dir = self.workspace.plots / 'cl_tests' / 'parameter_plots' / parameter / (spectrum + '.pdf')
-                value_list = [ dic[parameter] for dic in FULL_para_list_of_dirs]
+                if parameter == 'omega_m':
+                    value_list = [ dic['omega_ncdm']+dic['omega_b']+dic['omega_cdm'] for dic in FULL_para_list_of_dirs] 
+                else:
+                    value_list = [ dic[parameter] for dic in FULL_para_list_of_dirs]
+
                 my_plotter.line_plots_difference(FULL_cls,NN_cls,spectrum,save_dir,measure="abs" , N=N_lines, parameter = parameter ,para_list = value_list)
 
     #
@@ -165,7 +170,7 @@ class Tester:
 
         if use_nn:
             params.update({ 'use_nn': 'yes',
-                            'neural network path':os.path.expanduser(self.workspace.path),
+                            'workspace_path':os.path.expanduser(self.workspace.path),
                             'nn_debug': True})
         else:
             params.update({'use_nn': 'no'})
@@ -265,17 +270,13 @@ class Tester:
 
 
 
-    def test(self, count=None, cheat=None, seed=None,nonlinear=None):
+    def test(self, count=None, seed=None,nonlinear=None):
         """
         test the performance of the trained networks by computing the observables
         (Cl's and P(k)) for `count` cosmological scenarios.
         For each observable a plot will be created that displays the deviation
         of the network prediction from the true value of the observable.
 
-        Optionally, `cheat` can be provided as a list of names of source functions
-        for which to ignore the network predictions and instead take the true
-        value from CLASS.
-        This aids in isolating networks which may not perform well.
         """
 
         _, params = self.workspace.loader().cosmological_parameters()
@@ -304,7 +305,7 @@ class Tester:
         # class_params = list(map(self.get_class_parameters, cosmo_params))
         # class_params_nn = list(map(self.get_class_parameters_nn, cosmo_params))
         class_params    = [self.get_class_parameters(p,nonlinear=nonlinear) for p in cosmo_params]
-        class_params_nn = [self.get_class_parameters_nn(p, cheat=cheat,nonlinear=nonlinear) for p in cosmo_params]
+        class_params_nn = [self.get_class_parameters_nn(p, nonlinear=nonlinear) for p in cosmo_params]
         print("class_params",class_params)
         print("class_params_nn",class_params_nn)
         # for recording cl/pk errors as functions of cosmological parameters
@@ -376,10 +377,10 @@ class Tester:
             del params["non_linear"]
         return params
 
-    def get_class_parameters_nn(self, cosmo_params, cheat=None,nonlinear=None):
+    def get_class_parameters_nn(self, cosmo_params, nonlinear=None):
         """ add fixed parameters (with nn) """
         params = self.get_class_parameters(cosmo_params)
-        params["neural network path"] = str(self.workspace.path.resolve())
+        params["workspace_path"] = str(self.workspace.path.resolve())
         params["nn_verbose"] = 1
         if nonlinear!= None and "non linear" in params:
             del params["non linear"]
@@ -387,12 +388,9 @@ class Tester:
             params.update({"non_linear":"halofit"})
         elif nonlinear=="linear" and "non_linear" in params:
             del params["non_linear"]
-        # if cheating is enabled, we need to notify classy of the quantities
-        if cheat:
-            params["nn_cheat"] = cheat
         return params
 
-    def parameter_dicts(self, cosmo_params, cheat=None):
+    def parameter_dicts(self, cosmo_params):
         """
         iterator over tuples of `(params_without_nn, params_with_nn)` for
         given domain.
@@ -404,10 +402,7 @@ class Tester:
             params.update({k: v[i] for k, v in cosmo_params.items()})
 
             params_nn = params.copy()
-            params_nn["neural network path"] = str(self.workspace.path.resolve())
-            # if cheating is enabled, we need to notify classy of the quantities
-            if cheat:
-                params_nn["nn_cheat"] = cheat
+            params_nn["workspace_path"] = str(self.workspace.path.resolve())
 
             yield params, params_nn
 
