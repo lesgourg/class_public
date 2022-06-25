@@ -4460,7 +4460,24 @@ int input_read_parameters_primordial(struct file_content * pfc,
     if (ppm->gwb_source_type == analytic_gwb) {
       /** 2.b.1) GWB energy density Omega_GW */
       /** 2.b.1.1) Amplitude */
-      class_read_double("A_gwb",ppm->A_gwb);
+      /* Read */
+      class_call(parser_read_double(pfc,"A_gwb",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"ln10^{10}A_gwb",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                 errmsg,
+                 "You can only enter one of 'A_gwb' or 'ln10^{10}A_gwb'.");
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_){
+        ppm->A_gwb = param1;
+      }
+      else if (flag2 == _TRUE_){
+        ppm->A_gwb = exp(param2)*1.e-10;
+      }
       /** 2.b.1.2) Spectral index */
       class_read_double("n_gwb",ppm->n_gwb);
       /** 2.b.1.3) GWB running */
@@ -4468,7 +4485,24 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** 2.b.2) GWB intial perturbations Gamma_I */
       /** 2.b.2.1) Amplitude */
-      class_read_double("A_gwi",ppm->A_gwi);
+      /* Read */
+      class_call(parser_read_double(pfc,"A_gwi",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"ln10^{10}A_gwi",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                 errmsg,
+                 "You can only enter one of 'A_gwi' or 'ln10^{10}A_gwi'.");
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_){
+        ppm->A_gwi = param1;
+      }
+      else if (flag2 == _TRUE_){
+        ppm->A_gwi = exp(param2)*1.e-10;
+      }
       /** 2.b.2.2) Spectral index */
       class_read_double("n_gwi",ppm->n_gwi);
       /** 2.b.2.3) GWB ini running */
@@ -4515,6 +4549,24 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /** 2.c.1) Delta peak enhancement of the scalar spectrum */
       /** 2.c.1.1) Enhancement Amplitude */
       class_read_double("A_star",ppm->A_star);
+      /* Read */
+      class_call(parser_read_double(pfc,"A_star",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"ln10^{10}A_star",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                 errmsg,
+                 "You can only enter one of 'A_star' or 'ln10^{10}A_star'.");
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_){
+        ppm->A_star = param1;
+      }
+      else if (flag2 == _TRUE_){
+        ppm->A_star = exp(param2)*1.e-10;
+      }
       /** 2.c.1.2) Enhancement scale */
       class_read_double("f_star",ppm->f_star);
 
@@ -4544,7 +4596,24 @@ int input_read_parameters_primordial(struct file_content * pfc,
     if (ppm->gwb_source_type == adiabatic_gwb) {
       /** 2.e.1) GWB energy density Omega_GW */
       /** 2.e.1.1) Amplitude */
-      class_read_double("A_gwb",ppm->A_gwb);
+      /* Read */
+      class_call(parser_read_double(pfc,"A_gwb",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"ln10^{10}A_gwb",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                 errmsg,
+                 "You can only enter one of 'A_gwb' or 'ln10^{10}A_gwb'.");
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_){
+        ppm->A_gwb = param1;
+      }
+      else if (flag2 == _TRUE_){
+        ppm->A_gwb = exp(param2)*1.e-10;
+      }
       /** 2.e.1.2) Spectral index */
       class_read_double("n_gwb",ppm->n_gwb);
       /** 2.e.1.3) GWB running */
