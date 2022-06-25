@@ -1668,7 +1668,18 @@ cdef class Class:
         free(data)
         return omega_gw
 
-    def Omega_GW(self, double f):
+    def Omega_GW(self):
+        """
+        Return the GWB energy density Omega_GW at the pivot frequency f_pivot
+
+        Returns
+        -------
+        omega_gw : double
+                GWB energy density Omega_GW at pivot frequency f_pivot.
+        """
+        return self.pm.A_gwb
+
+    def Omega_GW_at_f(self, double f):
         """
         Return the GWB energy density Omega_GW at the frequency f
 
