@@ -1615,8 +1615,8 @@ int input_read_parameters_general(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
-  int flag1,flag2,flag3,flag4;
-  double param1,param2,param3,param4;
+  int flag1,flag2,flag3;
+  double param1,param2,param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char * options_output[39] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd","gwCl","OmGw",
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl","OmGW",
@@ -2253,26 +2253,20 @@ int input_read_parameters_general(struct file_content * pfc,
     class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
                 errmsg,
                 errmsg);
-    class_call(parser_read_double(pfc,"f_dec_ini",&param4,&flag4,errmsg),
-                errmsg,
-                errmsg);
     /* Test */
-    class_test(class_at_least_two_of_four(flag1, flag2, flag3, flag4),
+    class_test(class_at_least_two_of_three(flag1, flag2, flag3),
                 errmsg,
-                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb', 'T_ini_gwb' or 'f_dec_ini'.");
+                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb' or 'T_ini_gwb'.");
     /* Complete set of parameters */
     ppt->tau_ini_gwb = 0.;
     ppt->z_ini_gwb = 0.;
     ppt->T_ini_gwb = 0.;
-    pba->f_dec_ini = -1.;
     if (flag1 == _TRUE_)
       ppt->tau_ini_gwb = param1;
     if (flag2 == _TRUE_)
       ppt->z_ini_gwb = param2;
     if (flag3 == _TRUE_)
       ppt->T_ini_gwb = param3;
-    if (flag4 == _TRUE_)
-      pba->f_dec_ini = param4;
 
     /** 11.b) Convert GWB to energy density  */
     /* Read */
@@ -2284,7 +2278,17 @@ int input_read_parameters_general(struct file_content * pfc,
                 errmsg,
                 "CLASS can not convert the GWB perturbations to energergy density without knowing the GWB background energy density.");
 
-    //TODO
+    /** 11.c) Fraction of decoupled relativistic particles at GWB production */
+    class_call(parser_read_double(pfc,"f_dec_ini",&param1,&flag1,errmsg),
+                errmsg,
+                errmsg);
+    if (flag1 == _TRUE_) {
+      class_test((param1 < 0.) || (param1 > 1.),
+                  errmsg,
+                  "f_dec_ini must be between 0 and 1, you entered f_dec_ini=%g.", param1);
+      pba->f_dec_ini = param1;
+    }
+
   }
 
   return _SUCCESS_;
@@ -5766,9 +5770,10 @@ int input_default_params(struct background *pba,
   ppt->tau_ini_gwb=0.;
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
-  pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
   /** 11.b) Convert GWB phase space perturbation to energy density contrast */
   ppt->convert_gwb_to_energydensity=_FALSE_;
+  /** 11.c) Fraction of decoupled relativistic particles at GWB production */
+  pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
 
   /**
    * Default to input_read_parameters_species

@@ -125,14 +125,6 @@
 #define class_none_of_three(a,b,c)                                              \
   ((a) == _FALSE_) && ((b) == _FALSE_) && ((c) == _FALSE_)
 
-#define class_at_least_two_of_four(a,b,c,d)                                     \
-  (((a) == _TRUE_) && ((b) == _TRUE_)) ||                                       \
-  (((a) == _TRUE_) && ((c) == _TRUE_)) ||                                       \
-  (((a) == _TRUE_) && ((d) == _TRUE_)) ||                                       \
-  (((b) == _TRUE_) && ((c) == _TRUE_)) ||                                       \
-  (((b) == _TRUE_) && ((d) == _TRUE_)) ||                                       \
-  (((c) == _TRUE_) && ((d) == _TRUE_))
-
 #define class_read_list_of_doubles_or_default(name,destination,val_default,siz) \
   do {                                                                          \
     int flag_temp,entries_read_temp;                                            \
