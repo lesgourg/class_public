@@ -185,12 +185,26 @@ class EllipsoidDomain(ParamDomain):
         if "w0_fld" in parameters.keys():
             if parameters["w0_fld"] + parameters["wa_fld"] > W0WA_BOUND:
                 return False, 1002
+        else:
+            parameters["w0_fld"]=-1
+        if "wa_fld" in parameters.keys():
+            pass
+        else:
+            parameters["wa_fld"]=0
+        if "Omega_k" in parameters.keys():
+            pass
+        else:
+            parameters["Omega_k"]=0
         if "omega_ncdm" in parameters.keys():
             if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
                 return False, 1003
+        else:
+            parameters["omega_ncdm"]=0.06/93.1
         if "N_ur" in parameters.keys():
             if parameters["N_ur"]<0:
                 return False, 1004
+        else:
+            parameters["N_ur"]=0.00641
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
         sigma = self.sigma_validation if validate else self.sigma_train
         inside, delta_chi2 = is_inside_ellipsoid(self.inv_covmat, cosmo_params,

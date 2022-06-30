@@ -45,7 +45,7 @@ LATEX_DICT_PARAMETER = {
     'w0_fld':r'w_0',
     'wa_fld':r'w_a',
     'N_ur':r'\triangle N_\mathrm{eff}',
-    'omega_ncdm':r'\Omega_\mathrm{ncdm} h^2',
+    'omega_ncdm':r'\Omega_\nu h^2',
     'Omega_k':r'\Omega_\mathrm{k}',
 }
 

@@ -274,6 +274,7 @@ cdef class Class:
     def __dealloc__(self):
         if self.allocated:
           self.struct_cleanup()
+
         self.empty()
         # This part should always be done
         free(self.fc.filename)
@@ -294,7 +295,7 @@ cdef class Class:
 
         self._pars.update(kars)
         if viewdictitems(self._pars) <= viewdictitems(oldpars):
-          return # Don't change the computed states, if the new dict was already contained in the previous dict
+            return # Don't change the computed states, if the new dict was already contained in the previous dict
         self.computed=False
 
         return True
@@ -371,8 +372,6 @@ cdef class Class:
             if "nn_verbose" in self.pars:
                 if self.pars["nn_verbose"]>1:
                     print("neural network domain of validity does not contain requested parameters")
-            else:
-                print("neural network domain of validity does not contain requested parameters")
             return False
 
         def expect(key, value):
@@ -467,8 +466,6 @@ cdef class Class:
             thermodynamics_free(&self.th)
         if self.module_list.contains("background"):
             background_free(&self.ba)
-        if self.pred_init:
-            self.predictor.cleanup()
         self.allocated = False
         self.computed = False
         
@@ -712,7 +709,7 @@ cdef class Class:
             # Allocate memory for ALL source functions (since transfer.c iterates over them)
             self.using_NN = self.use_nn()   #0.0007 sec
 
-            if self.using_NN and not self.nn_cheat_enabled():
+            if self.using_NN:
                 if "nn_verbose" in self.pars:
                     if self.pars["nn_verbose"]>2:
                         print("Using neural networks; skipping regular perturbation module.")
@@ -736,6 +733,7 @@ cdef class Class:
                 # Check whether the predictor has been already build, otherwise build it now. If it already has been build, the cosmo parameter have to be updated!
                 if self.pred_init==False:
                     self.predictor = classynet.predictors.build_predictor(self)
+                    self.predictor.update_predictor(self)
                     self.pred_init = True
                 else:
                     self.predictor.update_predictor(self)
@@ -825,9 +823,8 @@ cdef class Class:
                 timer.end("allocate numpy array of predictions") # 1e-4 sec. Is at the 0.2% of runtime. But most likeli some space for improment ...
 
                 # da is nen problem irgjendwoh. I have to init them as 0, otherwise something goes wrong somewhere
-                # for i in range(len(source_names)):
-                #     for j in range(tau_size*k_NN_size):
-                #         self.NN_prediction[i][j] = 0.0
+                for i in range(len(source_names)):
+                    self.NN_prediction[i][:] = 0.0
 
                 timer.start("get all sources")
                 # NN prediction of the source functions. They are stored in the self.NN_prediction array.
@@ -889,9 +886,6 @@ cdef class Class:
                 self.pt.k_size_cl[index_md] = k_max_cl_idx
 
                 _k_max_dbg = self.pt.k[index_md][self.pt.k_size_cl[index_md] - 1]
-                if "nn_verbose" in self.pars:
-                    if self.pars["nn_verbose"]>2:
-                        print("pt.k[index_md][pt.k_size_cl[index_md] - 1] =", _k_max_dbg)
                 timer.end("overwrite k array") # 5e-5 sec
 
                 # copy the predictor timestamps to the classy one
@@ -999,7 +993,6 @@ cdef class Class:
             performance_report.update(timer.times)
 
         self.computed = True
-        #print(self.ncp)
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
         return 
@@ -3280,7 +3273,7 @@ make        nonlinear_scale_cb(z, z_size)
             elif name == "Omega_k":
                 result[name] = self.get_current_derived_parameters(["Omega_k"])["Omega_k"]
             # Regarding w0_fld and wa_fld: It is verified that Omega_Lambda=0 in `can_use_nn`.
-            elif name == "w0_fld":
+            elif name == "wa_fld":
                 result[name] = 0.0
             elif name == "w0_fld":
                 result[name] = -1.0
@@ -3309,29 +3302,6 @@ make        nonlinear_scale_cb(z, z_size)
             return np.sqrt((8.-1.e-4) * self.ba.K);
         else:
             raise ValueError("Unrecognized value of K = {}!".format(self.ba.K))
-
-
-    def _debug_transfer(self):
-        k, tau = self.get_k_tau()
-        kmintau0 = k[0] * tau[-1]
-        print("tau0 = tau[-1] = {}".format(tau[-1]))
-        print("k_min = k[0] = {}".format(k[0]))
-        print("kmintau0 = k[0] * tau[-1] = {}".format(kmintau0))
-
-        if self.ba.sgnK == 0:
-            print("K = 0, flat case")
-            # K<0 (flat)  : start close to zero
-            print("kmintau0 / conformal_age =", kmintau0 / self.ba.conformal_age)
-        elif self.ba.sgnK == -1:
-            print("K = {} < 0, open case".format(self.ba.K))
-            # K<0 (open)  : start close to sqrt(-K)
-            # (in transfer modules, for scalars, this will correspond to q close to zero;
-            # for vectors and tensors, this value is even smaller than the minimum necessary value)
-            # return np.sqrt(-self.ba.K + pow(self.pr.k_min_tau0 / self.ba.conformal_age / self.th.angular_rescaling, 2))
-        elif self.ba.sgnK == 1:
-            print("K = {} > 0, closed case".format(self.ba.K))
-            # K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K)
-            # return np.sqrt((8.-1.e-4) * self.ba.K);
 
     def get_q(self):
         """

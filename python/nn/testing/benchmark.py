@@ -61,14 +61,22 @@ class BenchmarkRunner:
                 cosmo.set({"workspace_path": self.workspace})
             else:
                 cosmo.set({"use_nn": 'no'})
-            # print(list_of_settings)
 
             for i in range(len(list_of_settings)):
                 settings = list_of_settings[i]
                 settings['non linear'] = 'no'
                 settings['P_k_max_1/Mpc'] = 100
 
+                # Unset these settings to probe speed for mPk only!
+                #settings['output'] = 'mPk'
+                #settings['lensing'] = 'no'
+                #try:
+                #    del settings['l_max_scalars']
+                #except:
+                #    continue
+
                 list_of_settings[i] = settings
+
             
             return [self.run_class(cosmo,settings, use_nn=use_nn) for settings in list_of_settings]
 
