@@ -905,6 +905,10 @@ int perturbations_init(
              ppt->error_message,
              ppt->error_message);
 
+  if (ppt->perform_NN_skip == _TRUE_) {
+    return _SUCCESS_;
+  }
+
   /** - if we want to store perturbations for given k values, write titles and allocate storage */
   class_call(perturbations_prepare_k_output(pba,ppt),
              ppt->error_message,
@@ -1187,6 +1191,10 @@ int perturbations_free(
     free(ppt->sources);
     free(ppt->late_sources);
     free(ppt->ddlate_sources);
+
+    if (ppt->perform_NN_skip == _TRUE_) {
+      return _SUCCESS_;
+    }
 
     /** Stuff related to perturbations output: */
 
@@ -2064,6 +2072,10 @@ int perturbations_timesampling_for_sources(
       ppt->ln_tau[index_ln_tau]=log(ppt->tau_sampling[index_ln_tau-ppt->ln_tau_size+ppt->tau_size]);
     }
     ppt->index_ln_tau_pk = index_tau_pk-ppt->ln_tau_size+ppt->tau_size;
+  }
+
+  if (ppt->perform_NN_skip == _TRUE_) {
+    return _SUCCESS_;
   }
 
   /** - loop over modes, initial conditions and types. For each of
