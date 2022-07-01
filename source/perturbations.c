@@ -1156,7 +1156,7 @@ int perturbations_free(
       for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
         for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
-
+	
           free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
           if (ppt->ln_tau_size > 1)
             free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
@@ -1352,6 +1352,8 @@ int perturbations_indices(
 
   index_type = 0;
   class_define_index(ppt->index_tp_t2,ppt->has_source_t,index_type,1);
+  class_define_index(ppt->index_tp_t2_reco,ppt->has_source_t,index_type,1);
+  class_define_index(ppt->index_tp_t2_reio,ppt->has_source_t,index_type,1);
   class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
   index_type_common = index_type;
 
@@ -1506,6 +1508,12 @@ int perturbations_indices(
 
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t0_sw,      ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t0_isw,     ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t0_reco,    ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t0_reio,    ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t0_reco_no_isw,    ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t0_reio_no_isw,    ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
@@ -2012,6 +2020,7 @@ int perturbations_timesampling_for_sources(
   free(pvecback);
   free(pvecthermo);
 
+  
   /** - check the maximum redshift z_max_pk at which the Fourier
       transfer functions \f$ T_i(k,z)\f$ should be computable by
       interpolation. If it is equal to zero, only \f$ T_i(k,z=0)\f$
@@ -2077,6 +2086,7 @@ int perturbations_timesampling_for_sources(
   if (ppt->perform_NN_skip == _TRUE_) {
     return _SUCCESS_;
   }
+  if(ppt->perform_NN_skip){return _SUCCESS_;}
 
   /** - loop over modes, initial conditions and types. For each of
       them, allocate array of source functions. */
@@ -2106,6 +2116,7 @@ int perturbations_timesampling_for_sources(
   return _SUCCESS_;
 }
 
+
 /**
  * Define the number of comoving wavenumbers using the information
  * passed in the precision structure.
@@ -2131,6 +2142,11 @@ int perturbations_get_k_list(
   double scale2;
   double *tmp_k_list;
   int newk_size, index_newk, add_k_output_value;
+  
+  double k_min_tmp;
+  double k_max_tmp;
+  double k_first_tmp;
+  double k_last_tmp;
 
   /** Summary: */
 
@@ -2329,7 +2345,7 @@ int perturbations_get_k_list(
                  "consecutive values of k should differ and should be in growing order");
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
-
+      
       index_k++;
     }
 
@@ -2344,6 +2360,7 @@ int perturbations_get_k_list(
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
+
       index_k++;
     }
 
@@ -2654,7 +2671,7 @@ int perturbations_get_k_list(
 
   /** - If user asked for k_output_values, add those to all k lists: */
   if (ppt->k_output_values_num > 0) {
-
+    printf("\nrequested k output values\n");
     /* Allocate storage */
     class_alloc(ppt->index_k_output_values,sizeof(double)*ppt->md_size*ppt->k_output_values_num,ppt->error_message);
 
@@ -2743,7 +2760,7 @@ int perturbations_get_k_list(
 
   free(k_max_cmb);
   free(k_max_cl);
-
+  
   return _SUCCESS_;
 
 }
@@ -5806,7 +5823,6 @@ int perturbations_initial_conditions(struct precision * ppr,
       // note: if there are no neutrinos, fracnu, delta_ur and theta_ur below will consistently be zero.
 
       delta_tot = (fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm))/(1.+rho_m_over_rho_r);
-
       velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*fracb*ppw->pv->y[ppw->pv->index_pt_theta_b])/(1.+rho_m_over_rho_r);
 
       if (ppt->has_idm_dr == _TRUE_ ) {

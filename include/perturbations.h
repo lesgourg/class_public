@@ -138,7 +138,7 @@ struct perturbations
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
 
   short perform_NN_skip;              /**< Very special skipping parameter to skip all perturbations module in case of neural network */
-
+  double network_deltachisquared; /** for verbose */
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */
@@ -278,8 +278,16 @@ struct perturbations
      to avoid the integration by part that would reduce the source to
      a single term) */
   int index_tp_t0; /**< index value for temperature (j=0 term) */
+  int index_tp_t0_sw; /**< index value for temperature (j=0 term) */
+  int index_tp_t0_isw; /**< index value for temperature (j=0 term) */
+  int index_tp_t0_reco; /**< index value for temperature (j=0 term), reco contribution */
+  int index_tp_t0_reio; /**< index value for temperature (j=0 term), reio contribution */
+  int index_tp_t0_reco_no_isw; /**< index value for temperature (j=0 term), reco contribution */
+  int index_tp_t0_reio_no_isw; /**< index value for temperature (j=0 term), reio contribution */
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
+  int index_tp_t2_reco; /**< index value for temperature (j=2 term) */
+  int index_tp_t2_reio; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
   int index_tp_delta_m; /**< index value for matter density fluctuation */
   int index_tp_delta_cb; /**< index value for delta cb */

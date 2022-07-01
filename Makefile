@@ -195,7 +195,7 @@ ifdef OMPFLAG
 else
 	grep -v "lgomp" python/setup.py > python/autosetup.py
 endif
-	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
+	cd python; export CC=$(CC); $(PYTHON) autosetup.py install --force || $(PYTHON) autosetup.py install --user --force
 	rm python/autosetup.py
 
 clean: .base

@@ -11,6 +11,8 @@ extract cosmological parameters.
 # JL 14.06.2017: TODO: check whether we should free somewhere the allocated fc.filename and titles, data (4 times)
 
 """
+import time
+import os
 from math import exp,log
 import numpy as np
 cimport numpy as np
@@ -18,17 +20,26 @@ from libc.stdlib cimport *
 from libc.stdio cimport *
 from libc.string cimport *
 import cython
+from cython.parallel import prange
 cimport cython
 from scipy.interpolate import CubicSpline
 from scipy.interpolate import UnivariateSpline
+from cython.view cimport array as cvarray
 
-# Nils : Added for python 3.x and python 2.x compatibility
+import classynet.workspace
+import classynet.predictors
+import classynet.models
+
 import sys
 def viewdictitems(d):
     if sys.version_info >= (3,0):
         return d.items()
     else:
         return d.viewitems()
+def string_to_char(d):
+    if (sys.version_info >= (3,0) and isinstance(d,str)) or isinstance(d,unicode):
+        d = d.encode('utf8')
+    return d
 
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
@@ -76,6 +87,39 @@ class CosmoComputationError(CosmoError):
     """
     pass
 
+class Timer:
+    """
+    Simple help for performance measurements.
+    """
+    def __init__(self):
+        self._start = {}
+        self._end = {}
+        self._times = {}
+
+    def start(self, name):
+        if name in self._start:
+            print("WARNING: Overwriting measurement {}".format(name))
+        self._start[name] = time.perf_counter()
+
+    def end(self, name):
+        if name not in self._start:
+            raise ValueError(
+               "Measurement '{}' has not started; cannot end!".format(name)
+               )
+        if name in self._end:
+            print("WARNING: Overwriting measurement {}".format(name))
+        self._end[name] = time.perf_counter()
+        self._times[name] = self._end[name] - self._start[name]
+
+    @property
+    def times(self):
+        return self._times
+
+    def __getitem__(self, name):
+        return self._times[name]
+
+    def __setitem__(self, name, value):
+        self._times[name] = value
 
 cdef class Class:
     """
@@ -100,11 +144,23 @@ cdef class Class:
     cdef lensing le
     cdef distortions sd
     cdef file_content fc
+    #cdef np.ndarray[np.double_t, ndim=2, mode="c"] NN_prediction_numpy #SG cannot defined here
 
     cpdef int computed # Flag to see if classy has already computed with the given pars
     cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+
+    cpdef bint using_NN
+    cpdef bint pred_init
+    cpdef dict NN_generations
+    cpdef object predictor
+    cpdef list NN_source_index_list
+    cpdef list NN_pnames
+
+
+    cdef double [:, :] NN_prediction # The NN output which will be handed over to CLASS
+    cpdef int NN_source_size
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -131,6 +187,14 @@ cdef class Class:
     def __cinit__(self, default=False):
         cpdef char* dumc
         self.allocated = False
+
+        # NN stuff
+        self.using_NN = False
+        self.NN_generations = {}
+        self.pred_init = False
+        self.NN_source_index_list = []
+        self.NN_pnames = []
+
         self.computed = False
         self._pars = {}
         self.fc.size=0
@@ -162,8 +226,110 @@ cdef class Class:
             raise CosmoSevereError("bad call")
         self._pars.update(kars)
         if viewdictitems(self._pars) <= viewdictitems(oldpars):
-          return # Don't change the computed states, if the new dict was already contained in the previous dict
+            return # Don't change the computed states, if the new dict was already contained in the previous dict
         self.computed=False
+        return True
+
+    def use_nn(self):
+        """
+        Utility methods that returns whether neural networks are enabled
+        by checking whether 'workspace_path' is in the input parameters.
+        Also checks the 'nn_verbose' parameter to determine how much information 
+        to print about the usage of neural networks.
+        """
+        # [SG]: TODO: REWORK THIS FUNCTION ...
+        if "nn_verbose" in self.pars:
+            nn_verbose = self.pars["nn_verbose"]
+        else:
+            nn_verbose = 0
+        if not "use_nn" in self.pars:
+            return False
+        else:
+            if not self.pars["use_nn"].lower()=='yes':
+                return False
+        
+        if not "workspace_path" in self._pars:
+                raise ValueError("use_nn is yes but no workspace_path is not provided!")
+        elif "workspace_path" in self.pars:
+            self.using_NN = self.can_use_nn()
+            if nn_verbose>1:
+                if not self.using_NN:
+                    print("##################################")
+                    print("#   NOT USING NEURAL NETWORKS!   #")
+                    print("##################################")
+                    return False
+                else:
+                    print("##################################")
+                    print("#    USING NEURAL NETWORKS!      #")
+                    print("##################################")
+                    return True
+            elif nn_verbose==1:
+                if not self.using_NN:
+                    print("USING NEURAL NETWORKS : False!")
+                    return False
+                else:
+                    print("USING NEURAL NETWORKS : True!")
+                    return True
+            elif nn_verbose==0:
+                if not self.using_NN:
+                    return False
+                else:
+                    return True
+            else:
+                if not self.using_NN:
+                    print("##################################")
+                    print("#   NOT USING NEURAL NETWORKS!   #")
+                    print("##################################")
+                    return False
+                else:
+                    print("##################################")
+                    print("#    USING NEURAL NETWORKS!      #")
+                    print("##################################")
+                    return True
+
+
+    def can_use_nn(self):
+        """ may only be called if neural networks are enabled """
+
+        # first check whether a workspace_path is given
+        if not "workspace_path" in self._pars:
+            return False
+        
+        workspace = self.nn_workspace()
+        domain = workspace.loader().domain_descriptor()
+        domain_use_nn, self.pt.network_deltachisquared = domain.contains(self._pars)
+        if not domain_use_nn:
+            if "nn_verbose" in self.pars:
+                if self.pars["nn_verbose"]>1:
+                    print("neural network domain of validity does not contain requested parameters")
+            return False
+
+        def expect(key, value):
+            if not key in self._pars:
+                print("expected key '{}' not found in parameters.".format(key))
+                return False
+            else:
+                found = self._pars[key]
+                if found != value:
+                    print("expected parameter '{}' to be {}; got {} instead.".format(key, value, found))
+                    return False
+                else:
+                    return True
+
+        if not expect("N_ncdm", 1):
+            return False
+        if not expect("deg_ncdm", 3):
+            return False
+        if not expect("Omega_Lambda", 0):
+            return False
+        if not expect("compute damping scale", "yes"):
+            return False
+
+        pk_max = self._pars.get("P_k_max_1/Mpc")
+        if pk_max is not None and pk_max > 100.0:
+            print("neural networks only applicable with 'P_k_max_1/Mpc' <= 100.0")
+            return False
+
         return True
 
     def empty(self):
@@ -202,10 +368,16 @@ cdef class Class:
             self.fc.read[i] = _FALSE_
             i+=1
 
-    # Called at the end of a run, to free memory
+    # Called at the end of a run, to free memory 
     def struct_cleanup(self):
         if(self.allocated != True):
           return
+        if self.using_NN:
+            # allocate the source functions which were overwritten/freed by the NN. They are to be freed by pert_free()
+            for indices in self.NN_source_index_list:
+                self.pt.sources[indices[0]][indices[1]] = <double *> malloc(sizeof(double))
+            self.NN_source_index_list = []
+            self.using_NN = False
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
         if "lensing" in self.ncp:
@@ -223,10 +395,10 @@ cdef class Class:
         if "thermodynamics" in self.ncp:
             thermodynamics_free(&self.th)
         if "background" in self.ncp:
-            background_free(&self.ba)
+            background_free(&self.ba)        
         self.allocated = False
         self.computed = False
-
+        
     def _check_task_dependency(self, level):
         """
         Fill the level list with all the needed modules
@@ -297,7 +469,29 @@ cdef class Class:
             return True
         return False
 
-    def compute(self, level=["distortions"]):
+    cdef void overwrite_source_function(self, int index_md, int index_ic,
+            int index_type,
+            int k_NN_size, int tau_size, 
+            double[:] S):
+        """
+        This utility function overwrites a single source function specified by `index_type`
+        with the given source function `S`.
+        Used by NN code (see below in "perturb" section of `compute()`).
+        """
+        cdef int tp_size = self.pt.tp_size[index_md]
+        cdef int index_tau
+        cdef int index_k
+        ## -> Not reuqired if perform_NN_skip is true :
+        # Required again because all source functions have been allocated earlier
+        free(self.pt.sources[index_md][index_ic * tp_size + index_type])
+        
+        # Hand over the address of the numpy data array
+        self.pt.sources[index_md][index_ic * tp_size + index_type] = &S[0]
+
+        # Add the overwritten indices to list such that it can be reallocated when they are cleaned up by pert_free()
+        self.NN_source_index_list.extend([[index_md, index_ic * tp_size + index_type]])
+
+    def compute(self, level=["distortions"], performance_report=None, post_perturb_callback=None):
         """
         compute(level=["distortions"])
 
@@ -321,6 +515,11 @@ cdef class Class:
 
         """
         cdef ErrorMsg errmsg
+        cdef int i
+
+        timer = Timer()
+
+        timer.start("compute")
 
         # Append to the list level all the modules necessary to compute.
         level = self._check_task_dependency(level)
@@ -357,6 +556,7 @@ cdef class Class:
         # non-understood parameters asked to the wrapper is a problematic
         # situation.
         if "input" in level:
+            timer.start("input")
             if input_read_from_file(&self.fc, &self.pr, &self.ba, &self.th,
                                     &self.pt, &self.tr, &self.pm, &self.hr,
                                     &self.fo, &self.le, &self.sd, &self.op, errmsg) == _FAILURE_:
@@ -365,86 +565,358 @@ cdef class Class:
             # This part is done to list all the unread parameters, for debugging
             problem_flag = False
             problematic_parameters = []
+            # GS: added this because neural network arguments are not relevant
+            # to the C code.
+            problematic_exceptions = set(["workspace_path", "nn_force", "nn_verbose","use_nn","Net_phi_plus_psi","Net_ST0_ISW","Net_ST0_Reco","Net_ST0_Reio","Net_ST1","Net_ST2_Reco","Net_ST2_Reio"])
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
+                    name = self.fc.name[i].decode()
+                    # GS: if parameter is an exception, do not raise problem flag
+                    if name in problematic_exceptions:
+                        continue
                     problem_flag = True
-                    problematic_parameters.append(self.fc.name[i].decode())
+                    problematic_parameters.append(name)
             if problem_flag:
                 raise CosmoSevereError(
                     "Class did not read input parameter(s): %s\n" % ', '.join(
                     problematic_parameters))
+            timer.end("input")
 
         # The following list of computation is straightforward. If the "_init"
         # methods fail, call `struct_cleanup` and raise a CosmoComputationError
         # with the error message from the faulty module of CLASS.
         if "background" in level:
+            timer.start("background")
             if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
+            timer.end("background")
 
         if "thermodynamics" in level:
+            timer.start("thermodynamics")
             if thermodynamics_init(&(self.pr), &(self.ba),
                                    &(self.th)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
+            timer.end("thermodynamics")
+
+        # define objects for NN
+        cdef:
+            int i_index_type, index_k, index_tau, i_k
+            int k_NN_size, tau_NN_size
+            double [:] k_CLASS
+            double [:] tau_CLASS
+            # double * c_tau_NN
+            # int c_tau_NN_size
+            # double [:] numpy_k_CLASS
+            # double [:] numpy_tau_CLASS
+            int index_md
+            int k_size
+            int tau_size
+            int index_ic
+            int index_type
+            # int tp_size = 0
+            int tp_size
+            int tot_num_of_sources = 11
+            int index_tp_x
+            # double [:,:] NN_interpolated
+            # double [:] NN_interpolated
+            # TODO remove some of the unused ones here
+            #double [:, :] NN_prediction
+            double tau1=0.0
+            #np.ndarray[np.double_t, ndim=2, mode="c"] NN_prediction_numpy
 
         if "perturb" in level:
+
+            timer.start("perturb")
+            timer.start("perturb_init")
+
+
+            # Allocate memory for ALL source functions (since transfer.c iterates over them)
+            self.using_NN = self.use_nn()   #0.0007 sec
+
+            if self.using_NN:
+                if "nn_verbose" in self.pars:
+                    if self.pars["nn_verbose"]>2:
+                        print("Using neural networks; skipping regular perturbation module.")
+                self.pt.perform_NN_skip = _TRUE_
+
+            start = time.time()
             if perturbations_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
 
+            timer.end("perturb_init")
+
+            # flag for using NN
+            if self.using_NN:
+                timer.start("neural network complete")
+
+                timer.start("update predictor")
+                # Check whether the predictor has been already build, otherwise build it now. If it already has been build, the cosmo parameter have to be updated!
+                if self.pred_init==False:
+                    self.predictor = classynet.predictors.build_predictor(self)
+                    self.predictor.update_predictor(self)
+                    self.pred_init = True
+                else:
+                    self.predictor.update_predictor(self)
+                timer.end("update predictor")   # 1e-5 sec
+
+                timer.start("neural network initialization")
+
+                # Obtain prediction parameters
+                index_md = self.pt.index_md_scalars;
+                k_size = self.pt.k_size[index_md];
+                tau_size = self.pt.tau_size;
+                index_ic = self.pt.index_ic_ad;
+
+                tp_size = self.pt.tp_size[index_md];
+
+                k_NN = self.predictor.get_k()
+                k_NN_size = len(k_NN)
+
+                #load requested tau values
+                tau_CLASS = np.zeros((tau_size))
+                for index_tau in range(tau_size):
+                    tau_CLASS[index_tau] = self.pt.tau_sampling[index_tau]
+
+                NN_requested_index_types = []
+                
+                # add all sources that class calculates to the list for predicting
+                source_names = []
+                if self.pt.has_source_t:
+                    NN_requested_index_types.extend([
+                        self.pt.index_tp_t0,
+                        self.pt.index_tp_t1,
+                        self.pt.index_tp_t2,
+                        ])
+                    source_names.extend(["t0", "t1", "t2"])
+
+                if self.pt.has_source_phi_plus_psi:
+                    NN_requested_index_types.append(self.pt.index_tp_phi_plus_psi)
+                    source_names.append("phi_plus_psi")
+
+                if self.pt.has_source_delta_m:
+                    NN_requested_index_types.append(self.pt.index_tp_delta_m)
+                    source_names.append("delta_m")
+
+                if self.pt.has_source_delta_cb:
+                    NN_requested_index_types.append(self.pt.index_tp_delta_cb)
+                    source_names.append("delta_cb")
+
+                if self.pt.has_source_p:
+                    NN_requested_index_types.append(self.pt.index_tp_p)
+                    source_names.append("t2_p")
+                    
+                if self.nn_debug_enabled():
+                    NN_requested_index_types.extend([
+                        self.pt.index_tp_t0_reco_no_isw,
+                        self.pt.index_tp_t0_reio_no_isw,
+                        self.pt.index_tp_t0_isw,
+                        self.pt.index_tp_t2_reco,
+                        self.pt.index_tp_t2_reio,
+                        ])
+                    source_names.extend([
+                        "t0_reco_no_isw", "t0_reio_no_isw", "t0_isw",
+                        "t2_reco", "t2_reio"
+                    ])
+
+                # TODO SG: Maybe add further source functions if needed ...
+                # if self.pt.has_source_delta_g:
+                #     index_type_list.append(self.pt.index_tp_delta_g)
+                #     names.append('delta_g')
+                # if self.pt.has_source_theta_m:
+                #     index_type_list.append(self.pt.index_tp_theta_m)
+                #     names.append('theta_m')
+                # if self.pt.has_source_phi:
+                #     index_type_list.append(self.pt.index_tp_phi)
+                #     names.append('phi')
+                # if self.pt.has_source_phi_prime:
+                #     index_type_list.append(self.pt.index_tp_phi_prime)
+                #     names.append('phi_prime')
+                # if self.pt.has_source_psi:
+                #     index_type_list.append(self.pt.index_tp_psi)
+                #     names.append('psi')
+                timer.end("neural network initialization")  # 4e-5 sec
+
+                timer.start("allocate numpy array of predictions")
+                
+                #try cython array init
+                self.NN_prediction = cvarray(shape=(len(source_names),tau_size*k_NN_size),itemsize=sizeof(double),format='d')
+                timer.end("allocate numpy array of predictions") # 1e-4 sec. Is at the 0.2% of runtime. But most likeli some space for improment ...
+
+                # da is nen problem irgjendwoh. I have to init them as 0, otherwise something goes wrong somewhere
+                for i in range(len(source_names)):
+                    self.NN_prediction[i][:] = 0.0
+
+                timer.start("get all sources")
+                # NN prediction of the source functions. They are stored in the self.NN_prediction array.
+                self.predictor.predict_many(source_names, np.asarray(tau_CLASS), self.NN_prediction)
+                timer.end("get all sources") #0.07 sec
+
+                timer.start("overwrite k array")
+                # Copy k values from NN
+                free(self.pt.k[index_md])
+                self.pt.k[index_md] = <double*>malloc(k_NN_size * sizeof(double))
+                for i_k in range(k_NN_size):
+                    self.pt.k[index_md][i_k] = k_NN[i_k]
+   
+                self.pt.k_min = k_NN[0]
+                self.pt.k_max = k_NN[-1]
+                self.pt.k_size[index_md] = k_NN_size
+                # the following part determines k_max_cl similar to the c function perturb_get_k_list in the source/perturbations.c file of ClassFull
+                #first value
+                if self.ba.sgnK == 0:
+                    #K<0 (flat)  : start close to zero */
+                    k_min=self.pr.k_min_tau0/self.ba.conformal_age
+                elif self.ba.sgnK == -1:
+                    # K<0 (open)  : start close to sqrt(-K)
+                    # (in transfer modules, for scalars, this will correspond to q close to zero
+                    # for vectors and tensors, this value is even smaller than the minimum necessary value) */
+                    k_min=np.sqrt(-self.ba.K+pow(self.pr.k_min_tau0/self.ba.conformal_age/self.th.angular_rescaling,2))
+                elif self.ba.sgnK == 1:
+                    # K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+                    k_min = np.sqrt((8.-1.e-4)*self.ba.K)
+                #- --> find k_max (as well as k_max_cmb[ppt->index_md_scalars], k_max_cl[ppt->index_md_scalars]) */
+                k_max_cmb = k_min
+                k_max_cl = k_min
+                if self.pt.has_cls == _TRUE_:
+                    # find k_max_cmb[ppt->index_md_scalars] : */
+                    # choose a k_max_cmb[ppt->index_md_scalars] corresponding to a wavelength on the last
+                    # scattering surface seen today under an angle smaller than
+                    # pi/lmax: this is equivalent to
+                    # k_max_cl[ppt->index_md_scalars]*[comvoving.ang.diameter.distance] > l_max */
+                    k_max_cmb = self.pr.k_max_tau0_over_l_max*self.pt.l_scalar_max/self.ba.conformal_age/self.th.angular_rescaling
+                    k_max_cl = k_max_cmb
+                # find k_max_cl[ppt->index_md_scalars] : */
+                # if we need density/lensing Cl's, we must impose a stronger condition,
+                # such that the minimum wavelength on the shell corresponding
+                # to the center of smallest redshift bin is seen under an
+                # angle smaller than pi/lmax. So we must multiply our previous
+                # k_max_cl[ppt->index_md_scalars] by the ratio tau0/(tau0-tau[center of smallest
+                # redshift bin]). Note that we could do the same with the
+                # lensing potential if we needed a very precise C_l^phi-phi at
+                if self.pt.has_cl_number_count == _TRUE_ or self.pt.has_cl_lensing_potential == _TRUE_:
+                    if background_tau_of_z(&self.ba,self.pt.selection_mean[0],&tau1) == _FAILURE_:
+                        raise CosmoSevereError(self.ba.error_message)
+                    k_max_cl = max(k_max_cl,self.pr.k_max_tau0_over_l_max*self.pt.l_lss_max/(self.ba.conformal_age-tau1))
+                    # to be very accurate we should use angular diameter distance to given redshift instead of comoving radius: would implement corrections depending on curvature
+                
+                # end of c part 
+                
+                k_max_cl_idx = np.searchsorted(k_NN, k_max_cl)
+                # self.pt.k_size_cl[index_md] = k_NN_size
+                self.pt.k_size_cl[index_md] = k_max_cl_idx
+
+                _k_max_dbg = self.pt.k[index_md][self.pt.k_size_cl[index_md] - 1]
+                timer.end("overwrite k array") # 5e-5 sec
+
+                # copy the predictor timestamps to the classy one
+                for key, value in self.predictor.times.items():
+                    timer[key] = value
+
+                # copy the predictor timestamps to the classy one     #takes about 1e-5 sec
+                for key, value in self.predictor.time_prediction_per_network.items():
+                    timer["indiv. network: '{}'".format(key)] = value
+
+                #allocate all source functions
+                timer.start("allocate unused source functions")
+                #define source size
+                self.NN_source_size = k_NN_size * tau_size * sizeof(double)
+                for index_type in range(tp_size):
+                    # We need to allocate these, such that they can be dealocated by the perturb_free function later on
+                    self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(sizeof(double))
+                timer.end("allocate unused source functions") #takes about 1e-6 sec
+
+                timer.start("overwrite source functions")
+                start = time.time()
+                for i, index_tp_x in enumerate(NN_requested_index_types):
+                    self.overwrite_source_function(
+                            index_md, index_ic,
+                            index_tp_x,
+                            k_NN_size, tau_size, 
+                            self.NN_prediction[i, :]
+                            )
+                timer.end("overwrite source functions") # this takes 3e-6 sec
+                timer.end("neural network complete")
+
+            timer.end("perturb")
+
+            if post_perturb_callback:
+                post_perturb_callback(self)
+
+
         if "primordial" in level:
+            timer.start("primordial")
             if primordial_init(&(self.pr), &(self.pt),
                                &(self.pm)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
+            timer.end("primordial")
+
 
         if "fourier" in level:
+            timer.start("fourier")
             if fourier_init(&self.pr, &self.ba, &self.th,
                               &self.pt, &self.pm, &self.fo) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.fo.error_message)
             self.ncp.add("fourier")
+            timer.end("fourier")
 
         if "transfer" in level:
+            timer.start("transfer")
             if transfer_init(&(self.pr), &(self.ba), &(self.th),
                              &(self.pt), &(self.fo), &(self.tr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
+            timer.end("transfer")
 
         if "harmonic" in level:
+            timer.start("harmonic")
             if harmonic_init(&(self.pr), &(self.ba), &(self.pt),
                             &(self.pm), &(self.fo), &(self.tr),
                             &(self.hr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.hr.error_message)
             self.ncp.add("harmonic")
+            timer.end("harmonic")
 
         if "lensing" in level:
+            timer.start("lensing")
             if lensing_init(&(self.pr), &(self.pt), &(self.hr),
                             &(self.fo), &(self.le)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
+            timer.end("lensing")
+
 
         if "distortions" in level:
+            timer.start("distortions")
             if distortions_init(&(self.pr), &(self.ba), &(self.th),
                                 &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sd.error_message)
             self.ncp.add("distortions")
+            timer.end("distortions")
 
         self.computed = True
 
+        timer.end("compute")
+
+        if performance_report is not None:
+            performance_report.update(timer.times)
+
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
-        return
+        return 
 
     def raw_cl(self, lmax=-1, nofail=False):
         """
@@ -776,6 +1248,83 @@ cdef class Class:
                 raise CosmoSevereError(self.fo.error_message)
 
         return pk
+
+    # Gives the total matter pk for a given (z)
+    def pk_at_z(self,double z):
+        """
+
+        Gives the total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+
+        k = np.zeros(self.fo.k_size,'float64')
+        pk = np.zeros(self.fo.k_size,'float64')
+
+        pk_out = <double*> malloc(self.fo.k_size*sizeof(double))
+        ln_pk_ic = <double*> malloc(self.fo.ic_ic_size*self.fo.k_size*sizeof(double))
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        # logarithmic = 1
+        if (self.fo.method == nl_none):
+            if fourier_pk_at_z(&self.ba,&self.fo,linear,pk_linear,z,self.fo.index_pk_m,pk_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.fo.error_message)
+        else:
+            if fourier_pk_at_z(&self.ba,&self.fo,linear,pk_nonlinear,z,self.fo.index_pk_m,pk_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.fo.error_message)
+
+        for i in range(self.fo.k_size):
+            pk[i] = pk_out[i]
+            k[i] = np.exp(self.fo.ln_k[i])
+
+        free(ln_pk_ic)
+        free(pk_out)
+
+        return pk, k
+
+
+    # Gives the total matter pk for a given (z)
+    def pk_cb_at_z(self,double z):
+        """
+
+        Gives the cdm + b pk (in Mpc**3) for a given z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+
+        k = np.zeros(self.fo.k_size,'float64')
+        pk_cb = np.zeros(self.fo.k_size,'float64')
+
+        pk_cb_out = <double*> malloc(self.fo.k_size*sizeof(double))
+        ln_pk_ic = <double*> malloc(self.fo.ic_ic_size*self.fo.k_size*sizeof(double))
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        # logarithmic = 1
+        if (self.fo.method == nl_none):
+            if fourier_pk_at_z(&self.ba,&self.fo,linear,pk_linear,z,self.fo.index_pk_cb,pk_cb_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.fo.error_message)
+        else:
+            if fourier_pk_at_z(&self.ba,&self.fo,linear,pk_nonlinear,z,self.fo.index_pk_cb,pk_cb_out,ln_pk_ic)==_FAILURE_:
+                raise CosmoSevereError(self.fo.error_message)
+
+        for i in range(self.fo.k_size):
+            pk_cb[i] = pk_cb_out[i]
+            k[i] = np.exp(self.fo.ln_k[i])
+
+        free(ln_pk_ic)
+        free(pk_cb_out)
+
+        return pk_cb, k
 
     # Gives the cdm+b pk for a given (k,z)
     def pk_cb(self,double k,double z):
@@ -1391,6 +1940,9 @@ cdef class Class:
     def theta_star_100(self):
         return 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
 
+    def omega_cdm(self):
+        return self.ba.Omega0_cdm * self.ba.h * self.ba.h
+
     def Omega_Lambda(self):
         return self.ba.Omega0_lambda
 
@@ -1428,6 +1980,19 @@ cdef class Class:
 
     def rs_drag(self):
         self.compute(["thermodynamics"])
+        return self.th.rs_d
+
+    def rs_drag_nn(self):
+        """
+        Same as `self.rs_drag()`, but doesn't invoke `self.compute()`.
+        The reason is the following: If NNs are enabled, `self.compute()`
+        will call the NN code during the perturbation module; the NN code will
+        call `rs_drag()`, which in turn will call `self.compute(["thermodynamics"])`;
+        however,  since `self.ready` is not yet set to `True` during the perturbation
+        module, this will recompute the thermodynamics (and waste time).
+        For this reason, this method assumes that thermodynamics has been run already
+        WITHOUT checking the `self.ready` flag.
+        """
         return self.th.rs_d
 
     def z_reio(self):
@@ -1539,10 +2104,8 @@ cdef class Class:
     def scale_independent_growth_factor(self, z):
         """
         scale_independent_growth_factor(z)
-
         Return the scale invariant growth factor D(a) for CDM perturbations
         (exactly, the quantity defined by Class as index_bg_D in the background module)
-
         Parameters
         ----------
         z : float
@@ -1561,7 +2124,7 @@ cdef class Class:
         free(pvecback)
 
         return D
-
+        
     def scale_independent_growth_factor_f(self, z):
         """
         scale_independent_growth_factor_f(z)
@@ -2343,6 +2906,8 @@ cdef class Class:
                 value = self.th.da_rec
             elif name == 'da_rec_h':
                 value = self.th.da_rec*self.ba.h
+            elif name == 'rd_rec':
+                value = self.th.rd_rec
             elif name == 'z_star':
                 value = self.th.z_star
             elif name == 'tau_star':
@@ -2449,6 +3014,8 @@ cdef class Class:
                 value = self.sd.sd_parameter_table[1]
             elif name == 'mu_sd':
                 value = self.sd.sd_parameter_table[2]
+            elif name == 'network_delta_chi_squared':
+                value = self.pt.network_deltachisquared
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
@@ -2775,6 +3342,232 @@ make        nonlinear_scale_cb(z, z_size)
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
 
+    ################################################################################
+    # utility functions for neural networks
+    ################################################################################
+    def get_tau_source(self):
+        """
+        Return the tau array on which the source functions are sampled.
+
+        Returns
+        -------
+        tau: numpy array
+        """
+        cdef:
+            int i_tau;
+            double * tau = self.pt.tau_sampling;
+            int tau_size = self.pt.tau_size
+            double [:] numpy_tau = np.zeros(tau_size, dtype=np.double)
+
+        for i_tau in range(tau_size):
+            numpy_tau[i_tau] = tau[i_tau]
+
+        return np.asarray(numpy_tau)
+
+    def get_k_tau(self):
+        """
+        Return the k, tau grid values of the source functions.
+
+        Returns
+        -------
+        k_array : numpy array containing k values.
+        tau_array: numpy array containing tau values.
+        """
+        cdef:
+            int i_k;
+            int i_tau;
+            int index_md = self.pt.index_md_scalars;
+            double * k = self.pt.k[index_md];
+            double * tau = self.pt.tau_sampling;
+            int k_size = self.pt.k_size[index_md];
+            int tau_size = self.pt.tau_size
+            double [:] numpy_k = np.zeros(k_size,dtype=np.double)
+            double [:] numpy_tau = np.zeros(tau_size,dtype=np.double)
+
+        for i_k in range(k_size):
+            numpy_k[i_k] = k[i_k]
+        for i_tau in range(tau_size):
+            numpy_tau[i_tau] = tau[i_tau]
+
+        return np.asarray(numpy_k), np.asarray(numpy_tau)
+
+    def get_quantities_at_RM_equality(self):
+        return self.ba.tau_eq, self.ba.a_eq, self.ba.H_eq
+
+    def get_bg_z(self):
+        cdef:
+            int index_tau;
+            int bt_size = self.ba.bt_size;
+            double * z_table = self.ba.z_table;
+            double [:] np_z_table = np.zeros((bt_size));
+
+        for index_tau in range(bt_size):
+            np_z_table[index_tau] = z_table[index_tau]
+
+        return np.asarray(np_z_table)
+
+    def get_bg_tau(self):
+        cdef:
+            int index_tau;
+            int bt_size = self.ba.bt_size;
+            double * tau_table = self.ba.tau_table;
+            double [:] np_tau_table = np.zeros((bt_size));
+
+        for index_tau in range(bt_size):
+            np_tau_table[index_tau] = tau_table[index_tau]
+
+        return np.asarray(np_tau_table)
+
+    def get_backgrounds_for_NN(self):
+        """
+        Return the comoving sound horizon of photons from the background module and the
+        corresponding conformal time values. We also need to calculate Omega_m
+        """
+        cdef:
+            int index_tau;
+            int bt_size = self.ba.bt_size;
+            int bg_size = self.ba.bg_size;
+            int index_bg_rs = self.ba.index_bg_rs;
+            double * background_table = self.ba.background_table;
+            double [:] r_s = np.empty(bt_size, dtype=np.double);
+            double [:] rho_b = np.empty(bt_size, dtype=np.double);
+            double [:] rho_g = np.empty(bt_size, dtype=np.double);
+            double [:] tau_bg = np.empty(bt_size, dtype=np.double);
+            double [:] a = np.empty(bt_size, dtype=np.double);
+            double [:] H = np.empty(bt_size, dtype=np.double);
+            double [:] D = np.empty(bt_size, dtype=np.double);
+            double [:] Omega_m = np.empty(bt_size, dtype=np.double);
+
+
+        for index_tau in range(bt_size):
+            tau_bg[index_tau] = self.ba.tau_table[index_tau]
+
+            r_s[index_tau] = background_table[index_tau*bg_size+index_bg_rs]
+            rho_b[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_rho_b];
+            rho_g[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_rho_g];
+            a[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_a];
+            H[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_H];
+            D[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_D];
+            Omega_m[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_Omega_m];
+            
+
+
+
+        return {
+                "tau": np.asarray(tau_bg),
+                "r_s": np.asarray(r_s),
+                "rho_b": np.asarray(rho_b),
+                "rho_g": np.asarray(rho_g),
+                "a": np.asarray(a),
+                "H": np.asarray(H),
+                "D": np.asarray(D),
+                "Omega_m": np.asarray(Omega_m),
+                }
+
+    def tau_of_z(self,z):
+        cdef double tau
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+        return tau
+
+    def get_z_split_eisw_lisw(self):
+        return self.pt.eisw_lisw_split_z
+
+    def get_tau_split_eisw_lisw(self):
+        return self.tau_of_z(self.get_z_split_eisw_lisw())
+
+    @cython.boundscheck(False)
+    def get_thermos_for_NN(self):
+        """
+        Return the photon comoving damping scale, visibility function, its conformal time
+        derivative and the corresponding conformal time values.
+        """
+        cdef:
+            double tau;
+            double * z_table = self.th.z_table;
+            double *tau_table = self.th.tau_table;
+            double * thermodynamics_table = self.th.thermodynamics_table;
+            int th_size = self.th.th_size;
+            int index_z;
+            int tt_size = self.th.tt_size;
+            int index_th_r_d = self.th.index_th_r_d;
+            int index_th_g = self.th.index_th_g;
+            int index_th_dg = self.th.index_th_dg;
+            int index_th_dg_reco = self.th.index_th_dg_reco;
+            int index_th_dg_reio = self.th.index_th_dg_reio;
+            int index_th_dkappa = self.th.index_th_dkappa;
+            int index_th_exp_m_kappa = self.th.index_th_exp_m_kappa;
+            double [:] numpy_r_d = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_g = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_g_reco = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_g_reio = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dg = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dg_reco = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dg_reio = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_e_kappa = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_dkappa = np.empty(tt_size, dtype=np.double);
+            double [:] numpy_tau = np.empty(tt_size, dtype=np.double);     #this takes 2.5e-5 sec
+
+        for index_z in prange(tt_size, nogil=True):
+
+            # if background_tau_of_z(&self.ba,z_table[index_z],&tau)==_FAILURE_:
+            #     raise CosmoSevereError(self.ba.error_message)
+
+            numpy_tau[index_z] = tau_table[index_z]
+            numpy_r_d[index_z] = thermodynamics_table[index_z*th_size + index_th_r_d]
+            numpy_g[index_z] = thermodynamics_table[index_z*th_size + index_th_g]
+            numpy_g_reco[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reco]
+            numpy_g_reio[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reio]
+            numpy_dg[index_z] = thermodynamics_table[index_z*th_size + index_th_dg]
+            numpy_dg_reco[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reco]
+            numpy_dg_reio[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reio]
+            numpy_dkappa[index_z] = thermodynamics_table[index_z*th_size + index_th_dkappa]
+            numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]     #this takes 4e-4
+
+        g_reco = np.asarray(numpy_g_reco)
+        g_reio = np.asarray(numpy_g_reio)
+        g_reco_prime = np.asarray(numpy_dg_reco)
+        g_reio_prime = np.asarray(numpy_dg_reio)
+
+        ret = {
+                "r_d": np.asarray(numpy_r_d),
+                "g": np.asarray(numpy_g),
+                "g_prime": np.asarray(numpy_dg),
+                "g_reco": g_reco,
+                "g_reco_prime": g_reco_prime,
+                "g_reio": g_reio,
+                "g_reio_prime": g_reio_prime,
+                "e_kappa": np.asarray(numpy_e_kappa),
+                "tau": np.asarray(numpy_tau),
+                "dkappa": np.asarray(numpy_dkappa),
+                } #takes 1e-5 sec
+
+        return ret
+
+    def a_of_tau(self, tau):
+        """
+        a(tau)
+
+        Return the scale factor
+
+        Parameters
+        ----------
+        tau : float
+                Desired conformal time
+        """
+        cdef int last_index
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size_short,sizeof(double))
+        if background_at_tau(&self.ba,tau,short_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        a = pvecback[self.ba.index_bg_a]
+
+        free(pvecback)
+
+        return a
+
 
     def get_sources(self):
         """
@@ -2797,11 +3590,12 @@ make        nonlinear_scale_cb(z, z_size)
             int index_ic = self.pt.index_ic_ad;
             int k_size = self.pt.k_size[index_md];
             int tau_size = self.pt.tau_size;
-            int tp_size = self.pt.tp_size[index_md];
-            double *** sources_ptr = self.pt.sources;
-            double [:,:] tmparray = np.zeros((k_size, tau_size)) ;
-            double [:] k_array = np.zeros(k_size);
-            double [:] tau_array = np.zeros(tau_size);
+            int tp_size = self.pt.tp_size[index_md]
+            double *** sources_ptr = self.pt.sources
+            double data
+            double [:,:] tmparray = np.zeros((k_size, tau_size))
+            double [:] k_array = np.zeros(k_size)
+            double [:] tau_array = np.zeros(tau_size)
 
         names = []
 
@@ -2810,145 +3604,285 @@ make        nonlinear_scale_cb(z, z_size)
         for index_tau in range(tau_size):
             tau_array[index_tau] = tau[index_tau]
 
-        indices = []
+        # indices = []
+
+        # if self.pt.has_source_t:
+        #     indices.extend([
+        #         self.pt.index_tp_t0,
+        #         self.pt.index_tp_t1,
+        #         self.pt.index_tp_t2
+        #         ])
+        #     names.extend([
+        #         "t0",
+        #         "t1",
+        #         "t2"
+        #         ])
+        # if self.pt.has_source_p:
+        #     indices.append(self.pt.index_tp_p)
+        #     names.append("p")
+        # if self.pt.has_source_phi:
+        #     indices.append(self.pt.index_tp_phi)
+        #     names.append("phi")
+        # if self.pt.has_source_phi_plus_psi:
+        #     indices.append(self.pt.index_tp_phi_plus_psi)
+        #     names.append("phi_plus_psi")
+        # if self.pt.has_source_phi_prime:
+        #     indices.append(self.pt.index_tp_phi_prime)
+        #     names.append("phi_prime")
+        # if self.pt.has_source_psi:
+        #     indices.append(self.pt.index_tp_psi)
+        #     names.append("psi")
+        # if self.pt.has_source_H_T_Nb_prime:
+        #     indices.append(self.pt.index_tp_H_T_Nb_prime)
+        #     names.append("H_T_Nb_prime")
+        # if self.pt.index_tp_k2gamma_Nb:
+        #     indices.append(self.pt.index_tp_k2gamma_Nb)
+        #     names.append("k2gamma_Nb")
+        # if self.pt.has_source_h:
+        #     indices.append(self.pt.index_tp_h)
+        #     names.append("h")
+        # if self.pt.has_source_h_prime:
+        #     indices.append(self.pt.index_tp_h_prime)
+        #     names.append("h_prime")
+        # if self.pt.has_source_eta:
+        #     indices.append(self.pt.index_tp_eta)
+        #     names.append("eta")
+        # if self.pt.has_source_eta_prime:
+        #     indices.append(self.pt.index_tp_eta_prime)
+        #     names.append("eta_prime")
+        # if self.pt.has_source_delta_tot:
+        #     indices.append(self.pt.index_tp_delta_tot)
+        #     names.append("delta_tot")
+        # if self.pt.has_source_delta_m:
+        #     indices.append(self.pt.index_tp_delta_m)
+        #     names.append("delta_m")
+        # if self.pt.has_source_delta_cb:
+        #     indices.append(self.pt.index_tp_delta_cb)
+        #     names.append("delta_cb")
+        # if self.pt.has_source_delta_g:
+        #     indices.append(self.pt.index_tp_delta_g)
+        #     names.append("delta_g")
+        # if self.pt.has_source_delta_b:
+        #     indices.append(self.pt.index_tp_delta_b)
+        #     names.append("delta_b")
+        # if self.pt.has_source_delta_cdm:
+        #     indices.append(self.pt.index_tp_delta_cdm)
+        #     names.append("delta_cdm")
+        # if self.pt.has_source_delta_idm:
+        #     indices.append(self.pt.index_tp_delta_idm)
+        #     names.append("delta_idm")
+        # if self.pt.has_source_delta_dcdm:
+        #     indices.append(self.pt.index_tp_delta_dcdm)
+        #     names.append("delta_dcdm")
+        # if self.pt.has_source_delta_fld:
+        #     indices.append(self.pt.index_tp_delta_fld)
+        #     names.append("delta_fld")
+        # if self.pt.has_source_delta_scf:
+        #     indices.append(self.pt.index_tp_delta_scf)
+        #     names.append("delta_scf")
+        # if self.pt.has_source_delta_dr:
+        #     indices.append(self.pt.index_tp_delta_dr)
+        #     names.append("delta_dr")
+        # if self.pt.has_source_delta_ur:
+        #     indices.append(self.pt.index_tp_delta_ur)
+        #     names.append("delta_ur")
+        # if self.pt.has_source_delta_idr:
+        #     indices.append(self.pt.index_tp_delta_idr)
+        #     names.append("delta_idr")
+        # if self.pt.has_source_delta_ncdm:
+        #     for incdm in range(self.ba.N_ncdm):
+        #       indices.append(self.pt.index_tp_delta_ncdm1+incdm)
+        #       names.append("delta_ncdm[{}]".format(incdm))
+        # if self.pt.has_source_theta_tot:
+        #     indices.append(self.pt.index_tp_theta_tot)
+        #     names.append("theta_tot")
+        # if self.pt.has_source_theta_m:
+        #     indices.append(self.pt.index_tp_theta_m)
+        #     names.append("theta_m")
+        # if self.pt.has_source_theta_cb:
+        #     indices.append(self.pt.index_tp_theta_cb)
+        #     names.append("theta_cb")
+        # if self.pt.has_source_theta_g:
+        #     indices.append(self.pt.index_tp_theta_g)
+        #     names.append("theta_g")
+        # if self.pt.has_source_theta_b:
+        #     indices.append(self.pt.index_tp_theta_b)
+        #     names.append("theta_b")
+        # if self.pt.has_source_theta_cdm:
+        #     indices.append(self.pt.index_tp_theta_cdm)
+        #     names.append("theta_cdm")
+        # if self.pt.has_source_theta_idm:
+        #     indices.append(self.pt.index_tp_theta_idm)
+        #     names.append("theta_idm")
+        # if self.pt.has_source_theta_dcdm:
+        #     indices.append(self.pt.index_tp_theta_dcdm)
+        #     names.append("theta_dcdm")
+        # if self.pt.has_source_theta_fld:
+        #     indices.append(self.pt.index_tp_theta_fld)
+        #     names.append("theta_fld")
+        # if self.pt.has_source_theta_scf:
+        #     indices.append(self.pt.index_tp_theta_scf)
+        #     names.append("theta_scf")
+        # if self.pt.has_source_theta_dr:
+        #     indices.append(self.pt.index_tp_theta_dr)
+        #     names.append("theta_dr")
+        # if self.pt.has_source_theta_ur:
+        #     indices.append(self.pt.index_tp_theta_ur)
+        #     names.append("theta_ur")
+        # if self.pt.has_source_theta_idr:
+        #     indices.append(self.pt.index_tp_theta_idr)
+        #     names.append("theta_idr")
+        # if self.pt.has_source_theta_ncdm:
+        #     for incdm in range(self.ba.N_ncdm):
+        #       indices.append(self.pt.index_tp_theta_ncdm1+incdm)
+        #       names.append("theta_ncdm[{}]".format(incdm))
+
+        # for index_type, name in zip(indices, names):
+        #     tmparray = np.empty((k_size,tau_size))
+
+        indices = {}
 
         if self.pt.has_source_t:
-            indices.extend([
-                self.pt.index_tp_t0,
-                self.pt.index_tp_t1,
-                self.pt.index_tp_t2
-                ])
-            names.extend([
-                "t0",
-                "t1",
-                "t2"
-                ])
+            indices.update({
+                "t0": self.pt.index_tp_t0,
+                # "t0_sw": self.pt.index_tp_t0_sw,
+                "t0_isw": self.pt.index_tp_t0_isw,
+                # "t0_reco": self.pt.index_tp_t0_reco,
+                # "t0_reio": self.pt.index_tp_t0_reio,
+                "t0_reco_no_isw": self.pt.index_tp_t0_reco_no_isw,
+                "t0_reio_no_isw": self.pt.index_tp_t0_reio_no_isw,
+                "t1": self.pt.index_tp_t1,
+                "t2": self.pt.index_tp_t2,
+                "t2_reco": self.pt.index_tp_t2_reco,
+                "t2_reio": self.pt.index_tp_t2_reio
+            })
         if self.pt.has_source_p:
-            indices.append(self.pt.index_tp_p)
-            names.append("p")
-        if self.pt.has_source_phi:
-            indices.append(self.pt.index_tp_phi)
-            names.append("phi")
-        if self.pt.has_source_phi_plus_psi:
-            indices.append(self.pt.index_tp_phi_plus_psi)
-            names.append("phi_plus_psi")
-        if self.pt.has_source_phi_prime:
-            indices.append(self.pt.index_tp_phi_prime)
-            names.append("phi_prime")
-        if self.pt.has_source_psi:
-            indices.append(self.pt.index_tp_psi)
-            names.append("psi")
-        if self.pt.has_source_H_T_Nb_prime:
-            indices.append(self.pt.index_tp_H_T_Nb_prime)
-            names.append("H_T_Nb_prime")
-        if self.pt.index_tp_k2gamma_Nb:
-            indices.append(self.pt.index_tp_k2gamma_Nb)
-            names.append("k2gamma_Nb")
-        if self.pt.has_source_h:
-            indices.append(self.pt.index_tp_h)
-            names.append("h")
-        if self.pt.has_source_h_prime:
-            indices.append(self.pt.index_tp_h_prime)
-            names.append("h_prime")
-        if self.pt.has_source_eta:
-            indices.append(self.pt.index_tp_eta)
-            names.append("eta")
-        if self.pt.has_source_eta_prime:
-            indices.append(self.pt.index_tp_eta_prime)
-            names.append("eta_prime")
-        if self.pt.has_source_delta_tot:
-            indices.append(self.pt.index_tp_delta_tot)
-            names.append("delta_tot")
+            indices["p"] = self.pt.index_tp_p
         if self.pt.has_source_delta_m:
-            indices.append(self.pt.index_tp_delta_m)
-            names.append("delta_m")
+            indices["delta_m"] = self.pt.index_tp_delta_m
         if self.pt.has_source_delta_cb:
-            indices.append(self.pt.index_tp_delta_cb)
-            names.append("delta_cb")
+            indices["delta_cb"] = self.pt.index_tp_delta_cb
         if self.pt.has_source_delta_g:
-            indices.append(self.pt.index_tp_delta_g)
-            names.append("delta_g")
-        if self.pt.has_source_delta_b:
-            indices.append(self.pt.index_tp_delta_b)
-            names.append("delta_b")
-        if self.pt.has_source_delta_cdm:
-            indices.append(self.pt.index_tp_delta_cdm)
-            names.append("delta_cdm")
-        if self.pt.has_source_delta_idm:
-            indices.append(self.pt.index_tp_delta_idm)
-            names.append("delta_idm")
-        if self.pt.has_source_delta_dcdm:
-            indices.append(self.pt.index_tp_delta_dcdm)
-            names.append("delta_dcdm")
-        if self.pt.has_source_delta_fld:
-            indices.append(self.pt.index_tp_delta_fld)
-            names.append("delta_fld")
-        if self.pt.has_source_delta_scf:
-            indices.append(self.pt.index_tp_delta_scf)
-            names.append("delta_scf")
-        if self.pt.has_source_delta_dr:
-            indices.append(self.pt.index_tp_delta_dr)
-            names.append("delta_dr")
-        if self.pt.has_source_delta_ur:
-            indices.append(self.pt.index_tp_delta_ur)
-            names.append("delta_ur")
-        if self.pt.has_source_delta_idr:
-            indices.append(self.pt.index_tp_delta_idr)
-            names.append("delta_idr")
-        if self.pt.has_source_delta_ncdm:
-            for incdm in range(self.ba.N_ncdm):
-              indices.append(self.pt.index_tp_delta_ncdm1+incdm)
-              names.append("delta_ncdm[{}]".format(incdm))
-        if self.pt.has_source_theta_tot:
-            indices.append(self.pt.index_tp_theta_tot)
-            names.append("theta_tot")
+            indices["delta_g"] = self.pt.index_tp_delta_g
         if self.pt.has_source_theta_m:
-            indices.append(self.pt.index_tp_theta_m)
-            names.append("theta_m")
-        if self.pt.has_source_theta_cb:
-            indices.append(self.pt.index_tp_theta_cb)
-            names.append("theta_cb")
-        if self.pt.has_source_theta_g:
-            indices.append(self.pt.index_tp_theta_g)
-            names.append("theta_g")
+            indices["theta_m"] = self.pt.index_tp_theta_m
         if self.pt.has_source_theta_b:
-            indices.append(self.pt.index_tp_theta_b)
-            names.append("theta_b")
-        if self.pt.has_source_theta_cdm:
-            indices.append(self.pt.index_tp_theta_cdm)
-            names.append("theta_cdm")
-        if self.pt.has_source_theta_idm:
-            indices.append(self.pt.index_tp_theta_idm)
-            names.append("theta_idm")
-        if self.pt.has_source_theta_dcdm:
-            indices.append(self.pt.index_tp_theta_dcdm)
-            names.append("theta_dcdm")
-        if self.pt.has_source_theta_fld:
-            indices.append(self.pt.index_tp_theta_fld)
-            names.append("theta_fld")
-        if self.pt.has_source_theta_scf:
-            indices.append(self.pt.index_tp_theta_scf)
-            names.append("theta_scf")
-        if self.pt.has_source_theta_dr:
-            indices.append(self.pt.index_tp_theta_dr)
-            names.append("theta_dr")
-        if self.pt.has_source_theta_ur:
-            indices.append(self.pt.index_tp_theta_ur)
-            names.append("theta_ur")
-        if self.pt.has_source_theta_idr:
-            indices.append(self.pt.index_tp_theta_idr)
-            names.append("theta_idr")
-        if self.pt.has_source_theta_ncdm:
-            for incdm in range(self.ba.N_ncdm):
-              indices.append(self.pt.index_tp_theta_ncdm1+incdm)
-              names.append("theta_ncdm[{}]".format(incdm))
+            indices["theta_b"] = self.pt.index_tp_theta_b
+        if self.pt.has_source_phi:
+            indices["phi"] = self.pt.index_tp_phi
+        if self.pt.has_source_phi_plus_psi:
+            indices["phi_plus_psi"] = self.pt.index_tp_phi_plus_psi
+        if self.pt.has_source_phi_prime:
+            indices["phi_prime"] = self.pt.index_tp_phi_prime
+        if self.pt.has_source_psi:
+            indices["psi"] = self.pt.index_tp_psi
 
-        for index_type, name in zip(indices, names):
-            tmparray = np.empty((k_size,tau_size))
+        for name, index_type in indices.items():
             for index_k in range(k_size):
                 for index_tau in range(tau_size):
                     tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
 
             sources[name] = np.asarray(tmparray)
+            tmparray = np.zeros((k_size,tau_size))
 
         return (sources, np.asarray(k_array), np.asarray(tau_array))
+
+    def nn_workspace(self):
+        # TODO don't do this here
+        workspace = self._pars["workspace_path"]
+        if any(isinstance(workspace, t) for t in [str, bytes, os.PathLike]):
+            # Check whether any generations are requested for nn
+            joint = list(set(self._pars).intersection(classynet.models.ALL_NETWORK_STRINGS))
+            if len(joint)>0:
+                self.NN_generations = {name : self._pars[name] for name in joint}
+                workspace = classynet.workspace.GenerationalWorkspace(workspace,self.NN_generations)
+            else:
+                workspace = classynet.workspace.Workspace(workspace)
+        return workspace
+
+    def nn_cosmological_parameters(self):
+        # here idea: Only load it once
+        if len(self.NN_pnames)==0:
+            manifest = self.nn_workspace().loader().manifest()
+            self.NN_pnames = manifest["cosmological_parameters"]
+        result = {}
+        remaining = []
+        for name in self.NN_pnames:
+            if name in self._pars:
+                result[name] = self._pars[name]
+            else:
+                remaining.append(name)
+
+        for name in remaining:
+            if name == "omega_b":
+                result[name] = self.omega_b()
+            elif name == "omega_cdm":
+                result[name] = self.omega_cdm()
+            elif name == "h":
+                result[name] = self.h()
+            elif name == "tau_reio":
+                result[name] = self.tau_reio()
+            elif name == "Omega_k":
+                result[name] = self.get_current_derived_parameters(["Omega_k"])["Omega_k"]
+            # Regarding w0_fld and wa_fld: It is verified that Omega_Lambda=0 in `can_use_nn`.
+            elif name == "wa_fld":
+                result[name] = 0.0
+            elif name == "w0_fld":
+                result[name] = -1.0
+            else:
+                raise ValueError("Unknown parameter: '{}'".format(name))
+
+        return result
+
+    def nn_debug_enabled(self):
+        return bool(self._pars.get("nn_debug", False))
+
+    def k_min(self):
+        """
+        k_min as determined by K (taken from perturbations.c:perturb_get_k_list)
+        """
+        if self.ba.sgnK == 0:
+            # K<0 (flat)  : start close to zero
+            return self.pr.k_min_tau0 / self.ba.conformal_age
+        elif self.ba.sgnK == -1:
+            # K<0 (open)  : start close to sqrt(-K)
+            # (in transfer modules, for scalars, this will correspond to q close to zero;
+            # for vectors and tensors, this value is even smaller than the minimum necessary value)
+            return np.sqrt(-self.ba.K + pow(self.pr.k_min_tau0 / self.ba.conformal_age / self.th.angular_rescaling, 2))
+        elif self.ba.sgnK == 1:
+            # K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K)
+            return np.sqrt((8.-1.e-4) * self.ba.K);
+        else:
+            raise ValueError("Unrecognized value of K = {}!".format(self.ba.K))
+
+    def get_q(self):
+        """
+        Get the q list from transfer module.
+        """
+        cdef:
+            int i_q
+            double * q = self.tr.q
+            int q_size = self.tr.q_size
+            double [:] numpy_q = np.empty(q_size, dtype=np.double)
+
+        for i_q in range(q_size):
+            numpy_q[i_q] = q[i_q]
+
+        return np.asarray(numpy_q)
+
+    def translate_source_to_index(self, name):
+        mapping = {
+            "t0":             self.pt.index_tp_t0,
+            "t1":             self.pt.index_tp_t1,
+            "t2":             self.pt.index_tp_t2,
+            "t0_reco_no_isw": self.pt.index_tp_t0_reco_no_isw,
+            "t0_reio_no_isw": self.pt.index_tp_t0_reio_no_isw,
+            "t0_isw":         self.pt.index_tp_t0_isw,
+            "t2_reco":        self.pt.index_tp_t2_reco,
+            "t2_reio":        self.pt.index_tp_t2_reio,
+            "phi_plus_psi":   self.pt.index_tp_phi_plus_psi,
+            "delta_m":        self.pt.index_tp_delta_m,
+            "delta_cb":       self.pt.index_tp_delta_cb,
+            "p":              self.pt.index_tp_p,
+        }
+        return mapping[name]

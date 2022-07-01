@@ -56,6 +56,8 @@ cdef extern from "class.h":
     cdef struct precision:
         double nonlinear_min_k_max
         ErrorMsg error_message
+        double k_max_tau0_over_l_max
+        double k_min_tau0
 
     cdef struct background:
         ErrorMsg error_message
@@ -80,7 +82,6 @@ cdef extern from "class.h":
         double H0
         double age
         double conformal_age
-        double K
         double * m_ncdm_in_eV
         double Neff
         double Omega0_g
@@ -101,7 +102,10 @@ cdef extern from "class.h":
         double Omega0_dr
         double Omega0_scf
         double Omega0_k
+        double a_today
         int bt_size
+        double K
+        int sgnK
         double Omega0_m
         double Omega0_r
         double Omega0_de
@@ -109,6 +113,16 @@ cdef extern from "class.h":
         double H_eq
         double z_eq
         double tau_eq
+
+        # Added for Neural Networks
+        double * tau_table
+        int index_tau
+        int index_bg_rs
+        int index_bg_rho_g
+        double * background_table
+        int bg_size_short
+        short short_info
+        double * z_table
 
     cdef struct thermodynamics:
         ErrorMsg error_message
@@ -145,14 +159,40 @@ cdef extern from "class.h":
         double n_index_idm_b
         int tt_size
 
+        # Added for Neural Networks
+        double rd_rec
+        int index_th_r_d
+        int index_th_g
+        int index_th_dg
+        int index_th_dg_reco
+        int index_th_dg_reio
+        # Add the new split g
+        int index_th_g_reco
+        int index_th_g_reio
+        int index_th_exp_m_kappa
+        int index_th_dkappa
+        double * z_table
+        double * tau_table
+        double * thermodynamics_table
+        double angular_rescaling
+
     cdef struct perturbations:
         ErrorMsg error_message
         short has_scalars
         short has_vectors
         short has_tensors
 
+        short perform_NN_skip
+        double network_deltachisquared
+
         short has_density_transfers
         short has_velocity_transfers
+
+        short has_cl_number_count
+        short has_cl_lensing_potential
+        double selection_mean[100] # 100=_SELECTION_NUM_MAX_ in include_perturbations.h
+        int l_scalar_max
+        short has_cls
 
         int has_pk_matter
         int l_lss_max
@@ -177,6 +217,26 @@ cdef extern from "class.h":
         int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
 
+        # Added for access to source functions; Needed for training of
+        # Also, new indices for the split source function for T0...
+        int index_tp_t0_sw
+        int index_tp_t0_isw
+        int index_tp_t0_reco
+        int index_tp_t0_reio
+        int index_tp_t0_reco_no_isw
+        int index_tp_t0_reio_no_isw
+
+        # ...and for split source function for T2.
+        int index_tp_t2_reco
+        int index_tp_t2_reio
+
+        double eisw_lisw_split_z
+
+        double k_min
+        double k_max
+        int * k_size_cl
+        int * tp_size
+        int * ic_size
         double * alpha_idm_dr
         double * beta_idr
 
@@ -274,16 +334,17 @@ cdef extern from "class.h":
         int k_size_pk
         int * k_size
         double ** k
-        int * ic_size
         int index_ic_ad
         int md_size
-        int * tp_size
         double * ln_tau
         int ln_tau_size
         int index_ln_tau_pk
 
     cdef struct transfer:
         ErrorMsg error_message
+
+        int q_size
+        double * q
 
     cdef struct primordial:
         ErrorMsg error_message
@@ -412,6 +473,7 @@ cdef extern from "class.h":
         int index_tau_min_nl
         double * k
         double * ln_tau
+        double * ln_k
         double * tau
         double ** ln_pk_l
         double ** ln_pk_nl
@@ -525,6 +587,16 @@ cdef extern from "class.h":
         void * pfo,
         int pk_output,
         double k,
+        double z,
+        int index_pk,
+        double * out_pk,
+        double * out_pk_ic)
+
+    int fourier_pk_at_z(
+        void * pba,
+        void * pfo,
+        int linear_or_logarithmic,
+        int pk_output,
         double z,
         int index_pk,
         double * out_pk,

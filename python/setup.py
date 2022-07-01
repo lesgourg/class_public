@@ -1,5 +1,6 @@
 from distutils.core import setup
-from distutils.extension import Extension
+#from distutils.extension import Extension
+from Cython.Distutils import Extension
 from Cython.Distutils import build_ext
 
 import numpy as nm
@@ -52,6 +53,43 @@ setup(
     description='Python interface to the Cosmological Boltzmann code CLASS',
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
-    ext_modules=[classy_ext],
-    #data_files=[('bbn', ['../bbn/sBBN.dat'])]
+    package_dir={
+        "classynet": os.path.join(classy_folder, "nn"),
+        "classynet.generate": os.path.join(classy_folder, "nn", "generate"),
+        "classynet.training": os.path.join(classy_folder, "nn", "training"),
+        "classynet.models": os.path.join(classy_folder, "nn", "models"),
+        "classynet.data_providers": os.path.join(classy_folder, "nn", "data_providers"),
+        "classynet.testing": os.path.join(classy_folder, "nn", "testing"),
+        "classynet.plotting": os.path.join(classy_folder, "nn", "plotting"),
+        "classynet.tools": os.path.join(classy_folder, "nn", "tools"),
+    },
+    packages=[
+        "classynet",
+        "classynet.generate",
+        "classynet.training",
+        "classynet.models",
+        "classynet.data_providers",
+        "classynet.testing",
+        "classynet.plotting",
+        "classynet.tools",
+    ],
+    ext_modules=[
+        Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
+                  include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
+                  libraries=liblist,
+                  library_dirs=[root_folder, GCCPATH],
+                  extra_link_args=['-lgomp'],
+                  cython_directives={'language_level': "3" if sys.version_info.major>=3 else "2"}
+                  ),
+        Extension("classynet.tools.lhs",
+                  [os.path.join(classy_folder, "nn/tools/", "lhs_python.cpp")],
+                  extra_compile_args=["-fopenmp"],
+                  extra_link_args=["-fopenmp"],
+                  include_dirs=[nm.get_include()],
+                  ),
+        classy_ext
+    ],
+    package_data= {
+        'classynet.plotting':[os.path.join(classy_folder, "nn", "plotting","approx_planck_noise.dat")]
+    },
 )
