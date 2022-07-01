@@ -5987,6 +5987,8 @@ int input_default_params(struct background *pba,
   /** 2.c) Source number counts evolution */
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
+  /* Extra flag for NN */
+  ppt->perform_NN_skip = _FALSE_;
 
   /** 3) Power spectrum P(k) */
   /** 3.a) Maximum k in P(k) */
