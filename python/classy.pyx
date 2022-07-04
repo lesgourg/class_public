@@ -1668,35 +1668,33 @@ cdef class Class:
         free(data)
         return omega_gw
 
-    def Omega_GW(self):
+    def Omega_GW(self, f='f_pivot'):
         """
-        Return the GWB energy density Omega_GW at the pivot frequency f_pivot
+        Omega_GW(f='f_pivot')
 
-        Returns
-        -------
-        omega_gw : double
-                GWB energy density Omega_GW at pivot frequency f_pivot.
-        """
-        return self.pm.A_gwb
-
-    def Omega_GW_at_f(self, double f):
-        """
         Return the GWB energy density Omega_GW at the frequency f
 
         Parameters
         ----------
-        f : double
-                Frequency of the GW in Hz.
+        f : optional
+                Either 'f_pivot' or frequency of the GW in Hz.
 
         Returns
         -------
         omega_gw : double
-                GWB energy density Omega_GW at frequency f.
+                GWB energy density Omega_GW at pivot frequency f.
         """
+        if f == 'f_pivot':
+            return self.pm.A_gwb
+        cdef double f_out
         cdef double omega_gw
+        try:
+            f_out = f
+        except TypeError:
+            raise TypeError("f must be either 'f_pivot' or a real number, you entered f='%s'!" % f)
 
         # Use mode = 0 to be in the linear case!
-        if primordial_omega_gw_at_f(&self.pm, 0, f, &omega_gw)==_FAILURE_:
+        if primordial_omega_gw_at_f(&self.pm, 0, f_out, &omega_gw)==_FAILURE_:
             raise CosmoSevereError(self.pm.error_message)
 
         return omega_gw
