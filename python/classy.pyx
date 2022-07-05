@@ -237,7 +237,7 @@ cdef class Class:
         Also checks the 'nn_verbose' parameter to determine how much information 
         to print about the usage of neural networks.
         """
-        # [SG]: TODO: REWORK THIS FUNCTION ...
+
         if "nn_verbose" in self.pars:
             nn_verbose = self.pars["nn_verbose"]
         else:
@@ -249,7 +249,7 @@ cdef class Class:
                 return False
         
         if not "workspace_path" in self._pars:
-                raise ValueError("use_nn is yes but no workspace_path is not provided!")
+                raise ValueError("'use_nn' is yes but no workspace_path is not provided!")
         elif "workspace_path" in self.pars:
             self.using_NN = self.can_use_nn()
             if nn_verbose>1:
@@ -288,53 +288,53 @@ cdef class Class:
                     return True
 
 
+    # This function checks for the cosmological parameters whether classnet can be used
     def can_use_nn(self):
-        """ may only be called if neural networks are enabled """
-
-        # first check whether a workspace_path is given
-        if not "workspace_path" in self._pars:
-            return False
-        
+        """ may only be called if neural networks are enabled """        
         workspace = self.nn_workspace()
         domain = workspace.loader().domain_descriptor()
-        domain_use_nn, self.pt.network_deltachisquared = domain.contains(self._pars)
+
+        # load the relevant cosmological parameter
+        nn_cosmo_pars = self.nn_cosmological_parameters()
+
+        domain_use_nn, self.pt.network_deltachisquared = domain.contains(nn_cosmo_pars)
         if not domain_use_nn:
             if "nn_verbose" in self.pars:
                 if self.pars["nn_verbose"]>1:
                     print("neural network domain of validity does not contain requested parameters")
             return False
 
-        def expect(key, value):
-            if not key in self._pars:
-                print("expected key '{}' not found in parameters.".format(key))
-                return False
-            else:
-                found = self._pars[key]
-                if found != value:
-                    print("expected parameter '{}' to be {}; got {} instead.".format(key, value, found))
-                    return False
-                else:
-                    return True
-
-        if not expect("N_ncdm", 1):
-            return False
-        if not expect("deg_ncdm", 3):
-            return False
-        if not expect("Omega_Lambda", 0):
-            return False
-        if not expect("compute damping scale", "yes"):
-            return False
-
-        pk_max = self._pars.get("P_k_max_1/Mpc")
+        if self.ba.N_ncdm!=1:
+            raise CosmoSevereError("You use classnet, but did not set 'N_ncdm':1")
+        if self.ba.deg_ncdm[0]!=3:
+            raise CosmoSevereError("You use classnet, but did not set 'deg_ncdm':3")
+        if self.ba.Omega0_lambda!=0:
+            raise CosmoSevereError("You use classnet, but did not set 'Omega_Lambda':0")
+        if self.th.compute_damping_scale!=1:
+            raise CosmoSevereError("You use classnet, but did not set 'compute damping scale':'yes'")
+        pk_max = nn_cosmo_pars.get("P_k_max_1/Mpc")
         if pk_max is not None and pk_max > 100.0:
-            print("neural networks only applicable with 'P_k_max_1/Mpc' <= 100.0")
-            return False
+            raise CosmoSevereError("neural networks only applicable with 'P_k_max_1/Mpc' <= 100.0")
 
         return True
 
     def empty(self):
         self._pars = {}
         self.computed = False
+
+    # this function collects the relevant cosmological parameters for the classnet evaluation
+    def nn_cosmological_parameters(self):
+        output = {}
+        output['omega_b'] = self.ba.Omega0_b * self.ba.h**2
+        output['omega_cdm'] = self.ba.Omega0_cdm * self.ba.h**2
+        output['h'] = self.ba.h
+        output['w0_fld'] = self.ba.w0_fld
+        output['wa_fld'] = self.ba.wa_fld
+        output['omega_ncdm'] = self.ba.Omega0_ncdm_tot * self.ba.h**2
+        output['Omega_k'] = self.ba.Omega0_k
+        output['tau_reio'] = self.th.tau_reio
+        output['N_ur'] = ( self.ba.Neff - 3.044 ) + 0.00641
+        return(output)
 
     # Create an equivalent of the parameter file. Non specified values will be
     # taken at their default (in Class)
@@ -3800,39 +3800,40 @@ make        nonlinear_scale_cb(z, z_size)
                 workspace = classynet.workspace.Workspace(workspace)
         return workspace
 
-    def nn_cosmological_parameters(self):
-        # here idea: Only load it once
-        if len(self.NN_pnames)==0:
-            manifest = self.nn_workspace().loader().manifest()
-            self.NN_pnames = manifest["cosmological_parameters"]
-        result = {}
-        remaining = []
-        for name in self.NN_pnames:
-            if name in self._pars:
-                result[name] = self._pars[name]
-            else:
-                remaining.append(name)
+    # def nn_cosmological_parameters(self):
+    #     # This function is called by the neural network to obtain the cosmological parameter
+    #     # here idea: Only load it once
+    #     if len(self.NN_pnames)==0:
+    #         manifest = self.nn_workspace().loader().manifest()
+    #         self.NN_pnames = manifest["cosmological_parameters"]
+    #     result = {}
+    #     remaining = []
+    #     for name in self.NN_pnames:
+    #         if name in self._pars:
+    #             result[name] = self._pars[name]
+    #         else:
+    #             remaining.append(name)
 
-        for name in remaining:
-            if name == "omega_b":
-                result[name] = self.omega_b()
-            elif name == "omega_cdm":
-                result[name] = self.omega_cdm()
-            elif name == "h":
-                result[name] = self.h()
-            elif name == "tau_reio":
-                result[name] = self.tau_reio()
-            elif name == "Omega_k":
-                result[name] = self.get_current_derived_parameters(["Omega_k"])["Omega_k"]
-            # Regarding w0_fld and wa_fld: It is verified that Omega_Lambda=0 in `can_use_nn`.
-            elif name == "wa_fld":
-                result[name] = 0.0
-            elif name == "w0_fld":
-                result[name] = -1.0
-            else:
-                raise ValueError("Unknown parameter: '{}'".format(name))
+    #     for name in remaining:
+    #         if name == "omega_b":
+    #             result[name] = self.omega_b()
+    #         elif name == "omega_cdm":
+    #             result[name] = self.omega_cdm()
+    #         elif name == "h":
+    #             result[name] = self.h()
+    #         elif name == "tau_reio":
+    #             result[name] = self.tau_reio()
+    #         elif name == "Omega_k":
+    #             result[name] = self.get_current_derived_parameters(["Omega_k"])["Omega_k"]
+    #         # Regarding w0_fld and wa_fld: It is verified that Omega_Lambda=0 in `can_use_nn`.
+    #         elif name == "wa_fld":
+    #             result[name] = 0.0
+    #         elif name == "w0_fld":
+    #             result[name] = -1.0
+    #         else:
+    #             raise ValueError("Unknown parameter: '{}'".format(name))
 
-        return result
+    #     return result
 
     def nn_debug_enabled(self):
         return bool(self._pars.get("nn_debug", False))

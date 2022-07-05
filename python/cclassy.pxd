@@ -77,6 +77,7 @@ cdef extern from "class.h":
         short has_cdm
         short  has_ncdm
         int N_ncdm
+        double * deg_ncdm
         double T_cmb
         double h
         double H0
@@ -123,6 +124,7 @@ cdef extern from "class.h":
         int bg_size_short
         short short_info
         double * z_table
+        double Omega0_Lambda
 
     cdef struct thermodynamics:
         ErrorMsg error_message
@@ -175,6 +177,7 @@ cdef extern from "class.h":
         double * tau_table
         double * thermodynamics_table
         double angular_rescaling
+        short compute_damping_scale
 
     cdef struct perturbations:
         ErrorMsg error_message

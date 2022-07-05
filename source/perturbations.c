@@ -2143,11 +2143,6 @@ int perturbations_get_k_list(
   double *tmp_k_list;
   int newk_size, index_newk, add_k_output_value;
   
-  double k_min_tmp;
-  double k_max_tmp;
-  double k_first_tmp;
-  double k_last_tmp;
-
   /** Summary: */
 
   class_test(ppr->k_step_transition == 0.,
