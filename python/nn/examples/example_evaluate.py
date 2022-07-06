@@ -20,16 +20,17 @@ FIXED = {
 params = {
     "omega_b":   0.02238777,
     "omega_cdm": 0.1201992,
-    "omega_ncdm": 0.0002748833,
+    "omega_ncdm": 0.0052748833,
     "h":        0.6891288,
     "tau_reio":  0.04941598,
     "Omega_Lambda": 0.0,
     "w0_fld": -0.9435546,
     "wa_fld": -0.2810646,
-    "N_ur": 0.06651194,
+    "N_ur": 0.08651194,
     "Omega_k": -9.656155e-05,
-    #"workspace_path": os.path.expanduser("~/path/to/workspace"),
-    "workspace_path": os.path.expanduser("../../../classnet_workspace"),
+    "A_s": 2.079e-9,
+    "n_s": 0.971,
+    "workspace_path": os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace"),
     "use_nn": "yes"
 }
 

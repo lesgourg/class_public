@@ -2,11 +2,13 @@ from distutils.core import setup
 #from distutils.extension import Extension
 from Cython.Distutils import Extension
 from Cython.Distutils import build_ext
+from importlib_metadata import PackageNotFoundError
 
 import numpy as nm
 import os
 import subprocess as sbp
 import os.path as osp
+import importlib
 
 # Recover the gcc compiler
 GCCPATH_STRING = sbp.Popen(
@@ -46,6 +48,11 @@ classy_ext = Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
                        )
 import sys
 classy_ext.cython_directives = {'language_level': "3" if sys.version_info.major>=3 else "2"}
+
+# check whether all necessary packages for classnet are installed
+importlib.import_module('torch')
+importlib.import_module('h5py')
+importlib.import_module('scipy')
 
 setup(
     name='classy',

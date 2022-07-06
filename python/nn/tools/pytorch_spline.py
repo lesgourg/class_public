@@ -136,37 +136,6 @@ def diff(x, axis=0, prepend=None):
 
     return result
 
-from numba import jit
-
-@jit(nopython=True)
-def build_tdma2(n, mu, d):
-    # diagonal
-    b = 2 * np.ones(n + 1)
-    b[0] = 1
-    b[1] = 1
-
-    # below diagonal
-    a = np.zeros(n)
-    a[:-1] = mu
-    # a[i - 1] == a_i
-
-    # above diagonal
-    c = np.zeros(n)
-    c[1:] = 1 - a[:-1]
-
-    for i in range(1, n):
-        m = a[i - 1] / b[i - 1]
-        b[i] -= m * c[i - 1]
-        d[i] -= m * d[i - 1]
-
-    M = np.zeros((n + 1, d.shape[-1]))
-    M[n] = d[n] / b[n]
-    for i in range(n - 1, -1, -1):
-        M[i] = (d[i] - c[i] * M[i + 1]) / b[i]
-
-    return M
-
-
 class CubicSpline:
     def __init__(self, x, y):
         assert x.ndim == 1
@@ -185,10 +154,6 @@ class CubicSpline:
         self.h = h = diff(self.x)
         self.mu = h[:-1] / (h[1:] + h[:-1])
         self.lamda = 1 - self.mu
-
-        # d = self.build_differences().numpy()
-        # M = build_tdma2(self.n, self.mu.numpy(), d)
-        # self.M = torch.from_numpy(M)
 
         self.build()
 

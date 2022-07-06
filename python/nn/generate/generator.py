@@ -1,7 +1,7 @@
 import json
 import sys
 import os
-from .generate_sources_files import generate_data, generate_parameters_and_data
+from .generate_sources_files import generate_data
 from .generate_spectra import generate_spectral_data
 
 class Generator:
@@ -65,7 +65,8 @@ class Generator:
 
     def generate_spectra_data(self, training=None, validation=None, test=None, processes=None, fixed_nn_only=None, use_nn=False):
         """
-        [SG]: TODO description
+        This function takes the parameter sets and create Cl spectra and matter power spectra and stores them 
+        to analyse the performance of the NN.
         """
 
         # load fixed CLASS parameters which were also used to generate the training samples

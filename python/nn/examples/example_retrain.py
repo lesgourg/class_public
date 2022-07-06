@@ -27,8 +27,6 @@ from pathlib import Path
 import classy
 import numpy as np
 
-import torch
-
 # Write argument parser
 parser = argparse.ArgumentParser(
     prog='CLASSNet network retrain',
@@ -36,7 +34,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('-w', 
     help="Path of the workspace where the networks and training data are to be stored. Per default it will point to ../../../classnet_workspace", 
-    default='../../../classnet_workspace', 
+    default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace"), 
     type=str)
 parser.add_argument('-p', 
     help="Path to the covmat and bestfit file. These files should de denoted with {}.covmat and {}.bestfit. If no path is provided the data folder in the workspace directory is used.", 

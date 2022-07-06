@@ -47,7 +47,7 @@ FIXED_TRAINING_ONLY = {
     "reionization_optical_depth_tol": 1.e-5,
 }
 
-WORKSPACE_DIR = os.path.expanduser("~/software/class_versions/class_net/workspaces/test_training")
+WORKSPACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace")
 
 # Select a generation name tag
 generations = {
@@ -69,8 +69,8 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 
 domain = workspace.domain_from_path(
     pnames         = pnames,
-    bestfit_path   = "/home/guenther/software/class_versions/class_net/workspaces/lcdm_11p_sn.bestfit",
-    covmat_path    = "/home/guenther/software/class_versions/class_net/workspaces/lcdm_11p_sn.covmat",
+    bestfit_path   = "/path/to/.bestfit",
+    covmat_path    = "/path/to/.covmat",
     sigma_train    = 6,
     sigma_validation = 5,
     sigma_test     = 5,

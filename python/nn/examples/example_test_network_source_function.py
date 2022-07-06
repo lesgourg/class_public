@@ -4,14 +4,9 @@ It plots both of these contributions and investigates on the differences.
 """
 
 import os
-import sys
 from classynet.workspace import Workspace, GenerationalWorkspace
 
-import numpy as np
-
-import torch
-
-WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
+WORKSPACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace")
 
 #create workspace instance
 workspace = Workspace(WORKSPACE_DIR)

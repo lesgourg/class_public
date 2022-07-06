@@ -7,7 +7,8 @@ import numpy as np
 # This script is called by the bash script /nn/examples/run_benchmark.sh
 # It takes the arguments number of warmup rounds and iterations.
 
-WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
+WORKSPACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace")
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("threads", type=int,

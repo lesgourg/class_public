@@ -13,19 +13,11 @@ import h5py as h5
 import classy
 from classy import Class
 
-from .generate_cosmological_parameters import sample_cosmological_parameters
-
-
 MiB = 1024**2
 GiB = 1024**3
 # A (generously) rounded-up estimate of how much space a single
 # training file will occupy on disk.
 FILE_SIZE_ESTIMATE = 30 * MiB
-
-def generate_parameters_and_data(count, domain, fixed_params, directory, processes=None):
-    # sample cosmological parameters...
-    varying = sample_cosmological_parameters(domain, count)
-    generate_data(count, varying, fixed_params, directory, processes=processes)
 
 def generate_data(varying, fixed_params, directory, processes=None):
     """

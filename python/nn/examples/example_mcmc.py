@@ -1,6 +1,7 @@
 from cobaya.run import run
 from cobaya.log import LoggedError
 from mpi4py import MPI
+import os
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -31,7 +32,7 @@ cobaya_info = {
 
                 # additional CLASSnet settings:
                 "use_nn": "yes",
-                "workspace_path": "../../../classnet_workspace",                
+                "workspace_path": os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace"),                
                 },
             "path": "../../.."
             },

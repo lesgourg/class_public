@@ -11,7 +11,6 @@ from tqdm import tqdm
 import classy
 from classy import Class
 
-from classynet.generate.generate_cosmological_parameters import sample_cosmological_parameters
 from classynet.plotting.plot_tester_cls import *
 import classynet.tools.utils as utils
 import matplotlib.pyplot as plt
@@ -296,14 +295,6 @@ class Tester:
 
         cosmo_params = [{k: v[i] for k, v in params.items()} for i in selection]
 
-        # TODO TODO TODO REMOVE THIS LINE!!!!!
-        # cosmo_params = sorted(cosmo_params, key=lambda item: np.abs(item["Omega_k"] - (-0.011))) # removed this line, but unsure if more is required to compensate
-        # TODO TODO TODO REMOVE THIS LINE!!!!!
-
-        # params = sample_cosmological_parameters(self.domain, count)
-
-        # class_params = list(map(self.get_class_parameters, cosmo_params))
-        # class_params_nn = list(map(self.get_class_parameters_nn, cosmo_params))
         class_params    = [self.get_class_parameters(p,nonlinear=nonlinear) for p in cosmo_params]
         class_params_nn = [self.get_class_parameters_nn(p, nonlinear=nonlinear) for p in cosmo_params]
         print("class_params",class_params)

@@ -3,16 +3,9 @@ This example script tests the performance of the network by calculating the powe
 """
 
 import os
-import sys
 from classynet.workspace import Workspace, GenerationalWorkspace
 
-import classy
-import numpy as np
-
-import torch
-
-#WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
-WORKSPACE_DIR = os.path.expanduser("../../../../workspaces/test_11p_delete")
+WORKSPACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace")
 
 #create workspace instance
 workspace = Workspace(WORKSPACE_DIR)

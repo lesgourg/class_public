@@ -5,11 +5,7 @@ This example script outlines how to generate training data, carry out the proces
 
 
 import os
-import sys
 from classynet.workspace import Workspace
-
-import classy
-import numpy as np
 
 import torch
 print("cuda_version:",torch.version.cuda)
@@ -47,7 +43,7 @@ FIXED_TRAINING_ONLY = {
     "reionization_optical_depth_tol": 1.e-5,
 }
 
-WORKSPACE_DIR = os.path.expanduser("../../../classnet_workspace")
+WORKSPACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace")
 
 workspace = Workspace(WORKSPACE_DIR)
 

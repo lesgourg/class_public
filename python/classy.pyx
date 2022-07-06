@@ -294,14 +294,19 @@ cdef class Class:
         workspace = self.nn_workspace()
         domain = workspace.loader().domain_descriptor()
 
-        # load the relevant cosmological parameter
+        # load the relevant cosmological parameter and check whether they lay indide the domain
         nn_cosmo_pars = self.nn_cosmological_parameters()
-
         domain_use_nn, self.pt.network_deltachisquared = domain.contains(nn_cosmo_pars)
+
+        # if 'nn_force' was set to 'yes' we will overwrite the recommendation and force classnet to use the neural networks
+        if 'nn_force' in self._pars:
+            if self._pars['nn_force'].lower() == 'yes':
+                domain_use_nn=True
+
         if not domain_use_nn:
             if "nn_verbose" in self.pars:
                 if self.pars["nn_verbose"]>1:
-                    print("neural network domain of validity does not contain requested parameters")
+                    print("neural network domain of validity does not contain requested parameters due to the delta chisquare of "+ str(self.pt.network_deltachisquared))
             return False
 
         if self.ba.N_ncdm!=1:
@@ -3799,41 +3804,6 @@ make        nonlinear_scale_cb(z, z_size)
             else:
                 workspace = classynet.workspace.Workspace(workspace)
         return workspace
-
-    # def nn_cosmological_parameters(self):
-    #     # This function is called by the neural network to obtain the cosmological parameter
-    #     # here idea: Only load it once
-    #     if len(self.NN_pnames)==0:
-    #         manifest = self.nn_workspace().loader().manifest()
-    #         self.NN_pnames = manifest["cosmological_parameters"]
-    #     result = {}
-    #     remaining = []
-    #     for name in self.NN_pnames:
-    #         if name in self._pars:
-    #             result[name] = self._pars[name]
-    #         else:
-    #             remaining.append(name)
-
-    #     for name in remaining:
-    #         if name == "omega_b":
-    #             result[name] = self.omega_b()
-    #         elif name == "omega_cdm":
-    #             result[name] = self.omega_cdm()
-    #         elif name == "h":
-    #             result[name] = self.h()
-    #         elif name == "tau_reio":
-    #             result[name] = self.tau_reio()
-    #         elif name == "Omega_k":
-    #             result[name] = self.get_current_derived_parameters(["Omega_k"])["Omega_k"]
-    #         # Regarding w0_fld and wa_fld: It is verified that Omega_Lambda=0 in `can_use_nn`.
-    #         elif name == "wa_fld":
-    #             result[name] = 0.0
-    #         elif name == "w0_fld":
-    #             result[name] = -1.0
-    #         else:
-    #             raise ValueError("Unknown parameter: '{}'".format(name))
-
-    #     return result
 
     def nn_debug_enabled(self):
         return bool(self._pars.get("nn_debug", False))
