@@ -88,12 +88,6 @@ setup(
                   extra_link_args=['-lgomp'],
                   cython_directives={'language_level': "3" if sys.version_info.major>=3 else "2"}
                   ),
-        Extension("classynet.tools.lhs",
-                  [os.path.join(classy_folder, "nn/tools/", "lhs_python.cpp")],
-                  extra_compile_args=["-fopenmp"],
-                  extra_link_args=["-fopenmp"],
-                  include_dirs=[nm.get_include()],
-                  ),
         classy_ext
     ],
     package_data= {

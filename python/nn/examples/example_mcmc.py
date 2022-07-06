@@ -11,6 +11,8 @@ rank = comm.Get_rank()
 # The approach is straight forward by providing the extra parameters such as the workspace path and Setting the use_nn flag to 'yes'.
 # The test example explores the parameter space of the LambdaCDM model using the Planck temperature and polarization likelihoods.
 # 
+# For parallelized way run with: mpiexec -n 8 -x OMP_NUM_THREADS=2 python example_mcmc
+#
 cobaya_info = {
     "debug": False,
     "output": "./my_mcmc/",
@@ -32,7 +34,8 @@ cobaya_info = {
 
                 # additional CLASSnet settings:
                 "use_nn": "yes",
-                "workspace_path": os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace"),                
+                "workspace_path": os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace"), 
+                "nn_verbose": 3               
                 },
             "path": "../../.."
             },
@@ -139,6 +142,9 @@ cobaya_info = {
         
         "Omega_m":{
                 "latex":r"\Omega_\mathrm{m}",
+                },
+        "network_delta_chi_squared":{
+                "latex":r"\triangle_\chi^2",
                 },
         },
     "sampler": { 

@@ -3,9 +3,10 @@ import os
 import time
 import numpy as np
 import scipy.stats as ss
-from classynet.tools.lhs import lhs, lhs_float
+from classynet.tools.lhs_ellipsoid import lhs_ellipse
 import json
 import h5py as h5
+import sys
 
 class ParamDomain:
     def sample(self, count):
@@ -74,7 +75,7 @@ class EllipsoidDomain(ParamDomain):
                 new_count = int(count / fraction)
             else:
                 new_count = 5 * new_count
-            samples = self._sample(new_count, sigma=sigma)
+            samples = self._sample2(new_count, sigma=sigma)
             print("-----------------------------------------------")
             if abs(len(samples) - count)/count < tol:
                 #wait a second to ensure the get a new seed is created for following dataset
@@ -84,21 +85,18 @@ class EllipsoidDomain(ParamDomain):
         raise ValueError("Couldn't get {} samples with relative tol={}".format(count, tol))
 
     def _sample(self, count, sigma):
-        deltachi2 = get_delta_chi2(self.ndf, sigma)
-        bbox = find_bounding_box(self.best_fit, self.covmat, deltachi2)
-        # lower and upper boundaries of bounding box define lhs domain
-        lower, upper = bbox[:, 0], bbox[:, 1]
+        # compute eigenvalue and eigenvectors + inv. eigenvectors
+        evalue, evectors = np.linalg.eig(self.covmat)
 
+        # sample an ellpise using lhs
         from time import perf_counter
         start = perf_counter()
-        # samples = lhs(self.ndf, samples=count)
-        samples = lhs_float(self.ndf, count).T
-        assert samples.shape == (count, self.ndf)
+        samples = lhs_ellipse(count, np.sqrt(evalue))
+        for i,sample in enumerate(samples):
+            samples[i] = np.matmul(evectors, sample) * sigma *1.2 + self.best_fit
         elapsed = perf_counter() - start
 
         print("lhs took {}s".format(elapsed))
-        samples = lower[None, :] + samples * (upper - lower)[None, :]
-
         inside_ellipsoid = is_inside_ellipsoid(
             self.inv_covmat,
             samples, self.best_fit,
@@ -298,13 +296,3 @@ def is_inside_ellipsoid_(inv_covmat, params, bestfit, mask, df, sigma):
     d = params - bestfit
     d[~mask] = 0.0
     return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2
-
-def find_bounding_box(bestfit, covmat, chi2):
-    """
-    return a (len(bestfit), 2) array of lower and upper
-    bounds for the bounding box of the ellipsoid
-    defined by covmat
-    """
-    d = np.diag(covmat)
-    offsets = np.sqrt(chi2 * d)
-    return np.stack([bestfit - offsets, bestfit + offsets], axis=1)
