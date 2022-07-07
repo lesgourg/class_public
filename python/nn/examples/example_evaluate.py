@@ -16,22 +16,24 @@ FIXED = {
     "compute damping scale": "yes",
 }
 
-# These parameters are to be adapted 
+# These parameters are to be adapted - now they are at the center of training domain
 params = {
-    "omega_b":   0.02238777,
-    "omega_cdm": 0.1201992,
-    "omega_ncdm": 0.0052748833,
-    "h":        0.6891288,
-    "tau_reio":  0.04941598,
+    "omega_b":   0.0224,
+    "omega_cdm": 0.1216,
+    "omega_ncdm": 0.000275,
+    "h":        0.689,
+    "tau_reio":  0.0494,
     "Omega_Lambda": 0.0,
-    "w0_fld": -0.9435546,
-    "wa_fld": -0.2810646,
-    "N_ur": 0.08651194,
-    "Omega_k": -9.656155e-05,
+    "w0_fld": -0.944,
+    "wa_fld": -0.281,
+    "N_ur": 0.066,
+    "Omega_k": -9.66e-05,
     "A_s": 2.079e-9,
     "n_s": 0.971,
     "workspace_path": os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../classnet_workspace"),
-    "use_nn": "yes"
+    "use_nn": "yes",
+    # decrease verbose if you prefer
+    "nn_verbose":3
 }
 
 # merge both FIXED and adapted parameters
