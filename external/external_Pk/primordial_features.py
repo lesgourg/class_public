@@ -32,27 +32,40 @@ def read_parameter(argv=[]):
     
     # Read input parameter
     try:
-        par['k_pivot'] = float(argv[0])
-        par['A_s']     = float(argv[1])
-        par['n_s']     = float(argv[2])
-        # par['alpha_s'] = float(argv[3])
-        par['r']       = float(argv[3])
-        # par['n_t']     = float(argv[4])
-        # par['alpha_t'] = float(argv[5])
+        i = 0
+        # These are the standart parameter, you can give them as fixed by including them in 'command'
+        par['k_pivot'] = float(argv[i]); i+=1
+        par['A_s']     = float(argv[i]); i+=1
+        par['n_s']     = float(argv[i]); i+=1
+        # par['alpha_s'] = float(argv[i]); i+=1
+        par['r']       = float(argv[i]); i+=1
+        par['n_t']     = float(argv[i]); i+=1
+        # par['alpha_t'] = float(argv[i]); i+=1
 
-        par['A_lin']   = float(argv[4])
-        par['w_lin']   = float(argv[5])
-        par['phi_lin'] = float(argv[6])
+        # Here start the releavant parameter for primordial features
+        par['A_lin']   = float(argv[i]); i+=1
+        par['w_lin']   = float(argv[i]); i+=1
+        par['phi_lin'] = float(argv[i]); i+=1
 
-        par['A_log']   = float(argv[7])
-        par['w_log']   = float(argv[8])
-        par['k_ref']   = float(argv[9])
-        par['phi_log'] = float(argv[6]) # = phi_lin
+        par['A_log']   = float(argv[i]); i+=1
+        par['w_log']   = float(argv[i]); i+=1
+        par['phi_log'] = float(argv[i]); i+=1
+        par['k_ref']   = float(argv[i]); i+=1
     except IndexError:
         pass
     except ValueError:
         raise ValueError("It seems some of the arguments are not correctly formatted. "+
                          "Remember that they must be floating point numbers.")
+
+    # Test parameter
+    if par['k_pivot'] <= 0:
+        raise ValueError("k_pivot has to be greater than 0, you entered k_pivot=%s.\nargv = %s\npar = %s" % (par['k_pivot'], argv, par))
+
+    if par['k_ref'] <= 0:
+        if par['A_log'] == 0:
+            par['k_ref'] = par['k_pivot']
+        else:
+            raise ValueError("k_ref has to be greater than 0, you entered k_ref=%s.\nargv = %s\npar = %s" % (par['k_ref'], argv, par))
     
     return par
 
