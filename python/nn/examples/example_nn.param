@@ -1,0 +1,84 @@
+#------Experiments to test (separated with commas)-----
+# To see all the available ones, please look in the
+# montepython/likelihoods folder. Every folder there is a valid likelihood to
+# test.
+data.experiments=['fake_planck_bluebook']
+#data.experiments=['wmap','spt']
+
+#------ Parameter list -------
+# data.parameters[class name] = [mean, min, max, 1-sigma, scale, role]
+# - if min max irrelevant, put to -1 or None (if you want a boundary of -1, use -1.0)
+# - if fixed, put 1-sigma to 0
+# - if scale irrelevant, put to 1, otherwise to the appropriate factor
+# - role is either 'cosmo', 'nuisance' or 'derived'
+
+
+# Cosmological parameters list
+
+# LCDM parameters
+
+data.parameters['omega_b'] 	= [2.249,  -1,-1, 0.016, 0.01,'cosmo']
+data.parameters['omega_cdm'] 	= [0.1120, -1,-1, 0.0016,1,   'cosmo']
+data.parameters['n_s']       	= [0.963,  -1,-1, 0.004, 1,   'cosmo']
+data.parameters['A_s']       	= [2.42,   -1,-1, 0.038, 1e-9,'cosmo']
+data.parameters['h']         	= [0.703,  -1,-1, 0.0065,1,   'cosmo']
+data.parameters['tau_reio']    	= [0.085,  -1,-1, 0.0044,1,   'cosmo']
+
+# Beyond LCDM: if you want to use some of these additional parameters
+# (known by the classnet NNs), just uncomment some of these lines. Don't
+# uncomment the m_ncdm and omega_ncdm lines all together, it would be
+# redundent.  If you uncomment the N_ur or m_ncdm or omega_ncdm lines, you will
+# need to comment the line at the end of this file that fixes them.
+
+#data.parameters['N_ur']       = [0.00441,          0,   None,   0.01,    1, 'cosmo']
+#data.parameters['m_ncdm']     = [0.02,             0,   None, 0.0016, 0.03, 'cosmo']
+#data.parameters['omega_ncdm'] = [6.4446e-4, 1.71e-05,   None,  0.001,    1, 'cosmo']
+#data.parameters['Omega_k']    = [0.,            None,   None,   0.05,    1, 'cosmo']
+#data.parameters['w0_fld']     = [-1.,           None,   None,    0.1,    1, 'cosmo']
+#data.parameters['wa_fld']     = [0.,            None,   None,    0.5,    1, 'cosmo']
+
+# Nuisance parameter list, same call, except the name does not have to be a class name
+# For wmap:
+#data.parameters['A_SZ']         = [1,    0, 2,   1, 1,  'nuisance']
+# For SPT
+#data.parameters['SPT_SZ']       = [5.6,  0,-1, 2.5, 1,  'nuisance']
+#data.parameters['SPT_PS']       = [20.4,-1,-1, 2.7, 1, 'nuisance']
+#data.parameters['SPT_CL']       = [5.3, -1,-1, 2.3, 1, 'nuisance']
+
+# Derived parameter list
+data.parameters['z_reio']       = [0,       -1, -1, 0,1,  'derived']
+data.parameters['Omega_Lambda'] = [0,       -1, -1, 0,1,  'derived']
+data.parameters['network_delta_chi_squared'] = [0, None, None, 0,     1,   'derived']
+
+# Other cosmo parameters (fixed parameters, precision parameters, etc.)
+
+# switch one classnet mode
+data.cosmo_arguments['use_nn'] = 'yes'
+data.cosmo_arguments['workspace_path'] = '../classnet/classnet_workspace'
+# optional: increase verbosity (just during preliminary checks)
+#data.cosmo_arguments['nn_verbose'] = 1
+#data.cosmo_arguments['background_verbose'] = 1
+
+# The baseline classnet model features three massive degenerate neutrinos.
+# To approach Planck baseline settings, one can fix the masses to 0.02eV for
+# each family.
+# The settings below ensures that Neff=3.044
+# and m/omega = 93.14 eV
+data.cosmo_arguments['N_ncdm'] = 1
+data.cosmo_arguments['deg_ncdm'] = 3
+# comment the next line if above you vary m_ncdm or omega_ncdm
+data.cosmo_arguments['m_ncdm'] = 0.02
+# comment the next line if above you vary N_ur
+data.cosmo_arguments['N_ur'] = 0.0044
+
+# Other parameters required for consitency with use of NNs:
+data.cosmo_arguments['Omega_Lambda'] = 0
+data.cosmo_arguments['compute_damping_scale'] = 'yes'
+
+
+#------ Mcmc parameters ----
+# Number of steps taken, by default (overwritten by the -N command)
+data.N=10
+# Number of accepted steps before writing to file the chain. Larger means less
+# access to disc, but this is not so much time consuming.
+data.write_step=5
