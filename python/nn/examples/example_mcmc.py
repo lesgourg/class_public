@@ -143,7 +143,7 @@ cobaya_info = {
         "Omega_m":{
                 "latex":r"\Omega_\mathrm{m}",
                 },
-        "network_delta_chi_squared":{
+        "nn_chi2":{
                 "latex":r"\triangle_\chi^2",
                 },
         },

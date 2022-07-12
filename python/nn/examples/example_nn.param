@@ -48,7 +48,7 @@ data.parameters['tau_reio']    	= [0.085,  -1,-1, 0.0044,1,   'cosmo']
 # Derived parameter list
 data.parameters['z_reio']       = [0,       -1, -1, 0,1,  'derived']
 data.parameters['Omega_Lambda'] = [0,       -1, -1, 0,1,  'derived']
-data.parameters['network_delta_chi_squared'] = [0, None, None, 0,     1,   'derived']
+data.parameters['nn_chi2']      = [0,   None, None, 0,1,  'derived']
 
 # Other cosmo parameters (fixed parameters, precision parameters, etc.)
 
