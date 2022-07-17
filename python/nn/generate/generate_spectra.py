@@ -41,18 +41,10 @@ def generate_spectral_data(workspace, varying_params, fixed_params, path, proces
     cl_lenses = []
     cl_rawes = []
     for arg in tqdm(args, total=count):
-       param,cl_lens, cl_raw = generate_spectra_function(arg)
+       param,cl_lens, cl_raw = generate_spectra_function(arg, workspace)
        params.append(param)
        cl_lenses.append(cl_lens)
        cl_rawes.append(cl_raw)
-
-    # TODO SG here occurs some bug
-    # print("--- Start generating {} spectra with {} processes ---".format(str(len(args),str(processes))))
-    # with multiprocessing.Pool(processes) as pool:
-    #     for param,cl_lens, cl_raw in tqdm(pool.imap(generate_spectra_function, args), total=count):
-    #         params.append(param)
-    #         cl_lenses.append(cl_lens)
-    #         cl_rawes.append(cl_raw)
 
     def create_group(f, name, data):
         g = f.create_group(name=name)
@@ -100,7 +92,7 @@ def generate_spectra_function(args):
 
     # Transform pk into NN k values
     k_min = cosmo.k_min()
-    k_net = np.load(str(workspace.data / 'k.npy'))
+    k_net = workspace.loader().k()
     kk = np.concatenate(([k_min], k_net[(k_net>k_min)&(k_net<params["P_k_max_1/Mpc"])]))
     kk_save=np.zeros(k_net.shape, dtype=float)
     pk_save=np.zeros(k_net.shape, dtype=float)

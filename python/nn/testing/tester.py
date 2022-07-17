@@ -37,7 +37,7 @@ class Tester:
         The test/parameters.h5 hasn't been sampled in advance it is going to be here.
         """
         if not os.path.isfile(self.workspace.test_data / 'cl_test_parameters.h5'):
-            domain = self.workspace.domain_from_path(pnames)
+            domain = self.workspace.domain()
 
             #Sample parameters according to the domain and save them in the workspace as "samples.h5"
             domain.sample_save(training_count=0, validation_count=0, test_count=N, file_name='cl_test_parameters')

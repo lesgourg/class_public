@@ -18,7 +18,7 @@ pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', '
 
 #generate cls according to parameter sampling (if not done yet) 
 # can take several hours
-#Tester.create_cls(pnames,N=120)
+Tester.create_cls(pnames,N=200)
 
 #load cls of FULL and NN and create comparisson plots
 Tester.compare_cls_full_net(N_lines=1000)
