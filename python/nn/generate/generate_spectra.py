@@ -41,7 +41,7 @@ def generate_spectral_data(workspace, varying_params, fixed_params, path, proces
     cl_lenses = []
     cl_rawes = []
     for arg in tqdm(args, total=count):
-       param,cl_lens, cl_raw = generate_spectra_function(arg, workspace)
+       param,cl_lens, cl_raw = generate_spectra_function(arg)
        params.append(param)
        cl_lenses.append(cl_lens)
        cl_rawes.append(cl_raw)
