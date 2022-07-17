@@ -1,5 +1,5 @@
 import torch
-
+import sys
 import numpy as np
 import h5py as h5
 import os
@@ -91,8 +91,6 @@ class SourceFileDataset(torch.utils.data.Dataset):
         return self.file_count
 
     def __getitem__(self, i):
-        if DEBUG_LOADING:
-            print("__getitem__({})".format(i))
         with h5.File(self.file_paths[i], "r") as source_file:
             return self._load_inputs_outputs(source_file)
 

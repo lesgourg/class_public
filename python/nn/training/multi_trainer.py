@@ -159,8 +159,8 @@ class MultiTrainer:
 
     def save_models(self, checkpoint=None):
         # here we store both the trained weights and an output normalization
-        with open(self.workspace.normalization_file) as f:
-            normalization_file = json.load(f)
+        with open(self.workspace.manifest) as f:
+            normalization_file = json.load(f)['normalization']
         normalization = {key: np.max([abs(normalization_file['max'][key]),abs(normalization_file['min'][key])]) for key in normalization_file['max'].keys()}
 
         for cont in self.nets:

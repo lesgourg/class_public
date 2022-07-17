@@ -7642,19 +7642,58 @@ int perturbations_sources(
                                        + exp_mu_idm_g * exp_m_kappa * (ddkappa*theta_b + ddmu_idm_g* theta_idm + dkappa * theta_b_prime + dmu_idm_g * theta_idm_prime) );
 
           _set_source_(ppt->index_tp_t1) = switch_isw * exp_m_kappa * exp_mu_idm_g * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+          _set_source_(ppt->index_tp_t2) = ppt->switch_pol * g * P;
 
         }
         else {
-          _set_source_(ppt->index_tp_t0) =
+          // Here we also populate the different contributions for the source functions of CLASSNET
+          const double t0_sw = 
+            ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
+            + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi]));
+          const double t0_isw = switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime]);
+          const double t0_dop = ppt->switch_dop /k/k * (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b]
+                                      + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b]);
+
+          const double t0_sw_reco = 
+            ppt->switch_sw * pvecthermo[pth->index_th_g_reco] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
+            + switch_isw * (pvecthermo[pth->index_th_g_reco] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi]));
+          const double t0_dop_reco = ppt->switch_dop /k/k * (pvecthermo[pth->index_th_g_reco] * dy[ppw->pv->index_pt_theta_b]
+                                      + pvecthermo[pth->index_th_dg_reco] * y[ppw->pv->index_pt_theta_b]);
+
+          const double t0_no_isw = t0_sw + t0_dop;
+          const double t0 = t0_no_isw + t0_isw;
+
+          const double t0_reco_no_isw = t0_sw_reco + t0_dop_reco;
+          const double t0_reio_no_isw = t0_no_isw - t0_reco_no_isw;
+
+          const double t0_reco = t0_reco_no_isw + t0_isw;
+          const double t0_reio = t0 - t0_reco;
+
+          _set_source_(ppt->index_tp_t0)             = t0;
+          _set_source_(ppt->index_tp_t0_sw)          = t0_sw + t0_dop;
+          _set_source_(ppt->index_tp_t0_isw)         = t0_isw;
+          _set_source_(ppt->index_tp_t0_reco)        = t0_reco;
+          _set_source_(ppt->index_tp_t0_reco_no_isw) = t0_reco_no_isw;
+          _set_source_(ppt->index_tp_t0_reio)        = t0_reio;
+          _set_source_(ppt->index_tp_t0_reio_no_isw) = t0_reio_no_isw;
+
+          _set_source_(ppt->index_tp_t1) = switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+
+          _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+          _set_source_(ppt->index_tp_t2_reco) = ppt->switch_pol * pvecthermo[pth->index_th_g_reco] * P;
+          _set_source_(ppt->index_tp_t2_reio) = ppt->switch_pol * pvecthermo[pth->index_th_g_reio] * P;
+
+
+          // default:
+          /*_set_source_(ppt->index_tp_t0) =
             ppt->switch_sw * g * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
             + switch_isw * ( g * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi])
                              + exp_m_kappa * 2. * pvecmetric[ppw->index_mt_phi_prime])
             + ppt->switch_dop /k/k * ( g * theta_b_prime  + g_prime * theta_b);
 
-          _set_source_(ppt->index_tp_t1) = switch_isw * exp_m_kappa * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+          _set_source_(ppt->index_tp_t1) = switch_isw * exp_m_kappa * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]); */
         }
 
-        _set_source_(ppt->index_tp_t2) = ppt->switch_pol * g * P;
       }
 
 
@@ -7699,7 +7738,59 @@ int perturbations_sources(
 
         }
         else {
-          _set_source_(ppt->index_tp_t0) =
+
+
+          const double t0_sw = 
+            ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
+            + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta]
+                                                          - pvecmetric[ppw->index_mt_alpha_prime]
+                                                          - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]));
+          const double t0_dop = ppt->switch_dop * (pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime])
+                                +pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]));
+          const double t0_isw = switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime]
+                                                                            - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
+                                                                            - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime]));
+
+          const double t0_sw_reco = 
+            ppt->switch_sw * pvecthermo[pth->index_th_g_reco] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
+            + switch_isw * (pvecthermo[pth->index_th_g_reco] * (y[ppw->pv->index_pt_eta]
+                                                          - pvecmetric[ppw->index_mt_alpha_prime]
+                                                          - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]));
+          const double t0_dop_reco = ppt->switch_dop * (pvecthermo[pth->index_th_g_reco] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime])
+                                +pvecthermo[pth->index_th_dg_reco] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]));
+
+          const double t0_no_isw = t0_sw + t0_dop;
+          const double t0 = t0_no_isw + t0_isw;
+
+          const double t0_reco_no_isw = t0_sw_reco + t0_dop_reco;
+          const double t0_reio_no_isw = t0_no_isw - t0_reco_no_isw;
+
+          const double t0_reco = t0_reco_no_isw + t0_isw;
+          const double t0_reio = t0 - t0_reco;
+
+          _set_source_(ppt->index_tp_t0)             = t0;
+          _set_source_(ppt->index_tp_t0_sw)          = t0_sw + t0_dop;
+          _set_source_(ppt->index_tp_t0_isw)         = t0_isw;
+          _set_source_(ppt->index_tp_t0_reco)        = t0_reco;
+          _set_source_(ppt->index_tp_t0_reco_no_isw) = t0_reco_no_isw;
+          _set_source_(ppt->index_tp_t0_reio)        = t0_reio;
+          _set_source_(ppt->index_tp_t0_reio_no_isw) = t0_reio_no_isw;
+
+          _set_source_(ppt->index_tp_t1) =
+            switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime]
+                                                                      + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
+                                                                      - y[ppw->pv->index_pt_eta]);
+
+          //_set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+          _set_source_(ppt->index_tp_t2_reco) = ppt->switch_pol * pvecthermo[pth->index_th_g_reco] * P;
+          _set_source_(ppt->index_tp_t2_reio) = ppt->switch_pol * pvecthermo[pth->index_th_g_reio] * P;
+
+
+
+
+
+
+          /*_set_source_(ppt->index_tp_t0) =
             ppt->switch_sw * g * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
             + switch_isw * ( g * (y[ppw->pv->index_pt_eta]
                                   - pvecmetric[ppw->index_mt_alpha_prime]
@@ -7713,7 +7804,7 @@ int perturbations_sources(
           _set_source_(ppt->index_tp_t1) =
             switch_isw * exp_m_kappa * k * (pvecmetric[ppw->index_mt_alpha_prime]
                                             + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
-                                            - y[ppw->pv->index_pt_eta]);
+                                            - y[ppw->pv->index_pt_eta]);*/
         }
         _set_source_(ppt->index_tp_t2) =
           ppt->switch_pol * g * P;

@@ -126,10 +126,6 @@ class Workspace:
         return self.benchmark / "data.json"
 
     @property
-    def normalization_file(self):
-        return self.training_data / "normalization.json"
-
-    @property
     def manifest(self):
         return self.data / "manifest.json"
 
@@ -259,7 +255,9 @@ class Loader:
             return json.load(src)
 
     def k(self):
-        return np.load(self.workspace.k)
+        with open(self.workspace.manifest) as src:
+            my_manifest = json.load(src)
+        return np.array(my_manifest['k'])
 
     def cosmological_parameters(self, file_name = 'parameter_sample'):
         def load(my_set):
@@ -270,9 +268,9 @@ class Loader:
             else:
                 return None
 
-        training_parameter = load('training')
-        validation_parameter = load('validation')
-        test_parameter = load('test')
+        training_parameter = load('training_data')
+        validation_parameter = load('validation_data')
+        test_parameter = load('test_data')
 
         return(training_parameter, validation_parameter, test_parameter)
 

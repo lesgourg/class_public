@@ -40,7 +40,7 @@ class Trainer:
         trainer = MultiTrainer(self.workspace, models, device)
 
         in_transform, out_transform = current_transformer.get_pair(
-            normalization_file=self.workspace.normalization_file,
+            normalization_file=self.workspace.manifest,
             k=k
         )
 

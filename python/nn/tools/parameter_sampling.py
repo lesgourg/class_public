@@ -75,7 +75,7 @@ class EllipsoidDomain(ParamDomain):
                 new_count = int(count / fraction)
             else:
                 new_count = 5 * new_count
-            samples = self._sample2(new_count, sigma=sigma)
+            samples = self._sample(new_count, sigma=sigma)
             print("-----------------------------------------------")
             if abs(len(samples) - count)/count < tol:
                 #wait a second to ensure the get a new seed is created for following dataset
@@ -156,15 +156,15 @@ class EllipsoidDomain(ParamDomain):
         if training_count!=0:
             os.makedirs(self.workspace.training_data, exist_ok=True)
             with h5.File(self.workspace.training_data / '{}.h5'.format(file_name), "w") as out:
-                create_group(out, "training", training_count, sigma=self.sigma_train)
+                create_group(out, "training_data", training_count, sigma=self.sigma_train)
         if validation_count!=0:
             os.makedirs(self.workspace.validation_data, exist_ok=True)
             with h5.File(self.workspace.validation_data / '{}.h5'.format(file_name), "w") as out:
-                create_group(out, "validation", validation_count, sigma=self.sigma_validation)
+                create_group(out, "validation_data", validation_count, sigma=self.sigma_validation)
         if test_count!=0:
             os.makedirs(self.workspace.test_data, exist_ok=True)
             with h5.File(self.workspace.test_data / '{}.h5'.format(file_name), "w") as out:
-                create_group(out, "test", test_count, sigma=self.sigma_test)
+                create_group(out, "test_data", test_count, sigma=self.sigma_test)
 
     def parameter_names(self):
         return list(self.pnames)

@@ -84,7 +84,7 @@ FIXED_TRAINING_ONLY = {
     "k_min_tau0": 1e-4,
     # precision parameters
     "tol_background_integration":     1.e-12,
-    "tol_perturb_integration":        1.e-6,
+    "tol_perturbation_integration":        1.e-6,
     "reionization_optical_depth_tol": 1.e-5,
 }
 

@@ -296,7 +296,7 @@ cdef class Class:
 
         # load the relevant cosmological parameter and check whether they lay indide the domain
         nn_cosmo_pars = self.nn_cosmological_parameters()
-        domain_use_nn, self.pt.network_deltachisquared = domain.contains(nn_cosmo_pars)
+        domain_use_nn, self.pt.nn_delta_chisq = domain.contains(nn_cosmo_pars)
 
         # if 'nn_force' was set to 'yes' we will overwrite the recommendation and force classnet to use the neural networks
         if 'nn_force' in self._pars:
@@ -306,7 +306,7 @@ cdef class Class:
         if not domain_use_nn:
             if "nn_verbose" in self.pars:
                 if self.pars["nn_verbose"]>1:
-                    print("neural network domain of validity does not contain requested parameters due to the delta chisquare of "+ str(self.pt.network_deltachisquared))
+                    print("neural network domain of validity does not contain requested parameters due to the delta chisquare of "+ str(self.pt.nn_delta_chisq))
             return False
 
         if self.ba.N_ncdm!=1:
@@ -3020,7 +3020,7 @@ cdef class Class:
             elif name == 'mu_sd':
                 value = self.sd.sd_parameter_table[2]
             elif name == 'nn_chi2':
-                value = self.pt.network_deltachisquared
+                value = self.pt.nn_delta_chisq
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value

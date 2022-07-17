@@ -33,6 +33,8 @@ class BasePredictor:
         self.k_min_class = self.cosmo.k_min()
         self.k_min_idx = lowest_k_index(self.k, self.k_min_class)
 
+        self.k_size = len(self.get_k())
+
         self.reset_cache()
         self.reset_times()
 
@@ -263,7 +265,6 @@ class TreePredictor(BasePredictor):
         self.funcs = funcs if funcs is not None else {}
         self.cache = {}
         self.verbose = False
-        self.k_size = len(self.get_k())
 
     def log(self, *args, **kwargs):
         if self.verbose:
@@ -374,53 +375,27 @@ class TreePredictor(BasePredictor):
 
     def _interpolate_k_min(self,S,quantity):
         polyfit_k_min = perf_counter()
-        # z = np.polyfit(self.k[self.k_min_idx:self.k_min_idx+3], S[0:3], deg=2)
-        # S[0,:] = z[2] + z[1] * self.k_min_class + z[0] * self.k_min_class**2
 
-        # Do log extrapolation here
-        # if quantity == ('phi_plus_psi', 'delta_m', 'delta_cb'):
-        #     if S[0]<0: #only delta m delta cb is to be interpolated log
-        #         m = ( np.log10(-S[2::self.k_size]) - np.log10(-S[1::self.k_size])) / ( np.log10(self.k[self.k_min_idx+2]) - np.log10(self.k[self.k_min_idx+1]) )
-        #         S[0::self.k_size] = -10**( np.log10(-S[1::self.k_size]) + m * ( np.log10(self.k_min_class) - np.log10(self.k[self.k_min_idx]) ) )
-        #     else:
-        #         S[0::self.k_size] = S[1::self.k_size] + (S[2::self.k_size]-S[1::self.k_size])/(self.k[self.k_min_idx+2]-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx])
-        # else:
-        #     S[0::self.k_size] = S[1::self.k_size] + (S[2::self.k_size]-S[1::self.k_size])/(self.k[self.k_min_idx+2]-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx])
-        
-        #Do log interpolation here
-        # if quantity == ('phi_plus_psi', 'delta_m', 'delta_cb'):
 
-        #     agg = S[:15]
-        #     ks = self.k[self.k_min_idx:self.k_min_idx+15]
-        #     print(agg)
-        #     print(ks)
-        #     fig,ax = plt.subplots()
-        #     ax.plot(ks,agg)
-        #     ax.set_xscale('log')
-        #     #ax.set_yscale('log')
-        #     fig.savefig('erg.png')
-        #     sys.exit()
+        # Here we need to check whether we need to extrapolate the source function for k_min. 
+        # This is the case when the training set did not contain k_values as small as here requested!
+        if self.k_min_class<self.k[0]:
+            # Extend array
+            extend_idx = np.arange(len(S)/(self.k_size-1), dtype=np.int) * (self.k_size-1)            
+            S = np.insert(S, extend_idx, 0.0)
 
-        #     if S[0]<0: #only delta m delta cb is to be interpolated log
-        #         m = ( np.log10(-S[1::self.k_size]) - np.log10(-S[0::self.k_size])) / ( np.log10(self.k[self.k_min_idx+2]) - np.log10(self.k[self.k_min_idx]) )
-        #         S[0::self.k_size] = -10**( np.log10(-S[0::self.k_size]) + m * ( np.log10(self.k_min_class) - np.log10(self.k[self.k_min_idx]) ) )
-        #     else:
-        #         S[0::self.k_size] = S[0::self.k_size] + (S[1::self.k_size]-S[0::self.k_size])/(self.k[self.k_min_idx+1]-self.k[self.k_min_idx+0]) * (self.k_min_class-self.k[self.k_min_idx])
-        #     print(S[0::self.k_size])
-        #     print(S[1::self.k_size])
-        #     print(S[2::self.k_size])
-            
+            # Do quandratic lengrende extrapolation. This might lead to inaccuraties. In an optimal case with plenty of training data this shouldn't occure very often
+            k1 = (self.k_min_class-self.k[self.k_min_idx+2]) * (self.k_min_class-self.k[self.k_min_idx+3]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx+3])
+            k2 = (self.k_min_class-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx+3]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx+3]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx+1])
+            k3 = (self.k_min_class-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+3] - self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx+3] - self.k[self.k_min_idx+2])
+            S[0::self.k_size] = S[1::self.k_size]*k1 + S[2::self.k_size]*k2 + S[3::self.k_size]*k3
 
-        
-        
-        # else:
-        #     S[0::self.k_size] = S[0::self.k_size] + (S[1::self.k_size]-S[0::self.k_size])/(self.k[self.k_min_idx+1]-self.k[self.k_min_idx+0]) * (self.k_min_class-self.k[self.k_min_idx])
-
-        # Do quandratic lengrende interpolation
-        k1 = (self.k_min_class-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx] - self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx] - self.k[self.k_min_idx+2])
-        k2 = (self.k_min_class-self.k[self.k_min_idx]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx])
-        k3 = (self.k_min_class-self.k[self.k_min_idx]) * (self.k_min_class-self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx+1])
-        S[0::self.k_size] = S[0::self.k_size]*k1 + S[1::self.k_size]*k2 + S[2::self.k_size]*k3
+        else:
+            # Do quandratic Lagrange interpolation
+            k1 = (self.k_min_class-self.k[self.k_min_idx+1]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx] - self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx] - self.k[self.k_min_idx+2])
+            k2 = (self.k_min_class-self.k[self.k_min_idx]) * (self.k_min_class-self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx+2]) / (self.k[self.k_min_idx+1] - self.k[self.k_min_idx])
+            k3 = (self.k_min_class-self.k[self.k_min_idx]) * (self.k_min_class-self.k[self.k_min_idx+1]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx]) / (self.k[self.k_min_idx+2] - self.k[self.k_min_idx+1])
+            S[0::self.k_size] = S[0::self.k_size]*k1 + S[1::self.k_size]*k2 + S[2::self.k_size]*k3
 
 
         self.times["interpolate k_min"] += perf_counter() - polyfit_k_min
@@ -482,7 +457,7 @@ def build_predictor(cosmo, device_name="cpu"):
     models, rules = load_models(workspace, ALL_NETWORK_CLASSES, kt, device)
     timer.end("load models")
     timer.start("build transformer")
-    input_transformer, target_transformer = current_transformer.get_pair(workspace.normalization_file, k)
+    input_transformer, target_transformer = current_transformer.get_pair(workspace.manifest, k)
     timer.end("build transformer")
 
     timer.start("build predictor")

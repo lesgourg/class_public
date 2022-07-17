@@ -240,7 +240,7 @@ class Normalizer:
     @classmethod
     def from_path(cls, path, *args, **kwargs):
         with open(path) as infile:
-            data = json.load(infile)
+            data = json.load(infile)['normalization']
             return cls(data["max"], data["min"], *args, **kwargs)
 
 

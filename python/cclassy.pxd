@@ -186,7 +186,7 @@ cdef extern from "class.h":
         short has_tensors
 
         short perform_NN_skip
-        double network_deltachisquared
+        double nn_delta_chisq
 
         short has_density_transfers
         short has_velocity_transfers

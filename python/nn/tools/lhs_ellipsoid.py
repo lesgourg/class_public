@@ -23,7 +23,6 @@ def lhs_ellipse(N_prop, axes):
     # think of a 2 dim projection of a 3 dim sphere. On the edges of the square points can be removed.
     # this is done here iterativly from first dimension up to dimension 'dim'
     for i in range(dim):
-        print(i)
         distance = np.zeros(N_req)
 
         if i!=0:

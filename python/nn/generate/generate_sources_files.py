@@ -126,8 +126,6 @@ def generate_source_function(args):
     params = params.copy()
     params.update(cosmo_params)
 
-    print(params)
-    print(cosmo_params)
     cosmo.set(**params)
 
     # run CLASS

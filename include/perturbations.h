@@ -138,7 +138,7 @@ struct perturbations
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
 
   short perform_NN_skip;              /**< Very special skipping parameter to skip all perturbations module in case of neural network */
-  double network_deltachisquared; /** for verbose */
+  double nn_delta_chisq;              /** the delta chisquare of classnet. If is below some threshold nn acceleration can be used */
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */

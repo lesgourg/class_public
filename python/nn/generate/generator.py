@@ -23,7 +23,6 @@ class Generator:
         else:
             # If there is no manifest yet. We can write it now
             self.write_to_manifest('fixed',fixed)
-            print(training.keys())
             self.write_to_manifest('cosmological_parameters', list(training.keys()))
 
 
@@ -55,11 +54,11 @@ class Generator:
         # If there is no k-array yet in the manifest, it is to be determined and stored in the manifest
         if 'k' not in self.workspace.loader().manifest():
             k = self.generate_k_array()
-            self.write_to_manifest('k',k)
+            self.write_to_manifest('k',list(k))
 
         # If there is no normalization yet in the manifest, it will be stored in the manifest
         if 'normalization' not in self.workspace.loader().manifest():
-            with open(self.training_data / "min_max.json","r") as file:
+            with open(self.workspace.training_data / "min_max.json","r") as file:
                 normalization = json.load(file)
             self.write_to_manifest('normalization',normalization)
 
@@ -114,7 +113,7 @@ class Generator:
 
         import glob
         import numpy as np
-        import h5
+        import h5py as h5
 
         files = glob.glob(str(self.workspace.training_data / "sources_*.h5"))
 
@@ -128,6 +127,7 @@ class Generator:
 
         k_mins = np.array([k[0] for k in ks])
         k_maxs = np.array([k[-1] for k in ks])
+
         extra = np.geomspace(k_mins.min(), k_mins.max(), 50)
 
         k_longest = max(ks, key=len)
@@ -136,12 +136,6 @@ class Generator:
         print("created k sampling of {} points with k.min() = {}, k.max() = {}.".format(
             len(k), k[0], k[-1]))
         
-        # hand over k array to workspace
-        self.workspace.k = k
-
-        # plot the sampled k array
-        self.workspace.plotter().plot_k_array(k,k_mins)
-
         return k
 
 

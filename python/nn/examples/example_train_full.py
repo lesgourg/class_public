@@ -39,7 +39,7 @@ FIXED_TRAINING_ONLY = {
     "k_min_tau0": 1e-4,
     # precision parameters
     "tol_background_integration":     1.e-12,
-    "tol_perturb_integration":        1.e-6,
+    "tol_perturbations_integration":  1.e-6,
     "reionization_optical_depth_tol": 1.e-5,
 }
 
@@ -65,11 +65,11 @@ domain = workspace.domain_from_path(
 domain.save(workspace.domain_descriptor)
 
 #Sample parameters according to the domain and save them in the workspace for each dataset as "parameter_sample.h5"
-domain.sample_save(training_count=100, validation_count=10, test_count=10)
+domain.sample_save(training_count=10000, validation_count=1000, test_count=1000)
 
 #Load the data sets of parameters
 training, validation, test = workspace.loader().cosmological_parameters()
- 
+
 # Generating training/validation/test data
 workspace.generator().generate_source_data(
     fixed=FIXED,
@@ -80,7 +80,4 @@ workspace.generator().generate_source_data(
     processes=8)
 
 # Training: any subset of models can be trained at once
-workspace.trainer().train_all_models(workers=12)
-
-# Plot the training history
-workspace.plotter().plot_training_histories()
+workspace.trainer().train_all_models(workers=1)
