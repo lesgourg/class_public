@@ -2266,7 +2266,7 @@ int input_read_parameters_general(struct file_content * pfc,
     if (flag2 == _TRUE_)
       ppt->z_ini_gwb = param2;
     if (flag3 == _TRUE_)
-      ppt->T_ini_gwb = param3;
+      ppt->T_ini_gwb = param3 * 1e6/_eV_over_Kelvin_;
 
     /** 11.b) Convert GWB to energy density  */
     /* Read */

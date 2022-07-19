@@ -1852,8 +1852,9 @@ int perturbations_timesampling_for_sources(
       ppt->T_ini_gwb = pvecthermo[pth->index_th_Tb];
 
       if (ppt->perturbations_verbose > 0) {
-        printf(" -> The GWB is created at tau_ini_gwb=%g Mpc <=> z_ini_gwb=%g <=> T_ini_gwb=%g K \n",
-                ppt->tau_ini_gwb, ppt->z_ini_gwb, ppt->T_ini_gwb);
+        printf(" -> The GWB is created at tau_ini_gwb=%g Mpc <=> z_ini_gwb=%g <=> T_ini_gwb=%g K=%g MeV\n",
+                ppt->tau_ini_gwb, ppt->z_ini_gwb, ppt->T_ini_gwb,
+                ppt->T_ini_gwb *  1e-6*_eV_over_Kelvin_);
       }
     }
     
