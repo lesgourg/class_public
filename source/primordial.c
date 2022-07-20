@@ -726,7 +726,8 @@ int primordial_init(
 
       /** - nothing to calculate for \f$ \Gamma_I \f$ */
       if (ppm->primordial_verbose > 0)
-        printf(" -> gwi_adiabatic=%g\n",ppt->gwi_adiabatic);
+        printf(" -> gwi_adiabatic=%g=%g/(4-n_gwb)\n",
+                ppt->gwi_adiabatic,ppt->gwi_adiabatic * (4. - ppm->n_gwb));
     }
 
     else if (ppm->gwb_source_type == PT_gwb) {
