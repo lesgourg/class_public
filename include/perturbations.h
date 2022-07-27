@@ -187,7 +187,7 @@ struct perturbations
   double z_ini_gwb; /**< the inital redshift for the graviational wave background. */
   double T_ini_gwb; /**< the inital temperature for the graviational wave background in K. */
   
-  double gwi_adiabatic; /**< proportionality factor between Gamma_I and Psi, -2/(4-n_gwb) for adiabtic IC */
+  double gwi_adiabatic_Gamma; /**< proportionality factor between Gamma_I and Psi, -2/(4-n_gwb) for adiabtic IC (used only in transfer.c, initialized in primordial.c) */
 
   double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm_fr-idr */
   double * beta_idr;  /**< Angular contribution to collisional term at l>=2 for idr-idr */

@@ -4625,11 +4625,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** 2.e.2) GWB intial perturbations, gwi_adiabatic */
       /* Standard value */
-      ppt->gwi_adiabatic = -2.;
+      ppm->gwi_adiabatic = -2.;
       /* Read */
-      class_read_double("gwi_adiabatic",ppt->gwi_adiabatic);
-      /* Convert to phase spece distribution Gamma_I */
-      ppt->gwi_adiabatic /= (4. - ppm->n_gwb);
+      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
 
       /** We need no special gwi mode */
       ppt->has_gwi = _FALSE_;
@@ -4655,10 +4653,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** 2.f.2) GWB intial perturbations, gwi_adiabatic */
       /* Standard value */
-      ppt->gwi_adiabatic = -2.;
+      ppm->gwi_adiabatic = -2.;
       /* Read */
-      class_read_double("gwi_adiabatic",ppt->gwi_adiabatic);
-      ppt->gwi_adiabatic = -2. / (4. - ppm->n_gwb); //TODO_GWB: Change definition of gwb_adiabatic!
+      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
 
       ppt->has_gwi = _FALSE_;
     }
@@ -6119,7 +6116,7 @@ int input_default_params(struct background *pba,
 
   /** 2.e) For type 'adiabtic_gwb' */
   /** 2.e.2) gwi_adiabatic, turn it off, if activated standard value is -2. */
-  ppt->gwi_adiabatic = 0.;
+  ppm->gwi_adiabatic = 0.;
 
   /** 2.f) For type 'PT_gwb' */
   /** 2.f.1) Amplitute $\Omega_*$ */

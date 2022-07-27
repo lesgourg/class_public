@@ -725,9 +725,6 @@ int primordial_init(
       }
 
       /** - nothing to calculate for \f$ \Gamma_I \f$ */
-      if (ppm->primordial_verbose > 0)
-        printf(" -> gwi_adiabatic=%g=%g/(4-n_gwb)\n",
-                ppt->gwi_adiabatic,ppt->gwi_adiabatic * (4. - ppm->n_gwb));
     }
 
     else if (ppm->gwb_source_type == PT_gwb) {
@@ -1000,6 +997,14 @@ int primordial_init(
 
     if (ppm->primordial_verbose > 0)
       printf(" -> A_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->A_gwb,ppm->n_gwb,ppm->alpha_gwb);
+  }
+
+  if ((ppm->has_OmGW == _TRUE_) && ((ppm->gwb_source_type == adiabatic_gwb) || (ppm->gwb_source_type == PT_gwb)))  {
+      /* Convert gwi_adiabatic to phase spece distribution Gamma_I */
+      ppt->gwi_adiabatic_Gamma = ppm->gwi_adiabatic / (4. - ppm->n_gwb);
+      if (ppm->primordial_verbose > 0)
+        printf(" -> gwi_adiabatic_Gamma=%g=%g/(4-n_gwb)\n",
+                ppt->gwi_adiabatic_Gamma,ppm->gwi_adiabatic);
   }
 
   return _SUCCESS_;
