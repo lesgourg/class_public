@@ -6067,7 +6067,7 @@ int input_default_params(struct background *pba,
   /** 2.b) For type 'analytic_gwb' */
   /** 2.b.1) GWB energy density Omega_GW */
   /** 2.b.1.1) Amplitude */
-  ppm->A_gwb = 1.e-5;
+  ppm->A_gwb = 1.e-10;
   /** 2.b.1.2) Spectral index */
   ppm->n_gwb = 0.;
   /** 2.b.1.3) GWB running */
