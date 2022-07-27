@@ -259,12 +259,11 @@ struct primordial {
 
   /* - parameters describing PT_gwb */
 
-  double alpha_PT;  /**< Strength parameter of PT */
-  double v_PT;      /**< Bubble wall velocity for PT */
-  double kappa_phi; /**< Energy realease efficiency for PT */
-  double RH_star;   /**< Scaled mean bubble wall velocity for PT */
-  double g_star;    /**< Effective degrees of freedom at PT */
-  double T_star;    /**< GW generation temperature in MeV */ //TODO_GWB: Use T_ini_gwb instead!
+  double OmegaPT_star;/**< amplitute of Omega_GW from PT */
+  double fPT_star;    /**< peak frequency of PT */
+  double nPT_1;       /**< n_1 for PT */
+  double nPT_2;       /**< n_2 for PT */
+  double deltaPT;     /**< delta for PT */
 
   /* - parameters for external_gwb */
 
@@ -625,7 +624,7 @@ extern "C" {
                               struct primordial * ppm
                               );
 
-int primordial_PBH_omega_gw(
+  int primordial_PBH_omega_gw(
                             struct primordial * ppm,
                             double f,
                             double * OmGW
@@ -635,13 +634,6 @@ int primordial_PBH_omega_gw(
                                     struct precision * ppr,
                                     struct primordial * ppm
                                     );
-
-  int primordial_PT_gwb_init(
-                              struct precision * ppr,
-                              struct background * pba,
-                              struct perturbations * ppt,
-                              struct primordial * ppm
-                              );
 
   int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,

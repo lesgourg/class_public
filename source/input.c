@@ -4637,22 +4637,30 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
     /** 2.f) For type 'PT_gwb' */
     if (ppm->gwb_source_type == PT_gwb) {
-      /** 2.f.1) Strength parameter of PT */
-      class_read_double("alpha_PT",ppm->alpha_PT);
-      /** 2.f.2) Bubble wall velocity in units of c */
-      class_read_double("v_PT",ppm->v_PT);
-      /** 2.f.3) Energy relase efficency */
-      class_read_double("kappa_phi",ppm->kappa_phi);
-      /** 2.f.4) Scaled mean bubble seperation */
-      class_read_double("RH_star",ppm->RH_star);
-      /** 2.f.5) Effective degrees of freedom at PT */
-      class_read_double("g_star",ppm->g_star);
-      /** 2.f.6) GW genreation temperature in MeV */
-      class_read_double("T_star",ppm->T_star);
+      /** 2.f.1) Amplitute $\Omega_*$ */
+      class_read_double("OmegaPT_star",ppm->OmegaPT_star);
+      /** 2.f.2) Peak frequency $f_*$ for PT in Hz */
+      class_read_double("fPT_star",ppm->fPT_star);
+      /** 2.f.3) n_1 for PT */
+      class_read_double("nPT_1",ppm->nPT_1);
+      /** 2.f.4) n_2 for PT */
+      class_read_double("nPT_2",ppm->nPT_2);
+      /** 2.f.5) delta for PT */
+      class_read_double("deltaPT",ppm->deltaPT);
+      /* Test */
+      class_test(ppm->deltaPT == 0.,
+                 errmsg,
+                 "You entered deltaPT=0, this leads to a divide by 0.");
 
-      /* The initial spectrum is not independent, but uses adiabtic IC */
+
+      /** 2.f.2) GWB intial perturbations, gwi_adiabatic */
+      /* Standard value */
+      ppt->gwi_adiabatic = -2.;
+      /* Read */
+      class_read_double("gwi_adiabatic",ppt->gwi_adiabatic);
+      ppt->gwi_adiabatic = -2. / (4. - ppm->n_gwb); //TODO_GWB: Change definition of gwb_adiabatic!
+
       ppt->has_gwi = _FALSE_;
-      ppt->gwi_adiabatic = -2. / (4. - ppm->n_gwb); //TODO_GWB: n_gwb is unknown!
     }
   }
 
@@ -6114,18 +6122,16 @@ int input_default_params(struct background *pba,
   ppt->gwi_adiabatic = 0.;
 
   /** 2.f) For type 'PT_gwb' */
-  /** 2.f.1) Strength parameter of PT */
-  ppm->alpha_PT = 0.9;
-  /** 2.f.2) Bubble wall velocity in units of c */
-  ppm->v_PT = 0.8;
-  /** 2.f.3) Energy relase efficency */
-  ppm->kappa_phi = 0.1;
-  /** 2.f.4) Scaled mean bubble seperation */
-  ppm->RH_star = 0.15;
-  /** 2.f.5) Effective degrees of freedom at PT */
-  ppm->g_star = 10.;
-  /** 2.f.6) GW genreation temperature in MeV */
-  ppm->T_star = 1.;
+  /** 2.f.1) Amplitute $\Omega_*$ */
+  ppm->OmegaPT_star = 1.e-7;
+  /** 2.f.2) Peak frequency $f_*$ for PT in Hz */
+  ppm->fPT_star = 1.;
+  /** 2.f.3) n_1 for PT */
+  ppm->nPT_1 = 3.;
+  /** 2.f.4) n_2 for PT */
+  ppm->nPT_2 = -4.;
+  /** 2.f.5) delta for PT */
+  ppm->deltaPT = 2.;
 
   /**
    * Default to input_read_parameters_spectra
