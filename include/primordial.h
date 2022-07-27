@@ -223,7 +223,7 @@ struct primordial {
   
   /* - parameters describing analytic_gwb */
 
-  double A_gwb;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
+  double Omega_gwb;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
   double n_gwb;  /**< Spectral index for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
   double alpha_gwb; /**< GWB running */
 

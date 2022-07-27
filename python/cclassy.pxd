@@ -204,7 +204,7 @@ cdef extern from "class.h":
         double n_ad_niv
         double phi_min
         double phi_max
-        double A_gwb
+        double Omega_gwb
         int lnk_size
         int lnf_size
 

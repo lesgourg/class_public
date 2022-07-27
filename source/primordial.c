@@ -991,12 +991,12 @@ int primordial_init(
                 ppm->error_message,
                 ppm->error_message);
 
-    ppm->A_gwb = exp(lnOmGW_pivot);
+    ppm->Omega_gwb = exp(lnOmGW_pivot);
     ppm->n_gwb = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
     ppm->alpha_gwb = (lnOmGW_plus-2.*lnOmGW_pivot+lnOmGW_minus)/pow(dlnf,2);
 
     if (ppm->primordial_verbose > 0)
-      printf(" -> A_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->A_gwb,ppm->n_gwb,ppm->alpha_gwb);
+      printf(" -> Omega_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->Omega_gwb,ppm->n_gwb,ppm->alpha_gwb);
   }
 
   if ((ppm->has_OmGW == _TRUE_) && ((ppm->gwb_source_type == adiabatic_gwb) || (ppm->gwb_source_type == PT_gwb)))  {
@@ -4028,7 +4028,7 @@ int primordial_analytic_omega_gw(
                                  double * OmGW
                                  ) {
 
-  *OmGW = ppm->A_gwb * exp(ppm->n_gwb*log(f/ppm->f_pivot) + 0.5 * ppm->alpha_gwb * pow(log(f/ppm->f_pivot), 2.));
+  *OmGW = ppm->Omega_gwb * exp(ppm->n_gwb*log(f/ppm->f_pivot) + 0.5 * ppm->alpha_gwb * pow(log(f/ppm->f_pivot), 2.));
 
   return _SUCCESS_;
 

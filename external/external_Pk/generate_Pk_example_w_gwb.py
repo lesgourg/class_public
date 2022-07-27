@@ -26,9 +26,9 @@ def read_parameter(argv=[]):
     par['n_gwi']   = 0.
     par['c_s_gwi'] = 0.
 
-    par['f_pivot'] = 1. # Hz
-    par['A_gwb']   = 1e-5
-    par['n_gwb']   = 0.
+    par['f_pivot']   = 1. # Hz
+    par['Omega_gwb'] = 1e-5
+    par['n_gwb']     = 0.
     
     # Read input parameter
     try:
@@ -40,8 +40,8 @@ def read_parameter(argv=[]):
         par['n_gwi']   = float(argv[5])
         par['c_s_gwi'] = float(argv[6])
 
-        par['A_gwb']   = float(argv[7])
-        par['n_gwb']   = float(argv[8])
+        par['Omega_gwb'] = float(argv[7])
+        par['n_gwb']     = float(argv[8])
     except IndexError:
         pass
     except ValueError:
@@ -83,7 +83,7 @@ def cross_s_gwi(k, par):
 
 # Background energy density of GWs
 def Omega_GW(f, par):
-    return par['A_gwb'] * (f/par['f_pivot'])**(par['n_gwb'])
+    return par['Omega_gwb'] * (f/par['f_pivot'])**(par['n_gwb'])
 
 
 # Print functions

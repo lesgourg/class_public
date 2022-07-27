@@ -4465,22 +4465,22 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /** 2.b.1) GWB energy density Omega_GW */
       /** 2.b.1.1) Amplitude */
       /* Read */
-      class_call(parser_read_double(pfc,"A_gwb",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"Omega_gwb",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_read_double(pfc,"ln10^{10}A_gwb",&param2,&flag2,errmsg),
+      class_call(parser_read_double(pfc,"ln10^{10}Omega_gwb",&param2,&flag2,errmsg),
                  errmsg,
                  errmsg);
       /* Test */
       class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
                  errmsg,
-                 "You can only enter one of 'A_gwb' or 'ln10^{10}A_gwb'.");
+                 "You can only enter one of 'Omega_gwb' or 'ln10^{10}Omega_gwb'.");
       /* Complete set of parameters */
       if (flag1 == _TRUE_){
-        ppm->A_gwb = param1;
+        ppm->Omega_gwb = param1;
       }
       else if (flag2 == _TRUE_){
-        ppm->A_gwb = exp(param2)*1.e-10;
+        ppm->Omega_gwb = exp(param2)*1.e-10;
       }
       /** 2.b.1.2) Spectral index */
       class_read_double("n_gwb",ppm->n_gwb);
@@ -4553,22 +4553,22 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /** 2.c.1) GWB energy density Omega_GW */
       /** 2.c.1.1) Amplitude */
       /* Read */
-      class_call(parser_read_double(pfc,"A_gwb",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"Omega_gwb",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_read_double(pfc,"ln10^{10}A_gwb",&param2,&flag2,errmsg),
+      class_call(parser_read_double(pfc,"ln10^{10}Omega_gwb",&param2,&flag2,errmsg),
                  errmsg,
                  errmsg);
       /* Test */
       class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
                  errmsg,
-                 "You can only enter one of 'A_gwb' or 'ln10^{10}A_gwb'.");
+                 "You can only enter one of 'Omega_gwb' or 'ln10^{10}Omega_gwb'.");
       /* Complete set of parameters */
       if (flag1 == _TRUE_){
-        ppm->A_gwb = param1;
+        ppm->Omega_gwb = param1;
       }
       else if (flag2 == _TRUE_){
-        ppm->A_gwb = exp(param2)*1.e-10;
+        ppm->Omega_gwb = exp(param2)*1.e-10;
       }
       /** 2.c.1.2) Spectral index */
       class_read_double("n_gwb",ppm->n_gwb);
@@ -6072,7 +6072,7 @@ int input_default_params(struct background *pba,
   /** 2.b) For type 'analytic_gwb' */
   /** 2.b.1) GWB energy density Omega_GW */
   /** 2.b.1.1) Amplitude */
-  ppm->A_gwb = 1.e-10;
+  ppm->Omega_gwb = 1.e-10;
   /** 2.b.1.2) Spectral index */
   ppm->n_gwb = 0.;
   /** 2.b.1.3) GWB running */

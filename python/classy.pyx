@@ -1685,7 +1685,7 @@ cdef class Class:
                 GWB energy density Omega_GW at pivot frequency f.
         """
         if f == 'f_pivot':
-            return self.pm.A_gwb
+            return self.pm.Omega_gwb
         cdef double f_out
         cdef double omega_gw
         try:
