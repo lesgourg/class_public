@@ -20,9 +20,9 @@ enum primordial_spectrum_type {
 
 enum gwb_source_type {
   analytic_gwb,
-  PBH_gwb,
-  external_gwb,
   adiabatic_gwb,
+  external_gwb,
+  PBH_gwb,
   PT_gwb,
 };
 
@@ -212,8 +212,8 @@ struct primordial {
 
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
-  short has_OmGW;    /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
-  short has_gwi; /**< do we calculate the initial GWB peturbation \f$ \Gamma_I \f$? */
+  short has_OmGW; /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
+  short has_gwi;  /**< do we calculate the initial GWB peturbation \f$ \Gamma_I \f$? */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
@@ -251,6 +251,10 @@ struct primordial {
   double n_gwi_niv; /**< GWBxNIV cross-correlation tilt */
   double alpha_gwi_niv; /**< GWBxNIV cross-correlation running */
 
+  /* - parameters for external_gwb */
+
+  char*  command_gwb;  /**< string with the command for calling 'external_gwb' */
+
   /* - parameters describing PBH_gwb */
 
   double A_star; /**< Enhancement amplitude for scalar spectrum */
@@ -265,10 +269,6 @@ struct primordial {
   double nPT_1;       /**< n_1 for PT */
   double nPT_2;       /**< n_2 for PT */
   double deltaPT;     /**< delta for PT */
-
-  /* - parameters for external_gwb */
-
-  char*  command_gwb;  /**< string with the command for calling 'external_gwb' */
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */
@@ -618,6 +618,11 @@ extern "C" {
                                         struct primordial * ppm
                                         );
 
+  int primordial_external_gwb_init(
+                                    struct precision * ppr,
+                                    struct primordial * ppm
+                                    );
+
   int primordial_PBH_gwb_init(
                               struct precision * ppr,
                               struct background * pba,
@@ -630,11 +635,6 @@ extern "C" {
                             double f,
                             double * OmGW
                             );
-
-  int primordial_external_gwb_init(
-                                    struct precision * ppr,
-                                    struct primordial * ppm
-                                    );
 
   int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,

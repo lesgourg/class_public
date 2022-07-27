@@ -4430,21 +4430,21 @@ int input_read_parameters_primordial(struct file_content * pfc,
       if (strcmp(string1,"analytic_gwb") == 0){
         ppm->gwb_source_type = analytic_gwb;
       }
-      else if (strcmp(string1,"PBH_gwb") == 0){
-        ppm->gwb_source_type = PBH_gwb;
+      else if (strcmp(string1,"adiabatic_gwb") == 0){
+        ppm->gwb_source_type = adiabatic_gwb;
       }
       else if (strcmp(string1,"external_gwb") == 0){
         ppm->gwb_source_type = external_gwb;
       }
-      else if (strcmp(string1,"adiabatic_gwb") == 0){
-        ppm->gwb_source_type = adiabatic_gwb;
+      else if (strcmp(string1,"PBH_gwb") == 0){
+        ppm->gwb_source_type = PBH_gwb;
       }
       else if (strcmp(string1,"PT_gwb") == 0){
         ppm->gwb_source_type = PT_gwb;
       }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, PBH_gwb, external_gwb, adiabatic_gwb, PT_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, adiabatic_gwb, external_gwb, PBH_gwb, PT_gwb'}.",string1);
       }
     }
     /* Test */
@@ -4548,10 +4548,62 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
     }
 
-    /** 2.c) For type 'PBH_gwb' */
+    /** 2.c) For type 'adiabtic_gwb' */
+    if (ppm->gwb_source_type == adiabatic_gwb) {
+      /** 2.c.1) GWB energy density Omega_GW */
+      /** 2.c.1.1) Amplitude */
+      /* Read */
+      class_call(parser_read_double(pfc,"A_gwb",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"ln10^{10}A_gwb",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                 errmsg,
+                 "You can only enter one of 'A_gwb' or 'ln10^{10}A_gwb'.");
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_){
+        ppm->A_gwb = param1;
+      }
+      else if (flag2 == _TRUE_){
+        ppm->A_gwb = exp(param2)*1.e-10;
+      }
+      /** 2.c.1.2) Spectral index */
+      class_read_double("n_gwb",ppm->n_gwb);
+      /** 2.c.1.3) GWB running */
+      class_read_double("alpha_gwb",ppm->alpha_gwb);
+
+      /** 2.c.2) GWB intial perturbations, gwi_adiabatic */
+      /* Standard value */
+      ppm->gwi_adiabatic = -2.;
+      /* Read */
+      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
+
+      /** We need no special gwi mode */
+      ppt->has_gwi = _FALSE_;
+    }
+
+    /** 2.d) For type 'external_gwb' */
+    if (ppm->gwb_source_type == external_gwb) {
+      /** 2.d.1) Command generating the table */
+      /* Read */
+      class_call(parser_read_string(pfc, "command_gwb", &string1, &flag1, errmsg),
+                errmsg, errmsg);
+      /* Test */
+      class_test(strlen(string1) == 0,
+                errmsg,
+                "You omitted to write a command for the external Omgea_GW");
+      /* Complete set of parameters */
+      ppm->command_gwb = (char *) malloc (strlen(string1) + 1);
+      strcpy(ppm->command_gwb, string1);
+    }
+
+    /** 2.e) For type 'PBH_gwb' */
     if (ppm->gwb_source_type == PBH_gwb) {
-      /** 2.c.1) Delta peak enhancement of the scalar spectrum */
-      /** 2.c.1.1) Enhancement Amplitude */
+      /** 2.e.1) Delta peak enhancement of the scalar spectrum */
+      /** 2.e.1.1) Enhancement Amplitude */
       class_read_double("A_star",ppm->A_star);
       /* Read */
       class_call(parser_read_double(pfc,"A_star",&param1,&flag1,errmsg),
@@ -4571,65 +4623,13 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (flag2 == _TRUE_){
         ppm->A_star = exp(param2)*1.e-10;
       }
-      /** 2.c.1.2) Enhancement scale */
+      /** 2.e.1.2) Enhancement scale */
       class_read_double("f_star",ppm->f_star);
 
-      /** 2.c.2) Non-Gaussianity parameter */
+      /** 2.e.2) Non-Gaussianity parameter */
       class_read_double("f_NL",ppm->f_NL);
 
       /* The initial spectrum is not independent, but proportional to the scalar spectrum. */
-      ppt->has_gwi = _FALSE_;
-    }
-
-    /** 2.d) For type 'external_gwb' */
-    if (ppm->gwb_source_type == external_gwb) {
-      /** 2.d.1) Command generating the table */
-      /* Read */
-      class_call(parser_read_string(pfc, "command_gwb", &string1, &flag1, errmsg),
-                errmsg, errmsg);
-      /* Test */
-      class_test(strlen(string1) == 0,
-                errmsg,
-                "You omitted to write a command for the external Omgea_GW");
-      /* Complete set of parameters */
-      ppm->command_gwb = (char *) malloc (strlen(string1) + 1);
-      strcpy(ppm->command_gwb, string1);
-    }
-  
-    /** 2.e) For type 'adiabtic_gwb' */
-    if (ppm->gwb_source_type == adiabatic_gwb) {
-      /** 2.e.1) GWB energy density Omega_GW */
-      /** 2.e.1.1) Amplitude */
-      /* Read */
-      class_call(parser_read_double(pfc,"A_gwb",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      class_call(parser_read_double(pfc,"ln10^{10}A_gwb",&param2,&flag2,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Test */
-      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-                 errmsg,
-                 "You can only enter one of 'A_gwb' or 'ln10^{10}A_gwb'.");
-      /* Complete set of parameters */
-      if (flag1 == _TRUE_){
-        ppm->A_gwb = param1;
-      }
-      else if (flag2 == _TRUE_){
-        ppm->A_gwb = exp(param2)*1.e-10;
-      }
-      /** 2.e.1.2) Spectral index */
-      class_read_double("n_gwb",ppm->n_gwb);
-      /** 2.e.1.3) GWB running */
-      class_read_double("alpha_gwb",ppm->alpha_gwb);
-
-      /** 2.e.2) GWB intial perturbations, gwi_adiabatic */
-      /* Standard value */
-      ppm->gwi_adiabatic = -2.;
-      /* Read */
-      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
-
-      /** We need no special gwi mode */
       ppt->has_gwi = _FALSE_;
     }
 
@@ -6101,22 +6101,22 @@ int input_default_params(struct background *pba,
   ppm->n_gwi_niv = 0.;
   ppm->alpha_gwi_niv = 0.;
 
-  /** 2.c) For type 'PBH_gwb' */
-  /** 2.c.1) Delta peak enhancement of the scalar spectrum */
-  /** 2.c.1.1) Enhancement Amplitude */
-  ppm->A_star = 1e-9;
-  /** 2.c.1.2) Enhancement scale */
-  ppm->f_star = 1.;
-  /** 2.c.2) Non-Gaussianity parameter */
-  ppm->f_NL = 0.;
+  /** 2.c) For type 'adiabtic_gwb' */
+  /** 2.c.2) gwi_adiabatic, turn it off, if activated standard value is -2. */
+  ppm->gwi_adiabatic = 0.;
 
   /** 2.d) For type 'external_gwb' */
   /** 2.d.1) Command generating the table for Omega_GW */
   ppm->command_gwb=NULL;
 
-  /** 2.e) For type 'adiabtic_gwb' */
-  /** 2.e.2) gwi_adiabatic, turn it off, if activated standard value is -2. */
-  ppm->gwi_adiabatic = 0.;
+  /** 2.e) For type 'PBH_gwb' */
+  /** 2.e.1) Delta peak enhancement of the scalar spectrum */
+  /** 2.e.1.1) Enhancement Amplitude */
+  ppm->A_star = 1e-9;
+  /** 2.e.1.2) Enhancement scale */
+  ppm->f_star = 1.;
+  /** 2.e.2) Non-Gaussianity parameter */
+  ppm->f_NL = 0.;
 
   /** 2.f) For type 'PT_gwb' */
   /** 2.f.1) Amplitute $\Omega_*$ */
