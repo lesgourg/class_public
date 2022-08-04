@@ -61,7 +61,7 @@ def get_gw_detector_psd(detector, freqs):
     return detector_psd
 
 
-def compute_gw_SNR(freqs, Omega_GW, detector_psd, H0=1, T_obs=10):
+def compute_GW_SNR(freqs, Omega_GW, detector_psd, H0=1, T_obs=10):
     """Calculates the SNR for the CGWB monopole Omega_GW given an detector detector_psd.
 
     Args:
@@ -133,7 +133,7 @@ def main():
 
     detecor_psd = get_gw_detector_psd("CE+ET", freqs)
 
-    snr = compute_gw_SNR(freqs, Omega_GW, detecor_psd, H0)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, H0)
     print('SNR = %g' % snr)
 
     plt.show()
