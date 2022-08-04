@@ -1,27 +1,105 @@
+"""
+.. module:: compute_SNR
+    :synopsis: Compute SNR for GWB monopole
+.. moduleauthor:: Florian Schulze <florian.tobias.schulze@rwth-aachen.de>
+
+This module provides functions to calculate the SNR for the detection of a
+CGWB monopole Omega_GW, given a detctor network.
+
+"""
 from classy import Class
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-_c_ = 2.99792458e8
+
+def read_psds(det_filename, freqs):
+    """Reads a PSD file and caluclates the PSD at the requested frequencies freqs
+
+    Args:
+        det_filename (str): PSD file
+        freqs (array): requested frequencies for the PSD
+
+    Returns:
+        array: PSD of the dector at the frequencies freqs
+    """
+    interpolation_type = 'quadratic'
+
+    data = np.genfromtxt(det_filename).T
+    detector_frequencies = data[0]
+    detector_psd = data[1]
+    f = interp1d(detector_frequencies, detector_psd, kind=interpolation_type)
+
+    return f(freqs)
 
 
-class Detector():
-    detector_type = "CE_plus_ET"
+def get_gw_detector_psd(detector, freqs):
+    """Calulates the PSD for a detector network
 
+    Args:
+        detector (str or list): Detector name or list with the PSD files of the detector (e.g. "CE+ET")
+        freqs (array): requested frequencies for the PSD
+
+    Returns:
+        nd_array: detecor_psd
+    """
     detector_num = 1
-    detector_frequencies = []
-    detector_psd = []
-    detector_psd_omega = []
+    psd_files = []
+
+    if (detector == "CE+ET"):
+        detector_num = 5
+        psd_files = ["./Detector_PSDs/ce1.txt", "./Detector_PSDs/ce2.txt", "./Detector_PSDs/ET.txt", "./Detector_PSDs/ET.txt", "./Detector_PSDs/ET.txt"]
+    
+    else:
+        psd_files = detector
+        detector_num = len(psd_files)
+
+    detector_psd = np.empty((detector_num, len(freqs)))
+    
+    for in_det in range(detector_num):
+        detector_psd[in_det] = read_psds(psd_files[in_det], freqs)
+    
+    return detector_psd
 
 
-class Background():
-    H0 = 0
-    omega_freq_size = 1000
-    frequencies = []
-    Omega_cgwb = []
+def compute_gw_SNR(freqs, Omega_GW, detector_psd, H0=1, T_obs=10):
+    """Calculates the SNR for the CGWB monopole Omega_GW given an detector detector_psd.
+
+    Args:
+        freqs (array): frequencies in Hz
+        Omega_GW (array): CGWB monopole
+        detector_psd (nd_array): detector PSD
+        H0 (int, optional): Hubble rate in 1/Mpc. Defaults to 1.
+        T_obs (int, optional): observation time in years. Defaults to 10.
+
+    Returns:
+        float: Signal to Noise Ratio (SNR)
+    """
+    c = 2.99792458e8 #speed of light
+    snr = 0
+    
+    for in_det1 in range(len(detector_psd)):
+        for in_det2 in range(len(detector_psd)):
+            f1 = np.power(Omega_GW[:-1], 2.) \
+                    / np.power(detector_psd[in_det1][:-1] * detector_psd[in_det2][:-1], 2.) \
+                    / np.power(freqs[:-1], 6.)
+            f2 = np.power(Omega_GW[1:], 2.) \
+                    / np.power(detector_psd[in_det1][1:] * detector_psd[in_det2][1:], 2.) \
+                    / np.power(freqs[1:], 6.)
+            dx = (freqs[1:]-freqs[:-1])/2.
+            
+            x = np.power( np.power(c/1000*H0*3.24*1e-20, 2.) / (4.*np.pi**2 * np.sqrt(4.*np.pi)), 2.) * (f1+f2) * dx
+            snr += np.sum(x)
+
+    snr = np.sqrt(3.15e7*T_obs*snr)
+    
+    return snr
 
 
-def calculate_background(pba: Background, omega_freq_size=1000, f_min=5.01, f_max=1000):
+def main():
+    omega_freq_size=1000
+    f_min=5.01
+    f_max=1000
+
     M = Class()
     M.set({
         'output': 'OmGW, gwCl',
@@ -37,104 +115,31 @@ def calculate_background(pba: Background, omega_freq_size=1000, f_min=5.01, f_ma
 
     M.compute()
 
-    # OmGW = M.get_omega_gw()
-    # pba.frequencies = OmGW['f [Hz]']
-    # pba.Omega_cgwb = OmGW['Omega_GW(f)']
+    OmGW = M.get_omega_gw()
+    freqs = OmGW['f [Hz]']
+    Omega_GW = OmGW['Omega_GW(f)']
 
-    pba.frequencies = np.linspace(f_min, f_max, omega_freq_size)
-    pba.frequencies = np.geomspace(f_min, f_max, omega_freq_size)
-    pba.Omega_cgwb = np.array([M.Omega_GW(f) for f in pba.frequencies])
-    pba.omega_freq_size = len(pba.frequencies)
+    freqs = np.linspace(f_min, f_max, omega_freq_size)
+    freqs = np.geomspace(f_min, f_max, omega_freq_size)
+    Omega_GW = np.array([M.Omega_GW(f) for f in freqs])
+    omega_freq_size = len(freqs)
 
     # plt.figure()
-    # plt.loglog(pba.frequencies, pba.Omega_cgwb)
+    # plt.loglog(freqs, Omega_GW)
 
     # pba.H0 = M.h() * 100
     back = M.get_background() 
-    pba.H0 = back['H [1/Mpc]'][-1]
+    H0 = back['H [1/Mpc]'][-1]
+
+    detecor_psd = get_gw_detector_psd("CE+ET", freqs)
+
+    snr = compute_gw_SNR(freqs, Omega_GW, detecor_psd, H0)
+    print('SNR = %g' % snr)
+
+    plt.show()
 
     return 0
 
 
-def read_psds(pdet: Detector, det_filename, in_det):
-    data = np.genfromtxt(det_filename).T
-    pdet.detector_frequencies[in_det] = data[0]
-    pdet.detector_psd[in_det] = data[1]
-    return 0
-
-
-def get_gw_detecotr_psd(pdet: Detector, pba: Background):
-    # interpolation_type = 'linear'
-    interpolation_type = 'quadratic'
-    if (pdet.detector_type == "CE_plus_ET"):
-        pdet.detector_num = 5
-
-        pdet.detector_psd           = [[]]*pdet.detector_num
-        pdet.detector_frequencies   = [[]]*pdet.detector_num
-
-        read_psds(pdet,"./Detector_PSDs/ce1.txt",0)
-        read_psds(pdet,"./Detector_PSDs/ce2.txt",1)
-        read_psds(pdet,"./Detector_PSDs/ET.txt",2)
-        read_psds(pdet,"./Detector_PSDs/ET.txt",3)
-        read_psds(pdet,"./Detector_PSDs/ET.txt",4)
-
-    pdet.detector_psd_omega = np.empty((pdet.detector_num, pba.omega_freq_size))
-
-    for in_det in range(pdet.detector_num):
-        f = interp1d(pdet.detector_frequencies[in_det], pdet.detector_psd[in_det], kind=interpolation_type)
-        pdet.detector_psd_omega[in_det] = f(pba.frequencies)
-        # plt.figure()
-        # plt.loglog(pdet.detector_frequencies[in_det], pdet.detector_psd[in_det])
-        # plt.loglog(pba.frequencies, pdet.detector_psd_omega[in_det])
-
-    return 0
-
-
-def compute_gw_SNR(pdet: Detector, pba: Background):
-    f1 = 0
-    f2 = 0
-    dx = 0
-    T_obs = 10
-    snr = 0
-    for in_det1 in range(pdet.detector_num):
-        for in_det2 in range(pdet.detector_num):
-            f1 = np.power(pba.Omega_cgwb[:-1], 2.) \
-                    / np.power(pdet.detector_psd_omega[in_det1][:-1] * pdet.detector_psd_omega[in_det2][:-1], 2.) \
-                    / np.power(pba.frequencies[:-1], 6.)
-            f2 = np.power(pba.Omega_cgwb[1:], 2.) \
-                    / np.power(pdet.detector_psd_omega[in_det1][1:] * pdet.detector_psd_omega[in_det2][1:], 2.) \
-                    / np.power(pba.frequencies[1:], 6.)
-            dx = (pba.frequencies[1:]-pba.frequencies[:-1])/2.
-            
-            x = np.power( np.power(_c_/1000*pba.H0*3.24*1e-20, 2.) / (4.*np.pi**2 * np.sqrt(4.*np.pi)), 2.) * (f1+f2) * dx
-            snr += np.sum(x)
-
-            # for in_freq in range(pba.omega_freq_size-1):
-            #     f1 = np.power(pba.Omega_cgwb[in_freq], 2.) \
-            #             / np.power(pdet.detector_psd_omega[in_det1][in_freq] * pdet.detector_psd_omega[in_det2][in_freq], 2.) \
-            #             / np.power(pba.frequencies[in_freq], 6.)
-            #     f2 = np.power(pba.Omega_cgwb[in_freq+1], 2.) \
-            #             / np.power(pdet.detector_psd_omega[in_det1][in_freq+1] * pdet.detector_psd_omega[in_det2][in_freq+1], 2.) \
-            #             / np.power(pba.frequencies[in_freq+1], 6.)
-            #     dx = (pba.frequencies[in_freq+1]-pba.frequencies[in_freq])/2.
-                
-            #     snr += np.power( np.power(_c_/1000*pba.H0*3.24*1e-20, 2.) / (4.*np.pi**2 * np.sqrt(4.*np.pi)), 2.) * (f1+f2) * dx
-    
-    snr = np.sqrt(3.15e7*T_obs*snr)
-    
-    return snr
-
-
-pba = Background()
-
-calculate_background(pba)
-# calculate_background(pba, 5)
-
-pdet = Detector()
-
-get_gw_detecotr_psd(pdet, pba)
-
-snr = compute_gw_SNR(pdet, pba)
-print('SNR = %g' % snr)
-
-plt.show()
+if __name__ == '__main__':
+    main()
