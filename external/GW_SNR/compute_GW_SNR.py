@@ -7,10 +7,8 @@ This module provides functions to calculate the SNR for the detection of a
 CGWB monopole Omega_GW, given a detctor network.
 
 """
-from classy import Class
 import numpy as np
 from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
 
 def read_psds(det_filename, freqs):
     """Reads a PSD file and caluclates the PSD at the requested frequencies freqs
@@ -61,20 +59,19 @@ def get_gw_detector_psd(detector, freqs):
     return detector_psd
 
 
-def compute_GW_SNR(freqs, Omega_GW, detector_psd, H0=1, T_obs=10):
+def compute_GW_SNR(freqs, Omega_GW, detector_psd, h=0.67, T_obs=10):
     """Calculates the SNR for the CGWB monopole Omega_GW given an detector detector_psd.
 
     Args:
         freqs (array): frequencies in Hz
         Omega_GW (array): CGWB monopole
         detector_psd (nd_array): detector PSD
-        H0 (int, optional): Hubble rate in 1/Mpc. Defaults to 1.
+        h (int, optional): reduced Hubble rate h. Defaults to 0.67.
         T_obs (int, optional): observation time in years. Defaults to 10.
 
     Returns:
         float: Signal to Noise Ratio (SNR)
     """
-    c = 2.99792458e8 #speed of light
     snr = 0
     
     for in_det1 in range(len(detector_psd)):
@@ -87,7 +84,7 @@ def compute_GW_SNR(freqs, Omega_GW, detector_psd, H0=1, T_obs=10):
                     / np.power(freqs[1:], 6.)
             dx = (freqs[1:]-freqs[:-1])/2.
             
-            x = np.power( np.power(c/1000*H0*3.24*1e-20, 2.) / (4.*np.pi**2 * np.sqrt(4.*np.pi)), 2.) * (f1+f2) * dx
+            x = np.power( np.power(h*3.24*1e-18, 2.) / (4.*np.pi**2 * np.sqrt(4.*np.pi)), 2.) * (f1+f2) * dx
             snr += np.sum(x)
 
     snr = np.sqrt(3.15e7*T_obs*snr)
@@ -96,6 +93,9 @@ def compute_GW_SNR(freqs, Omega_GW, detector_psd, H0=1, T_obs=10):
 
 
 def main():
+    from classy import Class
+    import matplotlib.pyplot as plt
+
     omega_freq_size=1000
     f_min=5.01
     f_max=1000
@@ -123,17 +123,14 @@ def main():
     freqs = np.geomspace(f_min, f_max, omega_freq_size)
     Omega_GW = np.array([M.Omega_GW(f) for f in freqs])
     omega_freq_size = len(freqs)
+    h = M.h()
 
     # plt.figure()
     # plt.loglog(freqs, Omega_GW)
 
-    # pba.H0 = M.h() * 100
-    back = M.get_background() 
-    H0 = back['H [1/Mpc]'][-1]
-
     detecor_psd = get_gw_detector_psd("CE+ET", freqs)
 
-    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, H0)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
     print('SNR = %g' % snr)
 
     plt.show()
