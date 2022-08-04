@@ -7,9 +7,18 @@ This module provides functions to calculate the SNR for the detection of a
 CGWB monopole Omega_GW, given a detctor network.
 For an example see in main().
 
+You can import this the function into your project using:
+import os
+import sys
+sys.path.append(os.path.abspath('path/to/class/external/GW_SNR'))
+import compute_GW_SNR
+
 """
+import os
 import numpy as np
 from scipy.interpolate import interp1d
+
+_folder_ = os.path.dirname(__file__)
 
 def read_psds(det_filename, freqs):
     """Reads a PSD file and caluclates the PSD at the requested frequencies freqs
@@ -44,13 +53,25 @@ def get_gw_detector_psd(detector, freqs):
     detector_num = 1
     psd_files = []
 
-    if (detector == "CE+ET"):
-        detector_num = 5
-        psd_files = ["./Detector_PSDs/ce1.txt", "./Detector_PSDs/ce2.txt", "./Detector_PSDs/ET.txt", "./Detector_PSDs/ET.txt", "./Detector_PSDs/ET.txt"]
-    
-    else:
+    if type(detector) == list:
         psd_files = detector
         detector_num = len(psd_files)
+
+    elif detector == "CE":
+        detector_num = 2
+        psd_files = [_folder_+"/detector_PSD/ce1.txt", _folder_+"/detector_PSD/ce2.txt"]
+
+    elif detector == "ET":
+        detector_num = 3
+        psd_files = [_folder_+"/detector_PSD/ET.txt", _folder_+"/detector_PSD/ET.txt", _folder_+"/detector_PSD/ET.txt"]
+
+    elif detector == "CE+ET":
+        detector_num = 5
+        psd_files = [_folder_+"/detector_PSD/ce1.txt", _folder_+"/detector_PSD/ce2.txt", _folder_+"/detector_PSD/ET.txt", _folder_+"/detector_PSD/ET.txt", _folder_+"/detector_PSD/ET.txt"]
+
+    else:
+        print("You entered an unknwon detector: %s." % detector)
+        detector_num = 0
 
     detector_psd = np.empty((detector_num, len(freqs)))
     
@@ -73,10 +94,11 @@ def compute_GW_SNR(freqs, Omega_GW, detector_psd, h=0.67, T_obs=10):
     Returns:
         float: Signal to Noise Ratio (SNR)
     """
+    detector_num = len(detector_psd)
     snr = 0
     
-    for in_det1 in range(len(detector_psd)):
-        for in_det2 in range(len(detector_psd)):
+    for in_det1 in range(detector_num):
+        for in_det2 in range(detector_num):
             f1 = np.power(Omega_GW[:-1], 2.) \
                     / np.power(detector_psd[in_det1][:-1] * detector_psd[in_det2][:-1], 2.) \
                     / np.power(freqs[:-1], 6.)
@@ -121,10 +143,20 @@ def main():
     Omega_GW = OmGW['Omega_GW(f)']
     h = M.h()
 
-    detecor_psd = get_gw_detector_psd("CE+ET", freqs)
+    print(__file__)
+    print(_folder_)
 
+    detecor_psd = get_gw_detector_psd("CE", freqs)
+    #Alternanative:
+    # detecor_psd = get_gw_detector_psd(["./detector_PSD/ce1.txt", "./detector_PSD/ce2.txt"], freqs)
     snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
-    print('SNR = %g' % snr)
+    print('SNR for CE:\t %g' % snr)
+    detecor_psd = get_gw_detector_psd("ET", freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for ET:\t %g' % snr)
+    detecor_psd = get_gw_detector_psd("CE+ET", freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for CE+ET:\t %g' % snr)
 
     return 0
 
