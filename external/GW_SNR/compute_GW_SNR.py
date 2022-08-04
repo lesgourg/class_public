@@ -5,6 +5,7 @@
 
 This module provides functions to calculate the SNR for the detection of a
 CGWB monopole Omega_GW, given a detctor network.
+For an example see in main().
 
 """
 import numpy as np
@@ -94,19 +95,19 @@ def compute_GW_SNR(freqs, Omega_GW, detector_psd, h=0.67, T_obs=10):
 
 def main():
     from classy import Class
-    import matplotlib.pyplot as plt
-
-    omega_freq_size=1000
-    f_min=5.01
-    f_max=1000
 
     M = Class()
     M.set({
         'output': 'OmGW, gwCl',
+        'f_pivot': 25,
+        'f_min':   5.01,
+        'f_max':   1000,
+
+        # 'gwb_source_type':  'analytic_gwb',
+        # 'Omega_gwb':        3e-10,
+        # 'n_gwb':            0.0,
+
         'gwb_source_type':  'PBH_gwb',
-        'f_pivot':          25,
-        'f_min':            f_min,
-        'f_max':            f_max,
         'A_star':           2e-5,
         'f_star':           100.,
         'f_NL':             1.,
@@ -118,22 +119,12 @@ def main():
     OmGW = M.get_omega_gw()
     freqs = OmGW['f [Hz]']
     Omega_GW = OmGW['Omega_GW(f)']
-
-    freqs = np.linspace(f_min, f_max, omega_freq_size)
-    freqs = np.geomspace(f_min, f_max, omega_freq_size)
-    Omega_GW = np.array([M.Omega_GW(f) for f in freqs])
-    omega_freq_size = len(freqs)
     h = M.h()
-
-    # plt.figure()
-    # plt.loglog(freqs, Omega_GW)
 
     detecor_psd = get_gw_detector_psd("CE+ET", freqs)
 
     snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
     print('SNR = %g' % snr)
-
-    plt.show()
 
     return 0
 
