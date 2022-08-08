@@ -24,6 +24,7 @@ enum gwb_source_type {
   external_gwb,
   PBH_gwb,
   PT_gwb,
+  inflationary_gwb,
 };
 
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
@@ -635,6 +636,12 @@ extern "C" {
                             double f,
                             double * OmGW
                             );
+
+  int primordial_inflationary_gwb_init(
+                                      struct background * pba,
+                                      struct perturbations * ppt,
+                                      struct primordial * ppm
+                                      );
 
   int primordial_output_titles(struct perturbations * ppt,
                                struct primordial * ppm,

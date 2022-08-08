@@ -4442,9 +4442,12 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"PT_gwb") == 0){
         ppm->gwb_source_type = PT_gwb;
       }
+      else if (strcmp(string1,"inflationary_gwb") == 0){
+        ppm->gwb_source_type = inflationary_gwb;
+      }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, adiabatic_gwb, external_gwb, PBH_gwb, PT_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, adiabatic_gwb, external_gwb, PBH_gwb, PT_gwb, inflationary_gwb'}.",string1);
       }
     }
     /* Test */
@@ -4652,6 +4655,28 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
 
       /** 2.f.2) GWB intial perturbations, gwi_adiabatic */
+      /* Standard value */
+      ppm->gwi_adiabatic = -2.;
+      /* Read */
+      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
+
+      ppt->has_gwi = _FALSE_;
+    }
+
+    /** 2.e) For type 'inlfationary_gwb' */
+    if (ppm->gwb_source_type == inflationary_gwb) {
+      /* Test */
+      class_test(ppt->has_omega_gwb == _FALSE_,
+                 errmsg,
+                 "For the inflationary_gwb you ask for OmGW as an output. Otherwise you can use the adiabatic_gwb.");
+      class_test(ppt->has_tensors == _FALSE_,
+                 errmsg,
+                 "For the inflationary_gwb you must activate tensor modes: modes = t (, s).");
+      class_test(ppm->primordial_spec_type != analytic_Pk,
+                 errmsg,
+                 "For the inflationary_gwb you must use 'primordial_spec_type = analytic_Pk'.");
+
+      /** 2.e.2) GWB intial perturbations, gwi_adiabatic */
       /* Standard value */
       ppm->gwi_adiabatic = -2.;
       /* Read */
