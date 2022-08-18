@@ -4651,7 +4651,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /* Test */
       class_test(ppm->deltaPT == 0.,
                  errmsg,
-                 "You entered deltaPT=0, this leads to a divide by 0.");
+                 "You entered deltaPT=0, this leads to a division by 0.");
 
 
       /** 2.f.2) GWB intial perturbations, gwi_adiabatic */
@@ -6137,9 +6137,9 @@ int input_default_params(struct background *pba,
   /** 2.e) For type 'PBH_gwb' */
   /** 2.e.1) Delta peak enhancement of the scalar spectrum */
   /** 2.e.1.1) Enhancement Amplitude */
-  ppm->A_star = 1e-9;
+  ppm->A_star = 2e-5;
   /** 2.e.1.2) Enhancement scale */
-  ppm->f_star = 1.;
+  ppm->f_star = 10.;
   /** 2.e.2) Non-Gaussianity parameter */
   ppm->f_NL = 0.;
 
