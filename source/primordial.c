@@ -402,6 +402,7 @@ int primordial_init(
 
   ppm->has_OmGW = ppt->has_omega_gwb;
   ppm->has_gwi = ppt->has_gwi;
+  ppt->gwi_adiabatic_Gamma = 0.;
   ppm->gwi_scalar = 0.;
 
   if (ppm->has_OmGW) {
