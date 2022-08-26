@@ -1023,8 +1023,10 @@ int primordial_init(
     if (ppm->primordial_verbose > 0)
       printf(" -> gwi_adiabatic_Gamma=%g=%g/(4-n_gwb)\n",ppt->gwi_adiabatic_Gamma,ppm->gwi_adiabatic);
   }
-  else {
-    ppt->gwi_adiabatic_Gamma = 0.;
+
+  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwi_scalar != 0.))  {
+    if (ppm->primordial_verbose > 0)
+      printf(" -> gwi_scalar=%g\n",ppm->gwi_scalar);
   }
 
   return _SUCCESS_;
@@ -4418,9 +4420,6 @@ int primordial_PBH_gwb_init(
 
   /** - calculate gwi_scalar */
   ppm->gwi_scalar = 3./5. * 8. * ppm->f_NL / (4. - ppm->n_gwb);
-
-  if (ppm->primordial_verbose > 0)
-    printf(" -> gwi_scalar=%g\n",ppm->gwi_scalar);
 
   return _SUCCESS_;
 
