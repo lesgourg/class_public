@@ -2691,9 +2691,13 @@ int perturbations_get_k_list(
        K=0, K<0, K>0 */
 
     /* allocate array with, for the moment, the largest possible size */
+    ppt->k_size[ppt->index_md_tensors] = ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub)/ppr->k_step_super_reduction)+1);
     class_alloc(ppt->k[ppt->index_md_tensors],
-                ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
-                *sizeof(double),ppt->error_message);
+                ppt->k_size[ppt->index_md_tensors]*sizeof(double),
+                ppt->error_message);
+    // class_alloc(ppt->k[ppt->index_md_tensors],
+    //             ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+    //             *sizeof(double),ppt->error_message);
 
     /* first value */
 
@@ -2741,6 +2745,9 @@ int perturbations_get_k_list(
                  ppt->error_message,
                  "consecutive values of k should differ and should be in growing order");
 
+      class_test(index_k >= ppt->k_size[ppt->index_md_tensors],
+                 ppt->error_message,
+                 "buggy allocation of k array for tensors");
       ppt->k[ppt->index_md_tensors][index_k] = k;
 
       index_k++;
