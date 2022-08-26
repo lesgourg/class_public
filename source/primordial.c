@@ -1017,12 +1017,14 @@ int primordial_init(
       printf(" -> Omega_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->Omega_gwb,ppm->n_gwb,ppm->alpha_gwb);
   }
 
-  if ((ppm->has_OmGW == _TRUE_) && ((ppm->gwb_source_type == adiabatic_gwb) || (ppm->gwb_source_type == PT_gwb)))  {
-      /* Convert gwi_adiabatic to phase spece distribution Gamma_I */
-      ppt->gwi_adiabatic_Gamma = ppm->gwi_adiabatic / (4. - ppm->n_gwb);
-      if (ppm->primordial_verbose > 0)
-        printf(" -> gwi_adiabatic_Gamma=%g=%g/(4-n_gwb)\n",
-                ppt->gwi_adiabatic_Gamma,ppm->gwi_adiabatic);
+  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwi_adiabatic != 0.))  {
+    /* Convert gwi_adiabatic to phase spece distribution Gamma_I */
+    ppt->gwi_adiabatic_Gamma = ppm->gwi_adiabatic / (4. - ppm->n_gwb);
+    if (ppm->primordial_verbose > 0)
+      printf(" -> gwi_adiabatic_Gamma=%g=%g/(4-n_gwb)\n",ppt->gwi_adiabatic_Gamma,ppm->gwi_adiabatic);
+  }
+  else {
+    ppt->gwi_adiabatic_Gamma = 0.;
   }
 
   return _SUCCESS_;
