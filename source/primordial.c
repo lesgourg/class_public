@@ -570,7 +570,7 @@ int primordial_init(
 
   /**  - deal with spectrum for \f$ \Omega_\mathrm{GW} \f$ and \f$ \Gamma_I \f$ */
 
-  if ((ppm->has_gwi == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
+  if ((ppt->has_cl_gwb == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
     if (ppm->primordial_verbose > 0)
       printf("Computing GWB source");
 
@@ -691,9 +691,9 @@ int primordial_init(
 
       /** - the GWB initial perturbations \Gamma_I is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init */
 
-    class_test(ppm->has_OmGW == _FALSE_,
-               ppm->error_message,
-               "external GWB module cannot work if you do not ask for Omega_GW");
+      class_test(ppm->has_OmGW == _FALSE_,
+                 ppm->error_message,
+                 "external GWB module cannot work if you do not ask for Omega_GW");
 
       /** - read the GWB energy density Omega_GW */
       class_call_except(primordial_external_gwb_init(ppr,ppm),
@@ -985,14 +985,14 @@ int primordial_init(
       printf(" -> Omega_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->Omega_gwb,ppm->n_gwb,ppm->alpha_gwb);
   }
 
-  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwi_adiabatic != 0.))  {
+  if (ppm->gwi_adiabatic != 0.)  {
     /* Convert gwi_adiabatic to phase spece distribution Gamma_I */
     ppt->gwi_adiabatic_Gamma = ppm->gwi_adiabatic / (4. - ppm->n_gwb);
     if (ppm->primordial_verbose > 0)
       printf(" -> gwi_adiabatic_Gamma=%g=%g/(4-n_gwb)\n",ppt->gwi_adiabatic_Gamma,ppm->gwi_adiabatic);
   }
 
-  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwi_scalar != 0.))  {
+  if (ppm->gwi_scalar != 0.)  {
     if (ppm->primordial_verbose > 0)
       printf(" -> gwi_scalar=%g\n",ppm->gwi_scalar);
   }

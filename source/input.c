@@ -2273,10 +2273,6 @@ int input_read_parameters_general(struct file_content * pfc,
     flag1 = _FALSE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
     ppt->convert_gwb_to_energydensity = flag1;
-    /* Test */
-    class_test((ppt->convert_gwb_to_energydensity == _TRUE_) && (ppt->has_omega_gwb == _FALSE_),
-                errmsg,
-                "CLASS can not convert the GWB perturbations to energergy density without knowing the GWB background energy density.");
 
     /** 11.c) Fraction of decoupled relativistic particles at GWB production */
     class_call(parser_read_double(pfc,"f_dec_ini",&param1,&flag1,errmsg),
@@ -4412,11 +4408,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
 
   /** 2) Graviational Wave Background (GWB) source type (define the energy density and intial spectrum) */
-  if (((ppt->has_cl_gwb == _TRUE_) && (ppt->switch_gwb_ini == 1) ) || (ppt->has_omega_gwb == _TRUE_)) {
-    /* Test */
-    class_test((ppt->switch_gwb_ini == 1) && (ppt->has_omega_gwb == _FALSE_),
-               errmsg,
-               "If you want to calculate the inital contribution to gwCl, you also have to calculate OmGW!");
+  if ((ppt->has_cl_gwb == _TRUE_) || (ppt->has_omega_gwb == _TRUE_)) {
 
     /* activate inital GWB perturbation mode: index_ic_gwi, may be deactivatd again depending on the source type */
     ppt->has_gwi=_TRUE_;
@@ -4448,6 +4440,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
     }
     /* Test */
+    class_test((ppm->gwb_source_type != analytic_gwb) && (ppt->has_omega_gwb == _FALSE_),
+               errmsg,
+               "To calculate 'gwCl', you also have to calculate 'OmGW' or use 'gwb_source_type=analytic_gwb'!");
     class_test((ppm->gwb_source_type == external_gwb) && (ppm->primordial_spec_type != external_Pk),
                errmsg,
                "To use the 'external_gwb' for the GWB sources you must also use the 'external_Pk' for 'Pk_ini_type'!");
@@ -5773,7 +5768,7 @@ int input_default_params(struct background *pba,
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
   /** 11.b) Convert GWB phase space perturbation to energy density contrast */
-  ppt->convert_gwb_to_energydensity=_FALSE_;
+  ppt->convert_gwb_to_energydensity=_FALSE_; //TODO_GWB: change standard behavior!
   /** 11.c) Fraction of decoupled relativistic particles at GWB production */
   pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
 

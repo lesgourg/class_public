@@ -213,7 +213,7 @@ struct primordial {
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
   short has_OmGW; /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
-  short has_gwi;  /**< do we calculate the initial GWB peturbation \f$ \Gamma_I \f$? */
+  short has_gwi;  /**< do we have isocurvature mode for \f$ \Gamma_I \f$? */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */

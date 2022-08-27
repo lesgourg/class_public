@@ -112,7 +112,7 @@ struct perturbations
   short has_tensors; /**< do we need tensors? */
 
   short has_ad;      /**< do we need adiabatic mode? */
-  short has_gwi;     /**< do we need GWB initial perturbation mode? */
+  short has_gwi;     /**< do we need isocurvature GWB mode? */
   short has_bi;      /**< do we need isocurvature bi mode? */
   short has_cdi;     /**< do we need isocurvature cdi mode? */
   short has_nid;     /**< do we need isocurvature nid mode? */
