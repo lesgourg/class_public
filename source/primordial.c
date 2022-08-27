@@ -237,7 +237,7 @@ int primordial_omega_gw_at_f(
     lnf = input;
   }
 
-  /** - if we are in the case of PBH, we have to use a special function */
+  /** - in the case of PBH, we have use direct computation */
 
   if (ppm->gwb_source_type == PBH_gwb) {
 
@@ -264,7 +264,7 @@ int primordial_omega_gw_at_f(
 
   if ((lnf > ppm->lnf[ppm->lnf_size-1]) || (lnf < ppm->lnf[0])) {
 
-    class_test((ppm->gwb_source_type != analytic_gwb) && (ppm->gwb_source_type != adiabatic_gwb),
+    class_test(ppm->gwb_source_type != analytic_gwb,
                ppm->error_message,
                "f=%e out of range [%e : %e]",exp(lnf),exp(ppm->lnf[0]),exp(ppm->lnf[ppm->lnf_size-1]));
 
@@ -398,12 +398,11 @@ int primordial_init(
              ppm->error_message,
              ppm->error_message);
 
-  /*** - allocate and fill values of \f$ \ln{f} \f$'s */
+  /** - allocate and fill values of \f$ \ln{f} \f$'s */
 
   ppm->has_OmGW = ppt->has_omega_gwb;
   ppm->has_gwi = ppt->has_gwi;
   ppt->gwi_adiabatic_Gamma = 0.;
-  ppm->gwi_scalar = 0.;
 
   if (ppm->has_OmGW) {
     class_call(primordial_get_lnf_list(ppm,
@@ -569,10 +568,6 @@ int primordial_init(
 
   }
 
-  /** Here starts the section for the GWB sources.
-      Here we calculate the background energy desnity \f$ \Omega_\mathrm{GW} \f$
-      and the inital perturbation \f$ \Gamma_I \f$ (index_ic_gwi) */
-
   /**  - deal with spectrum for \f$ \Omega_\mathrm{GW} \f$ and \f$ \Gamma_I \f$ */
 
   if ((ppm->has_gwi == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
@@ -676,29 +671,15 @@ int primordial_init(
       }
     }
 
-    /** - deal with the case of adiabtic GWB */
-    else if (ppm->gwb_source_type == adiabatic_gwb) {
+    /** - deal with the case of inflationary GWB */
+    else if (ppm->gwb_source_type == inflationary_gwb) {
 
       if (ppm->primordial_verbose > 0)
-        printf(" (adiabatic GWB)\n");
+        printf(" (inflationary GWB)\n");
       
-      /** - calculate \f$ \Omega_\mathrm{GW} \f$ */
-      if (ppm->has_OmGW == _TRUE_) {
-
-        for (index_f = 0; index_f < ppm->lnf_size; index_f++) {
-
-          f=exp(ppm->lnf[index_f]);
-
-          class_call(primordial_analytic_omega_gw(ppm,
-                                                  f,
-                                                  &OmGW),
-                    ppm->error_message,
-                    ppm->error_message);
-
-
-          ppm->lnOmGW[index_f] = log(OmGW);
-        }
-      }
+      class_call(primordial_inflationary_gwb_init(pba,ppt,ppm),
+                ppm->error_message,
+                ppm->error_message);
 
       /** - nothing to calculate for \f$ \Gamma_I \f$ */
     }
@@ -746,19 +727,6 @@ int primordial_init(
           ppm->lnOmGW[index_f] = log(OmGW);
         }
       }
-
-      /** - nothing to calculate for \f$ \Gamma_I \f$ */
-    }
-
-    /** - deal with the case of inflationary GWB */
-    else if (ppm->gwb_source_type == inflationary_gwb) {
-
-      if (ppm->primordial_verbose > 0)
-        printf(" (inflationary GWB)\n");
-      
-      class_call(primordial_inflationary_gwb_init(pba,ppt,ppm),
-                ppm->error_message,
-                ppm->error_message);
 
       /** - nothing to calculate for \f$ \Gamma_I \f$ */
     }
@@ -984,7 +952,7 @@ int primordial_init(
   /** - derive spectral parameters from numerically computed GWB energy density
       (also used to calculate the conversion to GWB energy density contrast) */
   
-  if ((ppm->has_OmGW == _TRUE_) && ((ppm->gwb_source_type != analytic_gwb) && (ppm->gwb_source_type != adiabatic_gwb)))  {
+  if ((ppm->has_OmGW == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
 
     dlnf = log(10.)/ppr->f_per_decade_primordial;
 
@@ -4218,6 +4186,71 @@ int primordial_gwb_analytic_spectrum_init(
 }
 
 /**
+ * This routine calculates the GWB generated in an inflationary model.
+ *
+ * @param pba  Input: pointer to background structure
+ * @param ppt  Input: pointer to perturbation structure
+ * @param ppm  Input/output: pointer to primordial structure
+ * @return the error status
+ */
+
+int primordial_inflationary_gwb_init(
+                                    struct background * pba,
+                                    struct perturbations * ppt,
+                                    struct primordial * ppm
+                                    ) {
+  int index_f, index_ic1_ic2;
+  double k, OmGW, lnpkt, transfer2;
+  double *tmp;
+
+  /** - test */
+  class_test(ppm->has_OmGW == _FALSE_,
+             ppm->error_message,
+             "You try to calculate the inflationary_gwb without having a GWB, this should not happen!");
+
+  class_test(ppt->has_tensors == _FALSE_,
+             ppm->error_message,
+             "You try to calculate the inflationary_gwb without having tensor modes, this should not happen!");
+
+  class_test(ppt->tau_ini_gwb > 0.,
+             ppm->error_message,
+             "'tau_ini_gwb=0' is needed for the infaltionary_gwb!");
+  
+  k = 2 * _PI_ * ppm->f_min / _c_ * _Mpc_over_m_;
+  class_test(k < 1. / pba->tau_eq,
+             ppm->error_message,
+             "Some modes reentered during matter domination. CLASS only calculate the case that modes reenter during RD. Choose a f_min > %g Hz.",
+             1. / pba->tau_eq * _c_ / (2 * _PI_) / _Mpc_over_m_
+             );
+
+  /** - calculate \f$ \Omega_\mathrm{GW} \f$ */
+  class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_tensors]*sizeof(double), ppt->error_message);
+  index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ten,ppt->index_ic_ten,ppm->ic_size[ppt->index_md_tensors]);
+  for (index_f = 0; index_f < ppm->lnf_size; index_f++) {
+    k = 2 * _PI_ * exp(ppm->lnf[index_f]) / _c_ * _Mpc_over_m_;
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_tensors,
+                                        logarithmic,
+                                        log(k),
+                                        tmp),
+                ppm->error_message,
+                ppm->error_message);
+    lnpkt = tmp[index_ic1_ic2];
+
+    // T^2 = tau_eq^2 / (2 * tau_0^4)
+    transfer2 = pba->tau_eq*pba->tau_eq / (2. * pba->conformal_age*pba->conformal_age*pba->conformal_age*pba->conformal_age);
+
+    OmGW = 1. / (12. * pba->H0*pba->H0) * transfer2 * exp(lnpkt);
+
+    ppm->lnOmGW[index_f] = log(OmGW);
+  }
+  
+  return _SUCCESS_;
+
+}
+
+/**
  * This routine reads the GWB energy density from an external command,
  * and stores the tabulated values.
  * The sampling of the f's given by the external command is preserved.
@@ -4452,71 +4485,6 @@ int primordial_PBH_omega_gw(
   heaviside = 0.5 * tanh((2*ppm->f_star - f) / width) + 0.5;
 
   *OmGW = ppm->prefactor_OmGW * x*x * (4./(x*x) - 1.)*(4./(x*x) - 1.) * heaviside * I2;
-  
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine calculates the GWB generated in an inflationary model.
- *
- * @param pba  Input: pointer to background structure
- * @param ppt  Input: pointer to perturbation structure
- * @param ppm  Input/output: pointer to primordial structure
- * @return the error status
- */
-
-int primordial_inflationary_gwb_init(
-                                    struct background * pba,
-                                    struct perturbations * ppt,
-                                    struct primordial * ppm
-                                    ) {
-  int index_f, index_ic1_ic2;
-  double k, OmGW, lnpkt, transfer2;
-  double *tmp;
-
-  /** - test */
-  class_test(ppm->has_OmGW == _FALSE_,
-             ppm->error_message,
-             "You try to calculate the inflationary_gwb without having a GWB, this should not happen!");
-
-  class_test(ppt->has_tensors == _FALSE_,
-             ppm->error_message,
-             "You try to calculate the inflationary_gwb without having tensor modes, this should not happen!");
-
-  class_test(ppt->tau_ini_gwb > 0.,
-             ppm->error_message,
-             "'tau_ini_gwb=0' is needed for the infaltionary_gwb!");
-  
-  k = 2 * _PI_ * ppm->f_min / _c_ * _Mpc_over_m_;
-  class_test(k < 1. / pba->tau_eq,
-             ppm->error_message,
-             "Some modes reentered during matter domination. CLASS only calculate the case that modes reenter during RD. Choose a f_min > %g Hz.",
-             1. / pba->tau_eq * _c_ / (2 * _PI_) / _Mpc_over_m_
-             );
-
-  /** - calculate \f$ \Omega_\mathrm{GW} \f$ */
-  class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_tensors]*sizeof(double), ppt->error_message);
-  index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_ten,ppt->index_ic_ten,ppm->ic_size[ppt->index_md_tensors]);
-  for (index_f = 0; index_f < ppm->lnf_size; index_f++) {
-    k = 2 * _PI_ * exp(ppm->lnf[index_f]) / _c_ * _Mpc_over_m_;
-
-    class_call(primordial_spectrum_at_k(ppm,
-                                        ppt->index_md_tensors,
-                                        logarithmic,
-                                        log(k),
-                                        tmp),
-                ppm->error_message,
-                ppm->error_message);
-    lnpkt = tmp[index_ic1_ic2];
-
-    // T^2 = tau_eq^2 / (2 * tau_0^4)
-    transfer2 = pba->tau_eq*pba->tau_eq / (2. * pba->conformal_age*pba->conformal_age*pba->conformal_age*pba->conformal_age);
-
-    OmGW = 1. / (12. * pba->H0*pba->H0) * transfer2 * exp(lnpkt);
-
-    ppm->lnOmGW[index_f] = log(OmGW);
-  }
   
   return _SUCCESS_;
 

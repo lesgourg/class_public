@@ -4430,8 +4430,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
       if (strcmp(string1,"analytic_gwb") == 0){
         ppm->gwb_source_type = analytic_gwb;
       }
-      else if (strcmp(string1,"adiabatic_gwb") == 0){
-        ppm->gwb_source_type = adiabatic_gwb;
+      else if (strcmp(string1,"inflationary_gwb") == 0){
+        ppm->gwb_source_type = inflationary_gwb;
       }
       else if (strcmp(string1,"external_gwb") == 0){
         ppm->gwb_source_type = external_gwb;
@@ -4442,12 +4442,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"PT_gwb") == 0){
         ppm->gwb_source_type = PT_gwb;
       }
-      else if (strcmp(string1,"inflationary_gwb") == 0){
-        ppm->gwb_source_type = inflationary_gwb;
-      }
       else{
         class_stop(errmsg,
-                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, adiabatic_gwb, external_gwb, PBH_gwb, PT_gwb, inflationary_gwb'}.",string1);
+                  "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, inflationary_gwb, external_gwb, PBH_gwb, PT_gwb'}.",string1);
       }
     }
     /* Test */
@@ -4490,8 +4487,17 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /** 2.b.1.3) GWB running */
       class_read_double("alpha_gwb",ppm->alpha_gwb);
 
-      /** 2.b.2) GWB intial perturbations Gamma_I */
-      /** 2.b.2.1) Amplitude */
+      /** 2.b.2) For adiabatic modes */
+      /** 2.b.2.1) Adiabatic IC */
+      /* Standard value */
+      ppm->gwi_adiabatic = -2.;
+      /* Read */
+      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
+      /** 2.b.2.2) Proportionality factor \Xi between \Gamma_I and curvature pertrubation */
+      class_read_double("gwi_scalar",ppm->gwi_scalar);
+
+      /** 2.b.3) Isocurvature mode for \Gamma_I */
+      /** 2.b.3.1) Amplitude */
       /* Read */
       class_call(parser_read_double(pfc,"A_gwi",&param1,&flag1,errmsg),
                  errmsg,
@@ -4510,9 +4516,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (flag2 == _TRUE_){
         ppm->A_gwi = exp(param2)*1.e-10;
       }
-      /** 2.b.2.2) Spectral index */
+      /** 2.b.3.2) Spectral index */
       class_read_double("n_gwi",ppm->n_gwi);
-      /** 2.b.2.3) GWB ini running */
+      /** 2.b.3.3) GWB ini running */
       class_read_double("alpha_gwi",ppm->alpha_gwi);
 
       /** Test */
@@ -4520,7 +4526,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
         ppt->has_gwi = _FALSE_;
       }
 
-      /** 2.b.3) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
+      /** 2.b.3.4) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
       if (ppm->primordial_spec_type == analytic_Pk) {
         /* Read */
         if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_)) {
@@ -4551,40 +4557,26 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
     }
 
-    /** 2.c) For type 'adiabtic_gwb' */
-    if (ppm->gwb_source_type == adiabatic_gwb) {
-      /** 2.c.1) GWB energy density Omega_GW */
-      /** 2.c.1.1) Amplitude */
-      /* Read */
-      class_call(parser_read_double(pfc,"Omega_gwb",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      class_call(parser_read_double(pfc,"ln10^{10}Omega_gwb",&param2,&flag2,errmsg),
-                 errmsg,
-                 errmsg);
+    /** 2.c) For type 'inlfationary_gwb' */
+    if (ppm->gwb_source_type == inflationary_gwb) {
       /* Test */
-      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+      //TODO_GWB: relax tests
+      class_test(ppt->has_omega_gwb == _FALSE_,
                  errmsg,
-                 "You can only enter one of 'Omega_gwb' or 'ln10^{10}Omega_gwb'.");
-      /* Complete set of parameters */
-      if (flag1 == _TRUE_){
-        ppm->Omega_gwb = param1;
-      }
-      else if (flag2 == _TRUE_){
-        ppm->Omega_gwb = exp(param2)*1.e-10;
-      }
-      /** 2.c.1.2) Spectral index */
-      class_read_double("n_gwb",ppm->n_gwb);
-      /** 2.c.1.3) GWB running */
-      class_read_double("alpha_gwb",ppm->alpha_gwb);
+                 "For the inflationary_gwb you ask for OmGW as an output. Otherwise you can use the adiabatic_gwb.");
+      class_test(ppt->has_tensors == _FALSE_,
+                 errmsg,
+                 "For the inflationary_gwb you must activate tensor modes: modes = t (, s).");
+      class_test(ppm->primordial_spec_type != analytic_Pk,
+                 errmsg,
+                 "For the inflationary_gwb you must use 'primordial_spec_type = analytic_Pk'.");
 
-      /** 2.c.2) GWB intial perturbations, gwi_adiabatic */
+      /** 2.e.2) GWB intial perturbations, gwi_adiabatic */
       /* Standard value */
       ppm->gwi_adiabatic = -2.;
       /* Read */
       class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
 
-      /** We need no special gwi mode */
       ppt->has_gwi = _FALSE_;
     }
 
@@ -4655,28 +4647,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
 
       /** 2.f.2) GWB intial perturbations, gwi_adiabatic */
-      /* Standard value */
-      ppm->gwi_adiabatic = -2.;
-      /* Read */
-      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
-
-      ppt->has_gwi = _FALSE_;
-    }
-
-    /** 2.e) For type 'inlfationary_gwb' */
-    if (ppm->gwb_source_type == inflationary_gwb) {
-      /* Test */
-      class_test(ppt->has_omega_gwb == _FALSE_,
-                 errmsg,
-                 "For the inflationary_gwb you ask for OmGW as an output. Otherwise you can use the adiabatic_gwb.");
-      class_test(ppt->has_tensors == _FALSE_,
-                 errmsg,
-                 "For the inflationary_gwb you must activate tensor modes: modes = t (, s).");
-      class_test(ppm->primordial_spec_type != analytic_Pk,
-                 errmsg,
-                 "For the inflationary_gwb you must use 'primordial_spec_type = analytic_Pk'.");
-
-      /** 2.e.2) GWB intial perturbations, gwi_adiabatic */
       /* Standard value */
       ppm->gwi_adiabatic = -2.;
       /* Read */
@@ -6102,14 +6072,19 @@ int input_default_params(struct background *pba,
   ppm->n_gwb = 0.;
   /** 2.b.1.3) GWB running */
   ppm->alpha_gwb = 0.;
-  /** 2.b.2) GWB intial perturbations Gamma_I */
-  /** 2.b.2.1) Amplitude */
+  /** 2.b.2) For adiabatic modes */
+  /** 2.b.2.1) Adiabatic IC, turned it off, if activated standard value is -2. */
+  ppm->gwi_adiabatic = 0.;
+  /** 2.b.2.2) Proportionality factor \Xi between \Gamma_I and curvature pertrubation */
+  ppm->gwi_scalar = 0.;
+  /** 2.b.3) Isocurvature mode for \Gamma_I */
+  /** 2.b.3.1) Amplitude */
   ppm->A_gwi = 0.;
-  /** 2.b.2.2) Spectral index */
+  /** 2.b.3.2) Spectral index */
   ppm->n_gwi = 0.;
-  /** 2.b.2.3) GWB running */
+  /** 2.b.3.3) GWB running */
   ppm->alpha_gwi = 0.;
-  /** 2.b.3) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
+  /** 2.b.3.4) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
   ppm->c_gwi_ad = 0.;
   ppm->n_gwi_ad = 0.;
   ppm->alpha_gwi_ad = 0.;
@@ -6125,10 +6100,6 @@ int input_default_params(struct background *pba,
   ppm->c_gwi_niv = 0.;
   ppm->n_gwi_niv = 0.;
   ppm->alpha_gwi_niv = 0.;
-
-  /** 2.c) For type 'adiabtic_gwb' */
-  /** 2.c.2) gwi_adiabatic, turn it off, if activated standard value is -2. */
-  ppm->gwi_adiabatic = 0.;
 
   /** 2.d) For type 'external_gwb' */
   /** 2.d.1) Command generating the table for Omega_GW */
