@@ -4555,10 +4555,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
     /** 2.c) For type 'inlfationary_gwb' */
     if (ppm->gwb_source_type == inflationary_gwb) {
       /* Test */
-      //TODO_GWB: relax tests
-      class_test(ppt->has_omega_gwb == _FALSE_,
-                 errmsg,
-                 "For the inflationary_gwb you ask for OmGW as an output. Otherwise you can use the adiabatic_gwb.");
       class_test(ppt->has_tensors == _FALSE_,
                  errmsg,
                  "For the inflationary_gwb you must activate tensor modes: modes = t (, s).");

@@ -691,9 +691,13 @@ int primordial_init(
 
       /** - the GWB initial perturbations \Gamma_I is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init */
 
+      class_test(ppt->has_cl_gwb == _FALSE_,
+                 ppm->error_message,
+                 "external GWB module cannot work if you do not ask for gwCl");
+
       class_test(ppm->has_OmGW == _FALSE_,
                  ppm->error_message,
-                 "external GWB module cannot work if you do not ask for Omega_GW");
+                 "external GWB module cannot work if you do not ask for OmeGW");
 
       /** - read the GWB energy density Omega_GW */
       class_call_except(primordial_external_gwb_init(ppr,ppm),
@@ -4219,7 +4223,7 @@ int primordial_inflationary_gwb_init(
   k = 2 * _PI_ * ppm->f_min / _c_ * _Mpc_over_m_;
   class_test(k < 1. / pba->tau_eq,
              ppm->error_message,
-             "Some modes reentered during matter domination. CLASS only calculate the case that modes reenter during RD. Choose a f_min > %g Hz.",
+             "Some modes reentered during matter domination. CLASS only calculate the case that modes reenter during RD. Choose f_min > %g Hz.",
              1. / pba->tau_eq * _c_ / (2 * _PI_) / _Mpc_over_m_
              );
 
