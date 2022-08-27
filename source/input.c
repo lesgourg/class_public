@@ -2270,7 +2270,7 @@ int input_read_parameters_general(struct file_content * pfc,
 
     /** 11.b) Convert GWB to energy density  */
     /* Read */
-    flag1 = _FALSE_;
+    flag1 = _TRUE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
     ppt->convert_gwb_to_energydensity = flag1;
 
@@ -5764,7 +5764,7 @@ int input_default_params(struct background *pba,
   ppt->z_ini_gwb=0.;
   ppt->T_ini_gwb=0.;
   /** 11.b) Convert GWB phase space perturbation to energy density contrast */
-  ppt->convert_gwb_to_energydensity=_FALSE_; //TODO_GWB: change standard behavior!
+  ppt->convert_gwb_to_energydensity=_TRUE_;
   /** 11.c) Fraction of decoupled relativistic particles at GWB production */
   pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
 
