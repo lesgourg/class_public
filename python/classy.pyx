@@ -193,7 +193,7 @@ cdef class Class:
         i = 0
         for kk in self._pars:
 
-            dumcp = kk.encode()
+            dumcp = kk.strip().encode()
             dumc = dumcp
             sprintf(self.fc.name[i],"%s",dumc)
             dumcp = str(self._pars[kk]).strip().encode()
