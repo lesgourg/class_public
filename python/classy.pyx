@@ -21,6 +21,7 @@ import cython
 cimport cython
 from scipy.interpolate import CubicSpline
 from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 
 # Nils : Added for python 3.x and python 2.x compatibility
 import sys
@@ -893,7 +894,6 @@ cdef class Class:
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
-    # [NS] :: TODO :: check optimization
     def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0):
         """ General function to get the P(k,z) for ARBITRARY shapes of k,z
             Additionally, it includes the functionality of selecting wether to use the non-linear parts or not,
@@ -905,18 +905,37 @@ cdef class Class:
         # Example: 3-d k_array with z_axis being the first axis -> z_axis_in_k_arr = 0
         # Example: 3-d k_array with z_axis being the last axis  -> z_axis_in_k_arr = 2
 
+        # 1) Define some utilities
+        # Is the user asking for a valid cdmbar?
+        ispkcb = cdmbar and not (self.ba.Omega0_ncdm_tot == 0.)
 
-        # 1) Select the correct function
-        if nonlinear:
-            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
-                pk_function = self.pk_cb
-            else:
-                pk_function = self.pk
+        # Allocate the temporary k/pk array used during the interaction with the underlying C code
+        cdef np.float64_t[::1] pk_out = np.empty(self.fo.k_size, dtype='float64')
+        k_out = np.asarray(<np.float64_t[:self.fo.k_size]> self.fo.k)
+
+        # Define a function that can write the P(k) for a given z into the pk_out array
+        def _write_pk(z,islinear,ispkcb):
+          if fourier_pk_at_z(&self.ba,&self.fo,linear,(pk_linear if islinear else pk_nonlinear),z,(self.fo.index_pk_cb if ispkcb else self.fo.index_pk_m),&pk_out[0],NULL)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+
+        # Check what kind of non-linear redshift there is
+        if self.fo.index_tau_min_nl != 0 and nonlinear:
+          z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
         else:
-            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
-                pk_function = self.pk_cb_lin
-            else:
-                pk_function = self.pk_lin
+          z_max_nonlinear = -1.
+
+        # Only get the nonlinear function where the nonlinear treatment is possible
+        def _islinear(z):
+          if z > z_max_nonlinear:
+            return True
+          else:
+            return False
+
+        # A simple wrapper for writing the P(k) in the given location and interpolating it
+        def _interpolate_pk_at_z(karr,z):
+          _write_pk(z,_islinear(z),ispkcb)
+          interp_func = interp1d(k_out,pk_out,kind='linear',copy=True)
+          return interp_func(karr)
 
         # 2) Check if z array, or z value
         if not isinstance(z,(list,np.ndarray)):
@@ -924,18 +943,11 @@ cdef class Class:
             if not isinstance(k,(list,np.ndarray)):
                 # Only single z value AND only single k value -> just return a value
                 # This iterates over ALL remaining dimensions
-                return pk_function(k,z)
+                return ((self.pk_cb if ispkcb else self.pk) if not _islinear(z) else (self.pk_cb_lin if ispkcb else self.pk_lin))(k,z)
             else:
                 k_arr = np.array(k)
-                out_pk = np.empty(np.shape(k_arr))
-                iterator = np.nditer(k_arr,flags=['multi_index'])
-                while not iterator.finished:
-                    out_pk[iterator.multi_index] = pk_function(iterator[0],z)
-                    iterator.iternext()
-                # This iterates over ALL remaining dimensions
-                #for index_k in range(k_arr.shape[-1]):
-                #    out_pk[...,index_k] = pk_function(k_arr[...,index_k],z)
-                return out_pk
+                result = _interpolate_pk_at_z(k_arr,z)
+                return result
 
         # 3) An array of z values was passed
         k_arr = np.array(k)
@@ -952,13 +964,7 @@ cdef class Class:
             if( len(k_arr) != len(z_arr) ):
                 raise CosmoSevereError("Mismatching array lengths of the z-array")
             for index_z in range(len(z_arr)):
-                iterator = np.nditer(k_arr[index_z],flags=['multi_index'])
-                while not iterator.finished:
-                    out_pk[index_z][iterator.multi_index] = pk_function(iterator[0],z[index_z])
-                    iterator.iternext()
-                # This iterates over ALL remaining dimensions
-                #for index_k in range(k_arr[index_z].shape[-1]):
-                #    out_pk[index_z][...,index_k] = pk_function(k_arr[index_z][...,index_k],z_arr[index_z])
+                out_pk[index_z] = _interpolate_pk_at_z(k_arr[index_z],z[index_z])
             # Move the z_axis back into position
             k_arr = np.moveaxis(k_arr, 0, z_axis_in_k_arr)
             out_pk = np.moveaxis(out_pk, 0, z_axis_in_k_arr)
@@ -970,13 +976,7 @@ cdef class Class:
                 out_pk = []
                 for index_z in range(len(z_arr)):
                     k_arr_at_z = np.array(k_arr[index_z])
-                    out_pk_at_z = np.empty(np.shape(k_arr_at_z))
-                    iterator = np.nditer(k_arr_at_z,flags=['multi_index'])
-                    while not iterator.finished:
-                        out_pk_at_z[iterator.multi_index] = pk_function(iterator[0],z[index_z])
-                        iterator.iternext()
-                    #for index_k in range(k_arr_at_z.shape[-1]):
-                    #   out_pk_at_z[...,index_k] = pk_function(k_arr_at_z[...,index_k],z_arr[index_z])
+                    out_pk_at_z = _interpolate_pk_at_z(k_arr_at_z,z[index_z])
                     out_pk.append(out_pk_at_z)
                 return out_pk
 
@@ -985,8 +985,7 @@ cdef class Class:
             # Assume thus, that the k array should be reproduced for all z
             out_pk = np.empty((len(z_arr),len(k_arr)))
             for index_z in range(len(z_arr)):
-                for index_k in range(len(k_arr)):
-                    out_pk[index_z,index_k] = pk_function(k_arr[index_k],z_arr[index_z])
+                out_pk[index_z] = _interpolate_pk_at_z(k_arr,z_arr[index_z])
             return out_pk
 
     #################################

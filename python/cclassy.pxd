@@ -490,6 +490,16 @@ cdef extern from "class.h":
         double * output_cb_tot,
         double * output_cb_ic
         )
+    int fourier_pk_at_z(
+        void * pba,
+        void *pfo,
+        int mode,
+        int pk_output,
+        double z,
+        int index_pk,
+        double * out_pk,
+        double * out_pk_ic
+        )
 
     int harmonic_pk_at_k_and_z(
         void* pba,
