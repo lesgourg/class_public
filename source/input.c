@@ -522,6 +522,7 @@ int input_shooting(struct file_content * pfc,
 
   /* array of parameters passed by the user for which we need shooting (= target parameters) */
   char * const target_namestrings[] = {"100*theta_s",
+                                       "theta_s_100",
                                        "Omega_dcdmdr",
                                        "omega_dcdmdr",
                                        "Omega_scf",
@@ -530,6 +531,7 @@ int input_shooting(struct file_content * pfc,
 
   /* array of corresponding parameters that must be adjusted in order to meet the target (= unknown parameters) */
   char * const unknown_namestrings[] = {"h",                        /* unknown param for target '100*theta_s' */
+                                        "h",                        /* unknown param for target 'theta_s_100' */
                                         "Omega_ini_dcdm",           /* unknown param for target 'Omega_dcdmd' */
                                         "Omega_ini_dcdm",           /* unknown param for target 'omega_dcdmdr' */
                                         "scf_shooting_parameter",   /* unknown param for target 'Omega_scf' */
@@ -540,6 +542,7 @@ int input_shooting(struct file_content * pfc,
      to compute the targetted quantities (not running the whole code
      each time to saves a lot of time) */
   enum computation_stage target_cs[] = {cs_thermodynamics, /* computation stage for target '100*theta_s' */
+                                        cs_thermodynamics, /* computation stage for target 'theta_s_100' */
                                         cs_background,     /* computation stage for target 'Omega_dcdmdr' */
                                         cs_background,     /* computation stage for target 'omega_dcdmdr' */
                                         cs_background,     /* computation stage for target 'Omega_scf' */
@@ -1176,6 +1179,7 @@ int input_get_guess(double *xguess,
   for (index_guess=0; index_guess < pfzw->target_size; index_guess++) {
     switch (pfzw->target_name[index_guess]) {
     case theta_s:
+    case theta_s_100:
       xguess[index_guess] = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
       dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
       /** Update pb to reflect guess */
@@ -1422,6 +1426,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
     case theta_s:
+    case theta_s_100:
       output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
       break;
     case Omega_dcdmdr:
@@ -3989,8 +3994,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2;
-  double param1, param2;
+  int flag1, flag2, flag3;
+  double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_ARGUMENT_LENGTH_MAX_];
   double R0,R1,R2,R3,R4;
@@ -4060,19 +4065,25 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_call(parser_read_double(pfc,"A_s",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_read_double(pfc,"ln10^{10}A_s",&param2,&flag2,errmsg),
+      class_call(parser_read_double(pfc,"ln_A_s_1e10",&param2,&flag2,errmsg),
                  errmsg,
                  errmsg);
-      /* Test */
-      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+      /* Deprecated input parameters, read for backwards compatibility) */
+      class_call(parser_read_double(pfc,"ln10^{10}A_s",&param3,&flag3,errmsg),
                  errmsg,
-                 "You can only enter one of 'A_s' or 'ln10^{10}A_s'.");
+                 errmsg);
+      class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+                 errmsg,
+                 "In input file, you can only enter one of {'A_s', 'ln_A_s_1e10', or 'ln10^{10}A_s' (deprecated)}, choose one");
       /* Complete set of parameters */
       if (flag1 == _TRUE_){
         ppm->A_s = param1;
       }
       else if (flag2 == _TRUE_){
         ppm->A_s = exp(param2)*1.e-10;
+      }
+      else if (flag3 == _TRUE_){
+        ppm->A_s = exp(param3)*1.e-10;
       }
 
       /** 1.b.1.1) Adiabatic perturbations */

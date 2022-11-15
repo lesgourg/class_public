@@ -2372,6 +2372,10 @@ cdef class Class:
                 value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
             elif name == '100*theta_star':
                 value = 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
+            elif name == 'theta_s_100':
+                value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+            elif name == 'theta_star_100':
+                value = 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
             elif name == 'YHe':
                 value = self.th.YHe
             elif name == 'n_e':
@@ -2379,6 +2383,8 @@ cdef class Class:
             elif name == 'A_s':
                 value = self.pm.A_s
             elif name == 'ln10^{10}A_s':
+                value = log(1.e10*self.pm.A_s)
+            elif name == 'ln_A_s_1e10':
                 value = log(1.e10*self.pm.A_s)
             elif name == 'n_s':
                 value = self.pm.n_s
