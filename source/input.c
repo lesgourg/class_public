@@ -5850,13 +5850,13 @@ int input_default_params(struct background *pba,
   /** 5) Injection efficiency */
   pin->f_eff_type = f_eff_on_the_spot;
   pin->f_eff = 1.;
-  sprintf(pin->f_eff_file,"/external/heating/example_f_eff_file.dat");
+  sprintf(pin->f_eff_file,"external/heating/example_f_eff_file.dat");
 
   /** 6) Deposition function */
   pin->chi_type = chi_CK;
   /** 6.1) External file */
-  sprintf(pin->chi_z_file,"/external/heating/example_chiz_file.dat");
-  sprintf(pin->chi_x_file,"/external/heating/example_chix_file.dat");
+  sprintf(pin->chi_z_file,"external/heating/example_chiz_file.dat");
+  sprintf(pin->chi_x_file,"external/heating/example_chix_file.dat");
 
   /**
    * Default to input_read_parameters_nonlinear
