@@ -733,6 +733,7 @@ int input_shooting(struct file_content * pfc,
     pba->shooting_failed = shooting_failed;
     if (pba->shooting_failed == _TRUE_) {
       background_free_input(pba);
+      thermodynamics_free_input(pth);
       perturbations_free_input(ppt);
     }
 
@@ -1266,6 +1267,7 @@ int input_get_guess(double *xguess,
 
   /** - Deallocate everything allocated by input_read_parameters */
   background_free_input(&ba);
+  thermodynamics_free_input(&th);
   perturbations_free_input(&pt);
 
   return _SUCCESS_;
@@ -1374,7 +1376,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call_except(background_init(&pr,&ba), ba.error_message, errmsg, background_free_input(&ba);perturbations_free_input(&pt););
+    class_call_except(background_init(&pr,&ba), ba.error_message, errmsg, background_free_input(&ba);thermodynamics_free_input(&th);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -1384,7 +1386,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     th.hyrec_verbose = 0;
-    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba);perturbations_free_input(&pt););
+    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba);thermodynamics_free_input(&th);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
@@ -1496,6 +1498,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
   if (pfzw->required_computation_stage < cs_perturbations) {
     /** Some pointers in ppt may not be allocated if has_perturbations is _FALSE_, but this is handled in perturbations_free_input as neccessary. */
     perturbations_free_input(&pt);
+  }
+  if (pfzw->required_computation_stage < cs_thermodynamics) {
+    thermodynamics_free_input(&th);
   }
   if (pfzw->required_computation_stage < cs_background) {
     background_free_input(&ba);

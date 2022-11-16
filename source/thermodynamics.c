@@ -453,9 +453,54 @@ int thermodynamics_free(
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
 
+  class_call(thermodynamics_free_input(pth),
+             pth->error_message,
+             pth->error_message);
+
   return _SUCCESS_;
 }
+/**
+ * Free all memory space allocated by input.c for the thermodynamics module.
+ *
+ * @param pth Input/Output: pointer to thermodynamics structure (to be freed)
+ * @return the error status
+ */
+int thermodynamics_free_input(
+                        struct thermodynamics * pth
+                        ) {
 
+  switch(pth->reio_parametrization){
+
+  case reio_none:
+  case reio_camb:
+  case reio_half_tanh:
+  default:
+    /* nothing to be read*/
+    break;
+
+  case reio_bins_tanh:
+    /* Read */
+    free(pth->binned_reio_z);
+    free(pth->binned_reio_xe);
+    break;
+
+  case reio_many_tanh:
+    /* Read */
+    free(pth->many_tanh_z);
+    free(pth->many_tanh_xe);
+    break;
+
+    /** 8.d) reionization parameters if reio_parametrization=reio_many_tanh */
+  case reio_inter:
+    /* Read */
+    free(pth->reio_inter_z);
+    free(pth->reio_inter_xe);
+    break;
+
+  }
+
+  return _SUCCESS_;
+}
 /**
  * Infer the primordial helium mass fraction from standard BBN
  * calculations, as a function of the baryon density and expansion

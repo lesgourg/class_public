@@ -519,6 +519,8 @@ extern "C" {
 
   int thermodynamics_free(struct thermodynamics * pth);
 
+  int thermodynamics_free_input(struct thermodynamics * pth);
+
   /* internal functions of the module */
 
   int thermodynamics_helium_from_bbn(struct precision * ppr,
