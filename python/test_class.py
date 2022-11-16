@@ -214,7 +214,7 @@ def powerset(iterable):
 def custom_name_func(testcase_func, param_num, param):
     special_keys = ['N_ncdm']
     somekeys = []
-    for key in param.args[0].keys():
+    for key in param.args[0]:
         if key in special_keys:
             somekeys.append(key)
         elif 'mega' in key:
@@ -340,11 +340,11 @@ class TestClass(unittest.TestCase):
             self.cosmo.state,
             "Class failed to go through all __init__ methods")
         # Depending
-        if 'output' in self.scenario.keys():
+        if 'output' in self.scenario:
             # Positive tests of raw cls
             output = self.scenario['output']
             for elem in output.split():
-                if elem in cl_dict.keys():
+                if elem in cl_dict:
                     for cl_type in cl_dict[elem]:
                         is_density_cl = (elem == 'nCl' or elem == 'sCl')
                         if is_density_cl:
@@ -358,7 +358,7 @@ class TestClass(unittest.TestCase):
                     pk = self.cosmo.pk(0.1, 0)
                     self.assertIsNotNone(pk, "pk returned nothing")
             # Negative tests of output functions
-            if not any([elem in list(cl_dict.keys()) for elem in output.split()]):
+            if not any([elem in cl_dict for elem in output.split()]):
                 # testing absence of any Cl
                 self.assertRaises(CosmoSevereError, self.cosmo.raw_cl, 100)
             if 'mPk' not in output.split():
@@ -401,7 +401,7 @@ class TestClass(unittest.TestCase):
         # If we have tensor modes, we must have one tensor observable,
         # either tCl or pCl.
         if has_tensor(self.scenario):
-            if 'output' not in list(self.scenario.keys()):
+            if 'output' not in self.scenario:
                 should_fail = True
             else:
                 output = self.scenario['output'].split()
@@ -410,8 +410,8 @@ class TestClass(unittest.TestCase):
 
         # If we have specified lensing, we must have lCl in output,
         # otherwise lensing will not be read (which is an error).
-        if 'lensing' in list(self.scenario.keys()):
-            if 'output' not in list(self.scenario.keys()):
+        if 'lensing' in self.scenario:
+            if 'output' not in self.scenario:
                 should_fail = True
             else:
                 output = self.scenario['output'].split()
@@ -421,14 +421,14 @@ class TestClass(unittest.TestCase):
                     should_fail = True
 
         # If we have specified a tensor method, we must have tensors.
-        if 'tensor method' in list(self.scenario.keys()):
+        if 'tensor method' in self.scenario:
             if not has_tensor(self.scenario):
                 should_fail = True
 
         # If we have specified non linear, we must have some form of
         # perturbations output.
-        if 'non linear' in list(self.scenario.keys()):
-            if 'output' not in list(self.scenario.keys()):
+        if 'non linear' in self.scenario:
+            if 'output' not in self.scenario:
                 should_fail = True
 
         # If we ask for Cl's of lensing potential, number counts or cosmic shear, we must have scalar modes.
@@ -442,16 +442,16 @@ class TestClass(unittest.TestCase):
 
         # If we specify initial conditions (for scalar modes), we must have
         # perturbations and scalar modes.
-        if 'ic' in list(self.scenario.keys()):
-            if 'modes' in list(self.scenario.keys()) and self.scenario['modes'].find('s') == -1:
+        if 'ic' in self.scenario:
+            if 'modes' in self.scenario and self.scenario['modes'].find('s') == -1:
                 should_fail = True
-            if 'output' not in list(self.scenario.keys()):
+            if 'output' not in self.scenario:
                 should_fail = True
 
         # If we use inflation module, we must have scalar modes,
         # tensor modes, no vector modes and we should only have adiabatic IC:
-        if 'P_k_ini type' in list(self.scenario.keys()) and self.scenario['P_k_ini type'].find('inflation') != -1:
-            if 'modes' not in list(self.scenario.keys()):
+        if 'P_k_ini type' in self.scenario and self.scenario['P_k_ini type'].find('inflation') != -1:
+            if 'modes' not in self.scenario:
                 should_fail = True
             else:
                 if self.scenario['modes'].find('s') == -1:
@@ -460,7 +460,7 @@ class TestClass(unittest.TestCase):
                     should_fail = True
                 if self.scenario['modes'].find('t') == -1:
                     should_fail = True
-            if 'ic' in list(self.scenario.keys()) and self.scenario['ic'].find('i') != -1:
+            if 'ic' in self.scenario and self.scenario['ic'].find('i') != -1:
                 should_fail = True
 
 
@@ -483,7 +483,7 @@ class TestClass(unittest.TestCase):
                     if key[0] == key[1]:
                         # If it is a 'dd' or 'll', it is a dictionary.
                         if isinstance(value, dict):
-                            for subkey in list(value.keys()):
+                            for subkey in value:
                                 try:
                                     np.testing.assert_allclose(
                                         value[subkey],
@@ -519,7 +519,7 @@ class TestClass(unittest.TestCase):
                             self.cl_faulty_plot(elem + "_" + key, value[2:], reference_name, to_test[key][2:], candidate_name, rtol_cl)
                             status_pass = False
 
-        if 'output' in list(self.scenario.keys()):
+        if 'output' in self.scenario:
             if self.scenario['output'].find('mPk') != -1:
                 # testing equality of Pk
                 k = np.logspace(-2, log10(self.scenario['P_k_max_1/Mpc']), 50)
@@ -599,7 +599,7 @@ class TestClass(unittest.TestCase):
         self.store_ini_file(path)
 
 def has_tensor(input_dict):
-    if 'modes' in list(input_dict.keys()):
+    if 'modes' in input_dict:
         if input_dict['modes'].find('t') != -1:
             return True
     else:
