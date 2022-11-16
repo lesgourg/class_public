@@ -129,7 +129,7 @@ int fourier_pk_at_z(
     if (ln_tau <= pfo->ln_tau[0]) {
 
       /** --> if ln(tau) much too small, raise an error */
-      class_test(ln_tau<pfo->ln_tau[0]-_EPSILON_,
+      class_test(ln_tau<pfo->ln_tau[0]-100.*_EPSILON_,
                  pfo->error_message,
                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
 

@@ -855,9 +855,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
@@ -866,9 +866,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
@@ -877,9 +877,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
@@ -888,9 +888,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
@@ -1041,7 +1041,7 @@ cdef class Class:
         if self.fo.ln_tau_size == 1:
             raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
         else:
-            for index_tau in xrange(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
+            for index_tau in range(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
                 if index_tau == self.fo.ln_tau_size-self.fo.index_ln_tau_pk-1:
                     z[index_tau] = 0.
                 else:
@@ -1072,13 +1072,13 @@ cdef class Class:
         else:
             units=1
 
-        for index_k in xrange(self.fo.k_size_pk):
+        for index_k in range(self.fo.k_size_pk):
             k[index_k] = self.fo.k[index_k]*units
 
         # get P(k,z) array
 
-        for index_tau in xrange(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
-            for index_k in xrange(self.fo.k_size_pk):
+        for index_tau in range(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
+            for index_k in range(self.fo.k_size_pk):
                 if nonlinear == True:
                     pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][(index_tau+self.fo.index_ln_tau_pk) * self.fo.k_size + index_k])
                 else:
@@ -1161,7 +1161,7 @@ cdef class Class:
         if z_size == 1:
             raise CosmoSevereError("You ask classy to return an array of T_x(k,z) values, but the input parameters sent to CLASS did not require any transfer function calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
         else:
-            for index_tau in xrange(z_size):
+            for index_tau in range(z_size):
                 if index_tau == z_size-1:
                     z[index_tau] = 0.
                 else:
@@ -1175,7 +1175,7 @@ cdef class Class:
             units=1
 
         k_size = self.pt.k_size_pk
-        for index_k in xrange(k_size):
+        for index_k in range(k_size):
             k[index_k] = self.pt.k[index_md][index_k]*units
 
         # create output dictionary
@@ -1190,14 +1190,14 @@ cdef class Class:
 
         # get T(k,z) array
 
-        for index_tau in xrange(z_size):
+        for index_tau in range(z_size):
 
             if perturbations_output_data_at_index_tau(&self.ba, &self.pt, outf, index_tau+self.pt.index_ln_tau_pk, number_of_titles, data)==_FAILURE_:
                 raise CosmoSevereError(self.pt.error_message)
 
             for index_type,name in enumerate(names):
                 if index_type > 0:
-                    for index_k in xrange(k_size):
+                    for index_k in range(k_size):
                         tk[name][index_k, index_tau] = data[index_k*number_of_titles+index_type]
 
         free(data)
@@ -1614,10 +1614,12 @@ cdef class Class:
                 raise CosmoSevereError("You asked for f(k,z) at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
             # create array of zs in growing z order (decreasing tau order)
             z_array = np.empty(self.fo.ln_tau_size)
-            for i in xrange(self.fo.ln_tau_size):
-                z_array[i] = self.z_of_tau(np.exp(self.fo.ln_tau[self.fo.ln_tau_size-1-i]))
-            # due to interpolation errors, z_array[0] might be different from zero; round it to its true value.
+            # first redshift is exactly zero
             z_array[0]=0.
+            # next values can be inferred from ln_tau table
+            if (self.fo.ln_tau_size>1):
+                for i in range(1,self.fo.ln_tau_size):
+                    z_array[i] = self.z_of_tau(np.exp(self.fo.ln_tau[self.fo.ln_tau_size-1-i]))
         else:
             raise CosmoSevereError("You asked for the scale-dependent growth factor: this requires numerical derivation of P(k,z) w.r.t z, and thus passing a non-zero input parameter z_max_pk")
 
@@ -1910,7 +1912,7 @@ cdef class Class:
                 raise CosmoSevereError(self.ba.error_message)
 
             rho_ncdm = 0.
-            for n in xrange(self.ba.N_ncdm):
+            for n in range(self.ba.N_ncdm):
                 rho_ncdm += pvecback[self.ba.index_bg_rho_ncdm1+n]
             Om_ncdm = rho_ncdm/pvecback[self.ba.index_bg_rho_crit]
 
