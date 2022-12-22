@@ -197,10 +197,14 @@ else
 endif
 	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
 	rm python/autosetup.py
+	rm -rf $(MDIR)/python/classy.egg-info
+	rm -rf $(MDIR)/python/dist
 
 clean: .base
 	rm -rf $(WRKDIR);
 	rm -f libclass.a
 	rm -f $(MDIR)/python/classy.c
 	rm -rf $(MDIR)/python/build
+	rm -rf $(MDIR)/python/classy.egg-info
+	rm -rf $(MDIR)/python/dist
 	rm -f python/autosetup.py
