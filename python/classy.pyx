@@ -1166,6 +1166,9 @@ cdef class Class:
     def n_s(self):
         return self.pm.n_s
 
+    def n_gwb(self):
+        return self.pm.n_gwb
+
     def tau_reio(self):
         return self.th.tau_reio
 
