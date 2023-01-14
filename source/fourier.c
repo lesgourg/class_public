@@ -129,7 +129,7 @@ int fourier_pk_at_z(
     if (ln_tau <= pfo->ln_tau[0]) {
 
       /** --> if ln(tau) much too small, raise an error */
-      class_test(ln_tau<pfo->ln_tau[0]-_EPSILON_,
+      class_test(ln_tau<pfo->ln_tau[0]-100.*_EPSILON_,
                  pfo->error_message,
                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
 
@@ -493,17 +493,17 @@ int fourier_pk_at_k_and_z(
       // uncomment this part if you prefer a linear interpolation
 
       /*
-      class_call(array_interpolate_linear(pfo->ln_k,
-                                            pfo->k_size,
-                                            out_pk_at_z,
-                                            1,
-                                            log(k),
-                                            &last_index,
-                                            out_pk,
-                                            1,
-                                            pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
+        class_call(array_interpolate_linear(pfo->ln_k,
+        pfo->k_size,
+        out_pk_at_z,
+        1,
+        log(k),
+        &last_index,
+        out_pk,
+        1,
+        pfo->error_message),
+        pfo->error_message,
+        pfo->error_message);
       */
 
       /** --> convert from logarithmic to linear format */
@@ -636,7 +636,7 @@ int fourier_pk_at_k_and_z(
       if (do_ic == _TRUE_) {
         for (index_ic1_ic2=0; index_ic1_ic2<pfo->ic_ic_size; index_ic1_ic2++) {
           out_pk_ic[index_ic1_ic2] *= (k*pk_primordial_k[index_ic1_ic2]
-                                     /kmin/pk_primordial_kmin[index_ic1_ic2]);
+                                       /kmin/pk_primordial_kmin[index_ic1_ic2]);
         }
       }
 
@@ -855,7 +855,7 @@ int fourier_pks_at_kvec_and_zvec(
 
   /** - Loop over first k values. If k<kmin, fill output with zeros. If not, go to next step. */
 
-  for(index_kvec = 0; index_kvec<kvec_size; index_kvec++){
+  for (index_kvec = 0; index_kvec<kvec_size; index_kvec++){
 
     /* check whether one should go to next step */
     if (ln_kvec[index_kvec] >= pfo->ln_k[0])
@@ -1219,7 +1219,7 @@ int fourier_init(
   struct fourier_workspace * pnw;
 
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
-        from the perturbations structure to the fourier structure */
+      from the perturbations structure to the fourier structure */
   pfo->has_pk_matter = ppt->has_pk_matter;
 
   /** - preliminary tests */
@@ -1255,8 +1255,8 @@ int fourier_init(
           fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
     }
-    if (pba->has_idm_dr == _TRUE_){
-      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
+    if ((pba->has_idm == _TRUE_) && (ppt->perturbations_verbose > 0)){
+      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm), which makes the use of Halofit or HMCode unreliable.\n");
     }
   }
 
@@ -1310,8 +1310,8 @@ int fourier_init(
 
 
       /** --> if interpolation of \f$P(k,\tau)\f$ will be needed (as a
-     function of tau), compute array of second derivatives in view of
-     spline interpolation */
+          function of tau), compute array of second derivatives in view of
+          spline interpolation */
 
       if (pfo->ln_tau_size > 1) {
 
@@ -1339,8 +1339,8 @@ int fourier_init(
   }
 
   /** - compute and store sigma8 (variance of density fluctuations in
-        spheres of radius 8/h Mpc at z=0, always computed by
-        convention using the linear power spectrum) */
+      spheres of radius 8/h Mpc at z=0, always computed by
+      convention using the linear power spectrum) */
 
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
 
@@ -1427,8 +1427,8 @@ int fourier_init(
     }
 
     /** --> Loop over decreasing time/growing redhsift. For each
-            time/redshift, compute P_NL(k,z) using either Halofit or
-            HMcode */
+        time/redshift, compute P_NL(k,z) using either Halofit or
+        HMcode */
 
     /* this flag will become _TRUE_ at the minimum redshift such that
        the non-lienar corrections cannot be consistently computed */
@@ -1562,7 +1562,7 @@ int fourier_init(
               /* redshift (remeber that a in the code stands for (a/a_0)) */
               z = 1./a-1.;
               fprintf(stdout,
-                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or fourier_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
+                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase the precision parameter nonlinear_min_k_max (currently at %e) until k_NL can be computed at the desired z.\n",z,ppr->nonlinear_min_k_max);
 
               free(pvecback);
             }
@@ -1686,7 +1686,7 @@ int fourier_free(
   if (pfo->method > nl_none) {
 
     free(pfo->tau);
-    for(index_pk=0;index_pk<pfo->pk_size;index_pk++){
+    for (index_pk=0;index_pk<pfo->pk_size;index_pk++){
       free(pfo->nl_corr_density[index_pk]);
       free(pfo->k_nl[index_pk]);
       free(pfo->ln_pk_nl[index_pk]);
@@ -1719,7 +1719,7 @@ int fourier_free(
  * @param ppm Input: pointer to primordial structure
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
-*/
+ */
 
 int fourier_indices(
                     struct precision *ppr,
@@ -1741,10 +1741,10 @@ int fourier_indices(
     pfo->is_non_zero[index_ic1_ic2] = ppm->is_non_zero[pfo->index_md_scalars][index_ic1_ic2];
 
   /** - define flags indices for pk types (_m, _cb). Note: due to some
-     dependencies in HMcode, when pfo->index_pk_cb exists, it must
-     come first (e.g. the calculation of the non-linear P_m depends on
-     sigma_cb so the cb-related quantitites must be evaluated
-     first) */
+      dependencies in HMcode, when pfo->index_pk_cb exists, it must
+      come first (e.g. the calculation of the non-linear P_m depends on
+      sigma_cb so the cb-related quantitites must be evaluated
+      first) */
 
   pfo->has_pk_m = _TRUE_;
   if (pba->has_ncdm == _TRUE_) {
@@ -1793,7 +1793,7 @@ int fourier_indices(
   }
 
   /** - if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
-     compute also the array of second derivatives in view of spline interpolation */
+      compute also the array of second derivatives in view of spline interpolation */
 
   if (pfo->ln_tau_size > 1) {
 
@@ -1811,8 +1811,8 @@ int fourier_indices(
   class_alloc(pfo->sigma8,pfo->pk_size*sizeof(double*),pfo->error_message);
 
   /** - if non-linear computations needed, allocate array of
-        non-linear correction ratio R_nl(k,z), k_nl(z) and P_nl(k,z)
-        for each P(k) type */
+      non-linear correction ratio R_nl(k,z), k_nl(z) and P_nl(k,z)
+      for each P(k) type */
 
   if (pfo->method > nl_none) {
 
@@ -1849,7 +1849,7 @@ int fourier_indices(
  * @param ppt Input: pointer to perturbation structure
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
-*/
+ */
 
 int fourier_get_k_list(
                        struct precision *ppr,
@@ -1862,6 +1862,7 @@ int fourier_get_k_list(
   int index_k;
 
   pfo->k_size = ppt->k_size[pfo->index_md_scalars];
+  pfo->k_size_pk = ppt->k_size_pk;
   k_max = ppt->k[pfo->index_md_scalars][pfo->k_size-1];
 
   /** - if k extrapolation necessary, compute number of required extra values */
@@ -1910,7 +1911,7 @@ int fourier_get_k_list(
  * @param ppt Input: pointer to perturbation structure
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
-*/
+ */
 
 int fourier_get_tau_list(
                          struct perturbations * ppt,
@@ -1921,6 +1922,7 @@ int fourier_get_tau_list(
 
   /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
   pfo->ln_tau_size = ppt->ln_tau_size;
+  pfo->index_ln_tau_pk = ppt->index_ln_tau_pk;
 
   if (ppt->ln_tau_size > 1) {
 
@@ -2953,7 +2955,7 @@ int fourier_halofit(
       alpha=fabs(6.0835+1.3373*rneff-0.1959*rneff*rneff-5.5274*rncur);
       beta=2.0379-0.7354*rneff+0.3157*pow(rneff,2)+1.2490*pow(rneff,3)+0.3980*pow(rneff,4)-0.1682*rncur + fnu*(1.081 + 0.395*pow(rneff,2));
 
-      if(fabs(1-Omega_m)>0.01) { /*then omega evolution */
+      if (fabs(1-Omega_m)>0.01) { /*then omega evolution */
         f1a=pow(Omega_m,(-0.0732));
         f2a=pow(Omega_m,(-0.1423));
         f3a=pow(Omega_m,(0.0725));
@@ -3626,8 +3628,8 @@ int fourier_hmcode_workspace_init(
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
     class_alloc(pnw->sigma_8[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
     class_alloc(pnw->sigma_disp[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
-        class_alloc(pnw->sigma_disp_100[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
-        class_alloc(pnw->sigma_prime[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
+    class_alloc(pnw->sigma_disp_100[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
+    class_alloc(pnw->sigma_prime[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
   }
 
   /** - fill table with scale independent growth factor */

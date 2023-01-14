@@ -1354,7 +1354,7 @@ int harmonic_compute_cl(
 
 }
 
-  /* deprecated functions (since v2.8) */
+/* deprecated functions (since v2.8) */
 
 /**
  * Matter power spectrum for arbitrary redshift and for all initial conditions.
@@ -1680,7 +1680,7 @@ int harmonic_sigma_cb(
   return _SUCCESS_;
 }
 
-  /* deprecated functions (since v2.1) */
+/* deprecated functions (since v2.1) */
 
 /**
  * Obsolete function, superseeded by perturbations_sources_at_tau()
@@ -1735,4 +1735,4 @@ int harmonic_tk_at_k_and_z(
 
 }
 
-  /* end deprecated functions */
+/* end deprecated functions */

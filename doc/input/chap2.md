@@ -99,7 +99,7 @@ Author: Julien Lesgourgues
 
      Phys.Rev.D 102 (2020) 2, 023511
 
-    plus also some latex notes on specific sectors:
+    Plus also some latex notes on specific sectors:
 
     - *Equations for perturbed recombination*
 
@@ -116,3 +116,23 @@ Author: Julien Lesgourgues
      T. Tram.
 
      http://lesgourg.github.io/class_public/PPF_formalism.pdf
+
+    Interactions between idm and idr are modelled by the ETHOS formalism of Cyr-Racine et al. [1512.05344]. This was introduced in Class v2.9 with a parametrisation described in
+
+    - *Constraining Dark Matter-Dark Radiation interactions with CMB, BAO, and Lyman-alpha*
+
+     M. Archidiacono, D. C. Hooper, R. Murgia, S. Bohr, J. Lesgourgues, M. Viel
+
+     http://arxiv.org/abs/1907.01496 [astro-ph.CO]
+
+     JCAP 10 (2019) 055
+
+    In Class v3.2, this sector has been generalised to multi-interacting dark matter with three interaction channels (dark radiation, baryons, photons) and a parametrisation described in
+
+    - *Cosmological constraints on multi-interacting dark matter*
+
+     N. Becker, D. C. Hooper,F. Kahlhoefer, J. Lesgourgues, N. Schöneberg
+
+     http://arxiv.org/abs/2010.04074 [astro-ph.CO]
+
+     JCAP 02 (2021) 019
