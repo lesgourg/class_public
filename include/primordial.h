@@ -147,6 +147,10 @@ struct primordial {
   double n_ad_niv; /**< ADxNIV cross-correlation tilt */
   double alpha_ad_niv; /**< ADxNIV cross-correlation running */
 
+  double c_ad_gwi; /**< ADxGWI cross-correlation at pivot scale, from -1 to 1 */
+  double n_ad_gwi; /**< ADxGWI cross-correlation tilt */
+  double alpha_ad_gwi; /**< ADxGWI cross-correlation running */
+
   double c_bi_cdi; /**< BIxCDI cross-correlation at pivot scale, from -1 to 1 */
   double n_bi_cdi; /**< BIxCDI cross-correlation tilt */
   double alpha_bi_cdi; /**< BIxCDI cross-correlation running */
@@ -159,6 +163,10 @@ struct primordial {
   double n_bi_niv; /**< BIxNIV cross-correlation tilt */
   double alpha_bi_niv; /**< BIxNIV cross-correlation running */
 
+  double c_bi_gwi; /**< BIxGWI cross-correlation at pivot scale, from -1 to 1 */
+  double n_bi_gwi; /**< BIxGWI cross-correlation tilt */
+  double alpha_bi_gwi; /**< BIxGWI cross-correlation running */
+
   double c_cdi_nid; /**< CDIxNID cross-correlation at pivot scale, from -1 to 1 */
   double n_cdi_nid; /**< CDIxNID cross-correlation tilt */
   double alpha_cdi_nid; /**< CDIxNID cross-correlation running */
@@ -167,30 +175,21 @@ struct primordial {
   double n_cdi_niv; /**< CDIxNIV cross-correlation tilt */
   double alpha_cdi_niv; /**< CDIxNIV cross-correlation running */
 
+  double c_cdi_gwi; /**< CDIxGWI cross-correlation at pivot scale, from -1 to 1 */
+  double n_cdi_gwi; /**< CDIxGWI cross-correlation tilt */
+  double alpha_cdi_gwi; /**< CDIxGWI cross-correlation running */
+
   double c_nid_niv; /**< NIDxNIV cross-correlation at pivot scale, from -1 to 1 */
   double n_nid_niv; /**< NIDxNIV cross-correlation tilt */
   double alpha_nid_niv; /**< NIDxNIV cross-correlation running */
 
-// TODO: refactor gwi_ad -> ad_gwi, ...
-  double c_gwi_ad; /**< GWBxAD cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_ad; /**< GWBxAD cross-correlation tilt */
-  double alpha_gwi_ad; /**< GWBxAD cross-correlation running */
+  double c_nid_gwi; /**< NIDxGWI cross-correlation at pivot scale, from -1 to 1 */
+  double n_nid_gwi; /**< NIDxGWI cross-correlation tilt */
+  double alpha_nid_gwi; /**< NIDxGWI cross-correlation running */
 
-  double c_gwi_bi; /**< GWBxBI cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_bi; /**< GWBxBI cross-correlation tilt */
-  double alpha_gwi_bi; /**< GWBxBI cross-correlation running */
-
-  double c_gwi_cdi; /**< GWBxCDI cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_cdi; /**< GWBxCDI cross-correlation tilt */
-  double alpha_gwi_cdi; /**< GWBxCDI cross-correlation running */
-
-  double c_gwi_nid; /**< GWBxNID cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_nid; /**< GWBxNID cross-correlation tilt */
-  double alpha_gwi_nid; /**< GWBxNID cross-correlation running */
-
-  double c_gwi_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_niv; /**< GWBxNIV cross-correlation tilt */
-  double alpha_gwi_niv; /**< GWBxNIV cross-correlation running */
+  double c_niv_gwi; /**< NIVxGWI cross-correlation at pivot scale, from -1 to 1 */
+  double n_niv_gwi; /**< NIVxGWI cross-correlation tilt */
+  double alpha_niv_gwi; /**< NIVxGWI cross-correlation running */
 
   /** parameters describing the case primordial_spec_type = inflation_V */
 

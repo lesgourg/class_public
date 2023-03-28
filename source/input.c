@@ -4283,6 +4283,11 @@ int input_read_parameters_primordial(struct file_content * pfc,
         class_read_double_one_of_two("n_ad_niv","n_niv_ad",ppm->n_ad_niv);
         class_read_double_one_of_two("alpha_ad_niv","alpha_niv_ad",ppm->alpha_ad_niv);
       }
+      if ((ppt->has_ad == _TRUE_) && (ppt->has_gwi == _TRUE_)) {
+        class_read_double_one_of_two("c_ad_gwi","c_gwi_ad",ppm->c_ad_gwi);
+        class_read_double_one_of_two("n_ad_gwi","n_gwi_ad",ppm->n_ad_gwi);
+        class_read_double_one_of_two("alpha_ad_gwi","alpha_gwi_ad",ppm->alpha_ad_gwi);
+      }
       if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
         class_read_double_one_of_two("c_bi_cdi","c_cdi_bi",ppm->c_bi_cdi);
         class_read_double_one_of_two("n_bi_cdi","n_cdi_bi",ppm->n_bi_cdi);
@@ -4298,6 +4303,11 @@ int input_read_parameters_primordial(struct file_content * pfc,
         class_read_double_one_of_two("n_bi_niv","n_niv_bi",ppm->n_bi_niv);
         class_read_double_one_of_two("alpha_bi_niv","alpha_niv_bi",ppm->alpha_bi_niv);
       }
+      if ((ppt->has_bi == _TRUE_) && (ppt->has_gwi == _TRUE_)) {
+        class_read_double_one_of_two("c_bi_gwi","c_gwi_bi",ppm->c_bi_gwi);
+        class_read_double_one_of_two("n_bi_gwi","n_gwi_bi",ppm->n_bi_gwi);
+        class_read_double_one_of_two("alpha_bi_gwi","alpha_gwi_bi",ppm->alpha_bi_gwi);
+      }
       if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
         class_read_double_one_of_two("c_cdi_nid","c_nid_cdi",ppm->c_cdi_nid);
         class_read_double_one_of_two("n_cdi_nid","n_nid_cdi",ppm->n_cdi_nid);
@@ -4308,36 +4318,25 @@ int input_read_parameters_primordial(struct file_content * pfc,
         class_read_double_one_of_two("n_cdi_niv","n_niv_cdi",ppm->n_cdi_niv);
         class_read_double_one_of_two("alpha_cdi_niv","alpha_niv_cdi",ppm->alpha_cdi_niv);
       }
+      if ((ppt->has_cdi == _TRUE_) && (ppt->has_gwi == _TRUE_)) {
+        class_read_double_one_of_two("c_cdi_gwi","c_gwi_cdi",ppm->c_cdi_gwi);
+        class_read_double_one_of_two("n_cdi_gwi","n_gwi_cdi",ppm->n_cdi_gwi);
+        class_read_double_one_of_two("alpha_cdi_gwi","alpha_gwi_cdi",ppm->alpha_cdi_gwi);
+      }
       if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_)) {
         class_read_double_one_of_two("c_nid_niv","c_niv_nid",ppm->c_nid_niv);
         class_read_double_one_of_two("n_nid_niv","n_niv_nid",ppm->n_nid_niv);
         class_read_double_one_of_two("alpha_nid_niv","alpha_niv_nid",ppm->alpha_nid_niv);
       }
-      //TODO: Refactor c_gwi_ad -> c_ad_gwi
-      if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_)) {
-        class_read_double_one_of_two("c_gwi_ad","c_ad_gwi",ppm->c_gwi_ad);
-        class_read_double_one_of_two("n_gwi_ad","n_ad_gwi",ppm->n_gwi_ad);
-        class_read_double_one_of_two("alpha_gwi_ad","alpha_ad_gwi",ppm->alpha_gwi_ad);
+      if ((ppt->has_nid == _TRUE_) && (ppt->has_gwi == _TRUE_)) {
+        class_read_double_one_of_two("c_nid_gwi","c_gwi_nid",ppm->c_nid_gwi);
+        class_read_double_one_of_two("n_nid_gwi","n_gwi_nid",ppm->n_nid_gwi);
+        class_read_double_one_of_two("alpha_nid_gwi","alpha_gwi_nid",ppm->alpha_nid_gwi);
       }
-      if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_)) {
-        class_read_double_one_of_two("c_gwi_bi","c_bi_gwi",ppm->c_gwi_bi);
-        class_read_double_one_of_two("n_gwi_bi","n_bi_gwi",ppm->n_gwi_bi);
-        class_read_double_one_of_two("alpha_gwi_bi","alpha_bi_gwi",ppm->alpha_gwi_bi);
-      }
-      if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
-        class_read_double_one_of_two("c_gwi_cdi","c_cdi_gwi",ppm->c_gwi_cdi);
-        class_read_double_one_of_two("n_gwi_cdi","n_cdi_gwi",ppm->n_gwi_cdi);
-        class_read_double_one_of_two("alpha_gwi_cdi","alpha_cdi_gwi",ppm->alpha_gwi_cdi);
-      }
-      if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
-        class_read_double_one_of_two("c_gwi_nid","c_nid_gwi",ppm->c_gwi_nid);
-        class_read_double_one_of_two("n_gwi_nid","n_nid_gwi",ppm->n_gwi_nid);
-        class_read_double_one_of_two("alpha_gwi_nid","alpha_nid_gwi",ppm->alpha_gwi_nid);
-      }
-      if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_)) {
-        class_read_double_one_of_two("c_gwi_niv","c_niv_gwi",ppm->c_gwi_niv);
-        class_read_double_one_of_two("n_gwi_niv","n_niv_gwi",ppm->n_gwi_niv);
-        class_read_double_one_of_two("alpha_gwi_niv","alpha_niv_gwi",ppm->alpha_gwi_niv);
+      if ((ppt->has_niv == _TRUE_) && (ppt->has_gwi == _TRUE_)) {
+        class_read_double_one_of_two("c_niv_gwi","c_gwi_niv",ppm->c_niv_gwi);
+        class_read_double_one_of_two("n_niv_gwi","n_gwi_niv",ppm->n_niv_gwi);
+        class_read_double_one_of_two("alpha_niv_gwi","alpha_gwi_niv",ppm->alpha_niv_gwi);
       }
     }
 
@@ -6276,6 +6275,9 @@ int input_default_params(struct background *pba,
   ppm->c_ad_niv = 0.;
   ppm->n_ad_niv = 0.;
   ppm->alpha_ad_niv = 0.;
+  ppm->c_ad_gwi = 0.;
+  ppm->n_ad_gwi = 0.;
+  ppm->alpha_ad_gwi = 0.;
   ppm->c_bi_cdi = 0.;
   ppm->n_bi_cdi = 0.;
   ppm->alpha_bi_cdi = 0.;
@@ -6285,31 +6287,27 @@ int input_default_params(struct background *pba,
   ppm->c_bi_niv = 0.;
   ppm->n_bi_niv = 0.;
   ppm->alpha_bi_niv = 0.;
+  ppm->c_bi_gwi = 0.;
+  ppm->n_bi_gwi = 0.;
+  ppm->alpha_bi_gwi = 0.;
   ppm->c_cdi_nid = 0.;
   ppm->n_cdi_nid = 0.;
   ppm->alpha_cdi_nid = 0.;
   ppm->c_cdi_niv = 0.;
   ppm->n_cdi_niv = 0.;
   ppm->alpha_cdi_niv = 0.;
+  ppm->c_cdi_gwi = 0.;
+  ppm->n_cdi_gwi = 0.;
+  ppm->alpha_cdi_gwi = 0.;
   ppm->c_nid_niv = 0.;
   ppm->n_nid_niv = 0.;
   ppm->alpha_nid_niv = 0.;
-  //TODO: Refactor
-  ppm->c_gwi_ad = 0.;
-  ppm->n_gwi_ad = 0.;
-  ppm->alpha_gwi_ad = 0.;
-  ppm->c_gwi_bi = 0.;
-  ppm->n_gwi_bi = 0.;
-  ppm->alpha_gwi_bi = 0.;
-  ppm->c_gwi_cdi = 0.;
-  ppm->n_gwi_cdi = 0.;
-  ppm->alpha_gwi_cdi = 0.;
-  ppm->c_gwi_nid = 0.;
-  ppm->n_gwi_nid = 0.;
-  ppm->alpha_gwi_nid = 0.;
-  ppm->c_gwi_niv = 0.;
-  ppm->n_gwi_niv = 0.;
-  ppm->alpha_gwi_niv = 0.;
+  ppm->c_nid_gwi = 0.;
+  ppm->n_nid_gwi = 0.;
+  ppm->alpha_nid_gwi = 0.;
+  ppm->c_niv_gwi = 0.;
+  ppm->n_niv_gwi = 0.;
+  ppm->alpha_niv_gwi = 0.;
   /** 1.b.2) For tensor perturbations */
   ppm->r = 1.;
   ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);

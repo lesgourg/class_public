@@ -466,6 +466,13 @@ int output_cl(
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNIV mode");
             }
 
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_gwi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_ad_gwi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxGWI mode");
+            }
+
             if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
                 (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
 
@@ -487,6 +494,13 @@ int output_cl(
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNIV mode");
             }
 
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_gwi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_bi_gwi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxGWI mode");
+            }
+
             if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
                 (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
 
@@ -501,6 +515,13 @@ int output_cl(
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNIV mode");
             }
 
+            if ((ppt->has_cdi == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_gwi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_cdi_gwi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxGWI mode");
+            }
+
             if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
                 (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
 
@@ -508,7 +529,13 @@ int output_cl(
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross NIDxNIV mode");
             }
 
-            //TODO: Cross correlations
+            if ((ppt->has_niv == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_gwi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_niv_gwi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross NIVxGWI mode");
+            }
+
 
           }
 

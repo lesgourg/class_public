@@ -1273,6 +1273,14 @@ int primordial_analytic_spectrum_init(
             one_running = ppm->alpha_ad_niv;
           }
 
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_ad)) && (index_ic1 == ppt->index_ic_gwi))) {
+            one_correlation = ppm->c_ad_gwi;
+            one_tilt = ppm->n_ad_gwi;
+            one_running = ppm->alpha_ad_gwi;
+          }
+
           if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
               (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) ||
                ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_cdi)))) {
@@ -1297,6 +1305,14 @@ int primordial_analytic_spectrum_init(
             one_running = ppm->alpha_bi_niv;
           }
 
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_bi)) && (index_ic1 == ppt->index_ic_gwi))) {
+            one_correlation = ppm->c_bi_gwi;
+            one_tilt = ppm->n_bi_gwi;
+            one_running = ppm->alpha_bi_gwi;
+          }
+
           if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
               (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) ||
                ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_nid)))) {
@@ -1313,6 +1329,14 @@ int primordial_analytic_spectrum_init(
             one_running = ppm->alpha_cdi_niv;
           }
 
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_cdi)) && (index_ic1 == ppt->index_ic_gwi))) {
+            one_correlation = ppm->c_cdi_gwi;
+            one_tilt = ppm->n_cdi_gwi;
+            one_running = ppm->alpha_cdi_gwi;
+          }
+
           if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
               (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) ||
                ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_niv)))) {
@@ -1321,45 +1345,20 @@ int primordial_analytic_spectrum_init(
             one_running = ppm->alpha_nid_niv;
           }
 
-          //TODO: Refactor
-          if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_ad)) ||
-                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_ad)))) {
-            one_correlation = ppm->c_gwi_ad;
-            one_tilt = ppm->n_gwi_ad;
-            one_running = ppm->alpha_gwi_ad;
+          if ((ppt->has_nid == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_nid)) && (index_ic1 == ppt->index_ic_gwi))) {
+            one_correlation = ppm->c_nid_gwi;
+            one_tilt = ppm->n_nid_gwi;
+            one_running = ppm->alpha_nid_gwi;
           }
 
-          if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_bi)) ||
-                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_bi)))) {
-            one_correlation = ppm->c_gwi_bi;
-            one_tilt = ppm->n_gwi_bi;
-            one_running = ppm->alpha_gwi_bi;
-          }
-
-          if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_cdi)) ||
-                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_cdi)))) {
-            one_correlation = ppm->c_gwi_cdi;
-            one_tilt = ppm->n_gwi_cdi;
-            one_running = ppm->alpha_gwi_cdi;
-          }
-
-          if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_nid)) ||
-                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_nid)))) {
-            one_correlation = ppm->c_gwi_nid;
-            one_tilt = ppm->n_gwi_nid;
-            one_running = ppm->alpha_gwi_nid;
-          }
-
-          if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_niv)) ||
-                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_niv)))) {
-            one_correlation = ppm->c_gwi_niv;
-            one_tilt = ppm->n_gwi_niv;
-            one_running = ppm->alpha_gwi_niv;
+          if ((ppt->has_niv == _TRUE_) && (ppt->has_gwi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_gwi)) ||
+                ((index_ic2 == ppt->index_ic_niv)) && (index_ic1 == ppt->index_ic_gwi))) {
+            one_correlation = ppm->c_niv_gwi;
+            one_tilt = ppm->n_niv_gwi;
+            one_running = ppm->alpha_niv_gwi;
           }
 
         }
