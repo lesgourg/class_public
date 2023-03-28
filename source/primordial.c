@@ -1189,7 +1189,6 @@ int primordial_analytic_spectrum_init(
 
         if ((ppt->has_gwi == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
           one_amplitude = ppm->A_gwi;
-          //TODO: Change back definition?
           one_tilt = ppm->n_gwi+1.; /* +1 to match definition of n_gwi wrt. 0 (equivalent to n_s-1) */
           one_running = ppm->alpha_gwi;
         }
@@ -3737,7 +3736,6 @@ int primordial_external_spectrum_init(
                                       struct perturbations * ppt,
                                       struct primordial * ppm
                                       ) {
-  //TODO: Refactor GWI mode!
   /** Summary: */
 
   char arguments[_ARGUMENT_LENGTH_MAX_];
@@ -4239,7 +4237,7 @@ int primordial_PBH_gwb_init(
   ppm->n_gwb = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
 
   /** - calculate gwi_scalar */
-  //TODO: Refactor!
+  //TODO_GWB: Refactor!
   ppm->gwi_scalar = 3./5. * 8. * ppm->f_NL / (4. - ppm->n_gwb);
 
   return _SUCCESS_;
