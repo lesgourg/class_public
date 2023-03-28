@@ -889,9 +889,38 @@ int primordial_init(
       printf(" -> Omega_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->Omega_gwb,ppm->n_gwb,ppm->alpha_gwb);
   }
 
+  /** - derive n_gwb2 */
+  if (ppt->has_cl_gwb2)  {
+
+    dlnf = log(10.)/ppr->f_per_decade_primordial;
+
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_gwb_2)+dlnf,
+                                        &lnOmGW_plus),
+                ppm->error_message,
+                ppm->error_message);
+
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_gwb_2)-dlnf,
+                                        &lnOmGW_minus),
+                ppm->error_message,
+                ppm->error_message);
+
+    ppm->n_gwb2 = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
+
+    if (ppm->primordial_verbose > 0)
+      printf(" -> n_gwb(f_gwb_2=%gHz)=%g\n",ppm->f_gwb_2,ppm->n_gwb2);
+  }
+
   if (ppm->gwi_scalar != 0.)  {
     if (ppm->primordial_verbose > 0)
       printf(" -> gwi_scalar=%g\n",ppm->gwi_scalar);
+  }
+  if (ppm->gwi_scalar2 != 0.)  {
+    if (ppm->primordial_verbose > 0)
+      printf(" -> gwi_scalar2=%g\n",ppm->gwi_scalar2);
   }
 
   return _SUCCESS_;
@@ -4229,8 +4258,26 @@ int primordial_PBH_gwb_init(
   ppm->n_gwb = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
 
   /** - calculate gwi_scalar */
-  //TODO_GWB: Refactor!
   ppm->gwi_scalar = 3./5. * 8. * ppm->f_NL / (4. - ppm->n_gwb);
+
+  if (ppt->has_cl_gwb2 == _TRUE_) {
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_gwb_2)+dlnf,
+                                        &lnOmGW_plus),
+                ppm->error_message,
+                ppm->error_message);
+
+    class_call(primordial_omega_gw_at_f(ppm,
+                                        logarithmic,
+                                        log(ppm->f_gwb_2)-dlnf,
+                                        &lnOmGW_minus),
+                ppm->error_message,
+                ppm->error_message);
+
+    ppm->n_gwb2 = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
+    ppm->gwi_scalar2 = 3./5. * 8. * ppm->f_NL / (4. - ppm->n_gwb2);
+  }
 
   return _SUCCESS_;
 

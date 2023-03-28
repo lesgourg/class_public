@@ -1684,6 +1684,9 @@ int output_open_cl_file(
       class_fprintf_columntitle(*clfile,"Ephi",phr->has_ep,colnum);
       class_fprintf_columntitle(*clfile,"GWB",phr->has_gwb,colnum);
       class_fprintf_columntitle(*clfile,"T GWB",phr->has_tgwb,colnum);
+      class_fprintf_columntitle(*clfile,"GWB2",phr->has_gwb2,colnum);
+      class_fprintf_columntitle(*clfile,"T GWB2",phr->has_tgwb2,colnum);
+      class_fprintf_columntitle(*clfile,"GWB GWB2",phr->has_gwbgwb2,colnum);
     }
     else if (pop->output_format == camb_format) {
       class_fprintf_columntitle(*clfile,"TT",phr->has_tt,colnum);
@@ -1695,6 +1698,9 @@ int output_open_cl_file(
       class_fprintf_columntitle(*clfile,"dE",phr->has_ep,colnum);
       class_fprintf_columntitle(*clfile,"GWB",phr->has_gwb,colnum);
       class_fprintf_columntitle(*clfile,"T GWB",phr->has_tgwb,colnum);
+      class_fprintf_columntitle(*clfile,"GWB2",phr->has_gwb2,colnum);
+      class_fprintf_columntitle(*clfile,"T GWB2",phr->has_tgwb2,colnum);
+      class_fprintf_columntitle(*clfile,"GWB GWB2",phr->has_gwbgwb2,colnum);
     }
 
     /** - Next deal with entries that are independent of format type */
@@ -1802,6 +1808,9 @@ int output_one_line_of_cl(
     class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[phr->index_ct_ep], phr->has_ep);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_gwb], phr->has_gwb);
     class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_tgwb], phr->has_tgwb);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_gwb2], phr->has_gwb2);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_tgwb2], phr->has_tgwb2);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[phr->index_ct_gwbgwb2], phr->has_gwbgwb2);
     index_ct_rest = 0;
     if (phr->has_tt == _TRUE_)
       index_ct_rest++;
@@ -1820,6 +1829,12 @@ int output_one_line_of_cl(
     if (phr->has_gwb == _TRUE_)
       index_ct_rest++;
     if (phr->has_tgwb == _TRUE_)
+      index_ct_rest++;
+    if (phr->has_gwb2 == _TRUE_)
+      index_ct_rest++;
+    if (phr->has_tgwb2 == _TRUE_)
+      index_ct_rest++;
+    if (phr->has_gwbgwb2 == _TRUE_)
       index_ct_rest++;
     /* Now print the remaining (if any) entries:*/
     for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {

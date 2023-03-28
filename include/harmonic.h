@@ -62,7 +62,10 @@ struct harmonic {
   int has_tl; /**< do we want \f$ C_l^{Tl}\f$? */
   int has_dl; /**< do we want \f$ C_l^{dl}\f$? */
   int has_gwb;/**< do we want \f$ C_l^{GWB GWB}\f$? (GWB = gravitational wave background) */
-  int has_tgwb; /**< do we want \f$ C_l^{T GWB}\f$? */
+  int has_tgwb;/**< do we want \f$ C_l^{T GWB}\f$? */
+  int has_gwb2;/**< do we want \f$ C_l^{GWB GWB}(f_gwb_2) \f$? */
+  int has_tgwb2;/**< do we want \f$ C_l^{T GWB}(f_gwb_2)\f$? */
+  int has_gwbgwb2;/**< do we want \f$ C_l^{GWB GWB}(f_gwb_1, f_gwb_2) \f$? */
 
   int index_ct_tt; /**< index for type \f$ C_l^{TT} \f$*/
   int index_ct_ee; /**< index for type \f$ C_l^{EE} \f$*/
@@ -77,8 +80,11 @@ struct harmonic {
   int index_ct_ll; /**< first index for type \f$ C_l^{ll} \f$((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type \f$ C_l^{Tl} \f$(d_size values) */
   int index_ct_dl; /**< first index for type \f$ C_l^{dl} \f$(d_size values) */
-  int index_ct_gwb;/**< index for type \f$ C_l^{GWB GWB} \f$*/ //TODO_GWB second gwb!
-  int index_ct_tgwb; /**< index for type \f$ C_l^{T GWB} \f$*/
+  int index_ct_gwb;/**< index for type \f$ C_l^{GWB GWB} \f$*/
+  int index_ct_tgwb;/**< index for type \f$ C_l^{T GWB} \f$*/
+  int index_ct_gwb2;/**< index for type \f$ C_l^{GWB GWB}(f_gwb_2) \f$*/
+  int index_ct_tgwb2;/**< index for type \f$ C_l^{T GWB}(f_gwb_2) \f$*/
+  int index_ct_gwbgwb2;/**< index for type \f$ C_l^{GWB GWB}(f_gwb_1, f_gwb_2) \f$*/
 
   int d_size;      /**< number of bins for which density Cl's are computed */
 
