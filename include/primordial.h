@@ -612,11 +612,6 @@ extern "C" {
                                    double * OmGW
                                    );
 
-  int primordial_gwb_analytic_spectrum_init(
-                                        struct perturbations   * ppt,
-                                        struct primordial * ppm
-                                        );
-
   int primordial_inflationary_gwb_init(
                                       struct background * pba,
                                       struct perturbations * ppt,

@@ -3990,37 +3990,6 @@ int primordial_analytic_omega_gw(
 }
 
 /**
- * Like primordial_analytic_spectrum_init() but for the
- * graviational wave background (gwb).
- *
- * @param ppt  Input: pointer to perturbation structure
- * @param ppm  Input/output: pointer to primordial structure
- * @return the error status
- */
-
-int primordial_gwb_analytic_spectrum_init(
-                                      struct perturbations   * ppt,
-                                      struct primordial * ppm
-                                      ) {
-
-      //TODO: Remove function!
-      class_test(_FALSE_,
-                 ppm->error_message,
-                 "This function is decraped!\n");
-
-  // /* notice that we allow for A_gwi = 0 as an input. This is different than for scalar pertrubations */
-  // if (one_amplitude == 0.) {
-  //   ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
-  //   ppm->amplitude[index_md][index_ic1_ic2] = 0.;
-  //   ppm->tilt[index_md][index_ic1_ic2] = 0.;
-  //   ppm->running[index_md][index_ic1_ic2] = 0.;
-  // }
-
-  return _SUCCESS_;
-
-}
-
-/**
  * This routine calculates the GWB generated in an inflationary model.
  *
  * @param pba  Input: pointer to background structure
