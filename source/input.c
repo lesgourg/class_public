@@ -4236,7 +4236,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
         class_read_double("alpha_niv",ppm->alpha_niv);
       }
       if (ppt->has_gwi == _TRUE_) {
-        //TODO: Simplify, make consistent
         /** Amplitude */
         /* Read */
         class_call(parser_read_double(pfc,"A_gwi",&param1,&flag1,errmsg),
@@ -4610,7 +4609,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       ppm->A_s = prr1*exp((ppm->n_s-1.)*log(ppm->k_pivot/k1));
 
       /** 1.f.3) Isocurvature amplitudes */
-      //TODO: Add gwi isocurvature mode?  
       if ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_)){
         /* Read */
         class_read_double("P_{II}^1",pii1);
@@ -4751,7 +4749,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
 
   /** 2) Graviational Wave Background (GWB) source type (define the energy density and intial spectrum) */
-  if ((ppt->has_cl_gwb == _TRUE_) || (ppt->has_omega_gwb == _TRUE_)) {
+  if (ppt->has_omega_gwb == _TRUE_) {
 
     /* Read */
     class_call(parser_read_string(pfc,"gwb_source_type",&string1,&flag1,errmsg),
@@ -4780,9 +4778,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
     }
     /* Test */
-    class_test((ppm->gwb_source_type != analytic_gwb) && (ppt->has_omega_gwb == _FALSE_),
-               errmsg,
-               "To calculate 'gwCl', you also have to calculate 'OmGW' or use 'gwb_source_type=analytic_gwb'!");
     class_test((ppm->gwb_source_type == external_gwb) && (ppm->primordial_spec_type != external_Pk),
                errmsg,
                "To use the 'external_gwb' for the GWB sources you must also use the 'external_Pk' for 'Pk_ini_type'!");
@@ -4790,9 +4785,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
     /** 2.a) Pivot scale in Hz */
     /* Read */
     class_read_double("f_pivot",ppm->f_pivot);
-    /** 2.a.1) Minimum GWB frequency in Hz */
+    /** 2.a.1) Minimum/Maximum GWB frequency in Hz */
     class_read_double("f_min",ppm->f_min);
-    /** 2.a.2) Maximum GWB frequency in Hz */
     class_read_double("f_max",ppm->f_max);
   
     /** 2.b) For type 'analytic_gwb' */
@@ -4821,15 +4815,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("n_gwb",ppm->n_gwb);
       /** 2.b.1.3) GWB running */
       class_read_double("alpha_gwb",ppm->alpha_gwb);
-
-      /** 2.b.2) For adiabatic modes */
-      /** 2.b.2.1) Adiabatic IC */
-      /* Standard value */
-      ppm->gwi_adiabatic = -2.;
-      /* Read */
-      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
-      /** 2.b.2.2) Proportionality factor \Xi between \Gamma_I and curvature pertrubation */
-      class_read_double("gwi_scalar",ppm->gwi_scalar);
     }
 
     /** 2.c) For type 'inlfationary_gwb' */
@@ -4841,12 +4826,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_test(ppm->primordial_spec_type != analytic_Pk,
                  errmsg,
                  "For the inflationary_gwb you must use 'primordial_spec_type = analytic_Pk'.");
-
-      /** 2.e.2) GWB intial perturbations, gwi_adiabatic */
-      /* Standard value */
-      ppm->gwi_adiabatic = -2.;
-      /* Read */
-      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
     }
 
     /** 2.d) For type 'external_gwb' */
@@ -4910,13 +4889,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_test(ppm->deltaPT == 0.,
                  errmsg,
                  "You entered deltaPT=0, this leads to a division by 0.");
-
-
-      /** 2.f.2) GWB intial perturbations, gwi_adiabatic */
-      /* Standard value */
-      ppm->gwi_adiabatic = -2.;
-      /* Read */
-      class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
     }
   }
 
@@ -6356,9 +6328,8 @@ int input_default_params(struct background *pba,
   ppm->gwb_source_type = analytic_gwb;
   /** 2.a) Pivot scale in Hz */
   ppm->f_pivot = 1.;
-  /** 2.a.1) Minimum GWB frequency in Hz */
+  /** 2.a.1) Minimum/Maximum GWB frequency in Hz */
   ppm->f_min = 1.e-3;
-  /** 2.a.2) Maximum GWB frequency in Hz */
   ppm->f_max = 1.e2;
 
   /** 2.b) For type 'analytic_gwb' */
@@ -6369,10 +6340,8 @@ int input_default_params(struct background *pba,
   ppm->n_gwb = 0.;
   /** 2.b.1.3) GWB running */
   ppm->alpha_gwb = 0.;
-  /** 2.b.2) For adiabatic modes */
-  /** 2.b.2.1) Adiabatic IC, turned it off, if activated standard value is -2. */
-  ppm->gwi_adiabatic = 0.;
-  /** 2.b.2.2) Proportionality factor \Xi between \Gamma_I and curvature pertrubation */
+
+  ppm->gwi_adiabatic = -2.; //TODO_GWB
   ppm->gwi_scalar = 0.;
 
   /** 2.d) For type 'external_gwb' */
