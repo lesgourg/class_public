@@ -2424,7 +2424,7 @@ int transfer_sources(
           class_call(array_search_bisect(ppt->tau_size,
                                         ppt->tau_sampling,
                                         ppt->tau_ini_gwb,
-                                        &index_tau, //TODO_GWB: ok like this, or make it a global parameter as it is the same for all index_q?
+                                        &index_tau,
                                         ptr->error_message),
                     ptr->error_message,
                     ptr->error_message);

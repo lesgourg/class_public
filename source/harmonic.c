@@ -1258,7 +1258,7 @@ int harmonic_compute_cl(
         * factor;
     }
 
-    if (phr->has_gwb2 == _TRUE_) //TODO_GWB
+    if (phr->has_gwb2 == _TRUE_)
     {
       cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb2]=
         primordial_pk[index_ic1_ic2]
