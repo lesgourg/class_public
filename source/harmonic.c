@@ -1041,11 +1041,11 @@ int harmonic_compute_cl(
 
         transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1]
           + transfer_ic1[ptr->index_tt_gwb_sw0] + transfer_ic1[ptr->index_tt_gwb_sw1]
-          + ppm->gwi_adiabatic * transfer_ic1[ptr->index_tt_gwb_ad]
+          - 2. / (4. - ppm->n_gwb) * transfer_ic1[ptr->index_tt_gwb_ad]
           + ppm->gwi_scalar * transfer_ic1[ptr->index_tt_gwb_ini];
         transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1]
           + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
-          + ppm->gwi_adiabatic * transfer_ic2[ptr->index_tt_gwb_ad]
+          - 2. / (4. - ppm->n_gwb) * transfer_ic2[ptr->index_tt_gwb_ad]
           + ppm->gwi_scalar * transfer_ic2[ptr->index_tt_gwb_ini];
         
         if (ppt->has_gwi) {

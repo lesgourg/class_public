@@ -397,7 +397,6 @@ int primordial_init(
   /** - allocate and fill values of \f$ \ln{f} \f$'s */
 
   ppm->has_OmGW = ppt->has_omega_gwb;
-  ppt->gwi_adiabatic_Gamma = 0.;
 
   if (ppm->has_OmGW) {
     class_call(primordial_get_lnf_list(ppm,
@@ -888,13 +887,6 @@ int primordial_init(
 
     if (ppm->primordial_verbose > 0)
       printf(" -> Omega_gwb=%g  n_gwb=%g  alpha_gwb=%g\n",ppm->Omega_gwb,ppm->n_gwb,ppm->alpha_gwb);
-  }
-
-  if (ppm->gwi_adiabatic != 0.)  {
-    /* Convert gwi_adiabatic to phase spece distribution Gamma_I */
-    ppt->gwi_adiabatic_Gamma = ppm->gwi_adiabatic / (4. - ppm->n_gwb);
-    if (ppm->primordial_verbose > 0)
-      printf(" -> gwi_adiabatic_Gamma=%g=%g/(4-n_gwb)\n",ppt->gwi_adiabatic_Gamma,ppm->gwi_adiabatic);
   }
 
   if (ppm->gwi_scalar != 0.)  {

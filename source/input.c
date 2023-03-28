@@ -6346,7 +6346,6 @@ int input_default_params(struct background *pba,
   /** 2.b.1.3) GWB running */
   ppm->alpha_gwb = 0.;
 
-  ppm->gwi_adiabatic = -2.; //TODO_GWB: remove
   ppm->gwi_scalar = 0.; //Not a free input parameter anymore!
 
   /** 2.d) For type 'external_gwb' */
