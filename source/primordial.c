@@ -563,10 +563,9 @@ int primordial_init(
 
   }
 
-  /**  - deal with spectrum for \f$ \Omega_\mathrm{GW} \f$ and \f$ \Gamma_I \f$ */
-  //TODO: Redo OmGW part!
+  /**  - compute the GWB background energy density \f$ \Omega_\mathrm{GW} \f$ */
 
-  if ((ppt->has_cl_gwb == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
+  if (ppm->has_OmGW == _TRUE_) {
     if (ppm->primordial_verbose > 0)
       printf("Computing GWB source");
 
@@ -576,24 +575,19 @@ int primordial_init(
       if (ppm->primordial_verbose > 0)
         printf(" (analytic GWB)\n");
       
-      /** - calculate \f$ \Omega_\mathrm{GW} \f$ */
-      if (ppm->has_OmGW == _TRUE_) {
+      for (index_f = 0; index_f < ppm->lnf_size; index_f++) {
 
-        for (index_f = 0; index_f < ppm->lnf_size; index_f++) {
+        f=exp(ppm->lnf[index_f]);
 
-          f=exp(ppm->lnf[index_f]);
-
-          class_call(primordial_analytic_omega_gw(ppm,
-                                                  f,
-                                                  &OmGW),
-                    ppm->error_message,
-                    ppm->error_message);
+        class_call(primordial_analytic_omega_gw(ppm,
+                                                f,
+                                                &OmGW),
+                  ppm->error_message,
+                  ppm->error_message);
 
 
-          ppm->lnOmGW[index_f] = log(OmGW);
-        }
+        ppm->lnOmGW[index_f] = log(OmGW);
       }
-
     }
 
     /** - deal with the case of inflationary GWB */
@@ -605,8 +599,6 @@ int primordial_init(
       class_call(primordial_inflationary_gwb_init(pba,ppt,ppm),
                 ppm->error_message,
                 ppm->error_message);
-
-      /** - nothing to calculate for \f$ \Gamma_I \f$ */
     }
 
     /** - deal with the case of external GWB */
@@ -614,17 +606,6 @@ int primordial_init(
       if (ppm->primordial_verbose > 0)
         printf(" (GWB calculated externally)\n");
 
-      /** - the GWB initial perturbations \Gamma_I is already read together with the scalar spectrum in primordial_gwb_analytic_spectrum_init */
-
-      class_test(ppt->has_cl_gwb == _FALSE_,
-                 ppm->error_message,
-                 "external GWB module cannot work if you do not ask for gwCl");
-
-      class_test(ppm->has_OmGW == _FALSE_,
-                 ppm->error_message,
-                 "external GWB module cannot work if you do not ask for OmeGW");
-
-      /** - read the GWB energy density Omega_GW */
       class_call_except(primordial_external_gwb_init(ppr,ppm),
                         ppm->error_message,
                         ppm->error_message,
@@ -656,8 +637,6 @@ int primordial_init(
           ppm->lnOmGW[index_f] = log(OmGW);
         }
       }
-
-      /** - nothing to calculate for \f$ \Gamma_I \f$ */
     }
 
     else {
@@ -980,6 +959,10 @@ int primordial_free(
     free(ppm->ddlnOmGW);
 
     free(ppm->lnf);
+
+    if (ppm->gwb_source_type == external_gwb) {
+      free(ppm->command_gwb);
+    }
 
   }
 
@@ -4256,6 +4239,7 @@ int primordial_PBH_gwb_init(
   ppm->n_gwb = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
 
   /** - calculate gwi_scalar */
+  //TODO: Refactor!
   ppm->gwi_scalar = 3./5. * 8. * ppm->f_NL / (4. - ppm->n_gwb);
 
   return _SUCCESS_;
