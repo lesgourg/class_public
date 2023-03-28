@@ -661,6 +661,11 @@ int perturbations_output_firstline_and_ic_suffix(
     strcpy(ic_suffix,"niv");
     strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
   }
+
+  if ((ppt->has_gwi == _TRUE_) && (index_ic == ppt->index_ic_gwi)) {
+    strcpy(ic_suffix,"gwi");
+    strcpy(first_line,"for graviational wave isocurvature (GWI) mode (normalized to initial entropy=1)");
+  }
   return _SUCCESS_;
 }
 
@@ -1560,11 +1565,11 @@ int perturbations_indices(
 
       index_ic = 0;
       class_define_index(ppt->index_ic_ad, ppt->has_ad, index_ic,1);
-      class_define_index(ppt->index_ic_gwi,ppt->has_gwi,index_ic,1);
       class_define_index(ppt->index_ic_bi, ppt->has_bi, index_ic,1);
       class_define_index(ppt->index_ic_cdi,ppt->has_cdi,index_ic,1);
       class_define_index(ppt->index_ic_nid,ppt->has_nid,index_ic,1);
       class_define_index(ppt->index_ic_niv,ppt->has_niv,index_ic,1);
+      class_define_index(ppt->index_ic_gwi,ppt->has_gwi,index_ic,1);
       ppt->ic_size[index_md] = index_ic;
 
       class_test(index_ic == 0,
@@ -6012,6 +6017,8 @@ int perturbations_initial_conditions(struct precision * ppr,
       eta = ppr->entropy_ini*fracnu*k*tau*(-1./(4.*fracnu+5.) + (-3./64.*fracb/fracg+15./4./(4.*fracnu+15.)/(4.*fracnu+5.)*om*tau)); /* small diff wrt camb */
 
     }
+
+    //TODO: Add gwi mode -> same as ad!
 
     /** - (c) If the needed gauge is really the synchronous gauge, we need to affect the previously computed value of eta to the actual variable eta */
 

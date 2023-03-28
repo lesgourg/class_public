@@ -86,10 +86,6 @@ int primordial_spectrum_at_k(
                ppm->error_message,
                "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
-    class_test((ppm->has_gwi == _TRUE_) && (ppm->gwb_source_type != analytic_gwb),
-               ppm->error_message,
-               "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
-
     /* direct computation */
 
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
@@ -401,7 +397,6 @@ int primordial_init(
   /** - allocate and fill values of \f$ \ln{f} \f$'s */
 
   ppm->has_OmGW = ppt->has_omega_gwb;
-  ppm->has_gwi = ppt->has_gwi;
   ppt->gwi_adiabatic_Gamma = 0.;
 
   if (ppm->has_OmGW) {
@@ -549,7 +544,7 @@ int primordial_init(
 
     class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
                ppm->error_message,
-               "external Pk module cannot work if you ask for isocurvature modes (but that could be implemented easily in the future!)");
+               "external Pk module cannot work if you ask for isocurvature modes except 'gwi' (but that could be implemented easily in the future!)");
 
     if (ppm->primordial_verbose > 0)
       printf(" (Pk calculated externally)\n");
@@ -569,6 +564,7 @@ int primordial_init(
   }
 
   /**  - deal with spectrum for \f$ \Omega_\mathrm{GW} \f$ and \f$ \Gamma_I \f$ */
+  //TODO: Redo OmGW part!
 
   if ((ppt->has_cl_gwb == _TRUE_) || (ppm->has_OmGW == _TRUE_)) {
     if (ppm->primordial_verbose > 0)
@@ -598,77 +594,6 @@ int primordial_init(
         }
       }
 
-      /** - calculate \f$ \Gamma_I \f$ */
-      if (ppm->has_gwi == _TRUE_) {
-
-        class_call_except(primordial_gwb_analytic_spectrum_init(ppt,
-                                                                ppm),
-                          ppm->error_message,
-                          ppm->error_message,
-                          primordial_free(ppm));
-        
-        for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
-
-          k=exp(ppm->lnk[index_k]);
-          index_md = ppt->index_md_scalars;
-          index_ic1 = ppt->index_ic_gwi;
-
-          for (index_ic2 = 0; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
-
-            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
-
-            if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-
-              class_call(primordial_analytic_spectrum(ppm,
-                                                      index_md,
-                                                      index_ic1_ic2,
-                                                      k,
-                                                      &pk),
-                        ppm->error_message,
-                        ppm->error_message);
-
-              if (index_ic1 == index_ic2) {
-
-                /* diagonal coefficients: ln[P(k)] */
-
-                ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = log(pk);
-              }
-              else {
-
-                /* non-diagonal coefficients: cosDelta(k) = P(k)_12/sqrt[P(k)_1 P(k)_2] */
-
-                class_call(primordial_analytic_spectrum(ppm,
-                                                        index_md,
-                                                        index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]),
-                                                        k,
-                                                        &pk1),
-                          ppm->error_message,
-                          ppm->error_message);
-
-                class_call(primordial_analytic_spectrum(ppm,
-                                                        index_md,
-                                                        index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]),
-                                                        k,
-                                                        &pk2),
-                          ppm->error_message,
-                          ppm->error_message);
-
-                if (pk > sqrt(pk1*pk2))
-                  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 1.;
-                else if (pk < -sqrt(pk1*pk2))
-                  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = -1.;
-                else
-                  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = pk/sqrt(pk1*pk2);
-
-              }
-            }
-            else {
-              /* non-diagonal coefficients when ic's are uncorrelated */
-              ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 0.;
-            }
-          }
-        }
-      }
     }
 
     /** - deal with the case of inflationary GWB */
@@ -860,6 +785,51 @@ int primordial_init(
       if (ppm->primordial_verbose > 0)
         printf(" -> A_s=%g  n_s=%g  alpha_s=%g\n",ppm->A_s,ppm->n_s,ppm->alpha_s);
 
+      if (ppt->has_gwi == _TRUE_)  {
+
+        index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwi,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
+
+        class_call(primordial_spectrum_at_k(ppm,
+                                            ppt->index_md_scalars,
+                                            logarithmic,
+                                            log(ppm->k_pivot),
+                                            tmp),
+                    ppm->error_message,
+                    ppm->error_message);
+        lnpk_pivot = tmp[index_ic1_ic2];
+
+        class_call(primordial_spectrum_at_k(ppm,
+                                            ppt->index_md_scalars,
+                                            logarithmic,
+                                            log(ppm->k_pivot)+dlnk,
+                                            tmp),
+                    ppm->error_message,
+                    ppm->error_message);
+        lnpk_plus = tmp[index_ic1_ic2];
+
+        class_call(primordial_spectrum_at_k(ppm,
+                                            ppt->index_md_scalars,
+                                            logarithmic,
+                                            log(ppm->k_pivot)-dlnk,
+                                            tmp),
+                    ppm->error_message,
+                    ppm->error_message);
+        lnpk_minus = tmp[index_ic1_ic2];
+
+        ppm->A_gwi = exp(lnpk_pivot);
+        ppm->n_gwi = (lnpk_plus-lnpk_minus)/(2.*dlnk);
+        ppm->alpha_gwi = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+
+        if (ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] == _FALSE_) {
+          ppm->A_gwi = 0;
+          ppm->n_gwi = 0;
+          ppm->alpha_gwi = 0;
+        }
+
+        if (ppm->primordial_verbose > 0)
+          printf(" -> A_gwi=%g  n_gwi=%g  alpha_gwi=%g\n",ppm->A_gwi,ppm->n_gwi,ppm->alpha_gwi);
+      }
+
     }
 
     if (ppt->has_tensors == _TRUE_) {
@@ -903,54 +873,6 @@ int primordial_init(
 
     }
 
-  }
-
-  if ((ppm->has_gwi == _TRUE_) && (ppm->gwb_source_type != analytic_gwb))  {
-
-    dlnk = log(10.)/ppr->k_per_decade_primordial;
-
-    class_alloc(tmp, ppm->ic_ic_size[ppt->index_md_scalars]*sizeof(double), ppt->error_message);
-    index_ic1_ic2 = index_symmetric_matrix(ppt->index_ic_gwi,ppt->index_ic_gwi,ppm->ic_size[ppt->index_md_scalars]);
-
-    class_call(primordial_spectrum_at_k(ppm,
-                                        ppt->index_md_scalars,
-                                        logarithmic,
-                                        log(ppm->k_pivot),
-                                        tmp),
-                ppm->error_message,
-                ppm->error_message);
-    lnpk_pivot = tmp[index_ic1_ic2];
-
-    class_call(primordial_spectrum_at_k(ppm,
-                                        ppt->index_md_scalars,
-                                        logarithmic,
-                                        log(ppm->k_pivot)+dlnk,
-                                        tmp),
-                ppm->error_message,
-                ppm->error_message);
-    lnpk_plus = tmp[index_ic1_ic2];
-
-    class_call(primordial_spectrum_at_k(ppm,
-                                        ppt->index_md_scalars,
-                                        logarithmic,
-                                        log(ppm->k_pivot)-dlnk,
-                                        tmp),
-                ppm->error_message,
-                ppm->error_message);
-    lnpk_minus = tmp[index_ic1_ic2];
-
-    ppm->A_gwi = exp(lnpk_pivot);
-    ppm->n_gwi = (lnpk_plus-lnpk_minus)/(2.*dlnk);
-    ppm->alpha_gwi = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
-
-    if (ppm->is_non_zero[ppt->index_md_scalars][index_ic1_ic2] == _FALSE_) {
-      ppm->A_gwi = 0;
-      ppm->n_gwi = 0;
-      ppm->alpha_gwi = 0;
-    }
-
-    if (ppm->primordial_verbose > 0)
-      printf(" -> A_gwi=%g  n_gwi=%g  alpha_gwi=%g\n",ppm->A_gwi,ppm->n_gwi,ppm->alpha_gwi);
   }
 
   /** - derive spectral parameters from numerically computed GWB energy density
@@ -1022,7 +944,7 @@ int primordial_free(
 
   if (ppm->lnk_size > 0) {
 
-    if ((ppm->primordial_spec_type == analytic_Pk) || ((ppm->has_gwi == _TRUE_) && (ppm->gwb_source_type == analytic_gwb))) {
+    if (ppm->primordial_spec_type == analytic_Pk) {
       for (index_md = 0; index_md < ppm->md_size; index_md++) {
         free(ppm->amplitude[index_md]);
         free(ppm->tilt[index_md]);
@@ -1281,6 +1203,13 @@ int primordial_analytic_spectrum_init(
           one_tilt = ppm->n_niv;
           one_running = ppm->alpha_niv;
         }
+
+        if ((ppt->has_gwi == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
+          one_amplitude = ppm->A_gwi;
+          //TODO: Change back definition?
+          one_tilt = ppm->n_gwi+1.; /* +1 to match definition of n_gwi wrt. 0 (equivalent to n_s-1) */
+          one_running = ppm->alpha_gwi;
+        }
       }
 
       if (_tensors_) {
@@ -1303,11 +1232,6 @@ int primordial_analytic_spectrum_init(
       ppm->amplitude[index_md][index_ic1_ic2] = one_amplitude;
       ppm->tilt[index_md][index_ic1_ic2] = one_tilt;
       ppm->running[index_md][index_ic1_ic2] = one_running;
-
-      /* The GWB inital spectrum is handeled in a different function! */
-      if ((ppt->has_gwi == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
-        ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
-      }
     }
 
     /* non-diagonal coefficients */
@@ -1397,6 +1321,47 @@ int primordial_analytic_spectrum_init(
             one_running = ppm->alpha_nid_niv;
           }
 
+          //TODO: Refactor
+          if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_ad)) ||
+                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_ad)))) {
+            one_correlation = ppm->c_gwi_ad;
+            one_tilt = ppm->n_gwi_ad;
+            one_running = ppm->alpha_gwi_ad;
+          }
+
+          if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_bi)) ||
+                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_bi)))) {
+            one_correlation = ppm->c_gwi_bi;
+            one_tilt = ppm->n_gwi_bi;
+            one_running = ppm->alpha_gwi_bi;
+          }
+
+          if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_cdi)) ||
+                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_cdi)))) {
+            one_correlation = ppm->c_gwi_cdi;
+            one_tilt = ppm->n_gwi_cdi;
+            one_running = ppm->alpha_gwi_cdi;
+          }
+
+          if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_nid)) ||
+                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_gwi_nid;
+            one_tilt = ppm->n_gwi_nid;
+            one_running = ppm->alpha_gwi_nid;
+          }
+
+          if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_niv)) ||
+                ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_gwi_niv;
+            one_tilt = ppm->n_gwi_niv;
+            one_running = ppm->alpha_gwi_niv;
+          }
+
         }
 
         class_test((one_correlation < -1) || (one_correlation > 1),
@@ -1429,10 +1394,6 @@ int primordial_analytic_spectrum_init(
             + one_running;
         }
 
-        /* The GWB inital spectrum is handeled in a different function! */
-        if ((ppt->has_gwi == _TRUE_) && ((index_ic1 == ppt->index_ic_gwi)||(index_ic2 == ppt->index_ic_gwi))) {
-          ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
-        }
       }
     }
   }
@@ -3794,6 +3755,7 @@ int primordial_external_spectrum_init(
                                       struct perturbations * ppt,
                                       struct primordial * ppm
                                       ) {
+  //TODO: Refactor GWI mode!
   /** Summary: */
 
   char arguments[_ARGUMENT_LENGTH_MAX_];
@@ -4041,149 +4003,19 @@ int primordial_gwb_analytic_spectrum_init(
                                       struct perturbations   * ppt,
                                       struct primordial * ppm
                                       ) {
-  int index_md,index_ic1,index_ic2;
-  int index_ic1_ic2,index_ic1_ic1,index_ic2_ic2;
-  double one_amplitude=0.;
-  double one_tilt=0.;
-  double one_running=0.;
-  double one_correlation=0.;
 
-  if (ppm->primordial_spec_type != analytic_Pk) {
-    class_alloc(ppm->amplitude,
-                ppm->md_size*sizeof(double *),
-                ppm->error_message);
+      //TODO: Remove function!
+      class_test(_FALSE_,
+                 ppm->error_message,
+                 "This function is decraped!\n");
 
-    class_alloc(ppm->tilt,
-                ppm->md_size*sizeof(double *),
-                ppm->error_message);
-
-    class_alloc(ppm->running,
-                ppm->md_size*sizeof(double *),
-                ppm->error_message);
-
-    for (index_md = 0; index_md < ppm->md_size; index_md++) {
-
-      class_alloc(ppm->amplitude[index_md],
-                  ppm->ic_ic_size[index_md]*sizeof(double),
-                  ppm->error_message);
-
-      class_alloc(ppm->tilt[index_md],
-                  ppm->ic_ic_size[index_md]*sizeof(double),
-                  ppm->error_message);
-
-      class_alloc(ppm->running[index_md],
-                  ppm->ic_ic_size[index_md]*sizeof(double),
-                  ppm->error_message);
-
-    }
-  }
-
-  index_md = ppt->index_md_scalars;
-  index_ic1 = ppt->index_ic_gwi;
-
-  class_test(index_ic1 >= ppm->ic_size[index_md],
-             ppm->error_message,
-             "The index of the GWB is out of range. This should not happen!");
-
-  /* diagonal coefficient */
-  if ((ppt->has_gwi == _TRUE_) && (index_ic1 == ppt->index_ic_gwi)) {
-    one_amplitude = ppm->A_gwi;
-    // one_tilt = ppm->n_gwi;
-    one_tilt = ppm->n_gwi+1.; /* +1 to match definition of n_gwi wrt. 0 (equivalent to n_s-1) */
-    one_running = ppm->alpha_gwi;
-  }
-
-  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
-
-  ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
-  ppm->amplitude[index_md][index_ic1_ic2] = one_amplitude;
-  ppm->tilt[index_md][index_ic1_ic2] = one_tilt;
-  ppm->running[index_md][index_ic1_ic2] = one_running;
-
-  /* notice that we allow for A_gwi = 0 as an input. This is different than for scalar pertrubations */
-  if (one_amplitude == 0.) {
-    ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
-    ppm->amplitude[index_md][index_ic1_ic2] = 0.;
-    ppm->tilt[index_md][index_ic1_ic2] = 0.;
-    ppm->running[index_md][index_ic1_ic2] = 0.;
-  }
-
-  /* non-diagonal coefficients */
-
-  for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
-    for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
-
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_ad)) ||
-              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_ad)))) {
-          one_correlation = ppm->c_gwi_ad;
-          one_tilt = ppm->n_gwi_ad;
-          one_running = ppm->alpha_gwi_ad;
-        }
-
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_bi)) ||
-              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_bi)))) {
-          one_correlation = ppm->c_gwi_bi;
-          one_tilt = ppm->n_gwi_bi;
-          one_running = ppm->alpha_gwi_bi;
-        }
-
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_cdi)) ||
-              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_cdi)))) {
-          one_correlation = ppm->c_gwi_cdi;
-          one_tilt = ppm->n_gwi_cdi;
-          one_running = ppm->alpha_gwi_cdi;
-        }
-
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_nid)) ||
-              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_nid)))) {
-          one_correlation = ppm->c_gwi_nid;
-          one_tilt = ppm->n_gwi_nid;
-          one_running = ppm->alpha_gwi_nid;
-        }
-
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-            (((index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_niv)) ||
-              ((index_ic2 == ppt->index_ic_gwi) && (index_ic1 == ppt->index_ic_niv)))) {
-          one_correlation = ppm->c_gwi_niv;
-          one_tilt = ppm->n_gwi_niv;
-          one_running = ppm->alpha_gwi_niv;
-        }
-
-      class_test((one_correlation < -1) || (one_correlation > 1),
-                  ppm->error_message,
-                  "inconsistent input for isocurvature cross-correlation\n");
-
-      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
-      index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
-      index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]);
-
-      if (one_correlation == 0.) {
-        ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
-        ppm->amplitude[index_md][index_ic1_ic2] = 0.;
-        ppm->tilt[index_md][index_ic1_ic2] = 0.;
-        ppm->running[index_md][index_ic1_ic2] = 0.;
-      }
-      else {
-        ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
-        ppm->amplitude[index_md][index_ic1_ic2] =
-          sqrt(ppm->amplitude[index_md][index_ic1_ic1]*
-                ppm->amplitude[index_md][index_ic2_ic2])*
-          one_correlation;
-        ppm->tilt[index_md][index_ic1_ic2] =
-          0.5*(ppm->tilt[index_md][index_ic1_ic1]
-                +ppm->tilt[index_md][index_ic2_ic2])
-          + one_tilt;
-        ppm->running[index_md][index_ic1_ic2] =
-          0.5*(ppm->running[index_md][index_ic1_ic1]
-                +ppm->running[index_md][index_ic2_ic2])
-          + one_running;
-      }
-    }
-  }
+  // /* notice that we allow for A_gwi = 0 as an input. This is different than for scalar pertrubations */
+  // if (one_amplitude == 0.) {
+  //   ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
+  //   ppm->amplitude[index_md][index_ic1_ic2] = 0.;
+  //   ppm->tilt[index_md][index_ic1_ic2] = 0.;
+  //   ppm->running[index_md][index_ic1_ic2] = 0.;
+  // }
 
   return _SUCCESS_;
 

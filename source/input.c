@@ -1733,7 +1733,7 @@ int input_read_parameters_general(struct file_content * pfc,
   char * options_gwb_contributions[10] = {"tsw","pisw","eisw","lisw","ini","TSW","PISW","EISW","LISW","INI"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
-  char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
+  char * options_ics[12] = {"ad","bi","cdi","nid","niv","gwi","AD","BI","CDI","NID","NIV","GWI"};
 
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
@@ -2024,11 +2024,6 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
         }
-        /* index_ic_gwi and has_gwi is handled by gwb_source_type
-        // if ((strstr(string1,"gwi") != NULL) || (strstr(string1,"GWI") != NULL)){
-        //   ppt->has_gwi=_TRUE_;
-        // }
-        */
         if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL)){
           ppt->has_bi=_TRUE_;
         }
@@ -2041,15 +2036,18 @@ int input_read_parameters_general(struct file_content * pfc,
         if ((strstr(string1,"niv") != NULL) || (strstr(string1,"NIV") != NULL)){
           ppt->has_niv=_TRUE_;
         }
+        if ((strstr(string1,"gwi") != NULL) || (strstr(string1,"GWI") != NULL)){
+          ppt->has_gwi=_TRUE_;
+        }
         /* Test */
-        class_call(parser_check_options(string1, options_ics, 10, &flag1),
+        class_call(parser_check_options(string1, options_ics, 12, &flag1),
                    errmsg,
                    errmsg);
         class_test(flag1==_FALSE_,
-                   errmsg, "The options for 'ic' are {'ad','bi','cdi','nid','niv'}, you entered '%s'",string1);
-        class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
+                   errmsg, "The options for 'ic' are {'ad','bi','cdi','nid','niv','gwi'}, you entered '%s'",string1);
+        class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_ && ppt->has_gwi ==_FALSE_,
                    errmsg,
-                   "You specified 'ic' as '%s'. It has to contain some of {'ad','bi','cdi','nid','niv'}.",string1);
+                   "You specified 'ic' as '%s'. It has to contain some of {'ad','bi','cdi','nid','niv','gwi'}.",string1);
       }
     }
     else {
@@ -4237,6 +4235,31 @@ int input_read_parameters_primordial(struct file_content * pfc,
         class_read_double("n_niv",ppm->n_niv);
         class_read_double("alpha_niv",ppm->alpha_niv);
       }
+      if (ppt->has_gwi == _TRUE_) {
+        //TODO: Simplify, make consistent
+        /** Amplitude */
+        /* Read */
+        class_call(parser_read_double(pfc,"A_gwi",&param1,&flag1,errmsg),
+                  errmsg,
+                  errmsg);
+        class_call(parser_read_double(pfc,"ln10^{10}A_gwi",&param2,&flag2,errmsg),
+                  errmsg,
+                  errmsg);
+        /* Test */
+        class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                  errmsg,
+                  "You can only enter one of 'A_gwi' or 'ln10^{10}A_gwi'.");
+        /* Complete set of parameters */
+        if (flag1 == _TRUE_){
+          ppm->A_gwi = param1;
+        }
+        else if (flag2 == _TRUE_){
+          ppm->A_gwi = exp(param2)*1.e-10;
+        }
+
+        class_read_double("n_gwi",ppm->n_gwi);
+        class_read_double("alpha_gwi",ppm->alpha_gwi);
+      }
 
       /** 1.b.1.3) Cross-correlation between different adiabatic/entropy mode */
       /* Read */
@@ -4289,6 +4312,32 @@ int input_read_parameters_primordial(struct file_content * pfc,
         class_read_double_one_of_two("c_nid_niv","c_niv_nid",ppm->c_nid_niv);
         class_read_double_one_of_two("n_nid_niv","n_niv_nid",ppm->n_nid_niv);
         class_read_double_one_of_two("alpha_nid_niv","alpha_niv_nid",ppm->alpha_nid_niv);
+      }
+      //TODO: Refactor c_gwi_ad -> c_ad_gwi
+      if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_)) {
+        class_read_double_one_of_two("c_gwi_ad","c_ad_gwi",ppm->c_gwi_ad);
+        class_read_double_one_of_two("n_gwi_ad","n_ad_gwi",ppm->n_gwi_ad);
+        class_read_double_one_of_two("alpha_gwi_ad","alpha_ad_gwi",ppm->alpha_gwi_ad);
+      }
+      if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_)) {
+        class_read_double_one_of_two("c_gwi_bi","c_bi_gwi",ppm->c_gwi_bi);
+        class_read_double_one_of_two("n_gwi_bi","n_bi_gwi",ppm->n_gwi_bi);
+        class_read_double_one_of_two("alpha_gwi_bi","alpha_bi_gwi",ppm->alpha_gwi_bi);
+      }
+      if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
+        class_read_double_one_of_two("c_gwi_cdi","c_cdi_gwi",ppm->c_gwi_cdi);
+        class_read_double_one_of_two("n_gwi_cdi","n_cdi_gwi",ppm->n_gwi_cdi);
+        class_read_double_one_of_two("alpha_gwi_cdi","alpha_cdi_gwi",ppm->alpha_gwi_cdi);
+      }
+      if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
+        class_read_double_one_of_two("c_gwi_nid","c_nid_gwi",ppm->c_gwi_nid);
+        class_read_double_one_of_two("n_gwi_nid","n_nid_gwi",ppm->n_gwi_nid);
+        class_read_double_one_of_two("alpha_gwi_nid","alpha_nid_gwi",ppm->alpha_gwi_nid);
+      }
+      if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+        class_read_double_one_of_two("c_gwi_niv","c_niv_gwi",ppm->c_gwi_niv);
+        class_read_double_one_of_two("n_gwi_niv","n_niv_gwi",ppm->n_gwi_niv);
+        class_read_double_one_of_two("alpha_gwi_niv","alpha_niv_gwi",ppm->alpha_gwi_niv);
       }
     }
 
@@ -4562,6 +4611,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
       ppm->A_s = prr1*exp((ppm->n_s-1.)*log(ppm->k_pivot/k1));
 
       /** 1.f.3) Isocurvature amplitudes */
+      //TODO: Add gwi isocurvature mode?  
       if ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_)){
         /* Read */
         class_read_double("P_{II}^1",pii1);
@@ -4695,7 +4745,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
     class_test(ppt->has_tensors == _FALSE_,
                errmsg,
                "inflationary module cannot work if you do not ask for tensor modes");
-    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
+    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_ || ppt->has_gwi == _TRUE_,
                errmsg,
                "inflationary module cannot work if you ask for isocurvature modes");
   }
@@ -4703,9 +4753,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
   /** 2) Graviational Wave Background (GWB) source type (define the energy density and intial spectrum) */
   if ((ppt->has_cl_gwb == _TRUE_) || (ppt->has_omega_gwb == _TRUE_)) {
-
-    /* activate inital GWB perturbation mode: index_ic_gwi, may be deactivatd again depending on the source type */
-    ppt->has_gwi=_TRUE_;
 
     /* Read */
     class_call(parser_read_string(pfc,"gwb_source_type",&string1,&flag1,errmsg),
@@ -4784,66 +4831,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
       /** 2.b.2.2) Proportionality factor \Xi between \Gamma_I and curvature pertrubation */
       class_read_double("gwi_scalar",ppm->gwi_scalar);
-
-      /** 2.b.3) Isocurvature mode for \Gamma_I */
-      /** 2.b.3.1) Amplitude */
-      /* Read */
-      class_call(parser_read_double(pfc,"A_gwi",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      class_call(parser_read_double(pfc,"ln10^{10}A_gwi",&param2,&flag2,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Test */
-      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-                 errmsg,
-                 "You can only enter one of 'A_gwi' or 'ln10^{10}A_gwi'.");
-      /* Complete set of parameters */
-      if (flag1 == _TRUE_){
-        ppm->A_gwi = param1;
-      }
-      else if (flag2 == _TRUE_){
-        ppm->A_gwi = exp(param2)*1.e-10;
-      }
-      /** 2.b.3.2) Spectral index */
-      class_read_double("n_gwi",ppm->n_gwi);
-      /** 2.b.3.3) GWB ini running */
-      class_read_double("alpha_gwi",ppm->alpha_gwi);
-
-      /** Test */
-      if (ppm->A_gwi == 0.) {
-        ppt->has_gwi = _FALSE_;
-      }
-
-      /** 2.b.3.4) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
-      if (ppm->primordial_spec_type == analytic_Pk) {
-        /* Read */
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_ad == _TRUE_)) {
-          class_read_double_one_of_two("c_gwi_ad","c_ad_gwi",ppm->c_gwi_ad);
-          class_read_double_one_of_two("n_gwi_ad","n_ad_gwi",ppm->n_gwi_ad);
-          class_read_double_one_of_two("alpha_gwi_ad","alpha_ad_gwi",ppm->alpha_gwi_ad);
-        }
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_bi == _TRUE_)) {
-          class_read_double_one_of_two("c_gwi_bi","c_bi_gwi",ppm->c_gwi_bi);
-          class_read_double_one_of_two("n_gwi_bi","n_bi_gwi",ppm->n_gwi_bi);
-          class_read_double_one_of_two("alpha_gwi_bi","alpha_bi_gwi",ppm->alpha_gwi_bi);
-        }
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
-          class_read_double_one_of_two("c_gwi_cdi","c_cdi_gwi",ppm->c_gwi_cdi);
-          class_read_double_one_of_two("n_gwi_cdi","n_cdi_gwi",ppm->n_gwi_cdi);
-          class_read_double_one_of_two("alpha_gwi_cdi","alpha_cdi_gwi",ppm->alpha_gwi_cdi);
-        }
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
-          class_read_double_one_of_two("c_gwi_nid","c_nid_gwi",ppm->c_gwi_nid);
-          class_read_double_one_of_two("n_gwi_nid","n_nid_gwi",ppm->n_gwi_nid);
-          class_read_double_one_of_two("alpha_gwi_nid","alpha_nid_gwi",ppm->alpha_gwi_nid);
-        }
-        if ((ppt->has_gwi == _TRUE_) && (ppt->has_niv == _TRUE_)) {
-          class_read_double_one_of_two("c_gwi_niv","c_niv_gwi",ppm->c_gwi_niv);
-          class_read_double_one_of_two("n_gwi_niv","n_niv_gwi",ppm->n_gwi_niv);
-          class_read_double_one_of_two("alpha_gwi_niv","alpha_niv_gwi",ppm->alpha_gwi_niv);
-        }
-      }
     }
 
     /** 2.c) For type 'inlfationary_gwb' */
@@ -4861,8 +4848,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       ppm->gwi_adiabatic = -2.;
       /* Read */
       class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
-
-      ppt->has_gwi = _FALSE_;
     }
 
     /** 2.d) For type 'external_gwb' */
@@ -4908,9 +4893,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** 2.e.2) Non-Gaussianity parameter */
       class_read_double("f_NL",ppm->f_NL);
-
-      /* The initial spectrum is not independent, but proportional to the scalar spectrum. */
-      ppt->has_gwi = _FALSE_;
     }
 
     /** 2.f) For type 'PT_gwb' */
@@ -4936,8 +4918,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
       ppm->gwi_adiabatic = -2.;
       /* Read */
       class_read_double("gwi_adiabatic",ppm->gwi_adiabatic);
-
-      ppt->has_gwi = _FALSE_;
     }
   }
 
@@ -5990,11 +5970,11 @@ int input_default_params(struct background *pba,
   ppt->has_tensors=_FALSE_;
   /** 3.a) Initial conditions for scalars */
   ppt->has_ad=_TRUE_;
-  ppt->has_gwi=_FALSE_;
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
+  ppt->has_gwi=_FALSE_;
   /** 3.b) Initial conditions for tensors */
   ppt->tensor_method = tm_massless_approximation;
   ppt->evolve_tensor_ur = _FALSE_;
@@ -6280,6 +6260,9 @@ int input_default_params(struct background *pba,
   ppm->f_niv = 1.;
   ppm->n_niv = 1.;
   ppm->alpha_niv = 0.;
+  ppm->A_gwi = 0.;
+  ppm->n_gwi = 0.;
+  ppm->alpha_gwi = 0.;
   /** 1.b.1.3) Cross-correlation between different adiabatic/entropy mode */
   ppm->c_ad_bi = 0.;
   ppm->n_ad_bi = 0.;
@@ -6311,6 +6294,22 @@ int input_default_params(struct background *pba,
   ppm->c_nid_niv = 0.;
   ppm->n_nid_niv = 0.;
   ppm->alpha_nid_niv = 0.;
+  //TODO: Refactor
+  ppm->c_gwi_ad = 0.;
+  ppm->n_gwi_ad = 0.;
+  ppm->alpha_gwi_ad = 0.;
+  ppm->c_gwi_bi = 0.;
+  ppm->n_gwi_bi = 0.;
+  ppm->alpha_gwi_bi = 0.;
+  ppm->c_gwi_cdi = 0.;
+  ppm->n_gwi_cdi = 0.;
+  ppm->alpha_gwi_cdi = 0.;
+  ppm->c_gwi_nid = 0.;
+  ppm->n_gwi_nid = 0.;
+  ppm->alpha_gwi_nid = 0.;
+  ppm->c_gwi_niv = 0.;
+  ppm->n_gwi_niv = 0.;
+  ppm->alpha_gwi_niv = 0.;
   /** 1.b.2) For tensor perturbations */
   ppm->r = 1.;
   ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
@@ -6377,29 +6376,6 @@ int input_default_params(struct background *pba,
   ppm->gwi_adiabatic = 0.;
   /** 2.b.2.2) Proportionality factor \Xi between \Gamma_I and curvature pertrubation */
   ppm->gwi_scalar = 0.;
-  /** 2.b.3) Isocurvature mode for \Gamma_I */
-  /** 2.b.3.1) Amplitude */
-  ppm->A_gwi = 0.;
-  /** 2.b.3.2) Spectral index */
-  ppm->n_gwi = 0.;
-  /** 2.b.3.3) GWB running */
-  ppm->alpha_gwi = 0.;
-  /** 2.b.3.4) Cross-correlation of Gamma_I with different adiabatic/entropy mode */
-  ppm->c_gwi_ad = 0.;
-  ppm->n_gwi_ad = 0.;
-  ppm->alpha_gwi_ad = 0.;
-  ppm->c_gwi_bi = 0.;
-  ppm->n_gwi_bi = 0.;
-  ppm->alpha_gwi_bi = 0.;
-  ppm->c_gwi_cdi = 0.;
-  ppm->n_gwi_cdi = 0.;
-  ppm->alpha_gwi_cdi = 0.;
-  ppm->c_gwi_nid = 0.;
-  ppm->n_gwi_nid = 0.;
-  ppm->alpha_gwi_nid = 0.;
-  ppm->c_gwi_niv = 0.;
-  ppm->n_gwi_niv = 0.;
-  ppm->alpha_gwi_niv = 0.;
 
   /** 2.d) For type 'external_gwb' */
   /** 2.d.1) Command generating the table for Omega_GW */

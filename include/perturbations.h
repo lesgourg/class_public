@@ -112,11 +112,11 @@ struct perturbations
   short has_tensors; /**< do we need tensors? */
 
   short has_ad;      /**< do we need adiabatic mode? */
-  short has_gwi;     /**< do we need isocurvature GWB mode? */
   short has_bi;      /**< do we need isocurvature bi mode? */
   short has_cdi;     /**< do we need isocurvature cdi mode? */
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
+  short has_gwi;     /**< do we need isocurvature GWB mode? */
 
   /* perturbed recombination */
   /** Do we want to consider perturbed temperature and ionization fraction? */
@@ -232,11 +232,11 @@ struct perturbations
   //@{
 
   int index_ic_ad; /**< index value for adiabatic */
-  int index_ic_gwi; /**< index value for intitial GWB perturbations */
   int index_ic_cdi; /**< index value for CDM isocurvature */
   int index_ic_bi; /**< index value for baryon isocurvature */
   int index_ic_nid; /**< index value for neutrino density isocurvature */
   int index_ic_niv; /**< index value for neutrino velocity isocurvature */
+  int index_ic_gwi; /**< index value for intitial GWB perturbations */
   int index_ic_ten; /**< index value for unique possibility for tensors */
 
   int * ic_size;       /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */

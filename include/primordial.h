@@ -127,6 +127,10 @@ struct primordial {
   double n_niv;  /**< NIV tilt */
   double alpha_niv; /**< NIV running */
 
+  double A_gwi;  /**< GWB non-adiabaitc perturbations (GWI) amplitude \f$ A_{NAD} \f$*/
+  double n_gwi;  /**< GWI tilt (defined wrt. 0) */
+  double alpha_gwi; /**< GWI running */
+
   double c_ad_bi; /**< ADxBI cross-correlation at pivot scale, from -1 to 1 */
   double n_ad_bi; /**< ADxBI cross-correlation tilt */
   double alpha_ad_bi; /**< ADxBI cross-correlation running */
@@ -166,6 +170,27 @@ struct primordial {
   double c_nid_niv; /**< NIDxNIV cross-correlation at pivot scale, from -1 to 1 */
   double n_nid_niv; /**< NIDxNIV cross-correlation tilt */
   double alpha_nid_niv; /**< NIDxNIV cross-correlation running */
+
+// TODO: refactor gwi_ad -> ad_gwi, ...
+  double c_gwi_ad; /**< GWBxAD cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwi_ad; /**< GWBxAD cross-correlation tilt */
+  double alpha_gwi_ad; /**< GWBxAD cross-correlation running */
+
+  double c_gwi_bi; /**< GWBxBI cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwi_bi; /**< GWBxBI cross-correlation tilt */
+  double alpha_gwi_bi; /**< GWBxBI cross-correlation running */
+
+  double c_gwi_cdi; /**< GWBxCDI cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwi_cdi; /**< GWBxCDI cross-correlation tilt */
+  double alpha_gwi_cdi; /**< GWBxCDI cross-correlation running */
+
+  double c_gwi_nid; /**< GWBxNID cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwi_nid; /**< GWBxNID cross-correlation tilt */
+  double alpha_gwi_nid; /**< GWBxNID cross-correlation running */
+
+  double c_gwi_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_gwi_niv; /**< GWBxNIV cross-correlation tilt */
+  double alpha_gwi_niv; /**< GWBxNIV cross-correlation running */
 
   /** parameters describing the case primordial_spec_type = inflation_V */
 
@@ -213,7 +238,6 @@ struct primordial {
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
   short has_OmGW; /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
-  short has_gwi;  /**< do we have isocurvature mode for \f$ \Gamma_I \f$? */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
@@ -226,30 +250,6 @@ struct primordial {
   double Omega_gwb;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
   double n_gwb;  /**< Spectral index for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
   double alpha_gwb; /**< GWB running */
-
-  double A_gwi;  /**< Amplitude for GWB intial perturbations \f$ \Gamma_{ini} \f$*/
-  double n_gwi;  /**< Spectral index for GWB intial perturbations \f$ \Gamma_{ini} \f$*/
-  double alpha_gwi; /**< GWB ini running */
-
-  double c_gwi_ad; /**< GWBxAD cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_ad; /**< GWBxAD cross-correlation tilt */
-  double alpha_gwi_ad; /**< GWBxAD cross-correlation running */
-
-  double c_gwi_bi; /**< GWBxBI cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_bi; /**< GWBxBI cross-correlation tilt */
-  double alpha_gwi_bi; /**< GWBxBI cross-correlation running */
-
-  double c_gwi_cdi; /**< GWBxCDI cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_cdi; /**< GWBxCDI cross-correlation tilt */
-  double alpha_gwi_cdi; /**< GWBxCDI cross-correlation running */
-
-  double c_gwi_nid; /**< GWBxNID cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_nid; /**< GWBxNID cross-correlation tilt */
-  double alpha_gwi_nid; /**< GWBxNID cross-correlation running */
-
-  double c_gwi_niv; /**< GWBxNIV cross-correlation at pivot scale, from -1 to 1 */
-  double n_gwi_niv; /**< GWBxNIV cross-correlation tilt */
-  double alpha_gwi_niv; /**< GWBxNIV cross-correlation running */
 
   /* - parameters for external_gwb */
 
