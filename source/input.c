@@ -1806,8 +1806,8 @@ int input_read_parameters_general(struct file_content * pfc,
                errmsg);
     class_test(flag1==_FALSE_,
                errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl','OmGw'}, you entered '%s'",string1);
-    class_test(((ppt->has_omega_gwb == _TRUE_) && (ppt->has_cl_gwb == _FALSE_)),
-                errmsg, "If you ask for 'OmGW' you also have to ask for 'gwCl'!");
+    class_test(((ppt->has_omega_gwb == _TRUE_) && (ppt->has_cl_gwb == _FALSE_)) || ((ppt->has_omega_gwb == _FALSE_) && (ppt->has_cl_gwb == _TRUE_)),
+                errmsg, "'OmGW' and 'gwCl' can only be compted in combination!");
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
