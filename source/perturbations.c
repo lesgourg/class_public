@@ -6018,7 +6018,7 @@ int perturbations_initial_conditions(struct precision * ppr,
 
     }
 
-    //TODO_GWB: No IC are specified for the GWI mode, somehow this works. I have absolutly no Idea why this gives the correct result!
+    //TODO_GWB: No IC are specified for the GWI mode, but somehow this works?!
 
     /** - (c) If the needed gauge is really the synchronous gauge, we need to affect the previously computed value of eta to the actual variable eta */
 
