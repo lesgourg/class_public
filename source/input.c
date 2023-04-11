@@ -2353,6 +2353,7 @@ int input_read_parameters_general(struct file_content * pfc,
   if (ppt->has_cl_gwb == _TRUE_) {
 
     /** 11.a) Physical time of GWB production*/
+    //TODO_GW: remove
     /* Read */
     class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
                 errmsg,
@@ -2388,10 +2389,11 @@ int input_read_parameters_general(struct file_content * pfc,
     class_call(parser_read_double(pfc,"f_dec_ini",&param1,&flag1,errmsg),
                 errmsg,
                 errmsg);
+    //TODO_GW: allow 
     if (flag1 == _TRUE_) {
-      class_test((param1 < 0.) || (param1 > 1.),
+      class_test((param1 != -1) && ((param1 < 0.) || (param1 > 1.)),
                   errmsg,
-                  "f_dec_ini must be between 0 and 1, you entered f_dec_ini=%g.", param1);
+                  "f_dec_ini must be between 0 and 1, or -1 to deactivate it. You entered f_dec_ini=%g.", param1);
       pba->f_dec_ini = param1;
     }
 
@@ -6025,7 +6027,7 @@ int input_default_params(struct background *pba,
   /** 11.b) Convert GWB phase space perturbation to energy density contrast */
   ppt->convert_gwb_to_energydensity=_TRUE_;
   /** 11.c) Fraction of decoupled relativistic particles at GWB production */
-  pba->f_dec_ini=-1; // f_dec_ini = -1 means not to consider the effect!
+  pba->f_dec_ini=0.;
 
   /**
    * Default to input_read_parameters_species
