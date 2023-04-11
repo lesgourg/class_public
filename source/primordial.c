@@ -311,6 +311,89 @@ int primordial_omega_gw_at_f(
 }
 
 /**
+ * GWB spectral tilt $n_{\rm gwb}$ for arbitrary frequency.
+ *
+ * This routine evaluates the GWB spectral tilt $n_{\rm gwb}$ at a given value
+ * of f by calculating the derivative of Omega_GW.
+ *
+ * When f is not in the pre-computed range it returns an error.
+ *
+ * Can be called in two modes; linear or logarithmic:
+ *
+ * - linear: takes f, returns n_gwb(f)
+ *
+ * - logarithmic: takes ln(f), return n_gwb(f)
+ *
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * primordial_init() has been called before, and primordial_free() has not
+ * been called yet.
+ *
+ * @param ppr        Input: pointer to precision structure (defines method and precision for all computations)
+ * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum
+ * @param mode       Input: linear or logarithmic
+ * @param input      Input: frequency in Hz (linear mode) or its logarithm (logarithmic mode)
+ * @param output     Output: GWB energy density Omega_GW(f) (linear mode), or its logarithm (logarithmic mode)
+ * @return the error status
+ */
+
+int primordial_n_gwb_at_f(
+                          struct precision  * ppr,
+                          struct primordial * ppm,
+                          enum linear_or_logarithmic mode,
+                          double input,
+                          double * output
+                          ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  double lnf,dlnf,lnOmGW_minus,lnOmGW_plus;
+  int last_index;
+
+  /** - test */
+  
+  class_test(ppm->has_OmGW == _FALSE_,
+             ppm->error_message,
+             "Omega_gw is not calculated");
+
+  /** - infer ln(f) from input. In linear mode, reject negative value of input f value. */
+
+  if (mode == linear) {
+    class_test(input<=0.,
+               ppm->error_message,
+               "f = %e",input);
+    lnf=log(input);
+  }
+  else {
+    lnf = input;
+  }
+
+
+  dlnf = log(10.)/ppr->f_per_decade_primordial;
+
+  class_call(primordial_omega_gw_at_f(ppm,
+                                      logarithmic,
+                                      lnf+dlnf,
+                                      &lnOmGW_plus),
+              ppm->error_message,
+              ppm->error_message);
+
+  class_call(primordial_omega_gw_at_f(ppm,
+                                      logarithmic,
+                                      lnf-dlnf,
+                                      &lnOmGW_minus),
+              ppm->error_message,
+              ppm->error_message);
+
+  *output = (lnOmGW_plus-lnOmGW_minus)/(2.*dlnf);
+
+  return _SUCCESS_;
+
+}
+
+/**
  * This routine initializes the primordial structure (in particular, it computes table of primordial spectrum values)
  *
  * @param ppr Input: pointer to precision structure (defines method and precision for all computations)

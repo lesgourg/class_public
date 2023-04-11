@@ -492,6 +492,7 @@ cdef extern from "class.h":
     int primordial_output_titles_omega_gw(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
     int primordial_output_omega_gw(void *ppt, void *ppm, int number_of_titles, double *data)
     int primordial_omega_gw_at_f(void *ppm, int mode, double input, double *output)
+    int primordial_n_gwb_at_f(void *ppr, void *ppm, int mode, double input, double *output)
 
     int harmonic_cl_at_l(void* phr,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)

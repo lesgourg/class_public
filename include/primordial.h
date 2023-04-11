@@ -439,6 +439,14 @@ extern "C" {
                                double * OmGW
                                );
 
+  int primordial_n_gwb_at_f(
+                            struct precision  * ppr,
+                            struct primordial * ppm,
+                            enum linear_or_logarithmic mode,
+                            double f,
+                            double * n_gwb
+                            );
+
   int primordial_init(
                       struct precision  * ppr,
                       struct background * pba,

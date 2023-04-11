@@ -1380,8 +1380,36 @@ cdef class Class:
     def n_s(self):
         return self.pm.n_s
 
-    def n_gwb(self):
-        return self.pm.n_gwb
+    def n_gwb(self, f='f_pivot'):
+        """
+        n_gwb(f='f_pivot')
+
+        Return the GWB spectral tilt n_gwb at the frequency f
+
+        Parameters
+        ----------
+        f : optional
+                Either 'f_pivot' or frequency of the GW in Hz.
+
+        Returns
+        -------
+        n_gwb : double
+                GWB spectral titl n_gwb at pivot frequency f.
+        """
+        if f == 'f_pivot':
+            return self.pm.n_gwb
+        cdef double f_out
+        cdef double n_gwb
+        try:
+            f_out = f
+        except TypeError:
+            raise TypeError("f must be either 'f_pivot' or a real number, you entered f='%s'!" % f)
+
+        # Use mode = 0 to be in the linear case!
+        if primordial_n_gwb_at_f(&self.pr, &self.pm, 0, f_out, &n_gwb)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        return n_gwb
 
     def tau_reio(self):
         return self.th.tau_reio
