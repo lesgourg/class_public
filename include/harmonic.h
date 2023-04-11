@@ -6,6 +6,13 @@
 #include "transfer.h"
 
 /**
+ * Maximum number of values of frequencies at which the CGWB spectra will be
+ * calculated
+ */
+
+#define _F_GWB_NUM_MAX_ 100
+
+/**
  * Structure containing everything about anisotropy and Fourier power spectra that other modules need to know.
  *
  * Once initialized by harmonic_init(), contains a table of all
@@ -41,6 +48,15 @@ struct harmonic {
   int * ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
   int * ic_ic_size;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
   short ** is_non_zero; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
+
+  //@}
+
+  /** @name - number and value(s) of frequencies at which C_l°CGWBxCGWB(f1,f2) should be written */
+
+  //@{
+
+  int f_gwb_num; /**< number of frequencies at which C_l°CGWBxCGWB(f1,f2) should be written */
+  double f_gwb[_F_GWB_NUM_MAX_]; /**< value(s) of frequencies at which C_l°CGWBxCGWB(f1,f2) should be written */
 
   //@}
 

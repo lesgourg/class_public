@@ -5216,6 +5216,36 @@ int input_read_parameters_spectra(struct file_content * pfc,
     }
   }
 
+
+  /** 4) CGWB anisotropies */
+  if (ppt->has_cl_gwb == _TRUE_){
+
+    /** 4.a) GW frequencies */
+    /* Read */
+    class_call(parser_read_list_of_doubles(pfc,"f_gwb",&int1,&pointer1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    if (flag1 == _TRUE_) {
+      class_test(int1 > _F_GWB_NUM_MAX_,
+                 errmsg,
+                 "you want to calculate the C_l^CGWB for %d different freqeuncies, hence you should increase _F_GWB_NUM_MAX_ in include/harmonic.h to at least this number",
+                 int1);
+      /* Complete set of parameters */
+      phr->f_gwb_num = int1;
+      for (i=0; i<int1; i++) {
+        phr->f_gwb[i] = pointer1[i];
+      }
+      free(pointer1);
+
+      // TODO_GWB: remove print out
+      printf("number of freqs: %d \n", phr->f_gwb_num);
+      for (i=0; i<phr->f_gwb_num; i++) {
+        printf("%d: %g \n", i, phr->f_gwb[i]);
+      }
+    }
+  }
+
   return _SUCCESS_;
 
 }
