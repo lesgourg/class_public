@@ -4017,10 +4017,6 @@ int primordial_inflationary_gwb_init(
   class_test(ppt->has_tensors == _FALSE_,
              ppm->error_message,
              "You try to calculate the inflationary_gwb without having tensor modes, this should not happen!");
-
-  class_test(ppt->tau_ini_gwb > 0.,
-             ppm->error_message,
-             "'tau_ini_gwb=0' is needed for the infaltionary_gwb!");
   
   k = 2 * _PI_ * ppm->f_min / _c_ * _Mpc_over_m_;
   class_test(k < 1. / pba->tau_eq,

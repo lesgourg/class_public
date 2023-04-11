@@ -2351,45 +2351,16 @@ int input_read_parameters_general(struct file_content * pfc,
 
   /** 11) Gravitational Wave Background */
   if (ppt->has_cl_gwb == _TRUE_) {
-
-    /** 11.a) Physical time of GWB production*/
-    //TODO_GW: remove
-    /* Read */
-    class_call(parser_read_double(pfc,"tau_ini_gwb",&param1,&flag1,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"z_ini_gwb",&param2,&flag2,errmsg),
-                errmsg,
-                errmsg);
-    class_call(parser_read_double(pfc,"T_ini_gwb",&param3,&flag3,errmsg),
-                errmsg,
-                errmsg);
-    /* Test */
-    class_test(class_at_least_two_of_three(flag1, flag2, flag3),
-                errmsg,
-                "You can only enter one of 'tau_ini_gwb', 'z_ini_gwb' or 'T_ini_gwb'.");
-    /* Complete set of parameters */
-    ppt->tau_ini_gwb = 0.;
-    ppt->z_ini_gwb = 0.;
-    ppt->T_ini_gwb = 0.;
-    if (flag1 == _TRUE_)
-      ppt->tau_ini_gwb = param1;
-    if (flag2 == _TRUE_)
-      ppt->z_ini_gwb = param2;
-    if (flag3 == _TRUE_)
-      ppt->T_ini_gwb = param3 * 1e6/_eV_over_Kelvin_;
-
-    /** 11.b) Convert GWB to energy density  */
+    /** 11.a) Convert GWB to energy density  */
     /* Read */
     flag1 = _TRUE_;
     class_read_flag_or_deprecated("convert_gwb_to_energydensity","convert gwb to energydensity",flag1);
     ppt->convert_gwb_to_energydensity = flag1;
 
-    /** 11.c) Fraction of decoupled relativistic particles at GWB production */
+    /** 11.b) Fraction of decoupled relativistic particles at GWB production */
     class_call(parser_read_double(pfc,"f_dec_ini",&param1,&flag1,errmsg),
                 errmsg,
                 errmsg);
-    //TODO_GW: allow 
     if (flag1 == _TRUE_) {
       class_test((param1 != -1) && ((param1 < 0.) || (param1 > 1.)),
                   errmsg,
@@ -6020,13 +5991,9 @@ int input_default_params(struct background *pba,
   pba->varconst_transition_redshift = 50.;
 
   /** 11) Gravitational Wave Background */
-  /** 11.a) Physical time of GWB production */
-  ppt->tau_ini_gwb=0.;
-  ppt->z_ini_gwb=0.;
-  ppt->T_ini_gwb=0.;
-  /** 11.b) Convert GWB phase space perturbation to energy density contrast */
+  /** 11.a) Convert GWB phase space perturbation to energy density contrast */
   ppt->convert_gwb_to_energydensity=_TRUE_;
-  /** 11.c) Fraction of decoupled relativistic particles at GWB production */
+  /** 11.b) Fraction of decoupled relativistic particles at GWB production */
   pba->f_dec_ini=0.;
 
   /**

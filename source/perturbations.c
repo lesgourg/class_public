@@ -1864,134 +1864,6 @@ int perturbations_timesampling_for_sources(
   }
 
   if (ppt->has_source_gwb == _TRUE_) {
-
-    /* calculate ppt->tau_ini_gwb */
-    if (ppt->z_ini_gwb != 0.) {
-      background_tau_of_z(pba, ppt->z_ini_gwb, &tau_ini_gwb);
-      ppt->tau_ini_gwb = tau_ini_gwb;
-    }
-    if (ppt->T_ini_gwb != 0.) {
-      /* find tau_ini_gwb corresponding to T_ini_gwb */
-      tau_lower = pba->tau_table[0];
-
-      class_call(background_at_tau(pba,
-                                  tau_lower,
-                                  short_info,
-                                  inter_normal,
-                                  &first_index_back,
-                                  pvecback),
-                pba->error_message,
-                ppt->error_message);
-
-      class_call(thermodynamics_at_z(pba,
-                                    pth,
-                                    1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                    inter_normal,
-                                    &first_index_thermo,
-                                    pvecback,
-                                    pvecthermo),
-                pth->error_message,
-                ppt->error_message);
-
-      class_test(pvecthermo[pth->index_th_Tb] < ppt->T_ini_gwb,
-                ppt->error_message,
-                "your choice of initial temperature for GWB sources is inappropriate: it corresponds to an earlier time than the one at which the integration of background variables started (tau=%g). You should decrease either 'T_ini_gwb' or 'a_ini_over_a_today_default'\n",
-                tau_lower);
-
-
-      tau_upper = pba->conformal_age;
-
-      class_call(background_at_tau(pba,
-                                  tau_upper,
-                                  short_info,
-                                  inter_normal,
-                                  &first_index_back,
-                                  pvecback),
-                pba->error_message,
-                ppt->error_message);
-
-      class_call(thermodynamics_at_z(pba,
-                                    pth,
-                                    1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                    inter_normal,
-                                    &first_index_thermo,
-                                    pvecback,
-                                    pvecthermo),
-                pth->error_message,
-                ppt->error_message);
-
-      class_test(pvecthermo[pth->index_th_Tb] > ppt->T_ini_gwb,
-                ppt->error_message,
-                "your choice of initial temperature for GWB sources is inappropriate: it corresponds to a time after today. You should increase 'T_ini_gwb'\n");
-
-      tau_mid = 0.5*(tau_lower + tau_upper);
-
-      while (tau_upper - tau_lower > ppr->tol_tau_approx) {
-
-        class_call(background_at_tau(pba,
-                                    tau_mid,
-                                    short_info,
-                                    inter_normal,
-                                    &first_index_back,
-                                    pvecback),
-                  pba->error_message,
-                  ppt->error_message);
-
-        class_call(thermodynamics_at_z(pba,
-                                      pth,
-                                      1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                      inter_normal,
-                                      &first_index_thermo,
-                                      pvecback,
-                                      pvecthermo),
-                  pth->error_message,
-                  ppt->error_message);
-
-
-        if (pvecthermo[pth->index_th_Tb] < ppt->T_ini_gwb)
-          tau_upper = tau_mid;
-        else
-          tau_lower = tau_mid;
-
-        tau_mid = 0.5*(tau_lower + tau_upper);
-
-      }
-
-      ppt->tau_ini_gwb = tau_mid;
-
-    }
-    if (ppt->tau_ini_gwb != 0.) {
-      /* calculate z_ini_gwb, T_ini_gwb and set values of first_index_back/thermo */
-      class_call(background_at_tau(pba,
-                                    ppt->tau_ini_gwb,
-                                    short_info,
-                                    inter_normal,
-                                    &first_index_back,
-                                    pvecback),
-                  pba->error_message,
-                  ppt->error_message);
-      ppt->z_ini_gwb = 1./pvecback[pba->index_bg_a]-1.;  /* redshift z=1/a-1 */
-
-      class_call(thermodynamics_at_z(pba,
-                                      pth,
-                                      ppt->z_ini_gwb,
-                                      inter_normal,
-                                      &first_index_thermo,
-                                      pvecback,
-                                      pvecthermo),
-                  pth->error_message,
-                  ppt->error_message);
-
-      ppt->T_ini_gwb = pvecthermo[pth->index_th_Tb];
-
-      if (ppt->perturbations_verbose > 0) {
-        printf(" -> The GWB is created at tau_ini_gwb=%g Mpc <=> z_ini_gwb=%g <=> T_ini_gwb=%g K=%g MeV\n",
-                ppt->tau_ini_gwb, ppt->z_ini_gwb, ppt->T_ini_gwb,
-                ppt->T_ini_gwb *  1e-6*_eV_over_Kelvin_);
-      }
-    }
-    
-
     /** set the initial time to precision parameter for the sources to be convergent */
     tau_ini_gwb = ppr->start_sources_at_tau_gwb;
     class_test(tau_ini_gwb < 1.e-2,
@@ -7988,11 +7860,6 @@ int perturbations_sources(
         switch_gwb_isw = 0;
       }
 
-      //GWB only start after tau_ini_gwb
-      if (tau < ppt->tau_ini_gwb) {
-        switch_gwb_isw = 0;
-      }
-
       if (ppt->gauge == newtonian) {
 
         _set_source_(ppt->index_tp_gwb0) =
@@ -8395,10 +8262,6 @@ int perturbations_sources(
 
     /* tensor gwb */
     if (ppt->has_source_gwb == _TRUE_) {
-      //GWB only start after tau_ini_gwb (reuse switch_gwb_isw)
-      if (tau < ppt->tau_ini_gwb) {
-        switch_gwb_isw = 0;
-      }
       _set_source_(ppt->index_tp_gwb2) = -switch_gwb_isw * y[ppw->pv->index_pt_gwdot];
     }
 

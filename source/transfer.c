@@ -2415,84 +2415,45 @@ int transfer_sources(
       /* GWB initial and SW contribution, only need initial time*/
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw0)) {
-        
-        /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        if (ppt->tau_ini_gwb < ppr->start_sources_at_tau_gwb) {
-          index_tau = 0;
-        }
-        else {
-          class_call(array_search_bisect(ppt->tau_size,
-                                        ppt->tau_sampling,
-                                        ppt->tau_ini_gwb,
-                                        &index_tau,
-                                        ptr->error_message),
-                    ptr->error_message,
-                    ptr->error_message);
-        }
+        index_tau = 0;
 
         sources[0] = (-ppt->switch_gwb_pisw) 
                       * interpolated_sources[index_tau] * ((1. + 2./5. * pba->f_dec_ini) / (1. + 4./15. * pba->f_dec_ini)) / ((1. + 2./5. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_late)) //phi(tau_ini)
                       + (ppt->switch_gwb_pisw + ppt->switch_gwb_eisw)
                       * interpolated_sources[index_tau]; //phi(tau_BBN)
 
-        /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+        /* store value of (tau0-tau) = tau0  (use tau=0) */
+        tau0_minus_tau[0] = tau0;
       }
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_sw1)) {
-        
-        /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        if (ppt->tau_ini_gwb < ppr->start_sources_at_tau_gwb) {
-          index_tau = 0;
-        }
-        else {
-          class_call(array_search_bisect(ppt->tau_size,
-                                        ppt->tau_sampling,
-                                        ppt->tau_ini_gwb,
-                                        &index_tau,
-                                        ptr->error_message),
-                    ptr->error_message,
-                    ptr->error_message);
-        }
+        index_tau = 0;
 
         sources[0] = (ppt->switch_gwb_sw - ppt->switch_gwb_pisw)
                       * interpolated_sources[index_tau] * (1. + 4./15. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_ini) //psi(tau_ini)
                       + (ppt->switch_gwb_pisw - ppt->switch_gwb_eisw)
                       * interpolated_sources[index_tau]; //psi(tau_BBN)
 
-        /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+        /* store value of (tau0-tau) = tau0  (use tau=0) */
+        tau0_minus_tau[0] = tau0;
       }
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ad)) {
-        
-        /* find index_tau with tau_sampling[index_tau] = tau_ini_gwb */
-        if (ppt->tau_ini_gwb < ppr->start_sources_at_tau_gwb) {
-          index_tau = 0;
-        }
-        else {
-          class_call(array_search_bisect(ppt->tau_size,
-                                        ppt->tau_sampling,
-                                        ppt->tau_ini_gwb,
-                                        &index_tau,
-                                        ptr->error_message),
-                    ptr->error_message,
-                    ptr->error_message);
-        }
+        index_tau = 0;
 
         sources[0] = ppt->switch_gwb_ad
                       * interpolated_sources[index_tau] * (1. + 4./15. * pba->f_dec_late) / (1. + 4./15. * pba->f_dec_ini); //psi(tau_ini)N)
 
-        /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+        /* store value of (tau0-tau) = tau0  (use tau=0) */
+        tau0_minus_tau[0] = tau0;
       }
 
       if ((ppt->has_source_gwb == _TRUE_) && (index_tt == ptr->index_tt_gwb_ini)) {
         /* source function for gwb initial term */
         sources[0] = ppt->switch_gwb_ini * 1.;
 
-        /* store value of (tau0-tau) */
-        tau0_minus_tau[0] = tau0 - ppt->tau_ini_gwb;
+        /* store value of (tau0-tau) = tau0  (use tau=0) */
+        tau0_minus_tau[0] = tau0;
       }
     }
   }
