@@ -242,8 +242,7 @@ struct primordial {
   double f_gwb_2; /**< optional second GW frequencies in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
   double f_max;   /**< maximum GWB frequency in Hz */
-  double gwi_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum */
-  double gwi_scalar2; /**< gwi_scalar for f_gwb_2 */
+  double gwi_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum diveded by (4 - n_gwb) */
   
   /* - parameters describing analytic_gwb */
 
