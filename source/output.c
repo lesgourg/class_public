@@ -1682,11 +1682,11 @@ int output_open_cl_file(
       class_fprintf_columntitle(*clfile,"phiphi",phr->has_pp,colnum);
       class_fprintf_columntitle(*clfile,"TPhi",phr->has_tp,colnum);
       class_fprintf_columntitle(*clfile,"Ephi",phr->has_ep,colnum);
-      class_fprintf_columntitle(*clfile,"GWB",phr->has_gwb,colnum);
-      class_fprintf_columntitle(*clfile,"T GWB",phr->has_tgwb,colnum);
-      class_fprintf_columntitle(*clfile,"GWB2",phr->has_gwb2,colnum);
-      class_fprintf_columntitle(*clfile,"T GWB2",phr->has_tgwb2,colnum);
-      class_fprintf_columntitle(*clfile,"GWB GWB2",phr->has_gwbgwb2,colnum);
+      class_fprintf_columntitle(*clfile,"GG",phr->has_gwb,colnum);
+      class_fprintf_columntitle(*clfile,"TG",phr->has_tgwb,colnum);
+      class_fprintf_columntitle(*clfile,"G2G2",phr->has_gwb2,colnum);
+      class_fprintf_columntitle(*clfile,"TG2",phr->has_tgwb2,colnum);
+      class_fprintf_columntitle(*clfile,"GG2",phr->has_gwbgwb2,colnum);
     }
     else if (pop->output_format == camb_format) {
       class_fprintf_columntitle(*clfile,"TT",phr->has_tt,colnum);
@@ -1696,11 +1696,11 @@ int output_open_cl_file(
       class_fprintf_columntitle(*clfile,"dd",phr->has_pp,colnum);
       class_fprintf_columntitle(*clfile,"dT",phr->has_tp,colnum);
       class_fprintf_columntitle(*clfile,"dE",phr->has_ep,colnum);
-      class_fprintf_columntitle(*clfile,"GWB",phr->has_gwb,colnum);
-      class_fprintf_columntitle(*clfile,"T GWB",phr->has_tgwb,colnum);
-      class_fprintf_columntitle(*clfile,"GWB2",phr->has_gwb2,colnum);
-      class_fprintf_columntitle(*clfile,"T GWB2",phr->has_tgwb2,colnum);
-      class_fprintf_columntitle(*clfile,"GWB GWB2",phr->has_gwbgwb2,colnum);
+      class_fprintf_columntitle(*clfile,"GG",phr->has_gwb,colnum);
+      class_fprintf_columntitle(*clfile,"TG",phr->has_tgwb,colnum);
+      class_fprintf_columntitle(*clfile,"G2G2",phr->has_gwb2,colnum);
+      class_fprintf_columntitle(*clfile,"TG2",phr->has_tgwb2,colnum);
+      class_fprintf_columntitle(*clfile,"GG2",phr->has_gwbgwb2,colnum);
     }
 
     /** - Next deal with entries that are independent of format type */
