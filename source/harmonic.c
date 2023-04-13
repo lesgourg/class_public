@@ -564,7 +564,7 @@ int harmonic_indices(
     if (ppt->has_cl_gwb == _TRUE_) {
       phr->has_gg = _TRUE_;
       phr->index_ct_gg=index_ct;
-      index_ct++;
+      index_ct += phr->f_gwb_num*(phr->f_gwb_num+1)/2;
     }
     else {
       phr->has_gg = _FALSE_;
@@ -573,7 +573,7 @@ int harmonic_indices(
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_gwb == _TRUE_)) {
       phr->has_tg = _TRUE_;
       phr->index_ct_tg=index_ct;
-      index_ct++;
+      index_ct += phr->f_gwb_num;
     }
     else {
       phr->has_tg = _FALSE_;
@@ -639,9 +639,18 @@ int harmonic_indices(
              index_ct < phr->index_ct_dl+(phr->d_size*phr->d_size - (phr->d_size-phr->non_diag)*(phr->d_size-1-phr->non_diag));
              index_ct++)
           phr->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
-        
-      if (phr->has_gg == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gg] = ppt->l_scalar_max;
-      if (phr->has_tg == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tg] = ppt->l_scalar_max;
+
+      if (phr->has_gg == _TRUE_)
+        for (index_ct=phr->index_ct_gg;
+             index_ct < phr->index_ct_gg+(phr->f_gwb_num*(phr->f_gwb_num+1)/2);
+             index_ct++)
+          phr->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_scalar_max;
+
+      if (phr->has_tg == _TRUE_)
+        for (index_ct=phr->index_ct_tg;
+             index_ct < phr->index_ct_tg+phr->f_gwb_num;
+             index_ct++)
+          phr->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_scalar_max;
 
     }
     if (ppt->has_tensors == _TRUE_) {
@@ -652,8 +661,18 @@ int harmonic_indices(
       if (phr->has_ee == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_ee] = ppt->l_tensor_max;
       if (phr->has_te == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_te] = ppt->l_tensor_max;
       if (phr->has_bb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_bb] = ppt->l_tensor_max;
-      if (phr->has_gg == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_gg] = ppt->l_tensor_max;
-      if (phr->has_tg == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_tg] = ppt->l_tensor_max;
+
+      if (phr->has_gg == _TRUE_)
+        for (index_ct=phr->index_ct_gg;
+             index_ct < phr->index_ct_gg+(phr->f_gwb_num*(phr->f_gwb_num+1)/2);
+             index_ct++)
+          phr->l_max_ct[ppt->index_md_tensors][index_ct] = ppt->l_tensor_max;
+
+      if (phr->has_tg == _TRUE_)
+        for (index_ct=phr->index_ct_tg;
+             index_ct < phr->index_ct_tg+phr->f_gwb_num;
+             index_ct++)
+          phr->l_max_ct[ppt->index_md_tensors][index_ct] = ppt->l_tensor_max;
     }
 
     /* maximizations */
@@ -918,7 +937,7 @@ int harmonic_compute_cl(
   double transfer_ic2_temp=0.;
   double * transfer_ic1_nc=NULL;
   double * transfer_ic2_nc=NULL;
-  double transfer_ic1_gwb=0.; //transfer function for gwb must be treated extra, otherwise it overrides the temperature CMB
+  double transfer_ic1_gwb=0.;
   double transfer_ic2_gwb=0.;
   double factor;
   int index_q_spline=0;
