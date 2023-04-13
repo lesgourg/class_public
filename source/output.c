@@ -1746,9 +1746,6 @@ int output_open_cl_file(
     }
     class_fprintf_columntitle(*clfile,"GG",phr->has_gwb,colnum);
     class_fprintf_columntitle(*clfile,"TG",phr->has_tgwb,colnum);
-    class_fprintf_columntitle(*clfile,"G2G2",phr->has_gwb2,colnum);
-    class_fprintf_columntitle(*clfile,"TG2",phr->has_tgwb2,colnum);
-    class_fprintf_columntitle(*clfile,"GG2",phr->has_gwbgwb2,colnum);
     fprintf(*clfile,"\n");
   }
 

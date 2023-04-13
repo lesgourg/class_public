@@ -239,7 +239,6 @@ struct primordial {
   short has_OmGW; /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
-  double f_gwb_2; /**< optional second GW frequencies in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
   double f_max;   /**< maximum GWB frequency in Hz */
   double gwi_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum diveded by (4 - n_gwb) */
@@ -248,7 +247,6 @@ struct primordial {
 
   double Omega_gwb;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
   double n_gwb;  /**< Spectral index for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
-  double n_gwb2;  /**< Spectral index for GWB at f_gwb_2 */
   double alpha_gwb; /**< GWB running */
 
   /* - parameters for external_gwb */

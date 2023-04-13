@@ -496,11 +496,8 @@ cdef class Class:
             (self.hr.has_bb, self.hr.index_ct_bb, 'bb'),
             (self.hr.has_pp, self.hr.index_ct_pp, 'pp'),
             (self.hr.has_tp, self.hr.index_ct_tp, 'tp'),
-            (self.hr.has_gwb, self.hr.index_ct_gwb, 'gg'),
-            (self.hr.has_tgwb, self.hr.index_ct_tgwb, 'tg'),
-            (self.hr.has_gwb2, self.hr.index_ct_gwb2, 'g2g2'),
-            (self.hr.has_tgwb2, self.hr.index_ct_tgwb2, 'tg2'),
-            (self.hr.has_gwbgwb2, self.hr.index_ct_gwbgwb2, 'gg2')]
+            (self.hr.has_gwb, self.hr.index_ct_gwb, 'gg'), #TODO_GWB:Maybe remove this?
+            (self.hr.has_tgwb, self.hr.index_ct_tgwb, 'tg')]
         spectra = []
 
         for flag, index, name in has_flags:
@@ -632,7 +629,7 @@ cdef class Class:
             following bins, then self correlation of 2nd bin, etc. The array
             starts at index_ct_dd.
         """
-        // TODO_GWB: Copy similar function for Cl_gg
+        # TODO_GWB: Copy similar function for Cl_gg
         cdef int lmaxR
         cdef double *dcl = <double*> calloc(self.hr.ct_size,sizeof(double))
 

@@ -4762,15 +4762,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
     /** 2.a) Pivot scale in Hz */
     /* Read */
     class_read_double("f_pivot",ppm->f_pivot);
-    /** 2.a.1) Optional second GW frequencies in Hz. */
-    class_call(parser_read_double(pfc,"f_gwb_2",&param1,&flag1,errmsg),
-                errmsg,
-                errmsg);
-    if (flag1 == _TRUE_){
-      ppm->f_gwb_2 = param1;
-      ppt->has_cl_gwb2 = _TRUE_;
-    }
-    /** 2.a.2) Minimum/Maximum GWB frequency in Hz */
+    /** 2.a.1) Minimum/Maximum GWB frequency in Hz */
     class_read_double("f_min",ppm->f_min);
     class_read_double("f_max",ppm->f_max);
   
@@ -5929,7 +5921,6 @@ int input_default_params(struct background *pba,
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
   ppt->has_cl_gwb = _FALSE_;
-  ppt->has_cl_gwb2 = _FALSE_;
   ppt->has_omega_gwb = _FALSE_;
   /** 1.a) 'tCl' case */
   ppt->switch_sw = 1;
@@ -6345,9 +6336,7 @@ int input_default_params(struct background *pba,
   ppm->gwb_source_type = analytic_gwb;
   /** 2.a) Pivot scale in Hz */
   ppm->f_pivot = 1.;
-  /** 2.a.1) Optional second GW frequencies in Hz. */
-  ppm->f_gwb_2 = 1.;
-  /** 2.a.2) Minimum/Maximum GWB frequency in Hz */
+  /** 2.a.1) Minimum/Maximum GWB frequency in Hz */
   ppm->f_min = 1.e-3;
   ppm->f_max = 1.e2;
 

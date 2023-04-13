@@ -579,33 +579,6 @@ int harmonic_indices(
       phr->has_tgwb = _FALSE_;
     }
 
-    if (ppt->has_cl_gwb2 == _TRUE_) {
-      phr->has_gwb2 = _TRUE_;
-      phr->index_ct_gwb2 =index_ct;
-      index_ct++;
-    }
-    else {
-      phr->has_gwb2 = _FALSE_;
-    }
-
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_gwb2 == _TRUE_)) {
-      phr->has_tgwb2 = _TRUE_;
-      phr->index_ct_tgwb2 =index_ct;
-      index_ct++;
-    }
-    else {
-      phr->has_tgwb2 = _FALSE_;
-    }
-
-    if ((ppt->has_cl_gwb == _TRUE_) && (ppt->has_cl_gwb2 == _TRUE_)) {
-      phr->has_gwbgwb2 = _TRUE_;
-      phr->index_ct_gwbgwb2 =index_ct;
-      index_ct++;
-    }
-    else {
-      phr->has_gwbgwb2 = _FALSE_;
-    }
-
     phr->ct_size = index_ct;
 
     /* infer from input quantities the l_max for each mode and type,
@@ -669,9 +642,6 @@ int harmonic_indices(
         
       if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwb] = ppt->l_scalar_max;
       if (phr->has_tgwb == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tgwb] = ppt->l_scalar_max;
-      if (phr->has_gwb2 == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwb2] = ppt->l_scalar_max;
-      if (phr->has_tgwb2 == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_tgwb2] = ppt->l_scalar_max;
-      if (phr->has_gwbgwb2 == _TRUE_) phr->l_max_ct[ppt->index_md_scalars][phr->index_ct_gwbgwb2] = ppt->l_scalar_max;
 
     }
     if (ppt->has_tensors == _TRUE_) {
@@ -684,9 +654,6 @@ int harmonic_indices(
       if (phr->has_bb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_bb] = ppt->l_tensor_max;
       if (phr->has_gwb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_gwb] = ppt->l_tensor_max;
       if (phr->has_tgwb == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_tgwb] = ppt->l_tensor_max;
-      if (phr->has_gwb2 == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_gwb2] = ppt->l_tensor_max;
-      if (phr->has_tgwb2 == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_tgwb2] = ppt->l_tensor_max;
-      if (phr->has_gwbgwb2 == _TRUE_) phr->l_max_ct[ppt->index_md_tensors][phr->index_ct_gwbgwb2] = ppt->l_tensor_max;
     }
 
     /* maximizations */
@@ -953,8 +920,6 @@ int harmonic_compute_cl(
   double * transfer_ic2_nc=NULL;
   double transfer_ic1_gwb=0.; //transfer function for gwb must be treated extra, otherwise it overrides the temperature CMB
   double transfer_ic2_gwb=0.;
-  double transfer_ic1_gwb2=0.; //transfer function for gwb at second frequency
-  double transfer_ic2_gwb2=0.;
   double factor;
   int index_q_spline=0;
 
@@ -1104,44 +1069,6 @@ int harmonic_compute_cl(
 
         transfer_ic1_gwb *= 4. - ppm->n_gwb;
         transfer_ic2_gwb *= 4. - ppm->n_gwb;
-
-      }
-
-    }
-
-    if (phr->has_gwb2 == _TRUE_) {
-
-      if (_scalars_) {
-
-        transfer_ic1_gwb2 = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1]
-          + transfer_ic1[ptr->index_tt_gwb_sw0] + transfer_ic1[ptr->index_tt_gwb_sw1]
-          - 2. / (4. - ppm->n_gwb2) * transfer_ic1[ptr->index_tt_gwb_ad]
-          + ppm->gwi_scalar / (4. - ppm->n_gwb2) * transfer_ic1[ptr->index_tt_gwb_ini];
-        transfer_ic2_gwb2 = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1]
-          + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
-          - 2. / (4. - ppm->n_gwb2) * transfer_ic2[ptr->index_tt_gwb_ad]
-          + ppm->gwi_scalar / (4. - ppm->n_gwb2) * transfer_ic2[ptr->index_tt_gwb_ini];
-        
-        if (ppt->has_gwi) {
-          if (index_ic1 == ppt->index_ic_gwi)
-            transfer_ic1_gwb2 = transfer_ic1[ptr->index_tt_gwb_ini];
-          if (index_ic2 == ppt->index_ic_gwi)
-            transfer_ic2_gwb2 = transfer_ic2[ptr->index_tt_gwb_ini];
-        }
-
-      }
-
-      if (_tensors_) {
-
-        transfer_ic1_gwb2 = transfer_ic1[ptr->index_tt_gwb2];
-        transfer_ic2_gwb2 = transfer_ic2[ptr->index_tt_gwb2];
-
-      }
-
-      if (ppt->convert_gwb_to_energydensity == _TRUE_) {
-
-        transfer_ic1_gwb2 *= 4. - ppm->n_gwb2;
-        transfer_ic2_gwb2 *= 4. - ppm->n_gwb2;
 
       }
 
@@ -1327,33 +1254,6 @@ int harmonic_compute_cl(
         primordial_pk[index_ic1_ic2]
         * 0.5*(transfer_ic1_temp * transfer_ic2_gwb +
                transfer_ic1_gwb * transfer_ic2_temp)
-        * factor;
-    }
-
-    if (phr->has_gwb2 == _TRUE_)
-    {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwb2]=
-        primordial_pk[index_ic1_ic2]
-        * transfer_ic1_gwb2
-        * transfer_ic2_gwb2
-        * factor;
-    }
-
-    if (phr->has_tgwb2 == _TRUE_)
-    {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_tgwb2]=
-        primordial_pk[index_ic1_ic2]
-        * 0.5*(transfer_ic1_temp * transfer_ic2_gwb2 +
-               transfer_ic1_gwb2 * transfer_ic2_temp)
-        * factor;
-    }
-
-    if (phr->has_gwbgwb2 == _TRUE_)
-    {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gwbgwb2]=
-        primordial_pk[index_ic1_ic2]
-        * 0.5*(transfer_ic1_gwb * transfer_ic2_gwb2 +
-               transfer_ic1_gwb2 * transfer_ic2_gwb)
         * factor;
     }
   }
