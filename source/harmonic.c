@@ -1065,14 +1065,12 @@ int harmonic_compute_cl(
 
       for (index_d1=0; index_d1<phr->f_gwb_num; index_d1++) {
 
-        // class_call(primordial_n_gwb_at_f(ppr,
-        //                                  ppm,
-        //                                  linear,
-        //                                  phr->f_gwb[index_d1],
-        //                                  &n_gwb),
-        //             ppm->error_message,
-        //             ppm->error_message);
-        n_gwb = ppm->n_gwb; //TODO_GWB: change to function, after precision not needed anymore.
+        class_call(primordial_n_gwb_at_f(ppm,
+                                         linear,
+                                         phr->f_gwb[index_d1],
+                                         &n_gwb),
+                    ppm->error_message,
+                    ppm->error_message);
 
         if (_scalars_) {
 

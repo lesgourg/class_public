@@ -329,7 +329,6 @@ int primordial_omega_gw_at_f(
  * primordial_init() has been called before, and primordial_free() has not
  * been called yet.
  *
- * @param ppr        Input: pointer to precision structure (defines method and precision for all computations)
  * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum
  * @param mode       Input: linear or logarithmic
  * @param input      Input: frequency in Hz (linear mode) or its logarithm (logarithmic mode)
@@ -338,7 +337,6 @@ int primordial_omega_gw_at_f(
  */
 
 int primordial_n_gwb_at_f(
-                          struct precision  * ppr,
                           struct primordial * ppm,
                           enum linear_or_logarithmic mode,
                           double input,
@@ -371,7 +369,8 @@ int primordial_n_gwb_at_f(
   }
 
 
-  dlnf = log(10.)/ppr->f_per_decade_primordial;
+  // dlnf = log(10.)/ppr->f_per_decade_primordial;
+  dlnf = ppm->lnf[1] - ppm->lnf[0]; //Trick to calculate dlnf without the precision module
 
   class_call(primordial_omega_gw_at_f(ppm,
                                       logarithmic,

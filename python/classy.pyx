@@ -1404,7 +1404,7 @@ cdef class Class:
             raise TypeError("f must be either 'f_pivot' or a real number, you entered f='%s'!" % f)
 
         # Use mode = 0 to be in the linear case!
-        if primordial_n_gwb_at_f(&self.pr, &self.pm, 0, f_out, &n_gwb)==_FAILURE_:
+        if primordial_n_gwb_at_f(&self.pm, 0, f_out, &n_gwb)==_FAILURE_:
             raise CosmoSevereError(self.pm.error_message)
 
         return n_gwb

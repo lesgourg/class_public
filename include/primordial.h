@@ -437,7 +437,6 @@ extern "C" {
                                );
 
   int primordial_n_gwb_at_f(
-                            struct precision  * ppr,
                             struct primordial * ppm,
                             enum linear_or_logarithmic mode,
                             double f,
