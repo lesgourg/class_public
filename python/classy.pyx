@@ -496,7 +496,7 @@ cdef class Class:
             (self.hr.has_bb, self.hr.index_ct_bb, 'bb'),
             (self.hr.has_pp, self.hr.index_ct_pp, 'pp'),
             (self.hr.has_tp, self.hr.index_ct_tp, 'tp'),
-            (self.hr.has_gg, self.hr.index_ct_gg, 'gg'), #TODO_GWB:Maybe remove this?
+            (self.hr.has_gg, self.hr.index_ct_gg, 'gg'), #This is only the f_gwb[0] component!
             (self.hr.has_tg, self.hr.index_ct_tg, 'tg')]
         spectra = []
 
@@ -629,7 +629,6 @@ cdef class Class:
             following bins, then self correlation of 2nd bin, etc. The array
             starts at index_ct_dd.
         """
-        # TODO_GWB: Copy similar function for Cl_gg
         cdef int lmaxR
         cdef double *dcl = <double*> calloc(self.hr.ct_size,sizeof(double))
 
@@ -709,6 +708,99 @@ cdef class Class:
         cl['ell'] = np.arange(lmax+1)
 
         free(dcl)
+        for index_md in range(self.hr.md_size):
+            free(cl_md[index_md])
+            free(cl_md_ic[index_md])
+        free(cl_md)
+        free(cl_md_ic)
+
+        return cl
+
+    def cgwb_cl(self, lmax=-1, nofail=False):
+        """
+        cgwb_cl(lmax=-1, nofail=False)
+
+        Return a dictionary of the C_l for the CGWB and the cross-correlations
+        with the CMB at the frequencies f_gwb.
+
+        Parameters
+        ----------
+        lmax : int, optional
+            Define the maximum l for which the C_l will be returned (inclusively)
+        nofail: bool, optional
+                Check and enforce the computation up to the desired l_max
+        Returns
+        -------
+        cl : dict
+            Dictionary that contains the CGWBxCGWB frequency correlation 'gg'
+            as a 3 dim array [f1][f2][ell] and the CMBxCGWB correlation 'tg' as
+            a 2 dim array [f][ell]. It also returns now the ell and f_gwb array.
+        """
+        cdef int lmaxR
+        cdef double *rcl = <double*> calloc(self.hr.ct_size,sizeof(double))
+
+        # Quantities for tensor modes
+        cdef double **cl_md = <double**> calloc(self.hr.md_size, sizeof(double*))
+        for index_md in range(self.hr.md_size):
+            cl_md[index_md] = <double*> calloc(self.hr.ct_size, sizeof(double))
+
+        # Quantities for isocurvature modes
+        cdef double **cl_md_ic = <double**> calloc(self.hr.md_size, sizeof(double*))
+        for index_md in range(self.hr.md_size):
+            cl_md_ic[index_md] = <double*> calloc(self.hr.ct_size*self.hr.ic_ic_size[index_md], sizeof(double))
+
+        has_flags = [
+            (self.hr.has_gg, self.hr.index_ct_gg, 'gg'),
+            (self.hr.has_tg, self.hr.index_ct_tg, 'tg')]
+        spectra = []
+
+        for flag, index, name in has_flags:
+            if flag:
+                spectra.append(name)
+
+        if not spectra:
+            raise CosmoSevereError("No CGWB Cl computed")
+        lmaxR = self.hr.l_max_tot
+        if lmax == -1:
+            lmax = lmaxR
+        if lmax > lmaxR:
+            if nofail:
+                self._pars_check("l_max_scalars",lmax)
+                self._pars_check("output",'gwCl, OmGW')
+                self.compute()
+            else:
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+
+        cl = {}
+
+        # For CGWB Cls, the size is bigger (different frequencies)
+        # computes the size, given the number of correlations needed to be computed
+        size = int(self.hr.f_gwb_num);
+        if 'gg' in spectra:
+            cl['gg'] = np.zeros((size, size, lmax+1), dtype=np.double)
+        if 'tg' in spectra:
+            cl['tg'] = np.zeros((size, lmax+1), dtype=np.double)
+
+        for ell from 2<=ell<lmax+1:
+            if harmonic_cl_at_l(&self.hr, ell, rcl, cl_md, cl_md_ic) == _FAILURE_:
+                raise CosmoSevereError(self.hr.error_message)
+            if 'gg' in spectra:
+                index = 0
+                for index1 in range(size):
+                    for index2 in range(index1, size):
+                        cl['gg'][index1][index2][ell] = rcl[self.hr.index_ct_gg+index]
+                        cl['gg'][index2][index1][ell] = rcl[self.hr.index_ct_gg+index]
+                        index += 1
+                # TODO_CGWB: make triangle full!
+            if 'tg' in spectra:
+                for index in range(size):
+                    cl['tg'][index][ell] = rcl[self.hr.index_ct_tg+index]
+        cl['ell'] = np.arange(lmax+1)
+        cl['f_gwb [Hz]'] = np.zeros(size, dtype=np.double)
+        for index in range(size):
+            cl['f_gwb [Hz]'][index] = self.hr.f_gwb[index]
+
+        free(rcl)
         for index_md in range(self.hr.md_size):
             free(cl_md[index_md])
             free(cl_md_ic[index_md])

@@ -1665,7 +1665,7 @@ int output_open_cl_file(
     }
 
     if (phr->has_gg == _TRUE_) {
-      fprintf(*clfile,"# -> for the CGWB, these are the freqeuncies: f_gwb = ");
+      fprintf(*clfile,"# -> for the CGWB, these are the frequencies in Hz: f_gwb = ");
       for (index_d1=0; index_d1 < phr->f_gwb_num; index_d1++)
         fprintf(*clfile,"%g, ", phr->f_gwb[index_d1]);
       fprintf(*clfile,"\n");

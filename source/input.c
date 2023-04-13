@@ -5234,12 +5234,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
       }
       free(pointer1);
     }
-
-    // TODO_GWB: remove print out
-    printf("number of freqs: %d \n", phr->f_gwb_num);
-    for (i=0; i<phr->f_gwb_num; i++) {
-      printf("%d: %g \n", i, phr->f_gwb[i]);
-    }
   }
 
   return _SUCCESS_;
