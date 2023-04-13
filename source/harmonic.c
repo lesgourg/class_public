@@ -937,8 +937,9 @@ int harmonic_compute_cl(
   double transfer_ic2_temp=0.;
   double * transfer_ic1_nc=NULL;
   double * transfer_ic2_nc=NULL;
-  double transfer_ic1_gwb=0.;
-  double transfer_ic2_gwb=0.;
+  double * transfer_ic1_gwb=NULL;
+  double * transfer_ic2_gwb=NULL;
+  double n_gwb;
   double factor;
   int index_q_spline=0;
 
@@ -947,6 +948,11 @@ int harmonic_compute_cl(
   if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     class_alloc(transfer_ic1_nc,phr->d_size*sizeof(double),phr->error_message);
     class_alloc(transfer_ic2_nc,phr->d_size*sizeof(double),phr->error_message);
+  }
+
+  if (ppt->has_cl_gwb == _TRUE_) {
+    class_alloc(transfer_ic1_gwb,phr->f_gwb_num*sizeof(double),phr->error_message);
+    class_alloc(transfer_ic2_gwb,phr->f_gwb_num*sizeof(double),phr->error_message);
   }
 
   for (index_q=0; index_q < ptr->q_size; index_q++) {
@@ -1055,42 +1061,54 @@ int harmonic_compute_cl(
       }
     }
 
-    if (phr->has_gg == _TRUE_) {
+    if (ppt->has_cl_gwb == _TRUE_) {
 
-      if (_scalars_) {
+      for (index_d1=0; index_d1<phr->f_gwb_num; index_d1++) {
 
-        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1]
-          + transfer_ic1[ptr->index_tt_gwb_sw0] + transfer_ic1[ptr->index_tt_gwb_sw1]
-          - 2. / (4. - ppm->n_gwb) * transfer_ic1[ptr->index_tt_gwb_ad]
-          + ppm->gwi_scalar / (4. - ppm->n_gwb) * transfer_ic1[ptr->index_tt_gwb_ini];
-        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1]
-          + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
-          - 2. / (4. - ppm->n_gwb) * transfer_ic2[ptr->index_tt_gwb_ad]
-          + ppm->gwi_scalar / (4. - ppm->n_gwb) * transfer_ic2[ptr->index_tt_gwb_ini];
-        
-        if (ppt->has_gwi) {
-          if (index_ic1 == ppt->index_ic_gwi)
-            transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb_ini];
-          if (index_ic2 == ppt->index_ic_gwi)
-            transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb_ini];
+        // class_call(primordial_n_gwb_at_f(ppr,
+        //                                  ppm,
+        //                                  linear,
+        //                                  phr->f_gwb[index_d1],
+        //                                  &n_gwb),
+        //             ppm->error_message,
+        //             ppm->error_message);
+        n_gwb = ppm->n_gwb; //TODO_GWB: change to function, after precision not needed anymore.
+
+        if (_scalars_) {
+
+          transfer_ic1_gwb[index_d1] = transfer_ic1[ptr->index_tt_gwb0] + transfer_ic1[ptr->index_tt_gwb1]
+            + transfer_ic1[ptr->index_tt_gwb_sw0] + transfer_ic1[ptr->index_tt_gwb_sw1]
+            - 2. / (4. - n_gwb) * transfer_ic1[ptr->index_tt_gwb_ad]
+            + ppm->gwi_scalar / (4. - n_gwb) * transfer_ic1[ptr->index_tt_gwb_ini];
+          transfer_ic2_gwb[index_d1] = transfer_ic2[ptr->index_tt_gwb0] + transfer_ic2[ptr->index_tt_gwb1]
+            + transfer_ic2[ptr->index_tt_gwb_sw0] + transfer_ic2[ptr->index_tt_gwb_sw1]
+            - 2. / (4. - n_gwb) * transfer_ic2[ptr->index_tt_gwb_ad]
+            + ppm->gwi_scalar / (4. - n_gwb) * transfer_ic2[ptr->index_tt_gwb_ini];
+          
+          if (ppt->has_gwi) {
+            if (index_ic1 == ppt->index_ic_gwi)
+              transfer_ic1_gwb[index_d1] = transfer_ic1[ptr->index_tt_gwb_ini];
+            if (index_ic2 == ppt->index_ic_gwi)
+              transfer_ic2_gwb[index_d1] = transfer_ic2[ptr->index_tt_gwb_ini];
+          }
+
+        }
+
+        if (_tensors_) {
+
+          transfer_ic1_gwb[index_d1] = transfer_ic1[ptr->index_tt_gwb2];
+          transfer_ic2_gwb[index_d1] = transfer_ic2[ptr->index_tt_gwb2];
+
+        }
+
+        if (ppt->convert_gwb_to_energydensity == _TRUE_) {
+
+          transfer_ic1_gwb[index_d1] *= 4. - n_gwb;
+          transfer_ic2_gwb[index_d1] *= 4. - n_gwb;
+
         }
 
       }
-
-      if (_tensors_) {
-
-        transfer_ic1_gwb = transfer_ic1[ptr->index_tt_gwb2];
-        transfer_ic2_gwb = transfer_ic2[ptr->index_tt_gwb2];
-
-      }
-
-      if (ppt->convert_gwb_to_energydensity == _TRUE_) {
-
-        transfer_ic1_gwb *= 4. - ppm->n_gwb;
-        transfer_ic2_gwb *= 4. - ppm->n_gwb;
-
-      }
-
     }
 
     /* integrand of Cl's */
@@ -1259,19 +1277,27 @@ int harmonic_compute_cl(
     }
 
     if (phr->has_gg == _TRUE_) {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gg]=
-        primordial_pk[index_ic1_ic2]
-        * transfer_ic1_gwb
-        * transfer_ic2_gwb
-        * factor;
+      index_ct=0;
+      for (index_d1=0; index_d1<phr->f_gwb_num; index_d1++) {
+        for (index_d2=index_d1; index_d2<phr->f_gwb_num; index_d2++) {
+          cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_gg+index_ct]=
+            primordial_pk[index_ic1_ic2]
+            * transfer_ic1_gwb[index_d1]
+            * transfer_ic2_gwb[index_d2]
+            * factor;
+          index_ct++;
+        }
+      }
     }
 
     if (phr->has_tg == _TRUE_) {
-      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_tg]=
-        primordial_pk[index_ic1_ic2]
-        * 0.5*(transfer_ic1_temp * transfer_ic2_gwb +
-               transfer_ic1_gwb * transfer_ic2_temp)
-        * factor;
+      for (index_d1=0; index_d1<phr->f_gwb_num; index_d1++) {
+        cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_tg+index_d1]=
+          primordial_pk[index_ic1_ic2]
+          * 0.5*(transfer_ic1_temp * transfer_ic2_gwb[index_d1] +
+                 transfer_ic1_gwb[index_d1] * transfer_ic2_temp)
+          * factor;
+      }
     }
   }
 
@@ -1368,6 +1394,11 @@ int harmonic_compute_cl(
   if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     free(transfer_ic1_nc);
     free(transfer_ic2_nc);
+  }
+
+  if (ppt->has_cl_gwb == _TRUE_ ) {
+    free(transfer_ic1_gwb);
+    free(transfer_ic2_gwb);
   }
 
   return _SUCCESS_;
