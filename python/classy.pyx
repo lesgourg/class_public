@@ -496,8 +496,8 @@ cdef class Class:
             (self.hr.has_bb, self.hr.index_ct_bb, 'bb'),
             (self.hr.has_pp, self.hr.index_ct_pp, 'pp'),
             (self.hr.has_tp, self.hr.index_ct_tp, 'tp'),
-            (self.hr.has_gwb, self.hr.index_ct_gwb, 'gg'), #TODO_GWB:Maybe remove this?
-            (self.hr.has_tgwb, self.hr.index_ct_tgwb, 'tg')]
+            (self.hr.has_gg, self.hr.index_ct_gg, 'gg'), #TODO_GWB:Maybe remove this?
+            (self.hr.has_tg, self.hr.index_ct_tg, 'tg')]
         spectra = []
 
         for flag, index, name in has_flags:

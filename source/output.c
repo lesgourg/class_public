@@ -1664,7 +1664,7 @@ int output_open_cl_file(
       fprintf(*clfile,"#    C_l^gg (shear/convergence) = 1/4 (l(l+1))^2 C_l^phi-phi\n");
     }
 
-    if (phr->has_gwb == _TRUE_) {
+    if (phr->has_gg == _TRUE_) {
       fprintf(*clfile,"# -> for the CGWB, these are the freqeuncies: f_gwb = ");
       for (index_d1=0; index_d1 < phr->f_gwb_num; index_d1++)
         fprintf(*clfile,"%g, ", phr->f_gwb[index_d1]);
@@ -1744,8 +1744,8 @@ int output_open_cl_file(
         }
       }
     }
-    class_fprintf_columntitle(*clfile,"GG",phr->has_gwb,colnum);
-    class_fprintf_columntitle(*clfile,"TG",phr->has_tgwb,colnum);
+    class_fprintf_columntitle(*clfile,"GG",phr->has_gg,colnum);
+    class_fprintf_columntitle(*clfile,"TG",phr->has_tg,colnum);
     fprintf(*clfile,"\n");
   }
 

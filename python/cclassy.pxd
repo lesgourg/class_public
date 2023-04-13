@@ -332,8 +332,8 @@ cdef extern from "class.h":
         int has_ll
         int has_dl
         int has_tl
-        int has_gwb
-        int has_tgwb
+        int has_gg
+        int has_tg
         int l_max_tot
         int ** l_max_ct
         int ct_size
@@ -341,6 +341,8 @@ cdef extern from "class.h":
         int * ic_ic_size
         int md_size
         int d_size
+        int f_gwb_num
+        double * f_gwb
         int non_diag
         int index_ct_tt
         int index_ct_te
@@ -354,8 +356,8 @@ cdef extern from "class.h":
         int index_ct_ll
         int index_ct_dl
         int index_ct_tl
-        int index_ct_gwb
-        int index_ct_tgwb
+        int index_ct_gg
+        int index_ct_tg
         int * l_size
         int index_md_scalars
 
