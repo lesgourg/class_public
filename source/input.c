@@ -5221,6 +5221,10 @@ int input_read_parameters_spectra(struct file_content * pfc,
   if (ppt->has_cl_gwb == _TRUE_){
 
     /** 4.a) GW frequencies */
+    /* Default value */
+    phr->f_gwb_num = 1;
+    phr->f_gwb[0] = ppm->f_pivot;
+
     /* Read */
     class_call(parser_read_list_of_doubles(pfc,"f_gwb",&int1,&pointer1,&flag1,errmsg),
                errmsg,
@@ -5237,12 +5241,12 @@ int input_read_parameters_spectra(struct file_content * pfc,
         phr->f_gwb[i] = pointer1[i];
       }
       free(pointer1);
+    }
 
-      // TODO_GWB: remove print out
-      printf("number of freqs: %d \n", phr->f_gwb_num);
-      for (i=0; i<phr->f_gwb_num; i++) {
-        printf("%d: %g \n", i, phr->f_gwb[i]);
-      }
+    // TODO_GWB: remove print out
+    printf("number of freqs: %d \n", phr->f_gwb_num);
+    for (i=0; i<phr->f_gwb_num; i++) {
+      printf("%d: %g \n", i, phr->f_gwb[i]);
     }
   }
 
@@ -6419,6 +6423,11 @@ int input_default_params(struct background *pba,
   pop->z_pk[0] = 0.;
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
+
+  /** 4) CGWB anisotropies */
+  /** 4.a) GW frequencies */
+  phr->f_gwb_num = 1;
+  phr->f_gwb[0] = 0.;
 
   /**
    * Default to input_read_parameters_lensing
