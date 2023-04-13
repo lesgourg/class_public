@@ -55,8 +55,8 @@ struct harmonic {
 
   //@{
 
-  int f_gwb_num; /**< number of frequencies at which C_l°CGWBxCGWB(f1,f2) should be written */
-  double f_gwb[_F_GWB_NUM_MAX_]; /**< value(s) of frequencies at which C_l°CGWBxCGWB(f1,f2) should be written */
+  int f_gwb_num; /**< number of frequencies at which C_l^CGWBxCGWB(f1,f2) should be written */
+  double f_gwb[_F_GWB_NUM_MAX_]; /**< value(s) of frequencies at which C_l^CGWBxCGWB(f1,f2) should be written */
 
   //@}
 
@@ -96,9 +96,9 @@ struct harmonic {
   int index_ct_ll; /**< first index for type \f$ C_l^{ll} \f$((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type \f$ C_l^{Tl} \f$(d_size values) */
   int index_ct_dl; /**< first index for type \f$ C_l^{dl} \f$(d_size values) */
-  int index_ct_gwb;/**< index for type \f$ C_l^{GWB GWB} \f$*/
-  int index_ct_tgwb;/**< index for type \f$ C_l^{T GWB} \f$*/
-  int index_ct_gwb2;/**< index for type \f$ C_l^{GWB GWB}(f_gwb_2) \f$*/
+  int index_ct_gwb;/**< first index for type \f$ C_l^{CGWBxCGWB}(f_i, f_j) \f$((f_gwb_num*(f_gwb_num+1)/2) values)*/
+  int index_ct_tgwb;/**< first index for type \f$ C_l^{TxCGWB}(f_i) \f$((f_gwb_num*(f_gwb_num+1)/2) values)*/
+  int index_ct_gwb2;/**< index for type \f$ C_l^{GWB GWB}(f_gwb_2) \f$*/ //TODO_GWB: remove
   int index_ct_tgwb2;/**< index for type \f$ C_l^{T GWB}(f_gwb_2) \f$*/
   int index_ct_gwbgwb2;/**< index for type \f$ C_l^{GWB GWB}(f_gwb_1, f_gwb_2) \f$*/
 

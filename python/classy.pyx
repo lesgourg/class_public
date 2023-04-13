@@ -632,6 +632,7 @@ cdef class Class:
             following bins, then self correlation of 2nd bin, etc. The array
             starts at index_ct_dd.
         """
+        // TODO_GWB: Copy similar function for Cl_gg
         cdef int lmaxR
         cdef double *dcl = <double*> calloc(self.hr.ct_size,sizeof(double))
 
