@@ -1665,7 +1665,7 @@ int output_open_cl_file(
     }
 
     if (phr->has_gg == _TRUE_) {
-      fprintf(*clfile,"# -> for the CGWB, these are the frequencies in Hz: f_gwb = ");
+      fprintf(*clfile,"# -> for the CGWB, the spectrum is calculated at %d frequencie(s): f_gwb [Hz] = ", phr->f_gwb_num);
       for (index_d1=0; index_d1 < phr->f_gwb_num; index_d1++)
         fprintf(*clfile,"%g, ", phr->f_gwb[index_d1]);
       fprintf(*clfile,"\n");
@@ -1747,14 +1747,14 @@ int output_open_cl_file(
     if (phr->has_gg == _TRUE_){
       for (index_d1=0; index_d1<phr->f_gwb_num; index_d1++){
         for (index_d2=index_d1; index_d2<phr->f_gwb_num; index_d2++) {
-          sprintf(tmp,"cgwb[%d]-cgwb[%d]",index_d1+1,index_d2+1);
+          sprintf(tmp,"G[%d]-G[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
       }
     }
     if (phr->has_tg == _TRUE_){
       for (index_d1=0; index_d1<phr->f_gwb_num; index_d1++){
-        sprintf(tmp,"T-cgwb[%d]",index_d1+1);
+        sprintf(tmp,"T-G[%d]",index_d1+1);
         class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
       }
     }
