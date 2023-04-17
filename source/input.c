@@ -5225,7 +5225,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
     if (flag1 == _TRUE_) {
       class_test(int1 > _F_GWB_NUM_MAX_,
                  errmsg,
-                 "you want to calculate the C_l^CGWB for %d different freqeuncies, hence you should increase _F_GWB_NUM_MAX_ in include/harmonic.h to at least this number",
+                 "you want to calculate the C_l^CGWB for %d different frequencies, hence you should increase _F_GWB_NUM_MAX_ in include/harmonic.h to at least this number",
                  int1);
       /* Complete set of parameters */
       phr->f_gwb_num = int1;
@@ -5233,6 +5233,13 @@ int input_read_parameters_spectra(struct file_content * pfc,
         phr->f_gwb[i] = pointer1[i];
       }
       free(pointer1);
+    }
+    /* Test */
+    for (i=0; i<phr->f_gwb_num; i++) {
+      class_test((phr->f_gwb[i] < 1.1*ppm->f_min) || (phr->f_gwb[i] > 0.9*ppm->f_max),
+                 errmsg,
+                 "The freqeuncies for C_l^CGWB must be well within the minimum and maximum frequency, f_gwb=%g Hz is outside the margin!",
+                 phr->f_gwb[i]);
     }
   }
 
