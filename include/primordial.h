@@ -16,7 +16,7 @@ enum primordial_spectrum_type {
                                external_Pk
 };
 
-/** enum defining how the GWB energy density and inital spectrum should be computed */
+/** enum defining how the GWB energy density should be computed */
 
 enum gwb_source_type {
   analytic_gwb,
@@ -232,7 +232,7 @@ struct primordial {
   double custom9;  /**< one parameter of the primordial computed in 'external_Pk' */
   double custom10; /**< one parameter of the primordial computed in 'external_Pk' */
 
-  /** - parameters describing the GWB background energy density and intial spectrum */
+  /** - parameters describing the GWB background energy density */
 
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 

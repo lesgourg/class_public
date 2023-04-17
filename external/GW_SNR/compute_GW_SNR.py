@@ -132,7 +132,6 @@ def main():
         'A_star':           2e-5,
         'f_star':           100.,
         'f_NL':             1.,
-        'tau_ini_gwb':      0.1,
     })
 
     M.compute()

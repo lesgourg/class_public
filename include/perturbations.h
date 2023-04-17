@@ -116,7 +116,7 @@ struct perturbations
   short has_cdi;     /**< do we need isocurvature cdi mode? */
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
-  short has_gwi;     /**< do we need isocurvature GWB mode? */
+  short has_gwi;     /**< do we need non-adiabatic GWB mode? */
 
   /* perturbed recombination */
   /** Do we want to consider perturbed temperature and ionization fraction? */
@@ -183,10 +183,6 @@ struct perturbations
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
   
   short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
-  
-  double tau_ini_gwb; /**< the inital time for the graviational wave background in Mpc. This will then also fix the initial sampling time of the sources. */
-  double z_ini_gwb; /**< the inital redshift for the graviational wave background. */
-  double T_ini_gwb; /**< the inital temperature for the graviational wave background in K. */
   
   double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm_fr-idr */
   double * beta_idr;  /**< Angular contribution to collisional term at l>=2 for idr-idr */

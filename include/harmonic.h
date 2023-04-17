@@ -51,12 +51,12 @@ struct harmonic {
 
   //@}
 
-  /** @name - number and value(s) of frequencies at which C_l°CGWBxCGWB(f1,f2) should be written */
+  /** @name - number and value(s) of frequencies at which C_l^CGWBxCGWB(f1,f2) should be calculated */
 
   //@{
 
-  int f_gwb_num; /**< number of frequencies at which C_l^CGWBxCGWB(f1,f2) should be written */
-  double f_gwb[_F_GWB_NUM_MAX_]; /**< value(s) of frequencies at which C_l^CGWBxCGWB(f1,f2) should be written */
+  int f_gwb_num; /**< number of frequencies at which C_l^CGWBxCGWB(f1,f2) should be calculated */
+  double f_gwb[_F_GWB_NUM_MAX_]; /**< value(s) of frequencies at which C_l^CGWBxCGWB(f1,f2) should be calculated */
 
   //@}
 
