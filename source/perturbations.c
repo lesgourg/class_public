@@ -7683,8 +7683,6 @@ int perturbations_sources(
   a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
   a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
 
-  theta_b = y[ppw->pv->index_pt_theta_b];
-  theta_b_prime = dy[ppw->pv->index_pt_theta_b];
   dkappa = pvecthermo[pth->index_th_dkappa];
   ddkappa = pvecthermo[pth->index_th_ddkappa];
   exp_m_kappa = pvecthermo[pth->index_th_exp_m_kappa];
@@ -7703,6 +7701,9 @@ int perturbations_sources(
 
   /** - for scalars */
   if (_scalars_) {
+
+    theta_b = y[ppw->pv->index_pt_theta_b];
+    theta_b_prime = dy[ppw->pv->index_pt_theta_b];
 
     /** - --> compute metric perturbations */
 
