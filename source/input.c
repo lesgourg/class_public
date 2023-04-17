@@ -1807,7 +1807,7 @@ int input_read_parameters_general(struct file_content * pfc,
     class_test(flag1==_FALSE_,
                errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','gwCl','OmGw'}, you entered '%s'",string1);
     class_test(((ppt->has_omega_gwb == _TRUE_) && (ppt->has_cl_gwb == _FALSE_)) || ((ppt->has_omega_gwb == _FALSE_) && (ppt->has_cl_gwb == _TRUE_)),
-                errmsg, "'OmGW' and 'gwCl' can only be compted in combination!");
+                errmsg, "'OmGW' and 'gwCl' can only be computed in combination!");
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -4725,7 +4725,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
   }
 
 
-  /** 2) Graviational Wave Background (GWB) source type (define the energy density and intial spectrum) */
+  /** 2) Graviational Wave Background (GWB) source type (define the energy density) */
   if (ppt->has_omega_gwb == _TRUE_) {
 
     /* Read */

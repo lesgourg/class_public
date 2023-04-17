@@ -884,8 +884,7 @@ int perturbations_init(
 
   if (ppt->z_max_pk > pth->z_rec) {
 
-    // class_test(ppt->has_cmb == _TRUE_,
-    class_test((ppt->has_cmb == _TRUE_) && (ppt->has_source_gwb == _FALSE_),
+    class_test(ppt->has_cmb == _TRUE_,
                ppt->error_message,
                "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you don't ask for a calculation of the CMB source function(s). Remove any CMB from your output and try e.g. with 'output=mTk' or 'output=mTk,vTk'",
                ppt->z_max_pk,
@@ -2713,6 +2712,7 @@ int perturbations_get_k_list(
        K=0, K<0, K>0 */
 
     /* allocate array with, for the moment, the largest possible size */
+    //Florian: There was a bug before, this should fix it
     ppt->k_size[ppt->index_md_tensors] = ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub)/ppr->k_step_super_reduction)+1);
     class_alloc(ppt->k[ppt->index_md_tensors],
                 ppt->k_size[ppt->index_md_tensors]*sizeof(double),

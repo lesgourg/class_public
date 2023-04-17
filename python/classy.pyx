@@ -496,8 +496,8 @@ cdef class Class:
             (self.hr.has_bb, self.hr.index_ct_bb, 'bb'),
             (self.hr.has_pp, self.hr.index_ct_pp, 'pp'),
             (self.hr.has_tp, self.hr.index_ct_tp, 'tp'),
-            (self.hr.has_gg, self.hr.index_ct_gg, 'gg'), #TODO_GWB: This is only the f_gwb[0] component, do we want to keep it like this, or remove it here, so one can only access it via cgwb_cl?
-            (self.hr.has_tg, self.hr.index_ct_tg, 'tg')]
+            (self.hr.has_gg, self.hr.index_ct_gg, 'gg'),
+            (self.hr.has_tg, self.hr.index_ct_tg, 'tg'),]
         spectra = []
 
         for flag, index, name in has_flags:
