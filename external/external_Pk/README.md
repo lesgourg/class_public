@@ -75,7 +75,7 @@ If also the GWB primordial spectrum is given via the external module, each line 
 
  `k in 1/Mpc` `P_s(k)` `P_gwi(k)` `s x gwi` (`P_t(k)` if tensor)
 
-where `s x gwi` stands for the cross correlation coefficient between the scalar and GWB spectrum (between 0 and 1).
+where `s x gwi` stands for the cross correlation coefficient between the scalar adiabatic and GWB spectrum (between 0 and 1).
 
 Be aware to not confuse this with the notation when only scalars and tensors but no GWB is requested.
 

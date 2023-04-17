@@ -1,13 +1,12 @@
 """
-.. module:: compute_SNR
-    :synopsis: Compute SNR for GWB monopole
-.. moduleauthor:: Florian Schulze <florian.tobias.schulze@rwth-aachen.de>
+Compute the SNR for the GWB energy density Omega_GW
+author:: Florian Schulze <florian.tobias.schulze@rwth-aachen.de>
 
-This module provides functions to calculate the SNR for the detection of a
-CGWB monopole Omega_GW, given a detctor network.
+This script provides functions to calculate the SNR for the detection of a
+CGWB energy density Omega_GW, given a detctor network.
 For an example see in main().
 
-You can import this the function into your project using:
+You can import this script into your project using:
 import os
 import sys
 sys.path.append(os.path.abspath('path/to/class/external/GW_SNR'))
@@ -24,7 +23,7 @@ def read_psds(det_filename, freqs):
     """Reads a PSD file and caluclates the PSD at the requested frequencies freqs
 
     Args:
-        det_filename (str): PSD file
+        det_filename (str): detector PSD file
         freqs (array): requested frequencies for the PSD
 
     Returns:
@@ -86,7 +85,7 @@ def compute_GW_SNR(freqs, Omega_GW, detector_psd, h=0.67, T_obs=10):
 
     Args:
         freqs (array): frequencies in Hz
-        Omega_GW (array): CGWB monopole
+        Omega_GW (array): CGWB energy density $\Omega_{GW}$
         detector_psd (nd_array): detector PSD
         h (int, optional): reduced Hubble rate h. Defaults to 0.67.
         T_obs (int, optional): observation time in years. Defaults to 10.
@@ -143,17 +142,16 @@ def main():
     Omega_GW = OmGW['Omega_GW(f)']
     h = M.h()
 
-    print(__file__)
-    print(_folder_)
-
     detecor_psd = get_gw_detector_psd("CE", freqs)
     #Alternanative:
     # detecor_psd = get_gw_detector_psd(["./detector_PSD/ce1.txt", "./detector_PSD/ce2.txt"], freqs)
     snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
     print('SNR for CE:\t %g' % snr)
+
     detecor_psd = get_gw_detector_psd("ET", freqs)
     snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
     print('SNR for ET:\t %g' % snr)
+
     detecor_psd = get_gw_detector_psd("CE+ET", freqs)
     snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
     print('SNR for CE+ET:\t %g' % snr)
