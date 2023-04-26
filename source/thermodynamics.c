@@ -565,7 +565,6 @@ int thermodynamics_helium_from_bbn(
               -pvecback[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
 
-  free(pvecback);
 
   //  printf("Neff early = %g, Neff at bbn: %g\n",pba->Neff,Neff_bbn);
 
@@ -720,6 +719,7 @@ int thermodynamics_helium_from_bbn(
   free(ddYHe);
   free(YHe_at_deltaN);
   free(ddYHe_at_deltaN);
+  free(pvecback);
 
   return _SUCCESS_;
 }
