@@ -280,7 +280,6 @@ cdef extern from "class.h":
         int * tp_size
         double * ln_tau
         int ln_tau_size
-        int index_ln_tau_pk
 
     cdef struct transfer:
         ErrorMsg error_message

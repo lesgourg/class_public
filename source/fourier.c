@@ -1922,7 +1922,6 @@ int fourier_get_tau_list(
 
   /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
   pfo->ln_tau_size = ppt->ln_tau_size;
-  pfo->index_ln_tau_pk = ppt->index_ln_tau_pk;
 
   if (ppt->ln_tau_size > 1) {
 

@@ -105,7 +105,6 @@ struct fourier {
                           condition z(tau) < z_max_pk */
 
   int ln_tau_size;     /**< total number of values in this array */
-  int index_ln_tau_pk; /**< first index relevant for output of P(k,z) and T(k,z) */
 
   double ** ln_pk_ic_l;   /**< Matter power spectrum (linear).
                              Depends on indices index_pk, index_ic1_ic2, index_k, index_tau as:

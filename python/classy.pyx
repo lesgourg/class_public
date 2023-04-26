@@ -919,8 +919,11 @@ cdef class Class:
               raise CosmoSevereError(self.fo.error_message)
 
         # Check what kind of non-linear redshift there is
-        if self.fo.index_tau_min_nl != 0 and nonlinear:
-          z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
+        if nonlinear:
+          if self.fo.index_tau_min_nl == 0:
+            z_max_nonlinear = np.inf
+          else:
+            z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
         else:
           z_max_nonlinear = -1.
 
@@ -1011,12 +1014,11 @@ cdef class Class:
         z : vector of z values, z[index_z]
         """
 
-        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.fo.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.fo.k_size_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size-self.fo.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size),'float64')
         cdef int index_k, index_tau, index_pk
         cdef double z_max_nonlinear, z_max_requested
-
         # consistency checks
 
         if self.fo.has_pk_matter == False:
@@ -1033,37 +1035,32 @@ cdef class Class:
 
         # get list of redshifts
         # the ln(times) of interest are stored in self.fo.ln_tau[index_tau]
-        # with index_tau in the range:
-        # self.fo.index_ln_tau_pk <= index_tau < self.fo.ln_tau_size-self.fo.index_ln_tau_pk
-        #
-        # If the user forgot to ask for z_max_pk>0, then self.fo.ln_tau_size == 1 and self.fo.index_ln_tau_pk==0
+        # For nonlinear, we have to additionally cut out the linear values
 
         if self.fo.ln_tau_size == 1:
             raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
         else:
-            for index_tau in range(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
-                if index_tau == self.fo.ln_tau_size-self.fo.index_ln_tau_pk-1:
+            for index_tau in range(self.fo.ln_tau_size):
+                if index_tau == self.fo.ln_tau_size-1:
                     z[index_tau] = 0.
                 else:
-                    z[index_tau] = self.z_of_tau(np.exp(self.fo.ln_tau[index_tau+self.fo.index_ln_tau_pk]))
+                    z[index_tau] = self.z_of_tau(np.exp(self.fo.ln_tau[index_tau]))
 
         # check consitency of the list of redshifts
 
         if nonlinear == True:
             # Check highest value of z at which nl corrections could be computed.
-            # In the table tau_sampling it corresponds to index: self.fo.index_tau_min_n
+            # In the table tau_sampling it corresponds to index: self.fo.index_tau_min_nl
             z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
 
             # Check highest value of z in the requested output.
-            # In the table tau_sampling it corresponds to index: self.fo.tau_size - self.fo.ln_tau_size + self.fo.index_ln_tau_pk
             z_max_requested = z[0]
 
             # The first z must be larger or equal to the second one, that is,
             # the first index must be smaller or equal to the second one.
             # If not, raise and error.
-
-            if (self.fo.index_tau_min_nl > self.fo.tau_size - self.fo.ln_tau_size + self.fo.index_ln_tau_pk):
-                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS (in particular ppr->nonlinear_min_k_max=%e) were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the precision parameter 'nonlinear_min_k_max', or decrease your requested z_max"%(z_max_requested,self.pr.nonlinear_min_k_max,z_max_nonlinear))
+            if (z_max_requested > z_max_nonlinear and self.fo.index_tau_min_nl>0):
+                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (the redshift range of computed pk); but the input parameters sent to CLASS (in particular ppr->nonlinear_min_k_max=%e) were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the precision parameter 'nonlinear_min_k_max', or only obtain the linear pk"%(z_max_requested,self.pr.nonlinear_min_k_max,z_max_nonlinear))
 
         # get list of k
 
@@ -1077,12 +1074,12 @@ cdef class Class:
 
         # get P(k,z) array
 
-        for index_tau in range(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
+        for index_tau in range(self.fo.ln_tau_size):
             for index_k in range(self.fo.k_size_pk):
                 if nonlinear == True:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][(index_tau+self.fo.index_ln_tau_pk) * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][index_tau * self.fo.k_size + index_k])
                 else:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_l[index_pk][(index_tau+self.fo.index_ln_tau_pk) * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_l[index_pk][index_tau * self.fo.k_size + index_k])
 
         return pk, k, z
 
@@ -1117,7 +1114,7 @@ cdef class Class:
         z : vector of z values
         """
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.pt.k_size_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.pt.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.pt.ln_tau_size),'float64')
         cdef int index_k, index_tau
         cdef char * titles
         cdef double * data
@@ -1152,20 +1149,15 @@ cdef class Class:
 
         # get list of redshifts
         # the ln(times) of interest are stored in self.fo.ln_tau[index_tau]
-        # with index_tau in the range:
-        # self.fo.index_ln_tau_pk <= index_tau < self.fo.ln_tau_size-self.fo.index_ln_tau_pk
-        #
-        # If the user forgot to ask for z_max_pk>0, then self.fo.ln_tau_size == 1 and self.fo.index_ln_tau_pk==0
 
-        z_size = self.pt.ln_tau_size-self.pt.index_ln_tau_pk
-        if z_size == 1:
+        if self.pt.ln_tau_size == 1:
             raise CosmoSevereError("You ask classy to return an array of T_x(k,z) values, but the input parameters sent to CLASS did not require any transfer function calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
         else:
-            for index_tau in range(z_size):
-                if index_tau == z_size-1:
+            for index_tau in range(self.pt.ln_tau_size):
+                if index_tau == self.pt.ln_tau_size-1:
                     z[index_tau] = 0.
                 else:
-                    z[index_tau] = self.z_of_tau(np.exp(self.pt.ln_tau[index_tau+self.pt.index_ln_tau_pk]))
+                    z[index_tau] = self.z_of_tau(np.exp(self.pt.ln_tau[index_tau]))
 
         # get list of k
 
@@ -1183,16 +1175,15 @@ cdef class Class:
         tk = {}
         for index_type,name in enumerate(names):
             if index_type > 0:
-                tk[name] = np.zeros((k_size, z_size),'float64')
+                tk[name] = np.zeros((k_size, len(z)),'float64')
 
         # allocate the vector in wich the transfer functions will be stored temporarily for all k and types at a given z
         data = <double*>malloc(sizeof(double)*number_of_titles*self.pt.k_size[index_md])
 
         # get T(k,z) array
 
-        for index_tau in range(z_size):
-
-            if perturbations_output_data_at_index_tau(&self.ba, &self.pt, outf, index_tau+self.pt.index_ln_tau_pk, number_of_titles, data)==_FAILURE_:
+        for index_tau in range(len(z)):
+            if perturbations_output_data_at_index_tau(&self.ba, &self.pt, outf, index_tau, number_of_titles, data)==_FAILURE_:
                 raise CosmoSevereError(self.pt.error_message)
 
             for index_type,name in enumerate(names):
@@ -1225,13 +1216,13 @@ cdef class Class:
         k : vector of k values, k[index_k] (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
         z : vector of z values, z[index_z]
         """
-        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk,self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] k4 = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] phi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] psi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] d_m = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] Weyl_pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk,self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] k4 = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] phi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] psi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] d_m = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] Weyl_pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
 
         cdef bint input_nonlinear = nonlinear
         cdef bint input_h_units = h_units
@@ -1249,7 +1240,7 @@ cdef class Class:
         d_m = tk_and_k_and_z['d_m']
 
         # get an array containing k**4 (same for all redshifts)
-        for index_z in range(self.fo.ln_tau_size-self.pt.index_ln_tau_pk):
+        for index_z in range(self.fo.ln_tau_size):
             k4[:,index_z] = k**4
 
         # rescale total matter power spectrum to get the Weyl power spectrum times k**4
