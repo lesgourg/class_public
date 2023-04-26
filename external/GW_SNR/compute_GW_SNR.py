@@ -29,12 +29,11 @@ def read_psds(det_filename, freqs):
     Returns:
         array: PSD of the dector at the frequencies freqs
     """
-    interpolation_type = 'quadratic'
 
     data = np.genfromtxt(det_filename).T
     detector_frequencies = data[0]
     detector_psd = data[1]
-    f = interp1d(detector_frequencies, detector_psd, kind=interpolation_type)
+    f = interp1d(detector_frequencies, detector_psd, kind='quadratic', fill_value='extrapolate')
 
     return f(freqs)
 
@@ -55,6 +54,10 @@ def get_gw_detector_psd(detector, freqs):
     if type(detector) == list:
         psd_files = detector
         detector_num = len(psd_files)
+
+    elif detector == "LIGO":
+        detector_num = 2
+        psd_files = [_folder_+"/detector_PSD/aLIGO.txt", _folder_+"/detector_PSD/aLIGO.txt"]
 
     elif detector == "CE":
         detector_num = 2
@@ -141,9 +144,13 @@ def main():
     Omega_GW = OmGW['Omega_GW(f)']
     h = M.h()
 
-    detecor_psd = get_gw_detector_psd("CE", freqs)
+    detecor_psd = get_gw_detector_psd("LIGO", freqs)
     #Alternanative:
-    # detecor_psd = get_gw_detector_psd(["./detector_PSD/ce1.txt", "./detector_PSD/ce2.txt"], freqs)
+    # detecor_psd = get_gw_detector_psd(["./detector_PSD/aLIGO.txt", "./detector_PSD/aLIGO.txt"], freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for LIGO:\t %g' % snr)
+
+    detecor_psd = get_gw_detector_psd("CE", freqs)
     snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
     print('SNR for CE:\t %g' % snr)
 
