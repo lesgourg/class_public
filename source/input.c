@@ -533,7 +533,7 @@ int input_shooting(struct file_content * pfc,
   char * const unknown_namestrings[] = {"h",                        /* unknown param for target '100*theta_s' */
                                         "h",                        /* unknown param for target 'theta_s_100' */
                                         "Omega_ini_dcdm",           /* unknown param for target 'Omega_dcdmd' */
-                                        "Omega_ini_dcdm",           /* unknown param for target 'omega_dcdmdr' */
+                                        "omega_ini_dcdm",           /* unknown param for target 'omega_dcdmdr' */
                                         "scf_shooting_parameter",   /* unknown param for target 'Omega_scf' */
                                         "Omega_dcdmdr",             /* unknown param for target 'Omega_ini_dcdm' */
                                         "omega_dcdmdr"};             /* unknown param for target 'omega_ini_dcdm' */
