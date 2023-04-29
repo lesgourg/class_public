@@ -2096,6 +2096,7 @@ int primordial_inflation_evolve_background(
   double quantity=0.;
   double V,dV,ddV;
   double sign_dtau=0.;
+  double sign_der=1.;
 
   pipaw.ppm = ppm;
 
@@ -2167,6 +2168,18 @@ int primordial_inflation_evolve_background(
     break;
   case _phi_:
     // next (approximate) value of phi after next step
+    switch (ppm->potential_derivative){
+
+    case positive:
+      sign_der = -1.;
+      break;
+
+    case negative:
+      sign_der = 1.;
+      break;
+
+    }
+
     quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
     break;
   case _end_inflation_:
@@ -2189,7 +2202,7 @@ int primordial_inflation_evolve_background(
 
   /* loop over time steps, checking that there will be no overshooting */
 
-  while (sign_dtau*(quantity - stop) < 0.) {
+  while (sign_der*sign_dtau*(quantity - stop) < 0.) {
 
     /* check that V(phi) or H(phi) do not take forbidden values
        (negative or positive derivative) */
@@ -2419,12 +2432,22 @@ int primordial_inflation_check_potential(
              ppm->error_message,
              "This potential becomes negative at phi=%g, before the end of observable inflation. It  cannot be treated by this code",
              phi);
+ switch (ppm->potential_derivative){
 
-  class_test(*dV >= 0.,
+  case positive:
+    class_test(*dV <= 0.,
              ppm->error_message,
-             "All the code is written for the case dV/dphi<0. Here, in phi=%g, we have dV/dphi=%g. This potential cannot be treated by this code",
+             "The derivative of potential, dV/dphi<0. Here, in phi=%g, we have dV/dphi=%g.",
              phi,*dV);
 
+    break;
+  case negative:
+    class_test(*dV >= 0.,
+             ppm->error_message,
+             "The derivative of potential, dV/dphi>0. Here, in phi=%g, we have dV/dphi=%g.",
+             phi,*dV);
+    break;
+ }
   return _SUCCESS_;
 }
 
@@ -2563,6 +2586,7 @@ int primordial_inflation_find_phi_pivot(
   double sigma_B;
   double Omega_g0;
   double Omega_r0;
+  double sign_der=1.;
 
   /** - check whether in vicinity of phi_end, inflation is still ongoing */
 
@@ -2570,40 +2594,52 @@ int primordial_inflation_find_phi_pivot(
              ppm->error_message,
              ppm->error_message);
 
+  switch (ppm->potential_derivative){
+
+    case positive:
+      sign_der = -1.;
+      break;
+
+    case negative:
+      sign_der = 1.;
+      break;
+
+    }
+
   // assume that inflation ends up naturally
 
   /** - --> find latest value of the field such that epsilon = primordial_inflation_small_epsilon (default: 0.1) */
-
+  
 
   if (epsilon > ppr->primordial_inflation_small_epsilon) {
 
 
-    /** - --> bracketing right-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby */
+    /** - --> bracketing right-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby) */
     phi_right = ppm->phi_end;
 
     /** - --> bracketing left-hand value is found by iterating with logarithmic step until epsilon < primordial_inflation_small_epsilon */
     dphi = ppr->primordial_inflation_end_dphi;
     do {
       dphi *= ppr->primordial_inflation_end_logstep;
-      class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
+      class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-sign_der*dphi,&epsilon),
                  ppm->error_message,
                  ppm->error_message);
     } while (epsilon > ppr->primordial_inflation_small_epsilon);
-    phi_left = ppm->phi_end-dphi;
+    phi_left = ppm->phi_end-sign_der*dphi;
   }
   else{
-    /** - --> bracketing left-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby */
+    /** - --> bracketing left-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby) */
     phi_left = ppm->phi_end;
 
      /** - --> bracketing right-hand value is found by iterating with logarithmic step until epsilon < primordial_inflation_small_epsilon */
     dphi = ppr->primordial_inflation_end_dphi;
     do {
       dphi *= ppr->primordial_inflation_end_logstep;
-      class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end+dphi,&epsilon),
+      class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end+sign_der*dphi,&epsilon),
                  ppm->error_message,
                  ppm->error_message);
     } while (epsilon < ppr->primordial_inflation_small_epsilon);
-    phi_right = ppm->phi_end+dphi;
+    phi_right = ppm->phi_end+sign_der*dphi;
   }
   /** - --> find value such that epsilon = primordial_inflation_small_epsilon by bisection */
   do {
