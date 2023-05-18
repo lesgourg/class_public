@@ -28,7 +28,8 @@ enum linear_or_logarithmic {
 enum potential_shape {
                       polynomial,
                       natural,
-                      higgs_inflation
+                      higgs_inflation,
+                      brane_inflation
 };
 
 /** enum defining which quantity plays the role of a target for evolving inflationary equations */

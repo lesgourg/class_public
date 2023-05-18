@@ -4332,6 +4332,10 @@ int input_read_parameters_primordial(struct file_content * pfc,
     class_call(parser_read_string(pfc,"full_potential",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+
+  printf(flag1);
+  printf(string1);
+
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
       if (strcmp(string1,"polynomial") == 0){
@@ -4340,8 +4344,14 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"higgs_inflation") == 0){
         ppm->potential = higgs_inflation;
       }
+      /* ( edited 15/05/2023 Valentin Carpintero) - Brane Inflation*/
+      else if (strcmp(string1,"brane_inflation") == 0){
+        ppm->potential = brane_inflation;
+      }
+
       else{
-        class_stop(errmsg,"You specified 'full_potential' as '%s'. It has to be one of {'polynomial','higgs_inflation'}.",string1);
+        class_stop(errmsg,"You specified 'full_potential' as '%s'. It has to be one of {'polynomial','higgs_inflation','brane_inflation'}.",string1);
+
       }
     }
 
