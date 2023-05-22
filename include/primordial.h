@@ -29,7 +29,8 @@ enum potential_shape {
                       polynomial,
                       natural,
                       higgs_inflation,
-                      brane_inflation
+                      brane_inflation,
+                      KKLT_mirror
 };
 
 /** enum defining which quantity plays the role of a target for evolving inflationary equations */

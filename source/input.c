@@ -4348,9 +4348,12 @@ int input_read_parameters_primordial(struct file_content * pfc,
       else if (strcmp(string1,"brane_inflation") == 0){
         ppm->potential = brane_inflation;
       }
-
+      else if (strcmp(string1,"KKLT_mirror") == 0){
+        ppm->potential = KKLT_mirror;
+      }
+      /*end edit*/
       else{
-        class_stop(errmsg,"You specified 'full_potential' as '%s'. It has to be one of {'polynomial','higgs_inflation','brane_inflation'}.",string1);
+        class_stop(errmsg,"You specified 'full_potential' as '%s'. It has to be one of {'polynomial','higgs_inflation','brane_inflation','KKLT_mirror}.",string1);
 
       }
     }
