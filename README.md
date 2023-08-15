@@ -1,120 +1,112 @@
-CLASS: Cosmic Linear Anisotropy Solving System  {#mainpage}
-==============================================
+`GW_CLASS`: Cosmological Gravitational Wave Background in `CLASS`
+=================================================================
 
-Authors: Julien Lesgourgues, Thomas Tram, Nils Schoeneberg
+Authors:
+Florian Schulze (@floschulze),
+Lorenzo Valbusa Dall’Armi (@lorenzovalbusa)
 
-with several major inputs from other people, especially Benjamin
-Audren, Simon Prunet, Jesus Torrado, Miguel Zumalacarregui, Francesco
-Montanari, Deanna Hooper, Samuel Brieden, Daniel Meinert, Matteo Lucca, etc.
-
-For download and information, see http://class-code.net
+together with Julien Lesgourgues, Angelo Ricciardone, Nicola Bartolo,
+Daniele Bertacca, Christian Fidler and Sabino Matarrese.
 
 
 Compiling CLASS and getting started
 -----------------------------------
 
-(the information below can also be found on the webpage, just below
-the download button)
+Compiling the code is identical to the basic `CLASS` code.
+For more details see documentation of `CLASS`.
 
-Download the code from the webpage and unpack the archive (tar -zxvf
-class_vx.y.z.tar.gz), or clone it from
-https://github.com/lesgourg/class_public. Go to the class directory
-(cd class/ or class_public/ or class_vx.y.z/) and compile (make clean;
-make class). You can usually speed up compilation with the option -j:
-make -j class. If the first compilation attempt fails, you may need to
-open the Makefile and adapt the name of the compiler (default: gcc),
-of the optimization flag (default: -O4 -ffast-math) and of the OpenMP
-flag (default: -fopenmp; this flag is facultative, you are free to
-compile without OpenMP if you don't want parallel execution; note that
-you need the version 4.2 or higher of gcc to be able to compile with
--fopenmp). Many more details on the CLASS compilation are given on the
-wiki page
+ 1. Download the `GW_CLASS` code: #TODO: put in correct links
+    ```
+    curl -LO https://github.com/lesgourg/class_public/archive/refs/tags/v3.2.0.tar.gz
+    tar -xf v3.2.0.tar.gz
+    cd class_public-3.2.0
+    ```
+    OR clone the GitHub repository
+    ```
+    git clone git@github.com:lesgourg/class_public.git
+    cd class_public
+    git checkout GW_CLASS
+    ```
+ 2. Compile `GW_CLASS`:
+    ```
+    make clean; make class -j
+    ```
+    OR: compile `GW_CLASS` with python wrapper `classy`:
+    ```
+    make clean; make -j
+    ```
 
-https://github.com/lesgourg/class_public/wiki/Installation
 
-(in particular, for compiling on Mac >= 10.9 despite of the clang
-incompatibility with OpenMP).
+Main instructions of `GW_CLASS`
+-------------------------------
 
-To check that the code runs, type:
+To compute the CGWB anisotropies you have to give the input:
+```
+output = gwCl, OmGW
+```
+The background GW energy density $\bar{\Omega}_{\rm GW}(f)$ (`OmGW`) and the 
+angular power spectrum $C_{\ell}^{\rm CGWB \times CGWB}$ (`gwCl`)
+always have to be computed in combination.
 
-    ./class explanatory.ini
+The background GW energy density $\bar{\Omega}_{\rm GW}(f)$ is controlled by:
+```
+gwb_source_type = analytic_gwb 
+                  OR inflationary_gwb
+                  OR external_gwb
+                  OR PBH_gwb
+                  OR PT_gwb
+n_gwb = 0.
+f_pivot = 1
+f_min = 1e-3
+f_max = 1e2
+```
+and source dependent parameter.
 
-The explanatory.ini file is THE reference input file, containing and
-explaining the use of all possible input parameters. We recommend to
-read it, to keep it unchanged (for future reference), and to create
-for your own purposes some shorter input files, containing only the
-input lines which are useful for you. Input files must have a *.ini
-extension. We provide an example of an input file containing a
-selection of the most used parameters, default.ini, that you may use as a
-starting point.
+The contributions to the CGWB anisotropies are set with:
+```
+gravitational_wave_contributions = ad, tsw, pisw, eisw, lisw, ini
+```
+New parameter involved in the computation of the CGWB anisotropies are the 
+for example the fraction of relativistic decoupled particles at GW production
+$f_{\rm dec}(\eta_{\rm in})$ and the spectrum of an additional non-adiabtic mode (`gwi`)
+$$
+    P_\Gamma^\mathrm{NAD}(k) = A_\mathrm{gwi} \, \left( \frac{k}{k_*} \right)^{n_\mathrm{gwi}}
+$$
+```
+f_dec_ini = 0.0
 
-If you want to play with the precision/speed of the code, you can use
-one of the provided precision files (e.g. cl_permille.pre) or modify
-one of them, and run with two input files, for instance:
+ic = ad, gwi
+A_gwi = 1e-10.
+n_gwi = 0.
+```
 
-    ./class test.ini cl_permille.pre
+An exhaustive list of all parameters and description of the code can be found in the appendix of [[2305.01602](https://arxiv.org/abs/2305.01602)].
 
-The files *.pre are suppposed to specify the precision parameters for
-which you don't want to keep default values. If you find it more
-convenient, you can pass these precision parameter values in your *.ini
-file instead of an additional *.pre file.
 
-The automatically-generated documentation is located in
+Examples
+--------
 
-    doc/manual/html/index.html
-    doc/manual/CLASS_manual.pdf
+The parameter file `cgwb.ini` provides an example on how to calculate the CGWB using `GW_CLASS`.
 
-On top of that, if you wish to modify the code, you will find lots of
-comments directly in the files.
+A tutorial using the python wrapper is provided in the `notebook` folder:
+[GW_CLASS-Tutorial](notebooks/GW_CLASS-Tutorial.ipynb).
+It shows how to reproduce figures 1-7 of [[2305.01602](https://arxiv.org/abs/2305.01602)].
 
-Python
-------
 
-To use CLASS from python, or ipython notebooks, or from the Monte
-Python parameter extraction code, you need to compile not only the
-code, but also its python wrapper. This can be done by typing just
-'make' instead of 'make class' (or for speeding up: 'make -j'). More
-details on the wrapper and its compilation are found on the wiki page
+Calculate SNR
+-------------
 
-https://github.com/lesgourg/class_public/wiki
+`GW_CLASS` provides an external python file `exteranal/GW_SNR/compute_GW_SNR.py`,
+to compute the SNR of the CGWB energy density $\bar{\Omega}_{\rm GW}(f)$.
+It can be used, to directly calculate the SNR for a CGWB computed by `GW_CLASS`:
+```
+python external/GW_SNR/compute_GW_SNR.py <Omega_GW_file> [h]
+``` 
 
-Plotting utility
-----------------
-
-Since version 2.3, the package includes an improved plotting script
-called CPU.py (Class Plotting Utility), written by Benjamin Audren and
-Jesus Torrado. It can plot the Cl's, the P(k) or any other CLASS
-output, for one or several models, as well as their ratio or percentage
-difference. The syntax and list of available options is obtained by
-typing 'pyhton CPU.py -h'. There is a similar script for MATLAB,
-written by Thomas Tram. To use it, once in MATLAB, type 'help
-plot_CLASS_output.m'
-
-Developing the code
---------------------
-
-If you want to develop the code, we suggest that you download it from
-the github webpage
-
-https://github.com/lesgourg/class_public
-
-rather than from class-code.net. Then you will enjoy all the feature
-of git repositories. You can even develop your own branch and get it
-merged to the public distribution. For related instructions, check
-
-https://github.com/lesgourg/class_public/wiki/Public-Contributing
 
 Using the code
 --------------
 
-You can use CLASS freely, provided that in your publications, you cite
-at least the paper `CLASS II: Approximation schemes <http://arxiv.org/abs/1104.2933>`. Feel free to cite more CLASS papers!
-
-Support
--------
-
-To get support, please open a new issue on the
-
-https://github.com/lesgourg/class_public
-
-webpage!
+You can use CLASS freely, provided that in your publications, you cite at least the paper 
+`GW_CLASS: Cosmological Gravitational Wave Background in the Cosmic Linear Anisotropy Solving System` [[2305.01602](https://arxiv.org/abs/2305.01602)].
+Feel free to cite also the original CLASS papers!
