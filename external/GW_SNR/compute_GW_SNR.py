@@ -117,7 +117,23 @@ def compute_GW_SNR(freqs, Omega_GW, detector_psd, h=0.67, T_obs=10):
     return snr
 
 
-def main():
+def read_Omega_GW(filename):
+    """Reads a file with the CGWB energy density Omega_GW written by CLASS
+
+    Args:
+        filename (str): filename of the file with the CGWB energy density Omega_GW
+
+    Returns:
+        array: CGWB energy density Omega_GW
+    """
+    data = np.genfromtxt(filename).T
+    freqs = data[0]
+    Omega_GW = data[1]
+
+    return freqs, Omega_GW
+
+
+def example_with_classy():
     from classy import Class
 
     M = Class()
@@ -143,6 +159,7 @@ def main():
     freqs = OmGW['f [Hz]']
     Omega_GW = OmGW['Omega_GW(f)']
     h = M.h()
+    print("h = %g" %h)
 
     detecor_psd = get_gw_detector_psd("LIGO", freqs)
     #Alternanative:
@@ -165,5 +182,39 @@ def main():
     return 0
 
 
+def main(argv):
+    if len(argv) == 0:
+        print("Usage: python compute_GW_SNR.py <Omega_GW_file> [h]")
+        return 1
+    
+    file = argv[0]
+    print("file = %s" %file)
+    h = 0.67
+    if len(argv) > 1:
+        h = float(argv[1])
+    print("h = %g" %h)
+    
+    freqs, Omega_GW = read_Omega_GW(file)
+
+    detecor_psd = get_gw_detector_psd("LIGO", freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for LIGO:\t %g' % snr)
+
+    detecor_psd = get_gw_detector_psd("CE", freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for CE:\t %g' % snr)
+
+    detecor_psd = get_gw_detector_psd("ET", freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for ET:\t %g' % snr)
+
+    detecor_psd = get_gw_detector_psd("CE+ET", freqs)
+    snr = compute_GW_SNR(freqs, Omega_GW, detecor_psd, h)
+    print('SNR for CE+ET:\t %g' % snr)
+
+    return 0
+
+
 if __name__ == '__main__':
-    main()
+    import sys
+    main(sys.argv[1:])
