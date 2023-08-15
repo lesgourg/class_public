@@ -2,8 +2,8 @@
 =================================================================
 
 Authors:
-Florian Schulze (@floschulze),
-Lorenzo Valbusa Dall’Armi (@lorenzovalbusa)
+Florian Schulze ([@floschulze](https://www.github.com/floschulze)),
+Lorenzo Valbusa Dall’Armi ([@lorenzovalbusa](https://www.github.com/lorenzovalbusa))
 
 together with Julien Lesgourgues, Angelo Ricciardone, Nicola Bartolo,
 Daniele Bertacca, Christian Fidler and Sabino Matarrese.
@@ -44,7 +44,7 @@ To compute the CGWB anisotropies you have to give the input:
 ```
 output = gwCl, OmGW
 ```
-The background GW energy density $\bar{\Omega}_{\rm GW}(f)$ (`OmGW`) and the 
+The background GW energy density $`\bar{\Omega}_{\rm GW}(f)`$ (`OmGW`) and the 
 angular power spectrum $C_{\ell}^{\rm CGWB \times CGWB}$ (`gwCl`)
 always have to be computed in combination.
 
@@ -69,6 +69,7 @@ gravitational_wave_contributions = ad, tsw, pisw, eisw, lisw, ini
 New parameter involved in the computation of the CGWB anisotropies are the 
 for example the fraction of relativistic decoupled particles at GW production
 $f_{\rm dec}(\eta_{\rm in})$ and the spectrum of an additional non-adiabtic mode (`gwi`)
+
 $$
     P_\Gamma^\mathrm{NAD}(k) = A_\mathrm{gwi} \, \left( \frac{k}{k_*} \right)^{n_\mathrm{gwi}}
 $$
