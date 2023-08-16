@@ -8,6 +8,9 @@ Lorenzo Valbusa Dall’Armi ([@lorenzovalbusa](https://www.github.com/lorenzoval
 together with Julien Lesgourgues, Angelo Ricciardone, Nicola Bartolo,
 Daniele Bertacca, Christian Fidler and Sabino Matarrese.
 
+A Jupyter notebook is provided as an example in the `notebook` folder:
+[GW_CLASS-Tutorial](notebooks/GW_CLASS-Tutorial.ipynb).
+
 
 Compiling CLASS and getting started
 -----------------------------------
