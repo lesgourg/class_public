@@ -311,9 +311,9 @@ int primordial_omega_gw_at_f(
 }
 
 /**
- * GWB spectral tilt $n_{\rm gwb}$ for arbitrary frequency.
+ * GWB spectral tilt \f$ n_{\rm gwb} \f$ for arbitrary frequency.
  *
- * This routine evaluates the GWB spectral tilt $n_{\rm gwb}$ at a given value
+ * This routine evaluates the GWB spectral tilt \f$ n_{\rm gwb} \f$ at a given value
  * of f by calculating the derivative of Omega_GW.
  *
  * When f is not in the pre-computed range it returns an error.
@@ -396,6 +396,7 @@ int primordial_n_gwb_at_f(
  * This routine initializes the primordial structure (in particular, it computes table of primordial spectrum values)
  *
  * @param ppr Input: pointer to precision structure (defines method and precision for all computations)
+ * @param pba Input: pointer to background structure (useful for knowing the value of H0)
  * @param ppt Input: pointer to perturbation structure (useful for knowing k_min, k_max, etc.)
  * @param ppm Output: pointer to initialized primordial structure
  * @return the error status
