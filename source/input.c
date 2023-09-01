@@ -4852,9 +4852,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
     /** 2.f) For type 'PT_gwb' */
     if (ppm->gwb_source_type == PT_gwb) {
-      /** 2.f.1) Amplitute $\Omega_*$ */
+      /** 2.f.1) Amplitute Omega_* */
       class_read_double("OmegaPT_star",ppm->OmegaPT_star);
-      /** 2.f.2) Peak frequency $f_*$ for PT in Hz */
+      /** 2.f.2) Peak frequency f_* for PT in Hz */
       class_read_double("fPT_star",ppm->fPT_star);
       /** 2.f.3) n_1 for PT */
       class_read_double("nPT_1",ppm->nPT_1);
@@ -6366,9 +6366,9 @@ int input_default_params(struct background *pba,
   ppm->f_NL = 0.;
 
   /** 2.f) For type 'PT_gwb' */
-  /** 2.f.1) Amplitute $\Omega_*$ */
+  /** 2.f.1) Amplitute Omega_* */
   ppm->OmegaPT_star = 1.e-7;
-  /** 2.f.2) Peak frequency $f_*$ for PT in Hz */
+  /** 2.f.2) Peak frequency f_* for PT in Hz */
   ppm->fPT_star = 1.;
   /** 2.f.3) n_1 for PT */
   ppm->nPT_1 = 3.;

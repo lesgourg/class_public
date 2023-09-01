@@ -2,8 +2,8 @@
 =================================================================
 
 Authors:
-Florian Schulze ([@floschulze](https://www.github.com/floschulze)),
-Lorenzo Valbusa Dall’Armi ([@lorenzovalbusa](https://www.github.com/lorenzovalbusa))
+Florian Schulze,
+Lorenzo Valbusa Dall’Armi
 
 together with Julien Lesgourgues, Angelo Ricciardone, Nicola Bartolo,
 Daniele Bertacca, Christian Fidler and Sabino Matarrese.
@@ -47,11 +47,11 @@ To compute the CGWB anisotropies you have to give the input:
 ```
 output = gwCl, OmGW
 ```
-The background GW energy density $`\bar{\Omega}_{\rm GW}(f)`$ (`OmGW`) and the 
-angular power spectrum $C_{\ell}^{\rm CGWB \times CGWB}$ (`gwCl`)
+The background GW energy density \f$ \bar{\Omega}_{\rm GW}(f) \f$ (`OmGW`) and the 
+angular power spectrum \f$ C_{\ell}^{\rm CGWB \times CGWB} \f$ (`gwCl`)
 always have to be computed in combination.
 
-The background GW energy density $\bar{\Omega}_{\rm GW}(f)$ is controlled by:
+The background GW energy density \f$ \bar{\Omega}_{\rm GW}(f) \f$ is controlled by:
 ```
 gwb_source_type = analytic_gwb 
                   OR inflationary_gwb
@@ -71,11 +71,7 @@ gravitational_wave_contributions = ad, tsw, pisw, eisw, lisw, ini
 ```
 New parameter involved in the computation of the CGWB anisotropies are the 
 for example the fraction of relativistic decoupled particles at GW production
-$f_{\rm dec}(\eta_{\rm in})$ and the spectrum of an additional non-adiabtic mode (`gwi`)
-
-$$
-    P_\Gamma^\mathrm{NAD}(k) = A_\mathrm{gwi} \, \left( \frac{k}{k_*} \right)^{n_\mathrm{gwi}}
-$$
+\f$ f_{\rm dec}(\eta_{\rm in}) \f$ and the spectrum of an additional non-adiabtic mode (`gwi`) \f$ P_\Gamma^\mathrm{NAD}(k) = A_\mathrm{gwi} \, \left( \frac{k}{k_*} \right)^{n_\mathrm{gwi}} \f$
 ```
 f_dec_ini = 0.0
 
@@ -101,7 +97,7 @@ Calculate SNR
 -------------
 
 `GW_CLASS` provides an external python file `exteranal/GW_SNR/compute_GW_SNR.py`,
-to compute the SNR of the CGWB energy density $\bar{\Omega}_{\rm GW}(f)$.
+to compute the SNR of the CGWB energy density \f$ \bar{\Omega}_{\rm GW}(f) \f$.
 It can be used, to directly calculate the SNR for a CGWB computed by `GW_CLASS`:
 ```
 python external/GW_SNR/compute_GW_SNR.py <Omega_GW_file> [h]
