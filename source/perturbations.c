@@ -1696,7 +1696,7 @@ int perturbations_timesampling_for_sources(
   double tau_lower;
   double tau_upper;
   double tau_mid;
-  double tau_ini_gwb; /*< initial time if GWB is requested */
+  double tau_ini_gwb=0.; /*< initial time if GWB is requested */
 
   double timescale_source;
   double rate_thermo;
@@ -1865,13 +1865,6 @@ int perturbations_timesampling_for_sources(
   if (ppt->has_source_gwb == _TRUE_) {
     /** set the initial time to precision parameter for the sources to be convergent */
     tau_ini_gwb = ppr->start_sources_at_tau_gwb;
-    class_test(tau_ini_gwb < 1.e-2,
-                ppt->error_message,
-                "your choice of initial time for GWB sources is inappropriate: for times 'start_sources_at_tau_gwb < 1e-2 Mpc' the evolver diverges. You should increase 'start_sources_at_tau_gwb'.\n");
-    class_test(tau_ini_gwb > 1.,
-                ppt->error_message,
-                "your choice of initial time for GWB sources is inappropriate: for times 'start_sources_at_tau_gwb > 1 Mpc' the initial conditions are unstable. You should decrease 'start_sources_at_tau_gwb'.\n");
-
   }
 
   /** - (b) next sampling point = previous + ppr->perturbations_sampling_stepsize * timescale_source, where:
@@ -1915,7 +1908,7 @@ int perturbations_timesampling_for_sources(
                                     pvecthermo),
                 pth->error_message,
                 ppt->error_message);
-        
+
       /* variation rate given by Hubble time */
       a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
 
@@ -2049,7 +2042,7 @@ int perturbations_timesampling_for_sources(
                                     pvecthermo),
                 pth->error_message,
                 ppt->error_message);
-        
+
       /* variation rate given by Hubble time */
       a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
       timescale_source = a_prime_over_a;
@@ -2712,14 +2705,12 @@ int perturbations_get_k_list(
        K=0, K<0, K>0 */
 
     /* allocate array with, for the moment, the largest possible size */
-    //Florian: There was a bug before, this should fix it
-    ppt->k_size[ppt->index_md_tensors] = ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub)/ppr->k_step_super_reduction)+1);
+
+    ppt->k_size[ppt->index_md_tensors] = (int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub)/ppr->k_step_super_reduction)+1;
+
     class_alloc(ppt->k[ppt->index_md_tensors],
                 ppt->k_size[ppt->index_md_tensors]*sizeof(double),
                 ppt->error_message);
-    // class_alloc(ppt->k[ppt->index_md_tensors],
-    //             ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
-    //             *sizeof(double),ppt->error_message);
 
     /* first value */
 
@@ -5889,8 +5880,6 @@ int perturbations_initial_conditions(struct precision * ppr,
       eta = ppr->entropy_ini*fracnu*k*tau*(-1./(4.*fracnu+5.) + (-3./64.*fracb/fracg+15./4./(4.*fracnu+15.)/(4.*fracnu+5.)*om*tau)); /* small diff wrt camb */
 
     }
-
-    //TODO_GWB: No IC are specified for the GWI mode, but somehow this works?!
 
     /** - (c) If the needed gauge is really the synchronous gauge, we need to affect the previously computed value of eta to the actual variable eta */
 
@@ -10186,10 +10175,10 @@ int perturbations_tca_slip_and_shear(double * y,
 
   /* idm_g effects on tca */
   double theta_idm = 0., theta_idm_prime = 0.;
-  double tau_2_idm_g, dtau_2_idm_g;
+  double tau_2_idm_g = 0., dtau_2_idm_g = 0.;
   double dmu_idm_g = 0., ddmu_idm_g = 0.;
   /* in case of idm_b - for notation see 1802.06788 */
-  double tau_idm_b, dtau_idm_b;
+  double tau_idm_b = 0., dtau_idm_b = 0.;
   double R_idm_b = 0., R_idm_b_prime = 0.;
   double S_idm_b = 0.;
 

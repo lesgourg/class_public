@@ -1723,8 +1723,8 @@ int input_read_parameters_general(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
-  int flag1,flag2,flag3;
-  double param1,param2,param3;
+  int flag1,flag2;
+  double param1,param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char * options_output[39] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd","gwCl","OmGw",
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd","GWCl","OmGW",
@@ -1911,7 +1911,7 @@ int input_read_parameters_general(struct file_content * pfc,
     class_read_flag_or_deprecated("extra_metric_transfer_functions","extra metric transfer functions",ppt->has_metricpotential_transfers);
   }
 
-  /** 1.d) Terms contributing to the graviational wave spectrum */
+  /** 1.d) Terms contributing to the gravitational wave spectrum */
   if (ppt->has_cl_gwb == _TRUE_) {
     /* Read */
     class_call(parser_read_string(pfc,"gravitational_wave_contributions",&string1,&flag1,errmsg),
@@ -4725,7 +4725,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
   }
 
 
-  /** 2) Graviational Wave Background (GWB) source type (define the energy density) */
+  /** 2) Gravitational Wave Background (GWB) source type (define the energy density) */
   if (ppt->has_omega_gwb == _TRUE_) {
 
     /* Read */
@@ -4758,14 +4758,14 @@ int input_read_parameters_primordial(struct file_content * pfc,
     class_test((ppm->gwb_source_type == external_gwb) && (ppm->primordial_spec_type != external_Pk),
                errmsg,
                "To use the 'external_gwb' for the GWB sources you must also use the 'external_Pk' for 'Pk_ini_type'!");
-    
+
     /** 2.a) Pivot scale in Hz */
     /* Read */
     class_read_double("f_pivot",ppm->f_pivot);
     /** 2.a.1) Minimum/Maximum GWB frequency in Hz */
     class_read_double("f_min",ppm->f_min);
     class_read_double("f_max",ppm->f_max);
-  
+
     /** 2.b) For type 'analytic_gwb' */
     if (ppm->gwb_source_type == analytic_gwb) {
       /** 2.b.1) GWB energy density Omega_GW */
@@ -4794,7 +4794,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
       class_read_double("alpha_gwb",ppm->alpha_gwb);
     }
 
-    /** 2.c) For type 'inlfationary_gwb' */
+    /** 2.c) For type 'inflationary_gwb' */
     if (ppm->gwb_source_type == inflationary_gwb) {
       /* Test */
       class_test(ppt->has_tensors == _FALSE_,

@@ -2052,8 +2052,8 @@ int background_solve(
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
-  
-  /** - calculate fraction of decoubled relativistic particles at start of CLASS computation*/
+
+  /** - calculate fraction of decoupled relativistic particles at starting time of CLASS computation */
   pba->f_dec_late = pba->background_table[pba->index_bg_rho_ur] / (pba->background_table[pba->index_bg_Omega_r] * pba->background_table[pba->index_bg_rho_crit]);
   if (pba->f_dec_ini == -1) {  //switch effect off
     pba->f_dec_ini = pba->f_dec_late;

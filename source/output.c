@@ -435,7 +435,7 @@ int output_cl(
                 (index_ic1 == ppt->index_ic_gwi) && (index_ic2 == ppt->index_ic_gwi)) {
 
               sprintf(file_name,"%s%s",pop->root,"cls_gwi.dat");
-              strcpy(first_line,"[l(l+1)/2pi] C_l's for gravitaional wave background non-adiabatic (GWI) mode");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for gravitational wave background non-adiabatic (GWI) mode");
             }
 
             if ((ppt->has_ad == _TRUE_) &&
