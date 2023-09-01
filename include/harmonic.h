@@ -6,7 +6,7 @@
 #include "transfer.h"
 
 /**
- * Maximum number of values of frequencies at which the CGWB spectra will be
+ * Maximum number of frequencies at which the CGWB spectra will be
  * calculated
  */
 
@@ -55,7 +55,7 @@ struct harmonic {
 
   //@{
 
-  int f_gwb_num; /**< number of frequencies at which C_l^CGWBxCGWB(f1,f2) should be calculated */
+  int f_gwb_num;                 /**< number of frequencies at which C_l^CGWBxCGWB(f1,f2) should be calculated */
   double f_gwb[_F_GWB_NUM_MAX_]; /**< value(s) of frequencies at which C_l^CGWBxCGWB(f1,f2) should be calculated */
 
   //@}
@@ -93,8 +93,8 @@ struct harmonic {
   int index_ct_ll; /**< first index for type \f$ C_l^{ll} \f$((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type \f$ C_l^{Tl} \f$(d_size values) */
   int index_ct_dl; /**< first index for type \f$ C_l^{dl} \f$(d_size values) */
-  int index_ct_gg; /**< first index for type \f$ C_l^{GG} \f$((f_gwb_num*(f_gwb_num+1)/2) values)*/
-  int index_ct_tg; /**< first index for type \f$ C_l^{TG} \f$(f_gwb_num values)*/
+  int index_ct_gg; /**< first index for type \f$ C_l^{GG} \f$((f_gwb_num*(f_gwb_num+1)/2) values) */
+  int index_ct_tg; /**< first index for type \f$ C_l^{TG} \f$(f_gwb_num values) */
 
   int d_size;      /**< number of bins for which density Cl's are computed */
 

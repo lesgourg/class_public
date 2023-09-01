@@ -138,7 +138,7 @@ struct perturbations
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
   short has_cl_gwb;                   /**< do we need \f$ C_l \f$'s for GWB? */
-  short has_omega_gwb;                /**< do we need to output the energy denstiy of the GWB \f$ \Omega_\mathrm{GW}(f) \f$? */
+  short has_omega_gwb;                /**< do we need to output the energy density of the GWB \f$ \Omega_\mathrm{GW}(f) \f$? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -166,12 +166,12 @@ struct perturbations
   int switch_pol;  /**< in temperature calculation, do we want to include the polarization-related term? */
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
 
-  int switch_gwb_sw;   /**< in graviational wave calculation, do we want to include the Sachs Wolfe term? */
-  int switch_gwb_ad;   /**< in graviational wave calculation, do we want to include the adiabatic term? */
-  int switch_gwb_pisw; /**< in graviational wave calculation, do we want to include the primordial integrated Sachs Wolfe term (effect of f_dec)? */
-  int switch_gwb_eisw; /**< in graviational wave calculation, do we want to include the early integrated Sachs Wolfe term? */
-  int switch_gwb_lisw; /**< in graviational wave calculation, do we want to include the late integrated Sachs Wolfe term? */
-  int switch_gwb_ini;  /**< in graviational wave calculation, do we want to include the initial term? */
+  int switch_gwb_sw;   /**< in gravitational wave calculation, do we want to include the Sachs Wolfe term? */
+  int switch_gwb_ad;   /**< in gravitational wave calculation, do we want to include the adiabatic term? */
+  int switch_gwb_pisw; /**< in gravitational wave calculation, do we want to include the primordial integrated Sachs Wolfe term (effect of f_dec)? */
+  int switch_gwb_eisw; /**< in gravitational wave calculation, do we want to include the early integrated Sachs Wolfe term? */
+  int switch_gwb_lisw; /**< in gravitational wave calculation, do we want to include the late integrated Sachs Wolfe term? */
+  int switch_gwb_ini;  /**< in gravitational wave calculation, do we want to include the initial term? */
 
   int store_perturbations;  /**< Do we want to store perturbations? */
   int k_output_values_num;       /**< Number of perturbation outputs (default=0) */
@@ -181,9 +181,9 @@ struct perturbations
   double three_cvis2_ur;/**< 3 x effective viscosity parameter for the ultrarelativistic perturbations */
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
-  
+
   short convert_gwb_to_energydensity; /**< should the GWB spectrum be converted to energy density? */
-  
+
   double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm_fr-idr */
   double * beta_idr;  /**< Angular contribution to collisional term at l>=2 for idr-idr */
 
@@ -231,7 +231,7 @@ struct perturbations
   int index_ic_bi; /**< index value for baryon isocurvature */
   int index_ic_nid; /**< index value for neutrino density isocurvature */
   int index_ic_niv; /**< index value for neutrino velocity isocurvature */
-  int index_ic_gwi; /**< index value for intitial GWB perturbations */
+  int index_ic_gwi; /**< index value for initial GWB perturbations */
   int index_ic_ten; /**< index value for unique possibility for tensors */
 
   int * ic_size;       /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
@@ -244,7 +244,7 @@ struct perturbations
 
   short has_source_t;          /**< do we need source for CMB temperature? */
   short has_source_p;          /**< do we need source for CMB polarization? */
-  short has_source_gwb;          /**< do we need source for GWB? */
+  short has_source_gwb;        /**< do we need source for GWB? */
   short has_source_delta_m;    /**< do we need source for delta of total matter? */
   short has_source_delta_cb;   /**< do we ALSO need source for delta of ONLY cdm and baryon? */
   short has_source_delta_tot;  /**< do we need source for delta total? */

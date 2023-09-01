@@ -142,10 +142,10 @@ extern "C" {
                         );
 
   int output_omega_gw(
-                        struct perturbations * ppt,
-                        struct primordial * ppm,
-                        struct output * pop
-                        );
+                      struct perturbations * ppt,
+                      struct primordial * ppm,
+                      struct output * pop
+                      );
 
   int output_heating(
                      struct injection* pin,

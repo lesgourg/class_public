@@ -21,7 +21,7 @@ Use case #1: reading the spectrum from a table
 In this case, say the file with the table is called `spectrum.txt`, located under `/path/to`, simply include in the `.ini` file
 
     command = cat path/to/spectrum.txt
-		
+
 It is necessary that 1st 4 characters are exactly `cat `.
 
 
@@ -75,7 +75,7 @@ If also the GWB primordial spectrum is given via the external module, each line 
 
  `k in 1/Mpc` `P_s(k)` `P_gwi(k)` `s x gwi` (`P_t(k)` if tensor)
 
-where `s x gwi` stands for the cross correlation coefficient between the scalar adiabatic and GWB spectrum (between 0 and 1).
+where `s x gwi` stands for the cross-correlation coefficient between the scalar adiabatic and GWB spectrum (between 0 and 1).
 
 Be aware to not confuse this with the notation when only scalars and tensors but no GWB is requested.
 
@@ -83,7 +83,7 @@ Furthermore, a second independent file/command must be specified to give the GWB
 
  `f in Hz` `Omega_GW(f)`
 
- For an example of a Python program that can calculate both the GWB energy density and the primordial spectrum, have a look at `generate_PK_example_w_gwb.py`s
+ For an example of a Python program that can calculate both the GWB energy density and the primordial spectrum, have a look at `generate_PK_example_w_gwb.py`
 
 Precision
 ---------

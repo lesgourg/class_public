@@ -127,7 +127,7 @@ struct primordial {
   double n_niv;  /**< NIV tilt */
   double alpha_niv; /**< NIV running */
 
-  double A_gwi;  /**< GWB non-adiabaitc perturbations (GWI) amplitude \f$ A_{NAD} \f$*/
+  double A_gwi;  /**< GWB non-adiabatic perturbations (GWI) amplitude \f$ A_{NAD} \f$*/
   double n_gwi;  /**< GWI tilt (defined wrt. 0) */
   double alpha_gwi; /**< GWI running */
 
@@ -236,33 +236,33 @@ struct primordial {
 
   enum gwb_source_type gwb_source_type; /**< type of GWB source, describing the GWB spectrum */
 
-  short has_OmGW; /**< do we calculate the GW background enery desnity \f$ \Omega_\mathrm{GW}(f) \f$? */
+  short has_OmGW; /**< do we calculate the GW background energy density \f$ \Omega_\mathrm{GW}(f) \f$? */
 
   double f_pivot; /**< pivot scale for GWB energy density in Hz */
   double f_min;   /**< minimum GWB frequency in Hz */
   double f_max;   /**< maximum GWB frequency in Hz */
   double gwi_scalar; /**< proportionality factor between initial GWB spectrum and scalar spectrum diveded by (4 - n_gwb) */
-  
+
   /* - parameters describing analytic_gwb */
 
-  double Omega_gwb;  /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
-  double n_gwb;  /**< Spectral index for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
+  double Omega_gwb; /**< Amplitude for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
+  double n_gwb;     /**< Spectral index for GWB energy density \f$ \Omega_\mathrm{GW} \f$*/
   double alpha_gwb; /**< GWB running */
 
   /* - parameters for external_gwb */
 
-  char*  command_gwb;  /**< string with the command for calling 'external_gwb' */
+  char* command_gwb; /**< string with the command for calling 'external_gwb' */
 
   /* - parameters describing PBH_gwb */
 
   double A_star; /**< Enhancement amplitude for scalar spectrum */
-  double f_star; /**< Enhancement scale for scakar spectrum (as observed GWB frequency in Hz) */
+  double f_star; /**< Enhancement scale for scalar spectrum (like observed GWB frequency, in Hz) */
   double f_NL;   /**< Non-Gaussianity parameter */
-  double prefactor_OmGW;   /**< prefactor for OmGW */
+  double prefactor_OmGW; /**< prefactor for OmGW */
 
   /* - parameters describing PT_gwb */
 
-  double OmegaPT_star;/**< amplitute of Omega_GW from PT */
+  double OmegaPT_star;/**< amplitude of Omega_GW from PT */
   double fPT_star;    /**< peak frequency of PT */
   double nPT_1;       /**< n_1 for PT */
   double nPT_2;       /**< n_2 for PT */
@@ -314,15 +314,15 @@ struct primordial {
 
   //@}
 
-  /** @name - pre-computed table of the graviational wave energy density Omega_GW */
+  /** @name - pre-computed table of the gravitational wave energy density Omega_GW */
 
   //@{
 
   int lnf_size;    /**< number of ln(f) values */
 
-  double * lnf;    /**< list of ln(f) values lnf[index_f], with f the graviational wave frequency in Hz */
+  double * lnf;    /**< list of ln(f) values lnf[index_f], with f the gravitational wave frequency in Hz */
 
-  double * lnOmGW; /**< list of ln(Omega_GW(f)) values, with Omega_GW the GW background ernergy density */
+  double * lnOmGW; /**< list of ln(Omega_GW(f)) values, with Omega_GW the GW background energy density */
 
   double * ddlnOmGW; /**< second derivative of above array, for spline interpolation. */
 
@@ -619,15 +619,15 @@ extern "C" {
                                    );
 
   int primordial_inflationary_gwb_init(
-                                      struct background * pba,
-                                      struct perturbations * ppt,
-                                      struct primordial * ppm
-                                      );
+                                       struct background * pba,
+                                       struct perturbations * ppt,
+                                       struct primordial * ppm
+                                       );
 
   int primordial_external_gwb_init(
-                                    struct precision * ppr,
-                                    struct primordial * ppm
-                                    );
+                                   struct precision * ppr,
+                                   struct primordial * ppm
+                                   );
 
   int primordial_PBH_gwb_init(
                               struct precision * ppr,
@@ -637,30 +637,36 @@ extern "C" {
                               );
 
   int primordial_PBH_omega_gw(
-                            struct primordial * ppm,
-                            double f,
-                            double * OmGW
-                            );
+                              struct primordial * ppm,
+                              double f,
+                              double * OmGW
+                              );
 
-  int primordial_output_titles(struct perturbations * ppt,
+  int primordial_output_titles(
+                               struct perturbations * ppt,
                                struct primordial * ppm,
                                char titles[_MAXTITLESTRINGLENGTH_]
                                );
 
-  int primordial_output_data(struct perturbations * ppt,
+  int primordial_output_data(
+                             struct perturbations * ppt,
                              struct primordial * ppm,
                              int number_of_titles,
-                             double *data);
+                             double *data
+                             );
 
-  int primordial_output_titles_omega_gw(struct perturbations * ppt,
-                               struct primordial * ppm,
-                               char titles[_MAXTITLESTRINGLENGTH_]
-                               );
+  int primordial_output_titles_omega_gw(
+                                        struct perturbations * ppt,
+                                        struct primordial * ppm,
+                                        char titles[_MAXTITLESTRINGLENGTH_]
+                                        );
 
-  int primordial_output_omega_gw(struct perturbations * ppt,
-                             struct primordial * ppm,
-                             int number_of_titles,
-                             double *data);
+  int primordial_output_omega_gw(
+                                 struct perturbations * ppt,
+                                 struct primordial * ppm,
+                                 int number_of_titles,
+                                 double *data
+                                 );
 #ifdef __cplusplus
 }
 #endif

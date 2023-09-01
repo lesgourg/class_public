@@ -248,7 +248,7 @@ class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshi
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
 class_precision_parameter(k_max_tau0_over_l_max,double,2.4) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
-class_precision_parameter(k_max_tau0_over_l_max_gwb,double,12.0) /**< number defining k_max for the computation of gwCl's (dimensionless): (k_max tau_0)/l_max, usually chosen five times of k_max_tau0_over_l_max */
+class_precision_parameter(k_max_tau0_over_l_max_gwb,double,12.0) /**< number defining k_max for the computation of gwCl's (dimensionless): (k_max tau_0)/l_max, usually chosen five times bigger than k_max_tau0_over_l_max */
 class_precision_parameter(k_step_sub,double,0.05) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
 class_precision_parameter(k_step_super,double,0.002) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */
 class_precision_parameter(k_step_transition,double,0.2) /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
@@ -300,12 +300,7 @@ class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_R_idm_b, double,
 
 class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
-/**
- * conformal time in Mpc to start the sampling of the sources if the GWB is requested.
- * !!! Do not change this parameter!!!
- * For earlier times the evolver diverges, for later times the inital conditions are unstable.
- */
-class_precision_parameter(start_sources_at_tau_gwb,double,0.1)
+class_precision_parameter(start_sources_at_tau_gwb,double,0.1) /**< conformal time in Mpc at which the sampling of the sources starts if the GWB is requested. !!! We recommend not to change this parameter w.r.t. 0.1 Mpc !!!  For earlier times the evolver diverges, for later times the inital conditions are unstable. */
 
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
 
@@ -402,7 +397,7 @@ class_type_parameter(evolver,int,enum evolver_type,ndf15)
 
 class_precision_parameter(k_per_decade_primordial,double,10.0) /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
-class_precision_parameter(f_per_decade_primordial,double,100.0) /**< logarithmic sampling for Omega_GW (number of points per decade in f space) */
+class_precision_parameter(f_per_decade_primordial,double,100.0) /**< logarithmic sampling for Omega_GW (number of points per decade in f-space) */
 
 class_precision_parameter(primordial_inflation_ratio_min,double,100.0) /**< for each k, start following wavenumber when aH = k/primordial_inflation_ratio_min */
 class_precision_parameter(primordial_inflation_ratio_max,double,1.0/50.0) /**< for each k, stop following wavenumber, at the latest, when aH = k/primordial_inflation_ratio_max */
@@ -482,7 +477,7 @@ class_precision_parameter(transfer_neglect_delta_k_V_b,double,1.0)  /**< same fo
 class_precision_parameter(transfer_neglect_delta_k_T_t2,double,0.2) /**< same for temperature source function T2 of tensor mode */
 class_precision_parameter(transfer_neglect_delta_k_T_e,double,0.25)  /**< same for polarization source function E of tensor mode */
 class_precision_parameter(transfer_neglect_delta_k_T_b,double,0.1)  /**< same for polarization source function B of tensor mode */
-/** The transfer neglect parameters for the GWB are choosen such, that there are no diviations until l=1000, if you want lager l increase these values! */
+/** The transfer_neglect parameters for the GWB are choosen such that there are no deviations until l=1000. If you want a larger l, you should increase these values. */
 class_precision_parameter(transfer_neglect_delta_k_S_gwb0,double,0.3) /**< same for GWB source function GWB0 of scalar mode */
 class_precision_parameter(transfer_neglect_delta_k_S_gwb1,double,0.2) /**< same for GWB source function GWB1 of scalar mode */
 class_precision_parameter(transfer_neglect_delta_k_T_gwb2,double,0.2)  /**< same for GWB source function GWB2 of tensor mode */
