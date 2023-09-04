@@ -488,7 +488,7 @@ int fourier_pk_at_k_and_z(
                  pfo->error_message,
                  pfo->error_message);
 
-      free(ddout_pk_at_z);
+      class_free(ddout_pk_at_z);
 
       // uncomment this part if you prefer a linear interpolation
 
@@ -541,7 +541,7 @@ int fourier_pk_at_k_and_z(
                    pfo->error_message,
                    pfo->error_message);
 
-        free(ddout_pk_ic_at_z);
+        class_free(ddout_pk_ic_at_z);
 
         /** --> convert each ic component from logarithmic to linear format */
 
@@ -640,13 +640,13 @@ int fourier_pk_at_k_and_z(
         }
       }
 
-      free(pk_primordial_k);
-      free(pk_primordial_kmin);
+      class_free(pk_primordial_k);
+      class_free(pk_primordial_kmin);
     }
 
-    free(out_pk_at_z);
+    class_free(out_pk_at_z);
     if (do_ic == _TRUE_) {
-      free(out_pk_ic_at_z);
+      class_free(out_pk_ic_at_z);
     }
   }
 
@@ -925,14 +925,14 @@ int fourier_pks_at_kvec_and_zvec(
     index_kvec++;
   }
 
-  free(ln_kvec);
+  class_free(ln_kvec);
   if (pfo->has_pk_m == _TRUE_) {
-    free(ln_pk_table);
-    free(ddln_pk_table);
+    class_free(ln_pk_table);
+    class_free(ddln_pk_table);
   }
   if (pfo->has_pk_cb == _TRUE_) {
-    free(ln_pk_cb_table);
-    free(ddln_pk_cb_table);
+    class_free(ln_pk_cb_table);
+    class_free(ddln_pk_cb_table);
   }
 
   return _SUCCESS_;
@@ -1086,8 +1086,8 @@ int fourier_sigmas_at_z(
 
   /** - free allocated arrays */
 
-  free(out_pk);
-  free(ddout_pk);
+  class_free(out_pk);
+  class_free(ddout_pk);
 
   return _SUCCESS_;
 }
@@ -1564,7 +1564,7 @@ int fourier_init(
               fprintf(stdout,
                       " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase the precision parameter nonlinear_min_k_max (currently at %e) until k_NL can be computed at the desired z.\n",z,ppr->nonlinear_min_k_max);
 
-              free(pvecback);
+              class_free(pvecback);
             }
           }
         }
@@ -1615,14 +1615,14 @@ int fourier_init(
     /* --> free temporary arrays */
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
-      free(pk_nl[index_pk]);
-      free(lnpk_l[index_pk]);
-      free(ddlnpk_l[index_pk]);
+      class_free(pk_nl[index_pk]);
+      class_free(lnpk_l[index_pk]);
+      class_free(ddlnpk_l[index_pk]);
     }
 
-    free(pk_nl);
-    free(lnpk_l);
-    free(ddlnpk_l);
+    class_free(pk_nl);
+    class_free(lnpk_l);
+    class_free(ddlnpk_l);
 
     /** --> free the nonlinear workspace */
 
@@ -1658,52 +1658,52 @@ int fourier_free(
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
 
-    free(pfo->k);
-    free(pfo->ln_k);
+    class_free(pfo->k);
+    class_free(pfo->ln_k);
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-      free(pfo->ln_pk_ic_l[index_pk]);
-      free(pfo->ln_pk_l[index_pk]);
+      class_free(pfo->ln_pk_ic_l[index_pk]);
+      class_free(pfo->ln_pk_l[index_pk]);
       if (pfo->ln_tau_size>1) {
-        free(pfo->ddln_pk_ic_l[index_pk]);
-        free(pfo->ddln_pk_l[index_pk]);
+        class_free(pfo->ddln_pk_ic_l[index_pk]);
+        class_free(pfo->ddln_pk_l[index_pk]);
       }
     }
-    free(pfo->ln_pk_ic_l);
-    free(pfo->ln_pk_l);
+    class_free(pfo->ln_pk_ic_l);
+    class_free(pfo->ln_pk_l);
 
-    free (pfo->sigma8);
+    class_free(pfo->sigma8);
 
     if (pfo->ln_tau_size>1) {
-      free(pfo->ddln_pk_ic_l);
-      free(pfo->ddln_pk_l);
-      free(pfo->ln_tau);
+      class_free(pfo->ddln_pk_ic_l);
+      class_free(pfo->ddln_pk_l);
+      class_free(pfo->ln_tau);
     }
 
-    free(pfo->is_non_zero);
+    class_free(pfo->is_non_zero);
   }
 
   if (pfo->method > nl_none) {
 
-    free(pfo->tau);
+    class_free(pfo->tau);
     for (index_pk=0;index_pk<pfo->pk_size;index_pk++){
-      free(pfo->nl_corr_density[index_pk]);
-      free(pfo->k_nl[index_pk]);
-      free(pfo->ln_pk_nl[index_pk]);
+      class_free(pfo->nl_corr_density[index_pk]);
+      class_free(pfo->k_nl[index_pk]);
+      class_free(pfo->ln_pk_nl[index_pk]);
       if (pfo->ln_tau_size > 1)
-        free(pfo->ddln_pk_nl[index_pk]);
+        class_free(pfo->ddln_pk_nl[index_pk]);
     }
-    free(pfo->nl_corr_density);
-    free(pfo->k_nl);
-    free(pfo->ln_pk_nl);
+    class_free(pfo->nl_corr_density);
+    class_free(pfo->k_nl);
+    class_free(pfo->ln_pk_nl);
     if (pfo->ln_tau_size > 1)
-      free(pfo->ddln_pk_nl);
+      class_free(pfo->ddln_pk_nl);
   }
 
   if (pfo->has_pk_eq == _TRUE_) {
-    free(pfo->pk_eq_tau);
-    free(pfo->pk_eq_w_and_Omega);
-    free(pfo->pk_eq_ddw_and_ddOmega);
+    class_free(pfo->pk_eq_tau);
+    class_free(pfo->pk_eq_w_and_Omega);
+    class_free(pfo->pk_eq_ddw_and_ddOmega);
   }
 
   return _SUCCESS_;
@@ -2261,8 +2261,8 @@ int fourier_pk_linear(
     lnpk[index_k] = log(pk);
   }
 
-  free(primordial_pk);
-  free(pk_ic);
+  class_free(primordial_pk);
+  class_free(pk_ic);
 
   return _SUCCESS_;
 
@@ -2435,7 +2435,7 @@ int fourier_sigmas(
 
   /** - free allocated array */
 
-  free(array_for_sigma);
+  class_free(array_for_sigma);
 
   return _SUCCESS_;
 }
@@ -2522,8 +2522,8 @@ int fourier_sigma_at_z(
 
   /** - free allocated arrays */
 
-  free(out_pk);
-  free(ddout_pk);
+  class_free(out_pk);
+  class_free(ddout_pk);
 
   return _SUCCESS_;
 }
@@ -2668,7 +2668,7 @@ int fourier_halofit(
     Omega_m = w_and_Omega[pfo->index_pk_eq_Omega_m];
     Omega_v = 1.-Omega_m;
 
-    free(w_and_Omega);
+    class_free(w_and_Omega);
   }
 
   anorm    = 1./(2*pow(_PI_,2));
@@ -2783,7 +2783,7 @@ int fourier_halofit(
   /*
     class_test_except(sigma < 1.,
     pfo->error_message,
-    free(pvecback);free(integrand_array),
+    class_free(pvecback);free(integrand_array),
     "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
     pfo->k[pfo->k_size-1],
     1./pvecback[pba->index_bg_a]-1.);
@@ -2791,8 +2791,8 @@ int fourier_halofit(
 
   if (sigma < 1.) {
     * nl_corr_not_computable_at_this_k = _TRUE_;
-    free(pvecback);
-    free(integrand_array);
+    class_free(pvecback);
+    class_free(integrand_array);
     return _SUCCESS_;
   }
   else {
@@ -2874,7 +2874,7 @@ int fourier_halofit(
     /*
       class_test_except(counter > _MAX_IT_,
       pfo->error_message,
-      free(pvecback);free(integrand_array),
+      class_free(pvecback);free(integrand_array),
       "could not converge within maximum allowed number of iterations");
     */
     /* ... but in this situation it sounds better to make it stop and return an error! */
@@ -2995,8 +2995,8 @@ int fourier_halofit(
     }
   }
 
-  free(pvecback);
-  free(integrand_array);
+  class_free(pvecback);
+  class_free(integrand_array);
   return _SUCCESS_;
 }
 
@@ -3203,7 +3203,7 @@ int fourier_hmcode(
   /* The number below is the critical density today, rho_c = 3 * H0^2 / 8*pi*G, in units of M_sun over Mpc^3 */
   rho_crit_today_in_msun_mpc3 = 3.*pow(1.e5*pba->h, 2)/8./_PI_/_G_*_Mpc_over_m_/_M_SUN_;
 
-  free(pvecback);
+  class_free(pvecback);
 
   /** Test whether pk_cb has to be taken into account (only if we have massive neutrinos)*/
   if (pba->has_ncdm==_TRUE_){
@@ -3325,12 +3325,12 @@ int fourier_hmcode(
   if (nu_min > nu_nl) {
     if (pfo->fourier_verbose>0) fprintf(stdout, " -> [WARNING:] the minimum mass in the mass-table is too large to find the nonlinear scale at this redshift.\n   Decrease mmin_for_p1h_integral\n");
     * nl_corr_not_computable_at_this_k = _TRUE_;
-    free(mass);
-    free(r_real);
-    free(r_virial);
-    free(sigma_r);
-    free(sigmaf_r);
-    free(nu_arr);
+    class_free(mass);
+    class_free(r_real);
+    class_free(r_virial);
+    class_free(sigma_r);
+    class_free(sigmaf_r);
+    class_free(nu_arr);
     return _SUCCESS_;
   }
 
@@ -3392,12 +3392,12 @@ int fourier_hmcode(
 
   if (*k_nl > pfo->k[pfo->k_size-1]) {
     * nl_corr_not_computable_at_this_k = _TRUE_;
-    free(mass);
-    free(r_real);
-    free(r_virial);
-    free(sigma_r);
-    free(sigmaf_r);
-    free(nu_arr);
+    class_free(mass);
+    class_free(r_real);
+    class_free(r_virial);
+    class_free(sigma_r);
+    class_free(sigmaf_r);
+    class_free(nu_arr);
     return _SUCCESS_;
   }
   else {
@@ -3546,7 +3546,7 @@ int fourier_hmcode(
     if (pk_2h<0.) pk_2h=0.;
     pk_nl[index_k] = pow((pow(pk_1h, alpha) + pow(pk_2h, alpha)), (1./alpha))/pow(pfo->k[index_k],3)/anorm; //converted back to P_k
 
-    free(p1h_integrand);
+    class_free(p1h_integrand);
   }
 
   // print parameter values
@@ -3577,13 +3577,13 @@ int fourier_hmcode(
 
   }
 
-  free(conc);
-  free(mass);
-  free(r_real);
-  free(r_virial);
-  free(sigma_r);
-  free(sigmaf_r);
-  free(nu_arr);
+  class_free(conc);
+  class_free(mass);
+  class_free(r_real);
+  class_free(r_virial);
+  class_free(sigma_r);
+  class_free(sigmaf_r);
+  class_free(nu_arr);
 
   return _SUCCESS_;
 }
@@ -3656,25 +3656,25 @@ int fourier_hmcode_workspace_free(
                                   ) {
   int index_pk;
 
-  free(pnw->rtab);
-  free(pnw->stab);
-  free(pnw->ddstab);
+  class_free(pnw->rtab);
+  class_free(pnw->stab);
+  class_free(pnw->ddstab);
 
-  free(pnw->growtable);
-  free(pnw->ztable);
-  free(pnw->tautable);
+  class_free(pnw->growtable);
+  class_free(pnw->ztable);
+  class_free(pnw->tautable);
 
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
-    free(pnw->sigma_8[index_pk]);
-    free(pnw->sigma_disp[index_pk]);
-    free(pnw->sigma_disp_100[index_pk]);
-    free(pnw->sigma_prime[index_pk]);
+    class_free(pnw->sigma_8[index_pk]);
+    class_free(pnw->sigma_disp[index_pk]);
+    class_free(pnw->sigma_disp_100[index_pk]);
+    class_free(pnw->sigma_prime[index_pk]);
   }
 
-  free(pnw->sigma_8);
-  free(pnw->sigma_disp);
-  free(pnw->sigma_disp_100);
-  free(pnw->sigma_prime);
+  class_free(pnw->sigma_8);
+  class_free(pnw->sigma_disp);
+  class_free(pnw->sigma_disp_100);
+  class_free(pnw->sigma_prime);
 
   return _SUCCESS_;
 }
@@ -3731,7 +3731,7 @@ int fourier_hmcode_dark_energy_correction(
                pfo->error_message,
                pfo->error_message);
 
-    free(pvecback);
+    class_free(pvecback);
 
     pnw->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
   }
@@ -3895,7 +3895,7 @@ int fourier_hmcode_fill_sigtab(
     }
   }
 
-  free(sigtab);
+  class_free(sigtab);
 
   return _SUCCESS_;
 }
@@ -3955,7 +3955,7 @@ int fourier_hmcode_fill_growtab(
 
   }
 
-  free(pvecback);
+  class_free(pvecback);
 
   return _SUCCESS_;
 }
@@ -4065,8 +4065,8 @@ int fourier_hmcode_growint(
 
   }
   //fprintf(stdout, "%e %e \n", a, *growth);
-  free(pvecback);
-  free(integrand);
+  class_free(pvecback);
+  class_free(integrand);
 
   return _SUCCESS_;
 }

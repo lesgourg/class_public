@@ -337,24 +337,24 @@ int harmonic_free(
     if (phr->ct_size > 0) {
 
       for (index_md = 0; index_md < phr->md_size; index_md++) {
-        free(phr->l_max_ct[index_md]);
-        free(phr->cl[index_md]);
-        free(phr->ddcl[index_md]);
+        class_free(phr->l_max_ct[index_md]);
+        class_free(phr->cl[index_md]);
+        class_free(phr->ddcl[index_md]);
       }
-      free(phr->l);
-      free(phr->l_size);
-      free(phr->l_max_ct);
-      free(phr->l_max);
-      free(phr->cl);
-      free(phr->ddcl);
+      class_free(phr->l);
+      class_free(phr->l_size);
+      class_free(phr->l_max_ct);
+      class_free(phr->l_max);
+      class_free(phr->cl);
+      class_free(phr->ddcl);
     }
 
     for (index_md=0; index_md < phr->md_size; index_md++)
-      free(phr->is_non_zero[index_md]);
+      class_free(phr->is_non_zero[index_md]);
 
-    free(phr->is_non_zero);
-    free(phr->ic_size);
-    free(phr->ic_ic_size);
+    class_free(phr->is_non_zero);
+    class_free(phr->ic_size);
+    class_free(phr->ic_ic_size);
 
   }
 
@@ -798,13 +798,13 @@ int harmonic_cls(
               printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
                      __func__,tstop-tstart,omp_get_thread_num());
 #endif
-            free(cl_integrand);
+            class_free(cl_integrand);
 
-            free(primordial_pk);
+            class_free(primordial_pk);
 
-            free(transfer_ic1);
+            class_free(transfer_ic1);
 
-            free(transfer_ic2);
+            class_free(transfer_ic2);
 
           } /* end of parallel region */
 
@@ -1268,8 +1268,8 @@ int harmonic_compute_cl(
   }
 
   if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
-    free(transfer_ic1_nc);
-    free(transfer_ic2_nc);
+    class_free(transfer_ic1_nc);
+    class_free(transfer_ic2_nc);
   }
 
   return _SUCCESS_;

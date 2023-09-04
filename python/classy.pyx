@@ -205,24 +205,9 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
-        if "distortions" in self.ncp:
-            distortions_free(&self.sd)
-        if "lensing" in self.ncp:
-            lensing_free(&self.le)
-        if "harmonic" in self.ncp:
-            harmonic_free(&self.hr)
-        if "transfer" in self.ncp:
-            transfer_free(&self.tr)
-        if "fourier" in self.ncp:
-            fourier_free(&self.fo)
-        if "primordial" in self.ncp:
-            primordial_free(&self.pm)
-        if "perturb" in self.ncp:
-            perturbations_free(&self.pt)
-        if "thermodynamics" in self.ncp:
-            thermodynamics_free(&self.th)
-        if "background" in self.ncp:
-            background_free(&self.ba)
+
+        tracked_free_all()
+	
         self.allocated = False
         self.computed = False
 

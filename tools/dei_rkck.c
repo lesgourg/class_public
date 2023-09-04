@@ -59,19 +59,19 @@ int initialize_generic_integrator(
  */
 int cleanup_generic_integrator(struct generic_integrator_workspace * pgi){
 
-  free(pgi->yscal);
-  free(pgi->y);
-  free(pgi->dydx);
+  class_free(pgi->yscal);
+  class_free(pgi->y);
+  class_free(pgi->dydx);
 
-  free(pgi->yerr);
-  free(pgi->ytempo);
+  class_free(pgi->yerr);
+  class_free(pgi->ytempo);
 
-  free(pgi->ak2);
-  free(pgi->ak3);
-  free(pgi->ak4);
-  free(pgi->ak5);
-  free(pgi->ak6);
-  free(pgi->ytemp);
+  class_free(pgi->ak2);
+  class_free(pgi->ak3);
+  class_free(pgi->ak4);
+  class_free(pgi->ak5);
+  class_free(pgi->ak6);
+  class_free(pgi->ytemp);
 
   return _SUCCESS_;
 }

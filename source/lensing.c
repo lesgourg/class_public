@@ -483,15 +483,15 @@ int lensing_init(
   for (index_md = 0; index_md < phr->md_size; index_md++) {
 
     if (phr->md_size > 1)
-      free(cl_md[index_md]);
+      class_free(cl_md[index_md]);
 
     if (phr->ic_size[index_md] > 1)
-      free(cl_md_ic[index_md]);
+      class_free(cl_md_ic[index_md]);
 
   }
 
-  free(cl_md_ic);
-  free(cl_md);
+  class_free(cl_md_ic);
+  class_free(cl_md);
 
   /** - Compute sigma2\f$(\mu)\f$ and Cgl2(\f$\mu\f$) **/
 
@@ -745,49 +745,49 @@ int lensing_init(
              ple->error_message);
 
   /** - Free lots of stuff **/
-  free(buf_dxx);
+  class_free(buf_dxx);
 
-  free(d00);
-  free(d11);
-  free(d1m1);
-  free(d2m2);
+  class_free(d00);
+  class_free(d11);
+  class_free(d1m1);
+  class_free(d2m2);
   if (ple->has_te==_TRUE_) {
-    free(d20);
-    free(d3m1);
-    free(d4m2);
+    class_free(d20);
+    class_free(d3m1);
+    class_free(d4m2);
   }
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    free(d22);
-    free(d31);
-    free(d3m3);
-    free(d40);
-    free(d4m4);
+    class_free(d22);
+    class_free(d31);
+    class_free(d3m3);
+    class_free(d40);
+    class_free(d4m4);
   }
 
   if (ple->has_tt==_TRUE_)
-    free(ksi);
+    class_free(ksi);
   if (ple->has_te==_TRUE_)
-    free(ksiX);
+    class_free(ksiX);
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    free(ksip);
-    free(ksim);
+    class_free(ksip);
+    class_free(ksim);
   }
-  free(Cgl);
-  free(Cgl2);
-  free(sigma2);
+  class_free(Cgl);
+  class_free(Cgl2);
+  class_free(sigma2);
 
-  free(mu);
-  free(w8);
+  class_free(mu);
+  class_free(w8);
 
-  free(cl_unlensed);
-  free(cl_tt);
+  class_free(cl_unlensed);
+  class_free(cl_tt);
   if (ple->has_te==_TRUE_)
-    free(cl_te);
+    class_free(cl_te);
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    free(cl_ee);
-    free(cl_bb);
+    class_free(cl_ee);
+    class_free(cl_bb);
   }
-  free(cl_pp);
+  class_free(cl_pp);
   /** - Exit **/
 
   return _SUCCESS_;
@@ -810,10 +810,10 @@ int lensing_free(
 
   if (ple->has_lensed_cls == _TRUE_) {
 
-    free(ple->l);
-    free(ple->cl_lens);
-    free(ple->ddcl_lens);
-    free(ple->l_max_lt);
+    class_free(ple->l);
+    class_free(ple->cl_lens);
+    class_free(ple->ddcl_lens);
+    class_free(ple->l_max_lt);
 
   }
 
@@ -997,15 +997,15 @@ int lensing_indices(
   for (index_md = 0; index_md < phr->md_size; index_md++) {
 
     if (phr->md_size > 1)
-      free(cl_md[index_md]);
+      class_free(cl_md[index_md]);
 
     if (phr->ic_size[index_md] > 1)
-      free(cl_md_ic[index_md]);
+      class_free(cl_md_ic[index_md]);
 
   }
 
-  free(cl_md_ic);
-  free(cl_md);
+  class_free(cl_md_ic);
+  class_free(cl_md);
 
   /* we want to output Cl_lensed up to the same l_max as Cl_unlensed
      (even if a number delta_l_max of extra values of l have been used
@@ -1282,7 +1282,7 @@ int lensing_d00(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3);
+  class_free(fac1); class_free(fac2); class_free(fac3);
   return _SUCCESS_;
 }
 
@@ -1340,7 +1340,7 @@ int lensing_d11(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1397,7 +1397,7 @@ int lensing_d1m1(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1454,7 +1454,7 @@ int lensing_d2m2(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1511,7 +1511,7 @@ int lensing_d22(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1566,7 +1566,7 @@ int lensing_d20(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1624,7 +1624,7 @@ int lensing_d31(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1682,7 +1682,7 @@ int lensing_d3m1(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1740,7 +1740,7 @@ int lensing_d3m3(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1797,7 +1797,7 @@ int lensing_d40(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1856,7 +1856,7 @@ int lensing_d4m2(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }
 
@@ -1915,6 +1915,6 @@ int lensing_d4m4(
       dl = dlp1;
     }
   }
-  free(fac1); free(fac2); free(fac3); free(fac4);
+  class_free(fac1); class_free(fac2); class_free(fac3); class_free(fac4);
   return _SUCCESS_;
 }

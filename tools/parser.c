@@ -66,10 +66,10 @@ int parser_init(struct file_content * pfc,
 int parser_free(struct file_content * pfc) {
 
   if (pfc->size > 0) {
-    free(pfc->name);
-    free(pfc->value);
-    free(pfc->read);
-    free(pfc->filename);
+    class_free(pfc->name);
+    class_free(pfc->value);
+    class_free(pfc->read);
+    class_free(pfc->filename);
   }
 
   return _SUCCESS_;

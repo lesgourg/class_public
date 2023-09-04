@@ -680,27 +680,27 @@ int evolver_ndf15(
 
   /** Deallocate memory */
 
-  free(buffer);
+  class_free(buffer);
 
-  /*     free(f0); */
-  /*     free(wt); */
-  /*     free(ddfddt); */
-  /*     free(pred); */
-  /*     free(y); */
-  /*     free(invwt); */
-  /*     free(rhs); */
-  /*     free(psi); */
-  /*     free(difkp1); */
-  /*     free(del); */
-  /*     free(yinterp); */
-  /*     free(ypinterp); */
-  /*     free(yppinterp); */
-  /*     free(tempvec1); */
-  /*     free(tempvec2); */
+  /*     class_free(f0); */
+  /*     class_free(wt); */
+  /*     class_free(ddfddt); */
+  /*     class_free(pred); */
+  /*     class_free(y); */
+  /*     class_free(invwt); */
+  /*     class_free(rhs); */
+  /*     class_free(psi); */
+  /*     class_free(difkp1); */
+  /*     class_free(del); */
+  /*     class_free(yinterp); */
+  /*     class_free(ypinterp); */
+  /*     class_free(yppinterp); */
+  /*     class_free(tempvec1); */
+  /*     class_free(tempvec2); */
 
-  /*     free(interpidx); */
-  /*     free(dif[1]); */
-  /*     free(dif); */
+  /*     class_free(interpidx); */
+  /*     class_free(dif[1]); */
+  /*     class_free(dif); */
 
   uninitialize_jacobian(&jac);
   uninitialize_numjac_workspace(&nj_ws);
@@ -1171,14 +1171,14 @@ int fzero_Newton(int (*func)(double *x,
     }
   }
 
-  free(p);
-  free(lu_work);
-  free(indx);
-  free(Fjac[1]);
-  free(Fjac);
-  free(F0);
-  free(delx);
-  free(Fdel);
+  class_free(p);
+  class_free(lu_work);
+  class_free(indx);
+  class_free(Fjac[1]);
+  class_free(Fjac);
+  class_free(F0);
+  class_free(delx);
+  class_free(Fdel);
 
   if (has_converged == _TRUE_){
     return _SUCCESS_;
@@ -1587,21 +1587,21 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
 }
 
 int uninitialize_jacobian(struct jacobian *jac){
-  free(jac->dfdy[1]);
-  free(jac->dfdy);
-  free(jac->LU[1]);
-  free(jac->LU);
+  class_free(jac->dfdy[1]);
+  class_free(jac->dfdy);
+  class_free(jac->LU[1]);
+  class_free(jac->LU);
 
-  free(jac->luidx);
-  free(jac->LUw);
-  free(jac->jacvec);
+  class_free(jac->luidx);
+  class_free(jac->LUw);
+  class_free(jac->jacvec);
 
   if(jac->sparse_stuff_initialized){
-    free(jac->xjac);
-    free(jac->col_wi);
-    free(jac->col_group);
-    free(jac->Cp);
-    free(jac->Ci);
+    class_free(jac->xjac);
+    class_free(jac->col_wi);
+    class_free(jac->col_group);
+    class_free(jac->Cp);
+    class_free(jac->Ci);
     sp_mat_free(jac->spJ);
     sp_num_free(jac->Numerical);
   }
@@ -1637,20 +1637,20 @@ int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMs
 
 int uninitialize_numjac_workspace(struct numjac_workspace * nj_ws){
   /* Deallocate vectors and matrices: */
-  free(nj_ws->yscale);
-  free(nj_ws->del);
-  free(nj_ws->Difmax);
-  free(nj_ws->absFdelRm);
-  free(nj_ws->absFvalue);
-  free(nj_ws->absFvalueRm);
-  free(nj_ws->Fscale);
-  free(nj_ws->ffdel);
-  free(nj_ws->yydel);
-  free(nj_ws->tmp);
+  class_free(nj_ws->yscale);
+  class_free(nj_ws->del);
+  class_free(nj_ws->Difmax);
+  class_free(nj_ws->absFdelRm);
+  class_free(nj_ws->absFvalue);
+  class_free(nj_ws->absFvalueRm);
+  class_free(nj_ws->Fscale);
+  class_free(nj_ws->ffdel);
+  class_free(nj_ws->yydel);
+  class_free(nj_ws->tmp);
 
-  free(nj_ws->ydel_Fdel[1]);
-  free(nj_ws->ydel_Fdel);
-  free(nj_ws->logj);
-  free(nj_ws->Rowmax);
+  class_free(nj_ws->ydel_Fdel[1]);
+  class_free(nj_ws->ydel_Fdel);
+  class_free(nj_ws->logj);
+  class_free(nj_ws->Rowmax);
   return _SUCCESS_;
 }

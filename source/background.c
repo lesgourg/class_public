@@ -885,13 +885,13 @@ int background_free_noinput(
                             struct background *pba
                             ) {
 
-  free(pba->tau_table);
-  free(pba->z_table);
-  free(pba->loga_table);
-  free(pba->d2tau_dz2_table);
-  free(pba->d2z_dtau2_table);
-  free(pba->background_table);
-  free(pba->d2background_dloga2_table);
+  class_free(pba->tau_table);
+  class_free(pba->z_table);
+  class_free(pba->loga_table);
+  class_free(pba->d2tau_dz2_table);
+  class_free(pba->d2z_dtau2_table);
+  class_free(pba->background_table);
+  class_free(pba->d2background_dloga2_table);
 
   return _SUCCESS_;
 }
@@ -911,40 +911,40 @@ int background_free_input(
 
   if (pba->Omega0_ncdm_tot != 0.) {
     for (k=0; k<pba->N_ncdm; k++) {
-      free(pba->q_ncdm[k]);
-      free(pba->w_ncdm[k]);
-      free(pba->q_ncdm_bg[k]);
-      free(pba->w_ncdm_bg[k]);
-      free(pba->dlnf0_dlnq_ncdm[k]);
+      class_free(pba->q_ncdm[k]);
+      class_free(pba->w_ncdm[k]);
+      class_free(pba->q_ncdm_bg[k]);
+      class_free(pba->w_ncdm_bg[k]);
+      class_free(pba->dlnf0_dlnq_ncdm[k]);
     }
-    free(pba->ncdm_quadrature_strategy);
-    free(pba->ncdm_input_q_size);
-    free(pba->ncdm_qmax);
-    free(pba->q_ncdm);
-    free(pba->w_ncdm);
-    free(pba->q_ncdm_bg);
-    free(pba->w_ncdm_bg);
-    free(pba->dlnf0_dlnq_ncdm);
-    free(pba->q_size_ncdm);
-    free(pba->q_size_ncdm_bg);
-    free(pba->M_ncdm);
-    free(pba->T_ncdm);
-    free(pba->ksi_ncdm);
-    free(pba->deg_ncdm);
-    free(pba->Omega0_ncdm);
-    free(pba->m_ncdm_in_eV);
-    free(pba->factor_ncdm);
+    class_free(pba->ncdm_quadrature_strategy);
+    class_free(pba->ncdm_input_q_size);
+    class_free(pba->ncdm_qmax);
+    class_free(pba->q_ncdm);
+    class_free(pba->w_ncdm);
+    class_free(pba->q_ncdm_bg);
+    class_free(pba->w_ncdm_bg);
+    class_free(pba->dlnf0_dlnq_ncdm);
+    class_free(pba->q_size_ncdm);
+    class_free(pba->q_size_ncdm_bg);
+    class_free(pba->M_ncdm);
+    class_free(pba->T_ncdm);
+    class_free(pba->ksi_ncdm);
+    class_free(pba->deg_ncdm);
+    class_free(pba->Omega0_ncdm);
+    class_free(pba->m_ncdm_in_eV);
+    class_free(pba->factor_ncdm);
     if (pba->got_files!=NULL)
-      free(pba->got_files);
+      class_free(pba->got_files);
     if (pba->ncdm_psd_files!=NULL)
-      free(pba->ncdm_psd_files);
+      class_free(pba->ncdm_psd_files);
     if (pba->ncdm_psd_parameters!=NULL)
-      free(pba->ncdm_psd_parameters);
+      class_free(pba->ncdm_psd_parameters);
   }
 
   if (pba->Omega0_scf != 0.) {
     if (pba->scf_parameters != NULL)
-      free(pba->scf_parameters);
+      class_free(pba->scf_parameters);
   }
   return _SUCCESS_;
 }
@@ -1442,8 +1442,8 @@ int background_ncdm_init(
                                pba->error_message),
                  pba->error_message,
                  pba->error_message);
-      pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
-      pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+      pba->q_ncdm[k]=tracked_realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+      pba->w_ncdm[k]=tracked_realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
 
 
       if (pba->background_verbose > 0) {
@@ -1470,8 +1470,8 @@ int background_ncdm_init(
                  pba->error_message,
                  pba->error_message);
 
-      pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
-      pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+      pba->q_ncdm_bg[k]=tracked_realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+      pba->w_ncdm_bg[k]=tracked_realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
 
       /** - in verbose mode, inform user of number of sampled momenta
           for background quantities */
@@ -1564,9 +1564,9 @@ int background_ncdm_init(
 
     /* If allocated, deallocate interpolation table:  */
     if ((pba->got_files!=NULL)&&(pba->got_files[k]==_TRUE_)) {
-      free(pbadist.q);
-      free(pbadist.f0);
-      free(pbadist.d2f0);
+      class_free(pbadist.q);
+      class_free(pbadist.f0);
+      class_free(pbadist.d2f0);
     }
   }
 
@@ -2106,9 +2106,9 @@ int background_solve(
     }
   }
 
-  free(pvecback);
-  free(pvecback_integration);
-  free(used_in_output);
+  class_free(pvecback);
+  class_free(pvecback_integration);
+  class_free(used_in_output);
 
   return _SUCCESS_;
 
@@ -2401,7 +2401,7 @@ int background_find_equality(
     printf("    corresponding to conformal time = %f Mpc\n",pba->tau_eq);
   }
 
-  free(pvecback);
+  class_free(pvecback);
 
   return _SUCCESS_;
 

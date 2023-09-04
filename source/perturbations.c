@@ -325,7 +325,7 @@ int perturbations_output_data_at_z(
         }
       }
     }
-    free(pvecsources);
+    class_free(pvecsources);
   }
 
   /** - store data */
@@ -337,7 +337,7 @@ int perturbations_output_data_at_z(
   /** - free tkfull */
   // condition necessary because the size could be zero (if ppt->tp_size is zero)
   if (tkfull != NULL)
-    free(tkfull);
+    class_free(tkfull);
 
   return _SUCCESS_;
 }
@@ -403,7 +403,7 @@ int perturbations_output_data_at_index_tau(
   /** - free tkfull */
   // condition necessary because the size could be zero (if ppt->tp_size is zero)
   if (tkfull != NULL)
-    free(tkfull);
+    class_free(tkfull);
 
   return _SUCCESS_;
 }
@@ -1059,7 +1059,7 @@ int perturbations_init(
 
   } /* end loop over modes */
 
-  free(pppw);
+  class_free(pppw);
 
   /** - spline the source array with respect to the time variable */
 
@@ -1119,9 +1119,9 @@ int perturbations_init(
 int perturbations_free_input(struct perturbations* ppt) {
 
   if (ppt->alpha_idm_dr != NULL)
-    free(ppt->alpha_idm_dr);
+    class_free(ppt->alpha_idm_dr);
   if (ppt->beta_idr != NULL)
-    free(ppt->beta_idr);
+    class_free(ppt->beta_idr);
 
   return _SUCCESS_;
 }
@@ -1153,54 +1153,54 @@ int perturbations_free(
 
         for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
-          free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
+          class_free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
           if (ppt->ln_tau_size > 1)
-            free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
+            class_free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
 
         }
       }
 
-      free(ppt->sources[index_md]);
-      free(ppt->late_sources[index_md]);
-      free(ppt->ddlate_sources[index_md]);
+      class_free(ppt->sources[index_md]);
+      class_free(ppt->late_sources[index_md]);
+      class_free(ppt->ddlate_sources[index_md]);
 
-      free(ppt->k[index_md]);
+      class_free(ppt->k[index_md]);
 
     }
 
-    free(ppt->tau_sampling);
+    class_free(ppt->tau_sampling);
     if (ppt->ln_tau_size > 1)
-      free(ppt->ln_tau);
+      class_free(ppt->ln_tau);
 
-    free(ppt->tp_size);
+    class_free(ppt->tp_size);
 
-    free(ppt->ic_size);
+    class_free(ppt->ic_size);
 
-    free(ppt->k);
+    class_free(ppt->k);
 
-    free(ppt->k_size_cmb);
+    class_free(ppt->k_size_cmb);
 
-    free(ppt->k_size_cl);
+    class_free(ppt->k_size_cl);
 
-    free(ppt->k_size);
+    class_free(ppt->k_size);
 
-    free(ppt->sources);
-    free(ppt->late_sources);
-    free(ppt->ddlate_sources);
+    class_free(ppt->sources);
+    class_free(ppt->late_sources);
+    class_free(ppt->ddlate_sources);
 
     /** Stuff related to perturbations output: */
 
     /** - Free non-NULL pointers */
     if (ppt->k_output_values_num > 0 )
-      free(ppt->index_k_output_values);
+      class_free(ppt->index_k_output_values);
 
     for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
       if (ppt->scalar_perturbations_data[filenum] != NULL)
-        free(ppt->scalar_perturbations_data[filenum]);
+        class_free(ppt->scalar_perturbations_data[filenum]);
       if (ppt->vector_perturbations_data[filenum] != NULL)
-        free(ppt->vector_perturbations_data[filenum]);
+        class_free(ppt->vector_perturbations_data[filenum]);
       if (ppt->tensor_perturbations_data[filenum] != NULL)
-        free(ppt->tensor_perturbations_data[filenum]);
+        class_free(ppt->tensor_perturbations_data[filenum]);
     }
 
   }
@@ -1622,15 +1622,20 @@ int perturbations_indices(
 
   }
 
-  /* Allocate the titles and data sections for the output file */
-  ppt->number_of_scalar_titles=0;
-  ppt->number_of_vector_titles=0;
-  ppt->number_of_tensor_titles=0;
-  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
-    ppt->scalar_perturbations_data[filenum] = NULL;
-    ppt->vector_perturbations_data[filenum] = NULL;
-    ppt->tensor_perturbations_data[filenum] = NULL;
-  }
+  // KC 8/29/23
+  // This was already done at the top of this function...
+  // Nothing here gets mutated above...
+  // So why are we doing this again?
+  
+  /* /\* Allocate the titles and data sections for the output file *\/ */
+  /* ppt->number_of_scalar_titles=0; */
+  /* ppt->number_of_vector_titles=0; */
+  /* ppt->number_of_tensor_titles=0; */
+  /* for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){ */
+  /*   ppt->scalar_perturbations_data[filenum] = NULL; */
+  /*   ppt->vector_perturbations_data[filenum] = NULL; */
+  /*   ppt->tensor_perturbations_data[filenum] = NULL; */
+  /* } */
 
   return _SUCCESS_;
 
@@ -2001,8 +2006,8 @@ int perturbations_timesampling_for_sources(
   /** - last sampling point = exactly today */
   ppt->tau_sampling[counter] = pba->conformal_age;
 
-  free(pvecback);
-  free(pvecthermo);
+  class_free(pvecback);
+  class_free(pvecthermo);
 
   /** - check the maximum redshift z_max_pk at which the Fourier
       transfer functions \f$ T_i(k,z)\f$ should be computable by
@@ -2680,7 +2685,7 @@ int perturbations_get_k_list(
         }
       }
 
-      free(ppt->k[index_mode]);
+      class_free(ppt->k[index_mode]);
       ppt->k[index_mode] = tmp_k_list;
       ppt->k_size[index_mode] = newk_size;
 
@@ -2729,8 +2734,8 @@ int perturbations_get_k_list(
     ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1]); /* last value, inferred from perturbations structure */
   }
 
-  free(k_max_cmb);
-  free(k_max_cl);
+  class_free(k_max_cmb);
+  class_free(k_max_cl);
 
   return _SUCCESS_;
 
@@ -2937,23 +2942,23 @@ int perturbations_workspace_free (
                                   struct perturbations_workspace * ppw
                                   ) {
 
-  free(ppw->s_l);
-  free(ppw->pvecback);
-  free(ppw->pvecthermo);
-  free(ppw->pvecmetric);
+  class_free(ppw->s_l);
+  class_free(ppw->pvecback);
+  class_free(ppw->pvecthermo);
+  class_free(ppw->pvecmetric);
   if (ppw->ap_size > 0)
-    free(ppw->approx);
+    class_free(ppw->approx);
 
   if (_scalars_) {
 
     if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
-      free(ppw->delta_ncdm);
-      free(ppw->theta_ncdm);
-      free(ppw->shear_ncdm);
+      class_free(ppw->delta_ncdm);
+      class_free(ppw->theta_ncdm);
+      class_free(ppw->shear_ncdm);
     }
   }
 
-  free(ppw);
+  class_free(ppw);
 
   return _SUCCESS_;
 }
@@ -3194,7 +3199,7 @@ int perturbations_solve(
   /** - find the number of intervals over which approximation scheme is constant */
 
   class_alloc(interval_number_of,ppw->ap_size*sizeof(int),ppt->error_message);
-
+    
   ppw->inter_mode = inter_normal;
 
   class_call(perturbations_find_approximation_number(ppr,
@@ -3235,7 +3240,7 @@ int perturbations_solve(
              ppt->error_message,
              ppt->error_message);
 
-  free(interval_number_of);
+  class_free(interval_number_of);
 
   /** - fill the structure containing all fixed parameters, indices
       and workspaces needed by perturbations_derivs */
@@ -3359,11 +3364,11 @@ int perturbations_solve(
              ppt->error_message);
 
   for (index_interval=0; index_interval<interval_number; index_interval++)
-    free(interval_approx[index_interval]);
+    class_free(interval_approx[index_interval]);
 
-  free(interval_approx);
+  class_free(interval_approx);
 
-  free(interval_limit);
+  class_free(interval_limit);
 
   return _SUCCESS_;
 }
@@ -3845,7 +3850,7 @@ int perturbations_find_approximation_switches(
       }
     }
 
-    free(unsorted_tau_switch);
+    class_free(unsorted_tau_switch);
 
     class_call(perturbations_approximations(ppr,
                                             pba,
@@ -5328,12 +5333,12 @@ int perturbations_vector_free(
                               struct perturbations_vector * pv
                               ) {
 
-  if (pv->l_max_ncdm != NULL) free(pv->l_max_ncdm);
-  if (pv->q_size_ncdm != NULL) free(pv->q_size_ncdm);
-  free(pv->y);
-  free(pv->dy);
-  free(pv->used_in_sources);
-  free(pv);
+  if (pv->l_max_ncdm != NULL) class_free(pv->l_max_ncdm);
+  if (pv->q_size_ncdm != NULL) class_free(pv->q_size_ncdm);
+  class_free(pv->y);
+  class_free(pv->dy);
+  class_free(pv->used_in_sources);
+  class_free(pv);
 
   return _SUCCESS_;
 }
@@ -8499,8 +8504,8 @@ int perturbations_print_variables(double tau,
     }
     else{
       ppt->scalar_perturbations_data[ppw->index_ikout] =
-        realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
-                sizeof(double)*(ppt->size_scalar_perturbation_data[ppw->index_ikout]+ppt->number_of_scalar_titles));
+        tracked_realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
+			sizeof(double)*(ppt->size_scalar_perturbation_data[ppw->index_ikout]+ppt->number_of_scalar_titles));
     }
     storeidx = 0;
     dataptr = ppt->scalar_perturbations_data[ppw->index_ikout]+
@@ -8609,8 +8614,8 @@ int perturbations_print_variables(double tau,
     }
     else{
       ppt->tensor_perturbations_data[ppw->index_ikout] =
-        realloc(ppt->tensor_perturbations_data[ppw->index_ikout],
-                sizeof(double)*(ppt->size_tensor_perturbation_data[ppw->index_ikout]+ppt->number_of_tensor_titles));
+        tracked_realloc(ppt->tensor_perturbations_data[ppw->index_ikout],
+			sizeof(double)*(ppt->size_tensor_perturbation_data[ppw->index_ikout]+ppt->number_of_tensor_titles));
     }
     storeidx = 0;
     dataptr = ppt->tensor_perturbations_data[ppw->index_ikout]+
@@ -8684,10 +8689,10 @@ int perturbations_print_variables(double tau,
   }
 
   if (pba->has_ncdm == _TRUE_){
-    free(delta_ncdm);
-    free(theta_ncdm);
-    free(shear_ncdm);
-    free(delta_p_over_delta_rho_ncdm);
+    class_free(delta_ncdm);
+    class_free(theta_ncdm);
+    class_free(shear_ncdm);
+    class_free(delta_p_over_delta_rho_ncdm);
   }
 
   return _SUCCESS_;
