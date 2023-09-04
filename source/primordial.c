@@ -563,31 +563,31 @@ int primordial_free(
 
     if (ppm->primordial_spec_type == analytic_Pk) {
       for (index_md = 0; index_md < ppm->md_size; index_md++) {
-        free(ppm->amplitude[index_md]);
-        free(ppm->tilt[index_md]);
-        free(ppm->running[index_md]);
+        class_free(ppm->amplitude[index_md]);
+        class_free(ppm->tilt[index_md]);
+        class_free(ppm->running[index_md]);
       }
-      free(ppm->amplitude);
-      free(ppm->tilt);
-      free(ppm->running);
+      class_free(ppm->amplitude);
+      class_free(ppm->tilt);
+      class_free(ppm->running);
     }
     else if (ppm->primordial_spec_type == external_Pk) {
-      free(ppm->command);
+      class_free(ppm->command);
     }
 
     for (index_md = 0; index_md < ppm->md_size; index_md++) {
-      free(ppm->lnpk[index_md]);
-      free(ppm->ddlnpk[index_md]);
-      free(ppm->is_non_zero[index_md]);
+      class_free(ppm->lnpk[index_md]);
+      class_free(ppm->ddlnpk[index_md]);
+      class_free(ppm->is_non_zero[index_md]);
     }
 
-    free(ppm->lnpk);
-    free(ppm->ddlnpk);
-    free(ppm->is_non_zero);
-    free(ppm->ic_size);
-    free(ppm->ic_ic_size);
+    class_free(ppm->lnpk);
+    class_free(ppm->ddlnpk);
+    class_free(ppm->is_non_zero);
+    class_free(ppm->ic_size);
+    class_free(ppm->ic_ic_size);
 
-    free(ppm->lnk);
+    class_free(ppm->lnk);
 
   }
 
@@ -1211,7 +1211,7 @@ int primordial_inflation_solve_inflation(
                                                           &dphidt_pivot),
                       ppm->error_message,
                       ppm->error_message,
-                      free(y);free(y_ini);free(dy));
+                      class_free(y);class_free(y_ini);class_free(dy));
     break;
 
   case inflation_H:
@@ -1227,11 +1227,11 @@ int primordial_inflation_solve_inflation(
                                                         &dddH),
                       ppm->error_message,
                       ppm->error_message,
-                      free(y);free(y_ini);free(dy));
+                      class_free(y);class_free(y_ini);class_free(dy));
     break;
 
   default:
-    free(y);free(y_ini);free(dy);
+    class_free(y);class_free(y_ini);class_free(dy);
     class_stop(ppm->error_message,"ppm->primordial_spec_type=%d different from possible relevant cases",ppm->primordial_spec_type);
     break;
   }
@@ -1268,7 +1268,7 @@ int primordial_inflation_solve_inflation(
                                                            conformal),
                     ppm->error_message,
                     ppm->error_message,
-                    free(y);free(y_ini);free(dy));
+                    class_free(y);class_free(y_ini);class_free(dy));
 
   /* we need to do the opposite: to check that there is an initial
      time such that k_min << (aH)_ini. A guess is made by integrating
@@ -1310,7 +1310,7 @@ int primordial_inflation_solve_inflation(
 
       class_test_except(counter >= ppr->primordial_inflation_phi_ini_maxit,
                         ppm->error_message,
-                        free(y);free(y_ini);free(dy),
+                        class_free(y);class_free(y_ini);class_free(dy),
                         "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
                         counter);
 
@@ -1333,7 +1333,7 @@ int primordial_inflation_solve_inflation(
                                                                conformal),
                         ppm->error_message,
                         ppm->error_message,
-                        free(y);free(y_ini);free(dy));
+                        class_free(y);class_free(y_ini);class_free(dy));
 
       phi_try = y[ppm->index_in_phi];
 
@@ -1352,7 +1352,7 @@ int primordial_inflation_solve_inflation(
                                                             &dphidt_try),
                         ppm->error_message,
                         ppm->error_message,
-                        free(y);free(y_ini);free(dy));
+                        class_free(y);class_free(y_ini);class_free(dy));
 
       /* we need to normalize a properly so that a=a_pivot when
          phi=phi_pivot. To do so, we evolve starting arbitrarily from
@@ -1373,7 +1373,7 @@ int primordial_inflation_solve_inflation(
                                                                conformal),
                         ppm->error_message,
                         ppm->error_message,
-                        free(y);free(y_ini);free(dy));
+                        class_free(y);class_free(y_ini);class_free(dy));
 
       /* now impose the correct a_ini */
       a_try = a_pivot/y[ppm->index_in_a];
@@ -1406,7 +1406,7 @@ int primordial_inflation_solve_inflation(
                                                              conformal),
                       ppm->error_message,
                       ppm->error_message,
-                      free(y);free(y_ini);free(dy));
+                      class_free(y);class_free(y_ini);class_free(dy));
 
     y_ini[ppm->index_in_a] = y[ppm->index_in_a];
     y_ini[ppm->index_in_phi] = y[ppm->index_in_phi];
@@ -1414,7 +1414,7 @@ int primordial_inflation_solve_inflation(
     break;
 
   default:
-    free(y);free(y_ini);free(dy);
+    class_free(y);class_free(y_ini);class_free(dy);
     class_stop(ppm->error_message,"ppm->primordial_spec_type=%d different from possible relevant cases",ppm->primordial_spec_type);
     break;
   }
@@ -1433,7 +1433,7 @@ int primordial_inflation_solve_inflation(
                                                    y_ini),
                       ppm->error_message,
                       ppm->error_message,
-                      free(y);free(y_ini);free(dy));
+                      class_free(y);class_free(y_ini);class_free(dy));
   }
   else if (ppm->behavior == analytical) {
 
@@ -1443,7 +1443,7 @@ int primordial_inflation_solve_inflation(
                                                             y_ini),
                       ppm->error_message,
                       ppm->error_message,
-                      free(y);free(y_ini);free(dy));
+                      class_free(y);class_free(y_ini);class_free(dy));
   }
   else {
     class_stop(ppm->error_message,"Uncomprehensible value of the flag ppm->behavior=%d",ppm->behavior);
@@ -1468,7 +1468,7 @@ int primordial_inflation_solve_inflation(
                                                            conformal),
                     ppm->error_message,
                     ppm->error_message,
-                    free(y);free(y_ini);free(dy));
+                    class_free(y);class_free(y_ini);class_free(dy));
 
   ppm->phi_min=y[ppm->index_in_phi];
 
@@ -1483,7 +1483,7 @@ int primordial_inflation_solve_inflation(
                                                            conformal),
                     ppm->error_message,
                     ppm->error_message,
-                    free(y);free(y_ini);free(dy));
+                    class_free(y);class_free(y_ini);class_free(dy));
 
   ppm->phi_max=y[ppm->index_in_phi];
 
@@ -1494,9 +1494,9 @@ int primordial_inflation_solve_inflation(
 
   /** - finally, we can de-allocate */
 
-  free(y);
-  free(y_ini);
-  free(dy);
+  class_free(y);
+  class_free(y_ini);
+  class_free(dy);
 
   return _SUCCESS_;
 }
@@ -1738,8 +1738,8 @@ int primordial_inflation_one_wavenumber(
              ppm->error_message,
              ppm->error_message);
 
-  free(y);
-  free(dy);
+  class_free(y);
+  class_free(dy);
 
   class_test(curvature<=0.,
              ppm->error_message,
@@ -3287,10 +3287,10 @@ int primordial_external_spectrum_init(
   /** - Initialization */
   /* Prepare the data (with some initial size) */
   n_data_guess = 100;
-  k   = (double *)malloc(n_data_guess*sizeof(double));
-  pks = (double *)malloc(n_data_guess*sizeof(double));
+  k   = (double *)tracked_malloc(n_data_guess*sizeof(double));
+  pks = (double *)tracked_malloc(n_data_guess*sizeof(double));
   if (ppt->has_tensors == _TRUE_)
-    pkt = (double *)malloc(n_data_guess*sizeof(double));
+    pkt = (double *)tracked_malloc(n_data_guess*sizeof(double));
   /* Prepare the command */
   /* If the command is just a "cat", no arguments need to be passed */
   if (strncmp("cat ", ppm->command, 4) == 0) {
@@ -3325,18 +3325,18 @@ int primordial_external_spectrum_init(
     /* (it is faster and safer that reallocating every new line) */
     if ((n_data+1) > n_data_guess) {
       n_data_guess *= 2;
-      tmp = (double *)realloc(k,   n_data_guess*sizeof(double));
+      tmp = (double *)tracked_realloc(k,   n_data_guess*sizeof(double));
       class_test(tmp == NULL,
                  ppm->error_message,
                  "Error allocating memory to read the external spectrum.\n");
       k = tmp;
-      tmp = (double *)realloc(pks, n_data_guess*sizeof(double));
+      tmp = (double *)tracked_realloc(pks, n_data_guess*sizeof(double));
       class_test(tmp == NULL,
                  ppm->error_message,
                  "Error allocating memory to read the external spectrum.\n");
       pks = tmp;
       if (ppt->has_tensors == _TRUE_) {
-        tmp = (double *)realloc(pkt, n_data_guess*sizeof(double));
+        tmp = (double *)tracked_realloc(pkt, n_data_guess*sizeof(double));
         class_test(tmp == NULL,
                    ppm->error_message,
                    "Error allocating memory to read the external spectrum.\n");
@@ -3416,10 +3416,10 @@ int primordial_external_spectrum_init(
     */
   };
   /** - Release the memory used locally */
-  free(k);
-  free(pks);
+  class_free(k);
+  class_free(pks);
   if (ppt->has_tensors == _TRUE_)
-    free(pkt);
+    class_free(pkt);
   /** - Tell CLASS that there are scalar (and tensor) modes */
   ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
   if (ppt->has_tensors == _TRUE_)

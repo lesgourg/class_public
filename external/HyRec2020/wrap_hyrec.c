@@ -78,7 +78,7 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
 
   /* We just need to free hyrec (without error management) */
   hyrec_free(phy->data);
-  free(phy->data);
+  class_free(phy->data);
 
   return _SUCCESS_;
 }

@@ -241,8 +241,8 @@ int noninjection_init(struct precision* ppr,
   }
 
   /** - Free temporary variables */
-  free(pvecback);
-  free(pvecthermo);
+  class_free(pvecback);
+  class_free(pvecthermo);
 
   return _SUCCESS_;
 }
@@ -255,18 +255,18 @@ int noninjection_init(struct precision* ppr,
  */
 int noninjection_free(struct noninjection* pni){
 
-  free(pni->z_table);
-  free(pni->photon_dep_table);
+  class_free(pni->z_table);
+  class_free(pni->photon_dep_table);
 
-  free(pni->k);
-  free(pni->k_weights);
-  free(pni->pk_primordial_k);
+  class_free(pni->k);
+  class_free(pni->k_weights);
+  class_free(pni->pk_primordial_k);
 
-  free(pni->z_table_coarse);
-  free(pni->noninjection_table);
-  free(pni->ddnoninjection_table);
+  class_free(pni->z_table_coarse);
+  class_free(pni->noninjection_table);
+  class_free(pni->ddnoninjection_table);
 
-  free(pni->integrand_approx);
+  class_free(pni->integrand_approx);
 
   return _SUCCESS_;
 }

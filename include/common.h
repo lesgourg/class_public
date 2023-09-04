@@ -8,6 +8,13 @@
 #include "svnversion.h"
 #include <stdarg.h>
 
+#include "alloc_track.h"
+
+// Turn this on if you want to make sure none of the code
+// (outside of cython) is using untracked malloc/free (or
+// related functions
+//#pragma GCC poison free malloc calloc realloc
+
 #ifdef _OPENMP
 #include "omp.h"
 #endif
@@ -147,7 +154,7 @@ int string_begins_with(char* thestring, char beginchar);
 
 /* macro for allocating memory and returning error if it failed */
 #define class_alloc(pointer, size, error_message_output)  {                                                      \
-  pointer=malloc(size);                                                                                          \
+  pointer=tracked_malloc(size);                                                                                          \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -160,7 +167,7 @@ int string_begins_with(char* thestring, char beginchar);
 #define class_alloc_parallel(pointer, size, error_message_output)  {                                             \
   pointer=NULL;                                                                                                  \
   if (abort == _FALSE_) {                                                                                        \
-    pointer=malloc(size);                                                                                        \
+    pointer=tracked_malloc(size);                                                                                        \
     if (pointer == NULL) {                                                                                       \
       int size_int;                                                                                              \
       size_int = size;                                                                                           \
@@ -172,7 +179,7 @@ int string_begins_with(char* thestring, char beginchar);
 
 /* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
 #define class_calloc(pointer, init,size, error_message_output)  {                                                \
-  pointer=calloc(init,size);                                                                                     \
+  pointer=tracked_calloc(init,size);                                                                                     \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -183,13 +190,18 @@ int string_begins_with(char* thestring, char beginchar);
 
 /* macro for re-allocating memory, returning error if it failed */
 #define class_realloc(pointer, newname, size, error_message_output)  {                                          \
-    pointer=realloc(newname,size);                                                                               \
+    pointer=tracked_realloc(newname,size);                                                                               \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
     class_alloc_message(error_message_output,#pointer, size_int);                                                \
     return _FAILURE_;                                                                                            \
   }                                                                                                              \
+}
+
+/* macro for freeing memory */
+#define class_free(pointer)  {                                                                                   \
+    tracked_free(pointer);                                                                                       \
 }
 
 // Testing

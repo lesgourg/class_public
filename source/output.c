@@ -74,15 +74,15 @@ int output_total_cl_at_l(
     for (index_md = 0; index_md < phr->md_size; index_md++) {
 
       if (phr->md_size > 1)
-        free(cl_md[index_md]);
+        class_free(cl_md[index_md]);
 
       if (phr->ic_size[index_md] > 1)
-        free(cl_md_ic[index_md]);
+        class_free(cl_md_ic[index_md]);
 
     }
 
-    free(cl_md_ic);
-    free(cl_md);
+    class_free(cl_md_ic);
+    class_free(cl_md);
 
   }
 
@@ -586,27 +586,27 @@ int output_cl(
           fclose(out_md_ic[index_md][index_ic1_ic2]);
         }
       }
-      free(cl_md_ic[index_md]);
+      class_free(cl_md_ic[index_md]);
     }
   }
   if (ppt->md_size > 1) {
     for (index_md = 0; index_md < ppt->md_size; index_md++) {
       fclose(out_md[index_md]);
-      free(cl_md[index_md]);
+      class_free(cl_md[index_md]);
     }
   }
   fclose(out);
   if (ple->has_lensed_cls == _TRUE_) {
     fclose(out_lensed);
   }
-  free(cl_tot);
+  class_free(cl_tot);
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
-    free(out_md_ic[index_md]);
+    class_free(out_md_ic[index_md]);
   }
-  free(out_md_ic);
-  free(cl_md_ic);
-  free(out_md);
-  free(cl_md);
+  class_free(out_md_ic);
+  class_free(cl_md_ic);
+  class_free(out_md);
+  class_free(cl_md);
 
   return _SUCCESS_;
 
@@ -883,10 +883,15 @@ int output_pk(
   } /* end loop over index_pk */
 
   /* free arrays and pointers */
-  free(ln_pk);
-  if (pk_output == pk_linear) {
-    free(ln_pk_ic);
-    free(out_pk_ic);
+  class_free(ln_pk);
+
+  // KC 8/22/23
+  // XXX This was the wrong condition for freeing.  We free if do_ic is true,
+  // because that's when these things get allocated
+  //if (pk_output == pk_linear) {
+  if(do_ic == _TRUE_) {
+    class_free(ln_pk_ic);
+    class_free(out_pk_ic);
   }
 
   return _SUCCESS_;
@@ -1031,7 +1036,7 @@ int output_tk(
 
   }
 
-  free(data);
+  class_free(data);
 
   return _SUCCESS_;
 
@@ -1081,7 +1086,7 @@ int output_background(
                     data,
                     size_data);
 
-  free(data);
+  class_free(data);
   fclose(backfile);
 
   return _SUCCESS_;
@@ -1146,7 +1151,7 @@ int output_thermodynamics(
                     data,
                     size_data);
 
-  free(data);
+  class_free(data);
   fclose(thermofile);
 
   return _SUCCESS_;
@@ -1249,7 +1254,7 @@ int output_primordial(
                     data,
                     size_data);
 
-  free(data);
+  class_free(data);
   fclose(out);
 
   return _SUCCESS_;
@@ -1312,7 +1317,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
                       titles_injection,
                       data_injection,
                       size_data_injection);
-    free(data_injection);
+    class_free(data_injection);
     fclose(out_injection);
 
   }
@@ -1353,7 +1358,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
                       titles_noninjection,
                       data_noninjection,
                       size_data_noninjection);
-    free(data_noninjection);
+    class_free(data_noninjection);
     fclose(out_noninjection);
 
   }
@@ -1415,7 +1420,7 @@ int output_distortions(
                       titles_heat,
                       data_heat,
                       size_data_heat);
-    free(data_heat);
+    class_free(data_heat);
     fclose(out_heat);
 
     /* File name */
@@ -1455,7 +1460,7 @@ int output_distortions(
                       titles_distortion,
                       data_distortion,
                       size_data_distortion);
-    free(data_distortion);
+    class_free(data_distortion);
     fclose(out_distortion);
   }
 

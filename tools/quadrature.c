@@ -31,8 +31,8 @@ int get_qsampling_manual(double *x,
       (*function)(params_for_function,x[i],&y);
       w[i] *= y;
     }
-    free(b);
-    free(c);
+    class_free(b);
+    class_free(c);
     return _SUCCESS_;
   case (qm_trapz) :
     for (i=0; i<N; i++){
@@ -347,11 +347,11 @@ int get_qsampling(double *x,
   burn_tree(root);
   if(qvec!=NULL){
     burn_tree(root_comb);
-    free(wcomb2);
+    class_free(wcomb2);
   }
 
-  free(b);
-  free(c);
+  class_free(b);
+  class_free(c);
 
   return _SUCCESS_;
 }
@@ -447,9 +447,9 @@ int burn_tree(qss_node *node){
     if (node->left!=NULL) burn_tree(node->left);
     if (node->right!=NULL) burn_tree(node->right);
 
-    if (node->x!=NULL) free(node->x);
-    if (node->w!=NULL) free(node->w);
-    free(node);
+    if (node->x!=NULL) class_free(node->x);
+    if (node->w!=NULL) class_free(node->w);
+    class_free(node);
   }
   return _SUCCESS_;
 }

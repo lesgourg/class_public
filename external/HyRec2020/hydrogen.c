@@ -34,7 +34,7 @@
 
 #include "hyrectools.h"
 #include "hydrogen.h"
-
+#include "alloc_track.h"
 
 /***********************************************************************************************************
 Some constants appropriately rescaled for different values of the fine-structure constant and electron mass
@@ -120,7 +120,7 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
 
   char *alpha_file, *rr_file, *twog_file;
   char sub_message[128];
-  alpha_file = malloc(SIZE_InputFile);
+  alpha_file = tracked_malloc(SIZE_InputFile);
   alpha_file[0] = 0;
   strcat(alpha_file, path_to_hyrec);
   strcat(alpha_file, ALPHA_FILE);
@@ -133,7 +133,7 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
     return;
   }
 
-  rr_file = malloc(SIZE_InputFile);
+  rr_file = tracked_malloc(SIZE_InputFile);
   rr_file[0] = 0;
   strcat(rr_file, path_to_hyrec);
   strcat(rr_file, RR_FILE);
@@ -187,7 +187,7 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
   double L2s1s_current;
   int fscanf_counter;
 
-  twog_file = malloc(SIZE_InputFile);
+  twog_file = tracked_malloc(SIZE_InputFile);
   twog_file[0] = 0;
   strcat(twog_file, path_to_hyrec);
   strcat(twog_file, TWOG_FILE);
@@ -244,9 +244,9 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
     for (b = 0; b < NVIRT; b++) atomic->A1s_tab[b] = 0;
   #endif
 
-  free(alpha_file);
-  free(rr_file);
-  free(twog_file);
+  tracked_free(alpha_file);
+  tracked_free(rr_file);
+  tracked_free(twog_file);
 
 }
 
@@ -273,7 +273,7 @@ void allocate_and_read_fit(FIT_FUNC *fit, int *error, char *path_to_hyrec, char 
 
   /*********** Effective rates *************/
   char *fit_file;
-  fit_file = malloc(SIZE_InputFile);
+  fit_file = tracked_malloc(SIZE_InputFile);
   fit_file[0] = 0;
   strcat(fit_file, path_to_hyrec);
   strcat(fit_file, FIT_FILE);
@@ -305,7 +305,7 @@ void allocate_and_read_fit(FIT_FUNC *fit, int *error, char *path_to_hyrec, char 
     }
   }
   fclose(fA);
-  free(fit_file);
+  tracked_free(fit_file);
 }
 
 
@@ -315,7 +315,7 @@ Free the memory for rate tables.
 
 void free_fit(FIT_FUNC *fit){
   unsigned j;
-  for (j = 0; j < 5; j++) free(fit->swift_func[j]);
+  for (j = 0; j < 5; j++) tracked_free(fit->swift_func[j]);
 }
 
 /************************************************************************************************
@@ -728,8 +728,8 @@ void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double
 
   }
 
-  free(Aup);
-  free(Adn);
+  tracked_free(Aup);
+  tracked_free(Adn);
 }
 
 /*********************************************************************
@@ -759,8 +759,8 @@ void solveTXeqB(double *diag, double *updiag, double *dndiag, double *X, double 
   X[N-1] = gamma[N-1];
   for (i = N-2; i >= 0; i--) X[i] = gamma[i] - alpha[i] * X[i+1];
 
-  free(alpha);
-  free(gamma);
+  tracked_free(alpha);
+  tracked_free(gamma);
 }
 
 /**************************************************************************************************************
@@ -818,8 +818,8 @@ void solve_real_virt(double xr[2], double xv[NVIRT], double Trr[2][2], double *T
   for (b = 0; b < NVIRT; b++) xv[b] = Tvv_inv_sv[b] - Tvv_inv_Tvr[0][b]*xr[0] - Tvv_inv_Tvr[1][b]*xr[1];
 
   /** Free memory **/
-  for (i = 0; i < 2; i++) free(Tvv_inv_Tvr[i]);
-  free(Tvv_inv_sv);
+  for (i = 0; i < 2; i++) tracked_free(Tvv_inv_Tvr[i]);
+  tracked_free(Tvv_inv_sv);
 
 }
 
@@ -1016,9 +1016,9 @@ double rec_HMLA_2photon_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doub
   /* Average radiation field in each bin */
   for (b = 0; b < NVIRT; b++) Dfnu_hist[b][iz] = xv[b]/x1s;
 
-  for (i = 0; i < 2; i++) free(Trv[i]);
-  for (i = 0; i < 2; i++) free(Tvr[i]);
-  for (i = 0; i < 3; i++) free(Tvv[i]);
+  for (i = 0; i < 2; i++) tracked_free(Trv[i]);
+  for (i = 0; i < 2; i++) tracked_free(Tvr[i]);
+  for (i = 0; i < 3; i++) tracked_free(Tvv[i]);
 
   return dxedlna;
 

@@ -40,6 +40,7 @@
 
 #include "history.h"
 #include "helium.h"
+#include "alloc_track.h"
 
 /*************************************************************************************
 Hubble expansion rate in sec^-1.
@@ -74,7 +75,7 @@ void hyrec_init() {
   rec_data.path_to_hyrec = "";
   hyrec_allocate(&rec_data, zmax, zmin);
   chdir(buffer);
-  free(buffer);
+  tracked_free(buffer);
 }
 
 void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const double* h0inp, const double* tcmb,
@@ -160,7 +161,7 @@ double hyrec_xe_(double* a, double *xe){
   double loga = log(*a);
   int error;   /* error and error_message are meaningless here */
   char *error_message;
-  error_message = malloc(SIZE_ErrorM);
+  error_message = tracked_malloc(SIZE_ErrorM);
   if (loga < logstart) return xe[0];
   return rec_interp1d(logstart, dlna, xe, Nz, loga, &error, error_message);
 }
@@ -934,23 +935,23 @@ void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
   else DLNA = DLNA_HYREC;
 
   data->error = 0;
-  data->error_message=malloc(SIZE_ErrorM);
+  data->error_message=tracked_malloc(SIZE_ErrorM);
   sprintf(data->error_message, "\n**** ERROR HAS OCCURRED in HYREC-2 ****\n");
 
   data->zmax = (zmax > 3000.? zmax : 3000.);
   data->zmin = zmin;
 
-  data->atomic = (HYREC_ATOMIC *) malloc(sizeof(HYREC_ATOMIC));
+  data->atomic = (HYREC_ATOMIC *) tracked_malloc(sizeof(HYREC_ATOMIC));
   allocate_and_read_atomic(data->atomic, &data->error, data->path_to_hyrec, data->error_message);
 
-  data->fit = (FIT_FUNC *) malloc(sizeof(FIT_FUNC));
+  data->fit = (FIT_FUNC *) tracked_malloc(sizeof(FIT_FUNC));
   allocate_and_read_fit(data->fit, &data->error, data->path_to_hyrec, data->error_message);
 
-  data->cosmo  = (REC_COSMOPARAMS *) malloc(sizeof(REC_COSMOPARAMS));
-  data->cosmo->inj_params = (INJ_PARAMS *)  malloc(sizeof(INJ_PARAMS));
+  data->cosmo  = (REC_COSMOPARAMS *) tracked_malloc(sizeof(REC_COSMOPARAMS));
+  data->cosmo->inj_params = (INJ_PARAMS *)  tracked_malloc(sizeof(INJ_PARAMS));
 
   data->Nz = (long int) (log((1.+zmax)/(1.+zmin))/DLNA) + 2;
-  data->rad = (RADIATION *) malloc(sizeof(RADIATION));
+  data->rad = (RADIATION *) tracked_malloc(sizeof(RADIATION));
 
   // For now assume that radiation field never needed over more than 1 decade in redshift
   // (typically from z ~ 1700 to 800 for recombination history)
@@ -964,16 +965,16 @@ void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
 
 void hyrec_free(HYREC_DATA *data) {
   free_atomic(data->atomic);
-  free(data->cosmo->inj_params);
-  free(data->cosmo);
-  free(data->atomic);
-  free(data->xe_output);
-  free(data->Tm_output);
-  free(data->error_message);
+  tracked_free(data->cosmo->inj_params);
+  tracked_free(data->cosmo);
+  tracked_free(data->atomic);
+  tracked_free(data->xe_output);
+  tracked_free(data->Tm_output);
+  tracked_free(data->error_message);
   if (MODEL == FULL) free_radiation(data->rad);
-  free(data->rad);
+  tracked_free(data->rad);
   free_fit(data->fit);
-  free(data->fit);
+  tracked_free(data->fit);
 }
 
 /******************************************************************

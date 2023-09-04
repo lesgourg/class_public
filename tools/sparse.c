@@ -27,10 +27,10 @@ int sp_mat_alloc(sp_mat** A, int ncols, int nrows, int maxnz, ErrorMsg error_mes
 }
 
 int sp_mat_free(sp_mat *A){
-	free(A->Ax);
-	free(A->Ai);
-	free(A->Ap);
-	free(A);
+	class_free(A->Ax);
+	class_free(A->Ai);
+	class_free(A->Ap);
+	class_free(A);
 	return _SUCCESS_;
 }
 
@@ -62,15 +62,15 @@ int sp_num_alloc(sp_num** N, int n, ErrorMsg error_message){
 int sp_num_free(sp_num *N){
 	sp_mat_free(N->L);
 	sp_mat_free(N->U);
-	free(N->xi[0]);
-	free(N->xi);
-	free(N->topvec);
-	free(N->pinv);
-	free(N->p);
-	free(N->q);
-	free(N->w);
-	free(N->wamd);
-	free(N);
+	class_free(N->xi[0]);
+	class_free(N->xi);
+	class_free(N->topvec);
+	class_free(N->pinv);
+	class_free(N->p);
+	class_free(N->q);
+	class_free(N->w);
+	class_free(N->wamd);
+	class_free(N);
 	return _SUCCESS_;
 }
 
