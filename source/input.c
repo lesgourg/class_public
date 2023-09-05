@@ -4814,7 +4814,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /* Test */
       class_test(strlen(string1) == 0,
                 errmsg,
-                "You omitted to write a command for the external Omgea_GW");
+                "You omitted to write a command for the external Omega_GW");
       /* Complete set of parameters */
       ppm->command_gwb = (char *) malloc (strlen(string1) + 1);
       strcpy(ppm->command_gwb, string1);
