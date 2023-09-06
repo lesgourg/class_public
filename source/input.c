@@ -4754,10 +4754,6 @@ int input_read_parameters_primordial(struct file_content * pfc,
                   "You specified 'gwb_source_type' as '%s'. It has to be one of {'analytic_gwb, inflationary_gwb, external_gwb, PBH_gwb, PT_gwb'}.",string1);
       }
     }
-    /* Test */
-    class_test((ppm->gwb_source_type == external_gwb) && (ppm->primordial_spec_type != external_Pk),
-               errmsg,
-               "To use the 'external_gwb' for the GWB sources you must also use the 'external_Pk' for 'Pk_ini_type'!");
 
     /** 2.a) Pivot scale in Hz */
     /* Read */
@@ -4818,6 +4814,21 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /* Complete set of parameters */
       ppm->command_gwb = (char *) malloc (strlen(string1) + 1);
       strcpy(ppm->command_gwb, string1);
+
+      /** 1.d.2) Command arguments generating the table */
+      /* Read */
+      if (ppm->primordial_spec_type != external_Pk) {
+        class_read_double("custom1",ppm->custom1);
+        class_read_double("custom2",ppm->custom2);
+        class_read_double("custom3",ppm->custom3);
+        class_read_double("custom4",ppm->custom4);
+        class_read_double("custom5",ppm->custom5);
+        class_read_double("custom6",ppm->custom6);
+        class_read_double("custom7",ppm->custom7);
+        class_read_double("custom8",ppm->custom8);
+        class_read_double("custom9",ppm->custom9);
+        class_read_double("custom10",ppm->custom10);
+      }
     }
 
     /** 2.e) For type 'PBH_gwb' */
