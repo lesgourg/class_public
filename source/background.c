@@ -1267,19 +1267,87 @@ int background_ncdm_distribution(
        species.
     */
 
-    /**************************************************/
-    /*    FERMI-DIRAC INCLUDING CHEMICAL POTENTIALS   */
-    /**************************************************/
+    // if ncdm_psd_parameters were not entered, code should run as normal and treat ncdm as FD
+    if (param == NULL) {
+      /**************************************************/
+      /*    FERMI-DIRAC INCLUDING CHEMICAL POTENTIALS   */
+      /**************************************************/
 
-    *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
+      *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
 
-    /**************************************************/
+      /**************************************************/
 
-    /** This form is only appropriate for approximate studies, since in
-        reality the chemical potentials are associated with flavor
-        eigenstates, not mass eigenstates. It is easy to take this into
-        account by introducing the mixing angles. In the later part
-        (not read by the code) we illustrate how to do this. */
+        /** This form is only appropriate for approximate studies, since in
+      reality the chemical potentials are associated with flavor
+      eigenstates, not mass eigenstates. It is easy to take this into
+      account by introducing the mixing angles. In the later part
+      (not read by the code) we illustrate how to do this. */
+    }
+    else{
+      // using ncdm_psd_parameters[0] as a proxy for what type of analytic PSD
+      double psd_type = param[0];
+
+      if (psd_type == -1) {
+        // psd_type = -1 will be proxy for BE
+        // likely won't work due to singularity at q = 0
+        /**************************************************/
+        /*    BOSE-EINSTEIN INCLUDING CHEMICAL POTENTIALS   */
+        /**************************************************/
+        printf("Running NCDM with Bose-Einstein Distribution\n")
+        *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)-1.) +1./(exp(q+ksi)-1.));
+
+        /**************************************************/
+      }
+      elif (psd_type == 0) {
+        // psd_type = 0 will be proxy for Gaussian
+        printf("Running NCDM with Gaussian Distribution\n")
+        double gauss_psd_sigma = param[1];
+        double gauss_psd_mu = param[2];
+        /**************************************************/
+        /*                    GAUSSIAN                    */
+        /**************************************************/
+
+        *f0 = 1.0/pow(2*_PI_,1/2)*1./gauss_psd_sigma*exp(-1./2.*pow((q-gauss_psd_mu)/gauss_psd_sigma,2));
+
+        /**************************************************/
+      }
+      elif (psd_type == .5) {
+        // psd_type = .5 will be proxy for the custom Gaussian from Nick's code
+        printf("Running NCDM with modified Gaussian Distribution\n")
+        double gauss_psd_sigma = param[1];
+        double gauss_psd_mu = param[2];
+        /**************************************************/
+        /*                    MODIFIED GAUSSIAN           */
+        /**************************************************/
+
+        *f0 = pow(q,-2.)*exp((-1*pow(q-gauss_psd_mu,2.))/(2.*pow(gauss_psd_sigma,2)));
+
+        /**************************************************/
+      }
+      elif (psd_type == 1) {
+        // psd_type = 1 will be proxy for FD
+        printf("Running NCDM with Fermi-Dirac Distribution\n")
+        /**************************************************/
+        /*    FERMI-DIRAC INCLUDING CHEMICAL POTENTIALS   */
+        /**************************************************/
+
+        *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
+
+        /**************************************************/
+      }
+      else {
+        // for now, entering something into ncdm_psd_parameters[0]
+        // other than 0,1,-1,etc. will just give FD
+        printf("Running NCDM with Fermi-Dirac Distribution\n")
+        /**************************************************/
+        /*    FERMI-DIRAC INCLUDING CHEMICAL POTENTIALS   */
+        /**************************************************/
+
+        *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
+
+        /**************************************************/
+      }
+    }
 
     if (_FALSE_) {
 
