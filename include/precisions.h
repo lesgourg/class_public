@@ -12,7 +12,7 @@ class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
 /**
  * Number of background integration steps that are stored in the output vector
  */
-class_precision_parameter(background_Nloga,int,3000)
+class_precision_parameter(background_Nloga,int,40000)
 /**
  * Evolver to be used for thermodynamics (rk, ndf15)
  */
