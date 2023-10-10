@@ -508,8 +508,8 @@ int input_shooting(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1;
-  double param1;
+  int flag1, flag2;
+  double param1, param2;
   double * unknown_parameter;
   int unknown_parameters_size;
   int counter, index_target, i;
@@ -760,7 +760,13 @@ int input_shooting(struct file_content * pfc,
   class_call(parser_read_double(pfc,"sigma8",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
-  if (flag1 == _TRUE_){
+  class_call(parser_read_double(pfc,"S8",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+             errmsg,
+             "You can only enter one of 'sigma8' or 'S8'.");
+  if (flag1 == _TRUE_ || flag2 == _TRUE_) {
     /* Tell the main function that shooting indeed has occured */
     *has_shooting=_TRUE_;
     /* Create file content structure with additional entries */
@@ -787,9 +793,15 @@ int input_shooting(struct file_content * pfc,
                 errmsg);
 
     /* store name of target parameter */
-    fzw.target_name[0] = sigma8;
+    if (flag1 == _TRUE_) {
+      fzw.target_name[0] = sigma8;
+      fzw.target_value[0] = param1;
+    }
+    else if (flag2 == _TRUE_) {
+      fzw.target_name[0] = S8;
+      fzw.target_value[0] = param2;
+    }
     /* store target value of target parameter */
-    fzw.target_value[0] = param1;
     fzw.unknown_parameters_index[0]=pfc->size;
     fzw.required_computation_stage = cs_nonlinear;
     /* substitute the name of the target parameter with the name of the
@@ -800,24 +812,30 @@ int input_shooting(struct file_content * pfc,
     if (input_verbose > 0) {
       fprintf(stdout,
               "Computing unknown input parameter '%s' using input parameter '%s'\n",
-              "sigma8",
+              (flag1 ==_TRUE_?"sigma8":"S8"),
               "A_s");
     }
 
-    /* Set a guess for A_s from LCDM */
-    double A_s = param1 * 2.43e-9/0.87659;
-    double sigma8;
+    /* Set a guess for A_s from LCDM (doesn't need to be super accurate) */
+    double A_s;
+    if (flag1 == _TRUE_) {
+      A_s = param1 * 2.43e-9/0.87659;
+    }
+    else if (flag2 == _TRUE_) {
+      A_s = param2 *2.43e-9/0.891;
+    }
+    double sigma8_or_S8;
 
-    /* Now run for a single time, get the value of sigma8 for the guess*/
+    /* Now run for a single time, get the value of sigma8 (or S8) for the guess*/
     class_call(input_try_unknown_parameters(&A_s,
                                             1,
                                             &fzw,
-                                            &sigma8,
+                                            &sigma8_or_S8,
                                             errmsg),
                errmsg,
                errmsg);
 
-    A_s = (fzw.target_value[0]/sigma8) *(fzw.target_value[0]/sigma8) * A_s; //(truesigma/sigma_for_guess)^2 *A_s_for_guess
+    A_s = (fzw.target_value[0]/sigma8_or_S8) *(fzw.target_value[0]/sigma8_or_S8) * A_s; //(truesigma/sigma_for_guess)^2 *A_s_for_guess
 
     /* Store the derived value with high enough accuracy */
     sprintf(fzw.fc.value[pfc->size],"%.20e",A_s);
@@ -1258,6 +1276,12 @@ int input_get_guess(double *xguess,
       xguess[index_guess] = 2.43e-9/0.87659*pfzw->target_value[index_guess];
       dxdy[index_guess] = 2.43e-9/0.87659;
       break;
+    case S8:
+      /* Assume linear relationship between A_s and S8 and fix coefficient
+         according to vanilla LambdaCDM. Should be good enough... */
+      xguess[index_guess] = 2.43e-9/0.891*pfzw->target_value[index_guess];
+      dxdy[index_guess] = 2.43e-9/0.891;
+      break;
     }
   }
 
@@ -1346,6 +1370,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
   /** Optimise flags for sigma8 calculation.*/
   for (i=0; i < unknown_parameters_size; i++) {
     if (pfzw->target_name[i] == sigma8) {
+      compute_sigma8 = _TRUE_;
+    }
+    if (pfzw->target_name[i] == S8) {
       compute_sigma8 = _TRUE_;
     }
   }
@@ -1462,6 +1489,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
       break;
     case sigma8:
       output[i] = fo.sigma8[fo.index_pk_m];
+      break;
+    case S8:
+      output[i] = fo.sigma8[fo.index_pk_m]*sqrt(ba.Omega0_m/0.3);
       break;
     }
   }

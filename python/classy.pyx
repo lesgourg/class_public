@@ -1408,6 +1408,9 @@ cdef class Class:
         self.compute(["fourier"])
         return self.fo.sigma8[self.fo.index_pk_m]
 
+    def S8(self):
+        return self.sigma8()*np.sqrt(self.Omega_m()/0.3)
+
     #def neff(self):
     #    self.compute(["harmonic"])
     #    return self.hr.neff
