@@ -308,18 +308,19 @@ int perturbations_output_data_at_z(
                 ppt->k_size[index_md]*sizeof(double),
                 ppt->error_message);
 
-    for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
-      for (index_tp=0; index_tp<ppt->tp_size[index_md]; index_tp++) {
-        for (index_ic=0; index_ic<ppt->ic_size[index_md]; index_ic++) {
-          class_call(perturbations_sources_at_tau(ppt,
-                                                  index_md,
-                                                  index_ic,
-                                                  index_tp,
-                                                  tau,
-                                                  pvecsources),
-                     ppt->error_message,
-                     ppt->error_message);
-
+    
+    for (index_tp=0; index_tp<ppt->tp_size[index_md]; index_tp++) {
+      for (index_ic=0; index_ic<ppt->ic_size[index_md]; index_ic++) {
+	class_call(perturbations_sources_at_tau(ppt,
+						index_md,
+						index_ic,
+						index_tp,
+						tau,
+						pvecsources),
+		   ppt->error_message,
+		   ppt->error_message);
+	for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
+	  
           tkfull[(index_k * ppt->ic_size[index_md] + index_ic) * ppt->tp_size[index_md] + index_tp] =
             pvecsources[index_k];
         }
