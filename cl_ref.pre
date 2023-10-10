@@ -27,8 +27,14 @@ l_max_pol_g=25
 l_max_ur=50
 l_max_ncdm=50
 
-tol_perturb_integration=1.e-6
-perturb_sampling_stepsize=0.01
+#Maximum multipoles in the tensor hierarchy
+#This requires hierarchy = tam in the .ini file, otherwise the precision is too stiff for the optimal hierarchy.
+l_max_g_ten=50
+l_max_pol_g_ten=25
+l_max_ur_ten=50
+
+tol_perturbations_integration=1.e-6
+perturbations_sampling_stepsize=0.01
 
 radiation_streaming_approximation = 2
 radiation_streaming_trigger_tau_over_tau_k = 240.
