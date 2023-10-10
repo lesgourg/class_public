@@ -360,6 +360,7 @@ cdef extern from "class.h":
         double * x
         double DI_units
         double x_to_nu
+        int has_distortions
         int x_size
         ErrorMsg error_message
 

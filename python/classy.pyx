@@ -1406,6 +1406,8 @@ cdef class Class:
 
     def sigma8(self):
         self.compute(["fourier"])
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
         return self.fo.sigma8[self.fo.index_pk_m]
 
     def S8(self):
@@ -1417,6 +1419,8 @@ cdef class Class:
 
     def sigma8_cb(self):
         self.compute(["fourier"])
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
         return self.fo.sigma8[self.fo.index_pk_cb]
 
     def rs_drag(self):
@@ -2297,6 +2301,7 @@ cdef class Class:
             elif name == 'conformal_age':
                 value = self.ba.conformal_age
             elif name == 'm_ncdm_in_eV':
+                self.compute(["background"])
                 value = self.ba.m_ncdm_in_eV[0]
             elif name == 'm_ncdm_tot':
                 value = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
@@ -2431,8 +2436,14 @@ cdef class Class:
             elif name == 'phi_max':
                 value = self.pm.phi_max
             elif name == 'sigma8':
+                self.compute(["fourier"])
+                if (self.pt.has_pk_matter == _FALSE_):
+                    raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
                 value = self.fo.sigma8[self.fo.index_pk_m]
             elif name == 'sigma8_cb':
+                self.compute(["fourier"])
+                if (self.pt.has_pk_matter == _FALSE_):
+                    raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
                 value = self.fo.sigma8[self.fo.index_pk_cb]
             elif name == 'k_eq':
                 value = self.ba.a_eq*self.ba.H_eq
@@ -2445,10 +2456,19 @@ cdef class Class:
             elif name == 'tau_eq':
                 value = self.ba.tau_eq
             elif name == 'g_sd':
+                self.compute(["distortions"])
+                if (self.sd.has_distortions == _FALSE_):
+                    raise CosmoSevereError("No spectral distortions computed. In order to get g_sd, you must add sd to the list of outputs.")
                 value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':
+                self.compute(["distortions"])
+                if (self.sd.has_distortions == _FALSE_):
+                    raise CosmoSevereError("No spectral distortions computed. In order to get y_sd, you must add sd to the list of outputs.")
                 value = self.sd.sd_parameter_table[1]
             elif name == 'mu_sd':
+                self.compute(["distortions"])
+                if (self.sd.has_distortions == _FALSE_):
+                    raise CosmoSevereError("No spectral distortions computed. In order to get mu_sd, you must add sd to the list of outputs.")
                 value = self.sd.sd_parameter_table[2]
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
