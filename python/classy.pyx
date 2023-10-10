@@ -20,6 +20,8 @@ from libc.string cimport *
 import cython
 cimport cython
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 
 # Nils : Added for python 3.x and python 2.x compatibility
 import sys
@@ -100,10 +102,10 @@ cdef class Class:
     cdef distortions sd
     cdef file_content fc
 
-    cpdef int computed # Flag to see if classy has already computed with the given pars
-    cpdef int allocated # Flag to see if classy structs are allocated already
-    cpdef object _pars # Dictionary of the parameters
-    cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef int computed # Flag to see if classy has already computed with the given pars
+    cdef int allocated # Flag to see if classy structs are allocated already
+    cdef object _pars # Dictionary of the parameters
+    cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -128,7 +130,7 @@ cdef class Class:
         self.set(**_pars)
 
     def __cinit__(self, default=False):
-        cpdef char* dumc
+        cdef char* dumc
         self.allocated = False
         self.computed = False
         self._pars = {}
@@ -192,7 +194,7 @@ cdef class Class:
         i = 0
         for kk in self._pars:
 
-            dumcp = kk.encode()
+            dumcp = kk.strip().encode()
             dumc = dumcp
             sprintf(self.fc.name[i],"%s",dumc)
             dumcp = str(self._pars[kk]).strip().encode()
@@ -853,9 +855,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
@@ -864,9 +866,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
@@ -875,9 +877,9 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
@@ -886,13 +888,12 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
-    # [NS] :: TODO :: check optimization
     def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0):
         """ General function to get the P(k,z) for ARBITRARY shapes of k,z
             Additionally, it includes the functionality of selecting wether to use the non-linear parts or not,
@@ -904,18 +905,40 @@ cdef class Class:
         # Example: 3-d k_array with z_axis being the first axis -> z_axis_in_k_arr = 0
         # Example: 3-d k_array with z_axis being the last axis  -> z_axis_in_k_arr = 2
 
+        # 1) Define some utilities
+        # Is the user asking for a valid cdmbar?
+        ispkcb = cdmbar and not (self.ba.Omega0_ncdm_tot == 0.)
 
-        # 1) Select the correct function
+        # Allocate the temporary k/pk array used during the interaction with the underlying C code
+        cdef np.float64_t[::1] pk_out = np.empty(self.fo.k_size, dtype='float64')
+        k_out = np.asarray(<np.float64_t[:self.fo.k_size]> self.fo.k)
+
+        # Define a function that can write the P(k) for a given z into the pk_out array
+        def _write_pk(z,islinear,ispkcb):
+          if fourier_pk_at_z(&self.ba,&self.fo,linear,(pk_linear if islinear else pk_nonlinear),z,(self.fo.index_pk_cb if ispkcb else self.fo.index_pk_m),&pk_out[0],NULL)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+
+        # Check what kind of non-linear redshift there is
         if nonlinear:
-            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
-                pk_function = self.pk_cb
-            else:
-                pk_function = self.pk
+          if self.fo.index_tau_min_nl == 0:
+            z_max_nonlinear = np.inf
+          else:
+            z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
         else:
-            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
-                pk_function = self.pk_cb_lin
-            else:
-                pk_function = self.pk_lin
+          z_max_nonlinear = -1.
+
+        # Only get the nonlinear function where the nonlinear treatment is possible
+        def _islinear(z):
+          if z > z_max_nonlinear:
+            return True
+          else:
+            return False
+
+        # A simple wrapper for writing the P(k) in the given location and interpolating it
+        def _interpolate_pk_at_z(karr,z):
+          _write_pk(z,_islinear(z),ispkcb)
+          interp_func = interp1d(k_out,pk_out,kind='linear',copy=True)
+          return interp_func(karr)
 
         # 2) Check if z array, or z value
         if not isinstance(z,(list,np.ndarray)):
@@ -923,18 +946,11 @@ cdef class Class:
             if not isinstance(k,(list,np.ndarray)):
                 # Only single z value AND only single k value -> just return a value
                 # This iterates over ALL remaining dimensions
-                return pk_function(k,z)
+                return ((self.pk_cb if ispkcb else self.pk) if not _islinear(z) else (self.pk_cb_lin if ispkcb else self.pk_lin))(k,z)
             else:
                 k_arr = np.array(k)
-                out_pk = np.empty(np.shape(k_arr))
-                iterator = np.nditer(k_arr,flags=['multi_index'])
-                while not iterator.finished:
-                    out_pk[iterator.multi_index] = pk_function(iterator[0],z)
-                    iterator.iternext()
-                # This iterates over ALL remaining dimensions
-                #for index_k in range(k_arr.shape[-1]):
-                #    out_pk[...,index_k] = pk_function(k_arr[...,index_k],z)
-                return out_pk
+                result = _interpolate_pk_at_z(k_arr,z)
+                return result
 
         # 3) An array of z values was passed
         k_arr = np.array(k)
@@ -951,13 +967,7 @@ cdef class Class:
             if( len(k_arr) != len(z_arr) ):
                 raise CosmoSevereError("Mismatching array lengths of the z-array")
             for index_z in range(len(z_arr)):
-                iterator = np.nditer(k_arr[index_z],flags=['multi_index'])
-                while not iterator.finished:
-                    out_pk[index_z][iterator.multi_index] = pk_function(iterator[0],z[index_z])
-                    iterator.iternext()
-                # This iterates over ALL remaining dimensions
-                #for index_k in range(k_arr[index_z].shape[-1]):
-                #    out_pk[index_z][...,index_k] = pk_function(k_arr[index_z][...,index_k],z_arr[index_z])
+                out_pk[index_z] = _interpolate_pk_at_z(k_arr[index_z],z[index_z])
             # Move the z_axis back into position
             k_arr = np.moveaxis(k_arr, 0, z_axis_in_k_arr)
             out_pk = np.moveaxis(out_pk, 0, z_axis_in_k_arr)
@@ -969,13 +979,7 @@ cdef class Class:
                 out_pk = []
                 for index_z in range(len(z_arr)):
                     k_arr_at_z = np.array(k_arr[index_z])
-                    out_pk_at_z = np.empty(np.shape(k_arr_at_z))
-                    iterator = np.nditer(k_arr_at_z,flags=['multi_index'])
-                    while not iterator.finished:
-                        out_pk_at_z[iterator.multi_index] = pk_function(iterator[0],z[index_z])
-                        iterator.iternext()
-                    #for index_k in range(k_arr_at_z.shape[-1]):
-                    #   out_pk_at_z[...,index_k] = pk_function(k_arr_at_z[...,index_k],z_arr[index_z])
+                    out_pk_at_z = _interpolate_pk_at_z(k_arr_at_z,z[index_z])
                     out_pk.append(out_pk_at_z)
                 return out_pk
 
@@ -984,8 +988,7 @@ cdef class Class:
             # Assume thus, that the k array should be reproduced for all z
             out_pk = np.empty((len(z_arr),len(k_arr)))
             for index_z in range(len(z_arr)):
-                for index_k in range(len(k_arr)):
-                    out_pk[index_z,index_k] = pk_function(k_arr[index_k],z_arr[index_z])
+                out_pk[index_z] = _interpolate_pk_at_z(k_arr,z_arr[index_z])
             return out_pk
 
     #################################
@@ -1011,12 +1014,11 @@ cdef class Class:
         z : vector of z values, z[index_z]
         """
 
-        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.fo.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.fo.k_size_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size-self.fo.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size),'float64')
         cdef int index_k, index_tau, index_pk
         cdef double z_max_nonlinear, z_max_requested
-
         # consistency checks
 
         if self.fo.has_pk_matter == False:
@@ -1033,37 +1035,32 @@ cdef class Class:
 
         # get list of redshifts
         # the ln(times) of interest are stored in self.fo.ln_tau[index_tau]
-        # with index_tau in the range:
-        # self.fo.index_ln_tau_pk <= index_tau < self.fo.ln_tau_size-self.fo.index_ln_tau_pk
-        #
-        # If the user forgot to ask for z_max_pk>0, then self.fo.ln_tau_size == 1 and self.fo.index_ln_tau_pk==0
+        # For nonlinear, we have to additionally cut out the linear values
 
         if self.fo.ln_tau_size == 1:
             raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
         else:
-            for index_tau in xrange(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
-                if index_tau == self.fo.ln_tau_size-self.fo.index_ln_tau_pk-1:
+            for index_tau in range(self.fo.ln_tau_size):
+                if index_tau == self.fo.ln_tau_size-1:
                     z[index_tau] = 0.
                 else:
-                    z[index_tau] = self.z_of_tau(np.exp(self.fo.ln_tau[index_tau+self.fo.index_ln_tau_pk]))
+                    z[index_tau] = self.z_of_tau(np.exp(self.fo.ln_tau[index_tau]))
 
         # check consitency of the list of redshifts
 
         if nonlinear == True:
             # Check highest value of z at which nl corrections could be computed.
-            # In the table tau_sampling it corresponds to index: self.fo.index_tau_min_n
+            # In the table tau_sampling it corresponds to index: self.fo.index_tau_min_nl
             z_max_nonlinear = self.z_of_tau(self.fo.tau[self.fo.index_tau_min_nl])
 
             # Check highest value of z in the requested output.
-            # In the table tau_sampling it corresponds to index: self.fo.tau_size - self.fo.ln_tau_size + self.fo.index_ln_tau_pk
             z_max_requested = z[0]
 
             # The first z must be larger or equal to the second one, that is,
             # the first index must be smaller or equal to the second one.
             # If not, raise and error.
-
-            if (self.fo.index_tau_min_nl > self.fo.tau_size - self.fo.ln_tau_size + self.fo.index_ln_tau_pk):
-                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS (in particular ppr->nonlinear_min_k_max=%e) were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the precision parameter 'nonlinear_min_k_max', or decrease your requested z_max"%(z_max_requested,self.pr.nonlinear_min_k_max,z_max_nonlinear))
+            if (z_max_requested > z_max_nonlinear and self.fo.index_tau_min_nl>0):
+                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (the redshift range of computed pk); but the input parameters sent to CLASS (in particular ppr->nonlinear_min_k_max=%e) were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the precision parameter 'nonlinear_min_k_max', or only obtain the linear pk"%(z_max_requested,self.pr.nonlinear_min_k_max,z_max_nonlinear))
 
         # get list of k
 
@@ -1072,17 +1069,17 @@ cdef class Class:
         else:
             units=1
 
-        for index_k in xrange(self.fo.k_size_pk):
+        for index_k in range(self.fo.k_size_pk):
             k[index_k] = self.fo.k[index_k]*units
 
         # get P(k,z) array
 
-        for index_tau in xrange(self.fo.ln_tau_size-self.fo.index_ln_tau_pk):
-            for index_k in xrange(self.fo.k_size_pk):
+        for index_tau in range(self.fo.ln_tau_size):
+            for index_k in range(self.fo.k_size_pk):
                 if nonlinear == True:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][(index_tau+self.fo.index_ln_tau_pk) * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][index_tau * self.fo.k_size + index_k])
                 else:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_l[index_pk][(index_tau+self.fo.index_ln_tau_pk) * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_l[index_pk][index_tau * self.fo.k_size + index_k])
 
         return pk, k, z
 
@@ -1117,7 +1114,7 @@ cdef class Class:
         z : vector of z values
         """
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.pt.k_size_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.pt.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.pt.ln_tau_size),'float64')
         cdef int index_k, index_tau
         cdef char * titles
         cdef double * data
@@ -1152,20 +1149,15 @@ cdef class Class:
 
         # get list of redshifts
         # the ln(times) of interest are stored in self.fo.ln_tau[index_tau]
-        # with index_tau in the range:
-        # self.fo.index_ln_tau_pk <= index_tau < self.fo.ln_tau_size-self.fo.index_ln_tau_pk
-        #
-        # If the user forgot to ask for z_max_pk>0, then self.fo.ln_tau_size == 1 and self.fo.index_ln_tau_pk==0
 
-        z_size = self.pt.ln_tau_size-self.pt.index_ln_tau_pk
-        if z_size == 1:
+        if self.pt.ln_tau_size == 1:
             raise CosmoSevereError("You ask classy to return an array of T_x(k,z) values, but the input parameters sent to CLASS did not require any transfer function calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
         else:
-            for index_tau in xrange(z_size):
-                if index_tau == z_size-1:
+            for index_tau in range(self.pt.ln_tau_size):
+                if index_tau == self.pt.ln_tau_size-1:
                     z[index_tau] = 0.
                 else:
-                    z[index_tau] = self.z_of_tau(np.exp(self.pt.ln_tau[index_tau+self.pt.index_ln_tau_pk]))
+                    z[index_tau] = self.z_of_tau(np.exp(self.pt.ln_tau[index_tau]))
 
         # get list of k
 
@@ -1175,7 +1167,7 @@ cdef class Class:
             units=1
 
         k_size = self.pt.k_size_pk
-        for index_k in xrange(k_size):
+        for index_k in range(k_size):
             k[index_k] = self.pt.k[index_md][index_k]*units
 
         # create output dictionary
@@ -1183,21 +1175,20 @@ cdef class Class:
         tk = {}
         for index_type,name in enumerate(names):
             if index_type > 0:
-                tk[name] = np.zeros((k_size, z_size),'float64')
+                tk[name] = np.zeros((k_size, len(z)),'float64')
 
         # allocate the vector in wich the transfer functions will be stored temporarily for all k and types at a given z
         data = <double*>malloc(sizeof(double)*number_of_titles*self.pt.k_size[index_md])
 
         # get T(k,z) array
 
-        for index_tau in xrange(z_size):
-
-            if perturbations_output_data_at_index_tau(&self.ba, &self.pt, outf, index_tau+self.pt.index_ln_tau_pk, number_of_titles, data)==_FAILURE_:
+        for index_tau in range(len(z)):
+            if perturbations_output_data_at_index_tau(&self.ba, &self.pt, outf, index_tau, number_of_titles, data)==_FAILURE_:
                 raise CosmoSevereError(self.pt.error_message)
 
             for index_type,name in enumerate(names):
                 if index_type > 0:
-                    for index_k in xrange(k_size):
+                    for index_k in range(k_size):
                         tk[name][index_k, index_tau] = data[index_k*number_of_titles+index_type]
 
         free(data)
@@ -1225,13 +1216,13 @@ cdef class Class:
         k : vector of k values, k[index_k] (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
         z : vector of z values, z[index_z]
         """
-        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk,self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] k4 = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] phi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] psi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] d_m = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] Weyl_pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size-self.pt.index_ln_tau_pk),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk,self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] k4 = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] phi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] psi = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] d_m = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] Weyl_pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
 
         cdef bint input_nonlinear = nonlinear
         cdef bint input_h_units = h_units
@@ -1249,7 +1240,7 @@ cdef class Class:
         d_m = tk_and_k_and_z['d_m']
 
         # get an array containing k**4 (same for all redshifts)
-        for index_z in range(self.fo.ln_tau_size-self.pt.index_ln_tau_pk):
+        for index_z in range(self.fo.ln_tau_size):
             k4[:,index_z] = k**4
 
         # rescale total matter power spectrum to get the Weyl power spectrum times k**4
@@ -1415,7 +1406,12 @@ cdef class Class:
 
     def sigma8(self):
         self.compute(["fourier"])
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
         return self.fo.sigma8[self.fo.index_pk_m]
+
+    def S8(self):
+        return self.sigma8()*np.sqrt(self.Omega_m()/0.3)
 
     #def neff(self):
     #    self.compute(["harmonic"])
@@ -1423,6 +1419,8 @@ cdef class Class:
 
     def sigma8_cb(self):
         self.compute(["fourier"])
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
         return self.fo.sigma8[self.fo.index_pk_cb]
 
     def rs_drag(self):
@@ -1565,7 +1563,7 @@ cdef class Class:
         """
         scale_independent_growth_factor_f(z)
 
-        Return the scale invariant growth factor f(z)=d ln D / d ln a for CDM perturbations
+        Return the scale independent growth factor f(z)=d ln D / d ln a for CDM perturbations
         (exactly, the quantity defined by Class as index_bg_f in the background module)
 
         Parameters
@@ -1588,12 +1586,87 @@ cdef class Class:
         return f
 
     #################################
-    # gives f(z)*sigma8(z) where f9z) is the scale-inbdependent growth factor
+    def scale_dependent_growth_factor_f(self, k, z, h_units=False, nonlinear=False, Nz=20):
+        """
+        scale_dependent_growth_factor_f(k,z)
+
+        Return the scale dependent growth factor
+        f(z)= 1/2 * [d ln P(k,a) / d ln a]
+            = - 0.5 * (1+z) * [d ln P(k,z) / d z]
+        where P(k,z) is the total matter power spectrum
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        k : float
+                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+        """
+
+        # build array of z values at wich P(k,z) was pre-computed by class (for numerical derivative)
+        # check that P(k,z) was stored at different zs
+        if self.fo.ln_tau_size > 1:
+            # check that input z is in stored range
+            z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
+            if (z<0) or (z>z_max):
+                raise CosmoSevereError("You asked for f(k,z) at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
+            # create array of zs in growing z order (decreasing tau order)
+            z_array = np.empty(self.fo.ln_tau_size)
+            # first redshift is exactly zero
+            z_array[0]=0.
+            # next values can be inferred from ln_tau table
+            if (self.fo.ln_tau_size>1):
+                for i in range(1,self.fo.ln_tau_size):
+                    z_array[i] = self.z_of_tau(np.exp(self.fo.ln_tau[self.fo.ln_tau_size-1-i]))
+        else:
+            raise CosmoSevereError("You asked for the scale-dependent growth factor: this requires numerical derivation of P(k,z) w.r.t z, and thus passing a non-zero input parameter z_max_pk")
+
+        # if needed, convert k to units of 1/Mpc
+        if h_units:
+            k = k*self.ba.h
+
+        # Allocate an array of P(k,z[...]) values
+        Pk_array = np.empty_like(z_array)
+
+        # Choose whether to use .pk() or .pk_lin()
+        # The linear pk is in .pk_lin if nonlinear corrections have been computed, in .pk otherwise
+        # The non-linear pk is in .pk if nonlinear corrections have been computed
+        if nonlinear == False:
+            if self.fo.method == nl_none:
+                use_pk_lin = False
+            else:
+                use_pk_lin = True
+        else:
+            if self.fo.method == nl_none:
+                raise CosmoSevereError("You asked for the scale-dependent growth factor of non-linear matter fluctuations, but you did not ask for non-linear calculations at all")
+            else:
+                use_pk_lin = False
+
+        # Get P(k,z) and array P(k,z[...])
+        if use_pk_lin == False:
+            Pk = self.pk(k,z)
+            for iz, zval in enumerate(z_array):
+                Pk_array[iz] = self.pk(k,zval)
+        else:
+            Pk = self.pk_lin(k,z)
+            for iz, zval in enumerate(z_array):
+                Pk_array[iz] = self.pk_lin(k,zval)
+
+        # Compute derivative (d ln P / d ln z)
+        dPkdz = UnivariateSpline(z_array,Pk_array,s=0).derivative()(z)
+
+        # Compute growth factor f
+        f = -0.5*(1+z)*dPkdz/Pk
+
+        return f
+
+    #################################
+    # gives f(z)*sigma8(z) where f(z) is the scale-independent growth factor
     def scale_independent_f_sigma8(self, z):
         """
         scale_independent_f_sigma8(z)
 
-        Return the scale invariant growth factor f(z) multiplied by sigma8(z)
+        Return the scale independent growth factor f(z) multiplied by sigma8(z)
 
         Parameters
         ----------
@@ -1665,7 +1738,7 @@ cdef class Class:
         z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
 
         if (z<0) or (z>z_max):
-            raise CosmoSevereError("You asked for effective_f_sigma8 at a redshift %e outside of the computed range [0,%e"%(z,z_max))
+            raise CosmoSevereError("You asked for effective_f_sigma8 at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
 
         if (z<0.1):
             z_array = np.linspace(0, 0.2, num = Nz)
@@ -1837,7 +1910,7 @@ cdef class Class:
                 raise CosmoSevereError(self.ba.error_message)
 
             rho_ncdm = 0.
-            for n in xrange(self.ba.N_ncdm):
+            for n in range(self.ba.N_ncdm):
                 rho_ncdm += pvecback[self.ba.index_bg_rho_ncdm1+n]
             Om_ncdm = rho_ncdm/pvecback[self.ba.index_bg_rho_crit]
 
@@ -2228,6 +2301,7 @@ cdef class Class:
             elif name == 'conformal_age':
                 value = self.ba.conformal_age
             elif name == 'm_ncdm_in_eV':
+                self.compute(["background"])
                 value = self.ba.m_ncdm_in_eV[0]
             elif name == 'm_ncdm_tot':
                 value = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
@@ -2299,6 +2373,10 @@ cdef class Class:
                 value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
             elif name == '100*theta_star':
                 value = 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
+            elif name == 'theta_s_100':
+                value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+            elif name == 'theta_star_100':
+                value = 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
             elif name == 'YHe':
                 value = self.th.YHe
             elif name == 'n_e':
@@ -2306,6 +2384,8 @@ cdef class Class:
             elif name == 'A_s':
                 value = self.pm.A_s
             elif name == 'ln10^{10}A_s':
+                value = log(1.e10*self.pm.A_s)
+            elif name == 'ln_A_s_1e10':
                 value = log(1.e10*self.pm.A_s)
             elif name == 'n_s':
                 value = self.pm.n_s
@@ -2356,8 +2436,14 @@ cdef class Class:
             elif name == 'phi_max':
                 value = self.pm.phi_max
             elif name == 'sigma8':
+                self.compute(["fourier"])
+                if (self.pt.has_pk_matter == _FALSE_):
+                    raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
                 value = self.fo.sigma8[self.fo.index_pk_m]
             elif name == 'sigma8_cb':
+                self.compute(["fourier"])
+                if (self.pt.has_pk_matter == _FALSE_):
+                    raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
                 value = self.fo.sigma8[self.fo.index_pk_cb]
             elif name == 'k_eq':
                 value = self.ba.a_eq*self.ba.H_eq
@@ -2370,10 +2456,19 @@ cdef class Class:
             elif name == 'tau_eq':
                 value = self.ba.tau_eq
             elif name == 'g_sd':
+                self.compute(["distortions"])
+                if (self.sd.has_distortions == _FALSE_):
+                    raise CosmoSevereError("No spectral distortions computed. In order to get g_sd, you must add sd to the list of outputs.")
                 value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':
+                self.compute(["distortions"])
+                if (self.sd.has_distortions == _FALSE_):
+                    raise CosmoSevereError("No spectral distortions computed. In order to get y_sd, you must add sd to the list of outputs.")
                 value = self.sd.sd_parameter_table[1]
             elif name == 'mu_sd':
+                self.compute(["distortions"])
+                if (self.sd.has_distortions == _FALSE_):
+                    raise CosmoSevereError("No spectral distortions computed. In order to get mu_sd, you must add sd to the list of outputs.")
                 value = self.sd.sd_parameter_table[2]
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
@@ -2714,7 +2809,7 @@ make        nonlinear_scale_cb(z, z_size)
         """
         sources = {}
 
-        cdef: 
+        cdef:
             int index_k, index_tau, i_index_type;
             int index_type;
             int index_md = self.pt.index_md_scalars;
@@ -2871,7 +2966,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         for index_type, name in zip(indices, names):
             tmparray = np.empty((k_size,tau_size))
-            for index_k in range(k_size):                 
+            for index_k in range(k_size):
                 for index_tau in range(tau_size):
                     tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
 
