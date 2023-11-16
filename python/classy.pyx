@@ -929,7 +929,7 @@ cdef class Class:
 
         # Only get the nonlinear function where the nonlinear treatment is possible
         def _islinear(z):
-          if z > z_max_nonlinear:
+          if z > z_max_nonlinear or (self.fo.method == nl_none):
             return True
           else:
             return False
