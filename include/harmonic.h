@@ -1,20 +1,20 @@
-/** @file spectra.h Documented includes for spectra module */
+/** @file harmonic.h Documented includes for harmonic module */
 
-#ifndef __SPECTRA__
-#define __SPECTRA__
+#ifndef __HARMONIC__
+#define __HARMONIC__
 
 #include "transfer.h"
 
 /**
  * Structure containing everything about anisotropy and Fourier power spectra that other modules need to know.
  *
- * Once initialized by spectra_init(), contains a table of all
+ * Once initialized by harmonic_init(), contains a table of all
  * \f$ C_l\f$'s and P(k) as a function of multipole/wavenumber,
  * mode (scalar/tensor...), type (for \f$ C_l\f$'s: TT, TE...),
  * and pairs of initial conditions (adiabatic, isocurvatures...).
  */
 
-struct spectra {
+struct harmonic {
 
   /** @name - input parameters initialized by user in input module
       (all other quantities are computed in this module, given these parameters
@@ -111,7 +111,7 @@ struct spectra {
                     than l_max[index_md], in order to ensure a
                     better interpolation with no boundary effects */
 
-  double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
+  double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * phr->ic_ic_size[index_md] + index_ic1_ic2) * phr->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */
 
   //@}
@@ -120,17 +120,17 @@ struct spectra {
 
   //@{
 
-  struct nonlinear * pnl; /**< a pointer to the nonlinear structure is
-                            stored in the spectra structure. This odd,
+  struct fourier * pfo; /**< a pointer to the fourier structure is
+                            stored in the harmonic structure. This odd,
                             unusual and unelegant feature has been
                             introduced in v2.8 in order to keep in use
-                            some deprecated functions spectra_pk_...()
+                            some deprecated functions harmonic_pk_...()
                             that are now pointing at new function
-                            nonlinear_pk_...(). In the future, if the
+                            fourier_pk_...(). In the future, if the
                             deprecated functions are removed, it will
                             be possible to remove also this pointer. */
 
-  short spectra_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
+  short harmonic_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
 
@@ -148,8 +148,8 @@ extern "C" {
 
   /* external functions (meant to be called from other modules) */
 
-  int spectra_cl_at_l(
-                      struct spectra * psp,
+  int harmonic_cl_at_l(
+                      struct harmonic * phr,
                       double l,
                       double * cl,
                       double ** cl_md,
@@ -158,42 +158,42 @@ extern "C" {
 
   /* internal functions */
 
-  int spectra_init(
+  int harmonic_init(
                    struct precision * ppr,
                    struct background * pba,
-                   struct perturbs * ppt,
+                   struct perturbations * ppt,
                    struct primordial * ppm,
-                   struct nonlinear *pnl,
-                   struct transfers * ptr,
-                   struct spectra * psp
+                   struct fourier *pfo,
+                   struct transfer * ptr,
+                   struct harmonic * phr
                    );
 
-  int spectra_free(
-                   struct spectra * psp
+  int harmonic_free(
+                   struct harmonic * phr
                    );
 
-  int spectra_indices(
+  int harmonic_indices(
                       struct background * pba,
-                      struct perturbs * ppt,
-                      struct transfers * ptr,
+                      struct perturbations * ppt,
+                      struct transfer * ptr,
                       struct primordial * ppm,
-                      struct spectra * psp
+                      struct harmonic * phr
                       );
 
-  int spectra_cls(
+  int harmonic_cls(
                   struct background * pba,
-                  struct perturbs * ppt,
-                  struct transfers * ptr,
+                  struct perturbations * ppt,
+                  struct transfer * ptr,
                   struct primordial * ppm,
-                  struct spectra * psp
+                  struct harmonic * phr
                   );
 
-  int spectra_compute_cl(
+  int harmonic_compute_cl(
                          struct background * pba,
-                         struct perturbs * ppt,
-                         struct transfers * ptr,
+                         struct perturbations * ppt,
+                         struct transfer * ptr,
                          struct primordial * ppm,
-                         struct spectra * psp,
+                         struct harmonic * phr,
                          int index_md,
                          int index_ic1,
                          int index_ic2,
@@ -205,18 +205,18 @@ extern "C" {
                          double * transfer_ic2
                          );
 
-  int spectra_k_and_tau(
+  int harmonic_k_and_tau(
                         struct background * pba,
-                        struct perturbs * ppt,
-                        struct nonlinear *pnl,
-                        struct spectra * psp
+                        struct perturbations * ppt,
+                        struct fourier *pfo,
+                        struct harmonic * phr
                         );
 
   /* deprecated functions (since v2.8) */
 
-  int spectra_pk_at_z(
+  int harmonic_pk_at_z(
                       struct background * pba,
-                      struct spectra * psp,
+                      struct harmonic * phr,
                       enum linear_or_logarithmic mode,
                       double z,
                       double * output_tot,
@@ -225,10 +225,10 @@ extern "C" {
                       double * output_cb_ic
                       );
 
-  int spectra_pk_at_k_and_z(
+  int harmonic_pk_at_k_and_z(
                             struct background * pba,
                             struct primordial * ppm,
-                            struct spectra * psp,
+                            struct harmonic * phr,
                             double k,
                             double z,
                             double * pk,
@@ -237,28 +237,28 @@ extern "C" {
                             double * pk_cb_ic
                             );
 
-  int spectra_pk_nl_at_z(
+  int harmonic_pk_nl_at_z(
                          struct background * pba,
-                         struct spectra * psp,
+                         struct harmonic * phr,
                          enum linear_or_logarithmic mode,
                          double z,
                          double * output_tot,
                          double * output_cb_tot
                          );
 
-  int spectra_pk_nl_at_k_and_z(
+  int harmonic_pk_nl_at_k_and_z(
                                struct background * pba,
                                struct primordial * ppm,
-                               struct spectra * psp,
+                               struct harmonic * phr,
                                double k,
                                double z,
                                double * pk_tot,
                                double * pk_cb_tot
                                );
 
-  int spectra_fast_pk_at_kvec_and_zvec(
+  int harmonic_fast_pk_at_kvec_and_zvec(
                                        struct background * pba,
-                                       struct spectra * psp,
+                                       struct harmonic * phr,
                                        double * kvec,
                                        int kvec_size,
                                        double * zvec,
@@ -267,19 +267,19 @@ extern "C" {
                                        double * pk_cb_tot_out,
                                        int nonlinear);
 
-  int spectra_sigma(
+  int harmonic_sigma(
                     struct background * pba,
                     struct primordial * ppm,
-                    struct spectra * psp,
+                    struct harmonic * phr,
                     double R,
                     double z,
                     double *sigma
                     );
 
-  int spectra_sigma_cb(
+  int harmonic_sigma_cb(
                        struct background * pba,
                        struct primordial * ppm,
-                       struct spectra * psp,
+                       struct harmonic * phr,
                        double R,
                        double z,
                        double *sigma_cb
@@ -287,16 +287,16 @@ extern "C" {
 
   /* deprecated functions (since v2.1) */
 
-  int spectra_tk_at_z(
+  int harmonic_tk_at_z(
                       struct background * pba,
-                      struct spectra * psp,
+                      struct harmonic * phr,
                       double z,
                       double * output
                       );
 
-  int spectra_tk_at_k_and_z(
+  int harmonic_tk_at_k_and_z(
                             struct background * pba,
-                            struct spectra * psp,
+                            struct harmonic * phr,
                             double k,
                             double z,
                             double * output

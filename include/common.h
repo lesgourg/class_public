@@ -328,12 +328,12 @@ printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->O
 
 /* Forward-Declare the structs of CLASS */
 struct background;
-struct thermo;
-struct perturbs;
-struct transfers;
+struct thermodynamics;
+struct perturbations;
+struct transfer;
 struct primordial;
-struct spectra;
-struct nonlinear;
+struct harmonic;
+struct fourier;
 struct lensing;
 struct distortions;
 struct output;

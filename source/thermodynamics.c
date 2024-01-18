@@ -56,7 +56,7 @@
 
 int thermodynamics_at_z(
                         struct background * pba,
-                        struct thermo * pth,
+                        struct thermodynamics * pth,
                         double z,
                         enum interpolation_method inter_mode,
                         int * last_index,
@@ -228,19 +228,19 @@ int thermodynamics_at_z(
 }
 
 /**
- * Initialize the thermo structure, and in particular the
+ * Initialize the thermodynamics structure, and in particular the
  * thermodynamics interpolation table.
  *
  * @param ppr   Input: pointer to precision structure
  * @param pba   Input: pointer to background structure
- * @param pth   Input/Output: pointer to initialized thermo structure
+ * @param pth   Input/Output: pointer to initialized thermodynamics structure
  * @return the error status
  */
 
 int thermodynamics_init(
                         struct precision * ppr,
                         struct background * pba,
-                        struct thermo * pth
+                        struct thermodynamics * pth
                         ) {
 
   /** Summary: */
@@ -367,11 +367,11 @@ int thermodynamics_init(
 /**
  * Free all memory space allocated by thermodynamics_init.
  *
- * @param pth Input/Output: pointer to thermo structure (to be freed)
+ * @param pth Input/Output: pointer to thermodynamics structure (to be freed)
  * @return the error status
  */
 int thermodynamics_free(
-                        struct thermo * pth
+                        struct thermodynamics * pth
                         ) {
 
   if (pth->has_exotic_injection == _TRUE_) {
@@ -402,13 +402,13 @@ int thermodynamics_free(
  *
  * @param ppr   Input: pointer to precision structure
  * @param pba   Input: pointer to background structure
- * @param pth   Input/Output: pointer to initialized thermo structure
+ * @param pth   Input/Output: pointer to initialized thermodynamics structure
  * @return the error status
  */
 int thermodynamics_helium_from_bbn(
                                    struct precision * ppr,
                                    struct background * pba,
-                                   struct thermo * pth
+                                   struct thermodynamics * pth
                                    ) {
 
   /** Summary: */
@@ -606,18 +606,18 @@ int thermodynamics_helium_from_bbn(
 }
 
 /**
- * Check the thermo structure parameters for bounds and critical values.
+ * Check the thermodynamics structure parameters for bounds and critical values.
  *
  * @param ppr   Input: pointer to precision structure
  * @param pba   Input: pointer to background structure
- * @param pth   Input: pointer to initialized thermo structure
+ * @param pth   Input: pointer to initialized thermodynamics structure
  * @return the error status
  */
 
 int thermodynamics_checks(
                           struct precision * ppr,
                           struct background* pba,
-                          struct thermo * pth
+                          struct thermodynamics * pth
                           ) {
 
   /** Summary: */
@@ -657,7 +657,7 @@ int thermodynamics_checks(
 int thermodynamics_workspace_init(
                                   struct precision * ppr,
                                   struct background * pba,
-                                  struct thermo * pth,
+                                  struct thermodynamics * pth,
                                   struct thermo_workspace * ptw
                                   ) {
 
@@ -792,14 +792,14 @@ int thermodynamics_workspace_init(
  * quantities, and the reionization parameters
  *
  * @param pba   Input: pointer to background structure
- * @param pth   Input/Output: pointer to thermo structure
+ * @param pth   Input/Output: pointer to thermodynamics structure
  * @param ptw   Input/Output: pointer to thermo workspace
  * @return the error status
  */
 
 int thermodynamics_indices(
                            struct background * pba,
-                           struct thermo * pth,
+                           struct thermodynamics * pth,
                            struct thermo_workspace * ptw
                            ) {
 
@@ -812,7 +812,7 @@ int thermodynamics_indices(
   /* a running index for the vector of reionization parameters */
   int index_re;
 
-  /** - initialization of all indices and flags in thermo structure */
+  /** - initialization of all indices and flags in thermodynamics structure */
   index_th = 0;
 
   /* Free electron fraction */
@@ -934,7 +934,7 @@ int thermodynamics_indices(
  *
  * @param ppr   Input: pointer to precision structure
  * @param pba   Input: pointer to background structure
- * @param pth   Input/Output: pointer to thermo structure
+ * @param pth   Input/Output: pointer to thermodynamics structure
  * @param ptw   Input: pointer to thermo workspace
  * @return the error status
  */
@@ -942,7 +942,7 @@ int thermodynamics_indices(
 int thermodynamics_lists(
                          struct precision * ppr,
                          struct background* pba,
-                         struct thermo* pth,
+                         struct thermodynamics* pth,
                          struct thermo_workspace* ptw
                          ) {
 
@@ -1008,7 +1008,7 @@ int thermodynamics_lists(
 int thermodynamics_set_parameters_reionization(
                                                struct precision * ppr,
                                                struct background * pba,
-                                               struct thermo * pth,
+                                               struct thermodynamics * pth,
                                                struct thermo_reionization_parameters * preio
                                                ) {
 
@@ -1373,7 +1373,7 @@ int thermodynamics_set_parameters_reionization(
 int thermodynamics_solve(
                          struct precision * ppr,
                          struct background * pba,
-                         struct thermo * pth,
+                         struct thermodynamics * pth,
                          struct thermo_workspace * ptw,
                          double * pvecback
                          ) {
@@ -1555,7 +1555,7 @@ int thermodynamics_solve(
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
- * @param pth        Input/Output: pointer to initialized thermo structure
+ * @param pth        Input/Output: pointer to initialized thermodynamics structure
  * @param pvecback   Input: pointer to some allocated pvecback
  * @return the error status
  */
@@ -1563,7 +1563,7 @@ int thermodynamics_solve(
 int thermodynamics_calculate_remaining_quantities(
                                                   struct precision * ppr,
                                                   struct background * pba,
-                                                  struct thermo* pth,
+                                                  struct thermodynamics* pth,
                                                   double* pvecback
                                                   ) {
 
@@ -1618,13 +1618,13 @@ int thermodynamics_calculate_remaining_quantities(
  * In verbose mode, print basic information on the thermal history
  *
  * @param pba   Input: pointer to background structure
- * @param pth   Input/Output: pointer to initialized thermo structure
+ * @param pth   Input/Output: pointer to initialized thermodynamics structure
  * @return the error status
  */
 
 int thermodynamics_output_summary(
                                   struct background* pba,
-                                  struct thermo* pth
+                                  struct thermodynamics* pth
                                   ) {
 
   /** Summary: */
@@ -1715,12 +1715,12 @@ int thermodynamics_output_summary(
  * Free the thermo_workspace structure (with the exception of the thermo_vector '->ptv' field, which is freed separately in
  * thermo_vector_free).
  *
- * @param pth        Input: pointer to initialized thermo structure
- * @param ptw        Input: pointer to perturb_workspace structure to be freed
+ * @param pth        Input: pointer to initialized thermodynamics structure
+ * @param ptw        Input: pointer to perturbations_workspace structure to be freed
  * @return the error status
  */
 int thermodynamics_workspace_free(
-                                  struct thermo* pth,
+                                  struct thermodynamics* pth,
                                   struct thermo_workspace * ptw
                                   ) {
 
@@ -1771,7 +1771,7 @@ int thermodynamics_workspace_free(
 int thermodynamics_vector_init(
                                struct precision * ppr,
                                struct background * pba,
-                               struct thermo * pth,
+                               struct thermodynamics * pth,
                                double mz,
                                struct thermo_workspace * ptw
                                ) {
@@ -1984,7 +1984,7 @@ int thermodynamics_reionization_evolve_with_tau(
 
   struct precision * ppr;
   struct background * pba;
-  struct thermo * pth;
+  struct thermodynamics * pth;
   struct thermo_workspace * ptw;
 
   /* function pointer to ODE evolver and names of possible evolvers */
@@ -2297,7 +2297,7 @@ int thermodynamics_reionization_evolve_with_tau(
  * should work with functions passed from various modules, the format of the arguments is a bit special:
  *
  * - fixed parameters and workspaces are passed through a generic pointer. Here, this pointer contains the precision, background
- *   and thermo structures, plus a background vector, but generic_evolver doesn't know its precise structure.
+ *   and thermodynamics structures, plus a background vector, but generic_evolver doesn't know its precise structure.
  *
  * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic error_message
  *   passed in the list of arguments.
@@ -2329,7 +2329,7 @@ int thermodynamics_derivs(
   struct thermodynamics_parameters_and_workspace * ptpaw;
   struct precision * ppr;
   struct background * pba;
-  struct thermo * pth;
+  struct thermodynamics * pth;
   double * pvecback;
   struct thermo_workspace * ptw;
   struct thermo_diffeq_workspace * ptdw;
@@ -2659,7 +2659,7 @@ int thermodynamics_sources(
   double x_previous, weight,s;
   /* Structures as shorthand_notation */
   struct thermodynamics_parameters_and_workspace * ptpaw;
-  struct thermo * pth;
+  struct thermodynamics * pth;
   struct thermo_workspace * ptw;
   struct thermo_diffeq_workspace * ptdw;
   struct thermo_vector * ptv;
@@ -2759,7 +2759,7 @@ int thermodynamics_sources(
 int thermodynamics_reionization_get_tau(
                                         struct precision * ppr,
                                         struct background * pba,
-                                        struct thermo * pth,
+                                        struct thermodynamics * pth,
                                         struct thermo_workspace * ptw
                                         ) {
 
@@ -2867,14 +2867,14 @@ int thermodynamics_vector_free(
  * Compute the baryon drag conformal time tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau]
  *
  * @param pba                Input: pointer to background structure
- * @param pth                Input/Output: pointer to initialized thermo structure
+ * @param pth                Input/Output: pointer to initialized thermodynamics structure
  * @param pvecback           Input: Initialized vector of background quantities
  * @return the error status
  */
 
 int thermodynamics_calculate_conformal_drag_time(
                                                  struct background* pba,
-                                                 struct thermo* pth,
+                                                 struct thermodynamics* pth,
                                                  double* pvecback
                                                  ) {
 
@@ -2952,14 +2952,14 @@ int thermodynamics_calculate_conformal_drag_time(
  * The factor 16/15 in CT is 4/5 in WH, but 16/15 is taking more effects into account
  *
  * @param pba                Input: pointer to background structure
- * @param pth                Input/Output: pointer to initialized thermo structure
+ * @param pth                Input/Output: pointer to initialized thermodynamics structure
  * @param pvecback           Input: Initialized vector of background quantities
  * @return the error status
  */
 
 int thermodynamics_calculate_damping_scale(
                                            struct background* pba,
-                                           struct thermo* pth,
+                                           struct thermodynamics* pth,
                                            double* pvecback
                                            ) {
 
@@ -3061,13 +3061,13 @@ int thermodynamics_calculate_damping_scale(
  * optical depth, etc.
  *
  * @param ppr   Input: pointer to precision structure
- * @param pth   Input/Output: pointer to thermo structure
+ * @param pth   Input/Output: pointer to thermodynamics structure
  * @return the error status
  */
 
 int thermodynamics_calculate_opticals(
                                       struct precision* ppr,
-                                      struct thermo* pth
+                                      struct thermodynamics* pth
                                       ) {
 
   /** Summary: */
@@ -3203,7 +3203,7 @@ int thermodynamics_calculate_opticals(
  *
  * @param ppr                Input: pointer to precision structure
  * @param pba                Input: pointer to background structure
- * @param pth                Input/Output: pointer to initialized thermo structure
+ * @param pth                Input/Output: pointer to initialized thermodynamics structure
  * @param pvecback           Input: Initialized vector of background quantities
  * @return the error status
  */
@@ -3211,7 +3211,7 @@ int thermodynamics_calculate_opticals(
 int thermodynamics_calculate_idm_dr_quantities(
                                                struct precision* ppr,
                                                struct background * pba,
-                                               struct thermo* pth,
+                                               struct thermodynamics* pth,
                                                double* pvecback
                                                ) {
 
@@ -3573,7 +3573,7 @@ int thermodynamics_calculate_idm_dr_quantities(
  *
  * @param ppr                Input: pointer to precision structure
  * @param pba                Input: pointer to background structure
- * @param pth                Input/Output: pointer to initialized thermo structure
+ * @param pth                Input/Output: pointer to initialized thermodynamics structure
  * @param pvecback           Input: pointer to some allocated pvecback
  * @return the error status
  */
@@ -3581,7 +3581,7 @@ int thermodynamics_calculate_idm_dr_quantities(
 int thermodynamics_calculate_recombination_quantities(
                                                       struct precision* ppr,
                                                       struct background * pba,
-                                                      struct thermo* pth,
+                                                      struct thermodynamics* pth,
                                                       double* pvecback
                                                       ) {
 
@@ -3725,7 +3725,7 @@ int thermodynamics_calculate_recombination_quantities(
  *
  * @param ppr                Input: pointer to precision structure
  * @param pba                Input: pointer to background structure
- * @param pth                Input/Output: pointer to initialized thermo structure
+ * @param pth                Input/Output: pointer to initialized thermodynamics structure
  * @param pvecback           Input: pointer to some allocated pvecback
  * @return the error status
  */
@@ -3733,7 +3733,7 @@ int thermodynamics_calculate_recombination_quantities(
 int thermodynamics_calculate_drag_quantities(
                                              struct precision* ppr,
                                              struct background * pba,
-                                             struct thermo* pth,
+                                             struct thermodynamics* pth,
                                              double* pvecback
                                              ) {
 
@@ -3795,7 +3795,7 @@ int thermodynamics_calculate_drag_quantities(
 int thermodynamics_ionization_fractions(
                                         double z,
                                         double * y,
-                                        struct thermo * pth,
+                                        struct thermodynamics * pth,
                                         struct thermo_workspace * ptw,
                                         int current_ap
                                         ) {
@@ -3933,14 +3933,14 @@ int thermodynamics_ionization_fractions(
  * This subroutine contains the reionization function \f$ X_e(z) \f$ (one for each scheme) and gives x for a given z.
  *
  * @param z     Input: redshift
- * @param pth   Input: pointer to thermo structure, to know which scheme is used
+ * @param pth   Input: pointer to thermodynamics structure, to know which scheme is used
  * @param preio Input: pointer to reionization parameters of the function \f$ X_e(z) \f$
  * @param x     Output: \f$ X_e(z) \f$
  */
 
 int thermodynamics_reionization_function(
                                          double z,
-                                         struct thermo * pth,
+                                         struct thermodynamics * pth,
                                          struct thermo_reionization_parameters * preio,
                                          double * x
                                          ) {
@@ -4169,7 +4169,7 @@ int thermodynamics_reionization_function(
 
 int thermodynamics_output_titles(
                                  struct background * pba,
-                                 struct thermo *pth,
+                                 struct thermodynamics *pth,
                                  char titles[_MAXTITLESTRINGLENGTH_]
                                  ) {
 
@@ -4217,7 +4217,7 @@ int thermodynamics_output_titles(
 
 int thermodynamics_output_data(
                                struct background * pba,
-                               struct thermo *pth,
+                               struct thermodynamics *pth,
                                int number_of_titles,
                                double *data
                                ) {

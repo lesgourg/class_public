@@ -1,9 +1,9 @@
-/** @file lensing.h Documented includes for spectra module */
+/** @file lensing.h Documented includes for harmonic module */
 
 #ifndef __LENSING__
 #define __LENSING__
 
-#include "spectra.h"
+#include "harmonic.h"
 
 /**
  * Structure containing everything about lensed spectra that other modules need to know.
@@ -61,7 +61,7 @@ struct lensing {
 
   //@{
 
-  int l_unlensed_max;    /**< last multipole in all calculations (same as in spectra module)*/
+  int l_unlensed_max;    /**< last multipole in all calculations (same as in harmonic module)*/
 
   int l_lensed_max;    /**< last multipole at which lensed spectra are computed */
 
@@ -109,9 +109,9 @@ extern "C" {
 
   int lensing_init(
 		   struct precision * ppr,
-                   struct perturbs * ppt,
-                   struct spectra * psp,
-		   struct nonlinear * pnl,
+                   struct perturbations * ppt,
+                   struct harmonic * phr,
+		   struct fourier * pfo,
                    struct lensing * ple
                    );
 
@@ -121,7 +121,7 @@ extern "C" {
 
   int lensing_indices(
 		      struct precision * ppr,
-                      struct spectra * psp,
+                      struct harmonic * phr,
                       struct lensing * ple
                       );
 

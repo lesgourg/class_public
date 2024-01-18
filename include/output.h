@@ -76,7 +76,7 @@ extern "C" {
 #endif
 
   int output_total_cl_at_l(
-                           struct spectra * psp,
+                           struct harmonic * phr,
                            struct lensing * ple,
                            struct output * pop,
                            int l,
@@ -85,12 +85,12 @@ extern "C" {
 
   int output_init(
                   struct background * pba,
-                  struct thermo * pth,
-                  struct perturbs * ppt,
+                  struct thermodynamics * pth,
+                  struct perturbations * ppt,
                   struct primordial * ppm,
-                  struct transfers * ptr,
-                  struct spectra * psp,
-                  struct nonlinear * pnl,
+                  struct transfer * ptr,
+                  struct harmonic * phr,
+                  struct fourier * pfo,
                   struct lensing * ple,
                   struct distortions * psd,
                   struct output * pop
@@ -98,23 +98,23 @@ extern "C" {
 
   int output_cl(
                 struct background * pba,
-                struct perturbs * ppt,
-                struct spectra * psp,
+                struct perturbations * ppt,
+                struct harmonic * phr,
                 struct lensing * ple,
                 struct output * pop
                 );
 
   int output_pk(
                 struct background * pba,
-                struct perturbs * ppt,
-                struct nonlinear * pnl,
+                struct perturbations * ppt,
+                struct fourier * pfo,
                 struct output * pop,
                 enum pk_outputs pk_output
                 );
 
   int output_tk(
                 struct background * pba,
-                struct perturbs * ppt,
+                struct perturbations * ppt,
                 struct output * pop
                 );
 
@@ -125,18 +125,18 @@ extern "C" {
 
   int output_thermodynamics(
                             struct background * pba,
-                            struct thermo * pth,
+                            struct thermodynamics * pth,
                             struct output * pop
                             );
 
   int output_perturbations(
                            struct background * pba,
-                           struct perturbs * ppt,
+                           struct perturbations * ppt,
                            struct output * pop
                            );
 
   int output_primordial(
-                        struct perturbs * ppt,
+                        struct perturbations * ppt,
                         struct primordial * ppm,
                         struct output * pop
                         );
@@ -157,7 +157,7 @@ extern "C" {
                         double *dataptr,
                         int tau_size);
   int output_open_cl_file(
-                          struct spectra * psp,
+                          struct harmonic * phr,
                           struct output * pop,
                           FILE ** clfile,
                           FileName filename,
@@ -167,7 +167,7 @@ extern "C" {
 
   int output_one_line_of_cl(
                             struct background * pba,
-                            struct spectra * psp,
+                            struct harmonic * phr,
                             struct output * pop,
                             FILE * clfile,
                             double l,
@@ -177,7 +177,7 @@ extern "C" {
 
   int output_open_pk_file(
                           struct background * pba,
-                          struct nonlinear * pnl,
+                          struct fourier * pfo,
                           struct output * pop,
                           FILE ** pkfile,
                           FileName filename,

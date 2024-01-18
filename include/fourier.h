@@ -1,10 +1,10 @@
-/** @file nonlinear.h Documented includes for trg module */
+/** @file fourier.h Documented includes for trg module */
 
 #include "primordial.h"
 #include "trigonometric_integrals.h"
 
-#ifndef __NONLINEAR__
-#define __NONLINEAR__
+#ifndef __FOURIER__
+#define __FOURIER__
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
@@ -25,12 +25,12 @@ enum out_sigmas {out_sigma,out_sigma_prime,out_sigma_disp};
 /**
  * Structure containing all information on non-linear spectra.
  *
- * Once initialized by nonlinear_init(), contains a table for all two points correlation functions
+ * Once initialized by fourier_init(), contains a table for all two points correlation functions
  * and for all the ai,bj functions (containing the three points correlation functions), for each
  * time and wave-number.
  */
 
-struct nonlinear {
+struct fourier {
 
   /** @name - input parameters initialized by user in input module
       (all other quantities are computed in this module, given these
@@ -57,7 +57,7 @@ struct nonlinear {
 
   //@{
 
-  int index_md_scalars; /**< set equal to psp->index_md_scalars
+  int index_md_scalars; /**< set equal to phr->index_md_scalars
                            (useful since this module only deals with
                            scalars) */
   int ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
@@ -107,7 +107,7 @@ struct nonlinear {
 
   double ** ln_pk_ic_l;   /**< Matter power spectrum (linear).
                              Depends on indices index_pk, index_ic1_ic2, index_k, index_tau as:
-                             ln_pk_ic_l[index_pk][(index_tau * pnl->k_size + index_k)* pnl->ic_ic_size + index_ic1_ic2]
+                             ln_pk_ic_l[index_pk][(index_tau * pfo->k_size + index_k)* pfo->ic_ic_size + index_ic1_ic2]
                              where index-pk labels P(k) types (m = total matter, cb = baryons+CDM),
                              while index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                              the primordial spectrum is symmetric in (index_ic1, index_ic2)).
@@ -133,14 +133,14 @@ struct nonlinear {
 
   double ** ln_pk_l;   /**< Total matter power spectrum summed over initial conditions (linear).
                           Only depends on indices index_pk,index_k, index_tau as:
-                          ln_pk[index_pk][index_tau * pnl->k_size + index_k]
+                          ln_pk[index_pk][index_tau * pfo->k_size + index_k]
                        */
 
   double ** ddln_pk_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
   double ** ln_pk_nl;   /**< Total matter power spectrum summed over initial conditions (nonlinear).
                           Only depends on indices index_pk,index_k, index_tau as:
-                          ln_pk[index_pk][index_tau * pnl->k_size + index_k]
+                          ln_pk[index_pk][index_tau * pfo->k_size + index_k]
                        */
 
   double ** ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
@@ -187,7 +187,7 @@ struct nonlinear {
 
   //@{
 
-  short nonlinear_verbose;  	/**< amount of information written in standard output */
+  short fourier_verbose;  	/**< amount of information written in standard output */
 
   ErrorMsg error_message; 	/**< zone for writing error messages */
 
@@ -195,11 +195,11 @@ struct nonlinear {
 };
 
 /**
- * Structure containing variables used only internally in nonlinear module by various functions.
+ * Structure containing variables used only internally in fourier module by various functions.
  *
  */
 
-struct nonlinear_workspace {
+struct fourier_workspace {
 
   /** @name - quantitites used by HMcode */
 
@@ -238,9 +238,9 @@ extern "C" {
 
   /* external functions (meant to be called from other modules) */
 
-  int nonlinear_pk_at_z(
+  int fourier_pk_at_z(
                         struct background * pba,
-                        struct nonlinear *pnl,
+                        struct fourier *pfo,
                         enum linear_or_logarithmic mode,
                         enum pk_outputs pk_output,
                         double z,
@@ -249,9 +249,9 @@ extern "C" {
                         double * out_pk_ic
                         );
 
-  int nonlinear_pks_at_z(
+  int fourier_pks_at_z(
                          struct background * pba,
-                         struct nonlinear *pnl,
+                         struct fourier *pfo,
                          enum linear_or_logarithmic mode,
                          enum pk_outputs pk_output,
                          double z,
@@ -261,10 +261,10 @@ extern "C" {
                          double * out_pk_cb_ic
                          );
 
-  int nonlinear_pk_at_k_and_z(
+  int fourier_pk_at_k_and_z(
                               struct background * pba,
                               struct primordial * ppm,
-                              struct nonlinear *pnl,
+                              struct fourier *pfo,
                               enum pk_outputs pk_output,
                               double k,
                               double z,
@@ -273,10 +273,10 @@ extern "C" {
                               double * out_pk_ic
                               );
 
-  int nonlinear_pks_at_k_and_z(
+  int fourier_pks_at_k_and_z(
                                struct background * pba,
                                struct primordial * ppm,
-                               struct nonlinear *pnl,
+                               struct fourier *pfo,
                                enum pk_outputs pk_output,
                                double k,
                                double z,
@@ -286,9 +286,9 @@ extern "C" {
                                double * out_pk_cb_ic
                                );
 
-  int nonlinear_pks_at_kvec_and_zvec(
+  int fourier_pks_at_kvec_and_zvec(
                                      struct background * pba,
-                                     struct nonlinear * pnl,
+                                     struct fourier * pfo,
                                      enum pk_outputs pk_output,
                                      double * kvec,
                                      int kvec_size,
@@ -298,10 +298,10 @@ extern "C" {
                                      double * out_pk_cb
                                      );
 
-  int nonlinear_sigmas_at_z(
+  int fourier_sigmas_at_z(
                             struct precision * ppr,
                             struct background * pba,
-                            struct nonlinear * pnl,
+                            struct fourier * pfo,
                             double R,
                             double z,
                             int index_pk,
@@ -309,10 +309,10 @@ extern "C" {
                             double * result
                             );
 
-  int nonlinear_pk_tilt_at_k_and_z(
+  int fourier_pk_tilt_at_k_and_z(
                                     struct background * pba,
                                     struct primordial * ppm,
-                                    struct nonlinear * pnl,
+                                    struct fourier * pfo,
                                     enum pk_outputs pk_output,
                                     double k,
                                     double z,
@@ -320,9 +320,9 @@ extern "C" {
                                     double * pk_tilt
                                     );
 
-  int nonlinear_k_nl_at_z(
+  int fourier_k_nl_at_z(
                           struct background *pba,
-                          struct nonlinear * pnl,
+                          struct fourier * pfo,
                           double z,
                           double * k_nl,
                           double * k_nl_cb
@@ -330,42 +330,42 @@ extern "C" {
 
   /* internal functions */
 
-  int nonlinear_init(
+  int fourier_init(
                      struct precision *ppr,
                      struct background *pba,
-                     struct thermo *pth,
-                     struct perturbs *ppt,
+                     struct thermodynamics *pth,
+                     struct perturbations *ppt,
                      struct primordial *ppm,
-                     struct nonlinear *pnl
+                     struct fourier *pfo
                      );
 
-  int nonlinear_free(
-                     struct nonlinear *pnl
+  int fourier_free(
+                     struct fourier *pfo
                      );
 
-  int nonlinear_indices(
+  int fourier_indices(
                         struct precision *ppr,
                         struct background *pba,
-                        struct perturbs * ppt,
+                        struct perturbations * ppt,
                         struct primordial * ppm,
-                        struct nonlinear * pnl
+                        struct fourier * pfo
                         );
 
-  int nonlinear_get_k_list(
+  int fourier_get_k_list(
                            struct precision *ppr,
-                           struct perturbs * ppt,
-                           struct nonlinear * pnl
+                           struct perturbations * ppt,
+                           struct fourier * pfo
                            );
 
-  int nonlinear_get_tau_list(
-                             struct perturbs * ppt,
-                             struct nonlinear * pnl
+  int fourier_get_tau_list(
+                             struct perturbations * ppt,
+                             struct fourier * pfo
                              );
 
-  int nonlinear_get_source(
+  int fourier_get_source(
                            struct background * pba,
-                           struct perturbs * ppt,
-                           struct nonlinear * pnl,
+                           struct perturbations * ppt,
+                           struct fourier * pfo,
                            int index_k,
                            int index_ic,
                            int index_tp,
@@ -373,11 +373,11 @@ extern "C" {
                            double ** sources,
                            double * source);
 
-  int nonlinear_pk_linear(
+  int fourier_pk_linear(
                           struct background *pba,
-                          struct perturbs *ppt,
+                          struct perturbations *ppt,
                           struct primordial *ppm,
-                          struct nonlinear *pnl,
+                          struct fourier *pfo,
                           int index_pk,
                           int index_tau,
                           int k_size,
@@ -385,8 +385,8 @@ extern "C" {
                           double * lnpk_ic
                           );
 
-  int nonlinear_sigmas(
-                       struct nonlinear * pnl,
+  int fourier_sigmas(
+                       struct fourier * pfo,
                        double R,
                        double *lnpk_l,
                        double *ddlnpk_l,
@@ -396,9 +396,9 @@ extern "C" {
                        double * result
                        );
 
-  int nonlinear_sigma_at_z(
+  int fourier_sigma_at_z(
                            struct background * pba,
-                           struct nonlinear * pnl,
+                           struct fourier * pfo,
                            double R,
                            double z,
                            int index_pk,
@@ -406,12 +406,12 @@ extern "C" {
                            double * result
                            );
 
-  int nonlinear_halofit(
+  int fourier_halofit(
                         struct precision *ppr,
                         struct background *pba,
-                        struct perturbs *ppt,
+                        struct perturbations *ppt,
                         struct primordial *ppm,
-                        struct nonlinear *pnl,
+                        struct fourier *pfo,
                         int index_pk,
                         double tau,
                         double *pk_nl,
@@ -421,8 +421,8 @@ extern "C" {
                         short * halofit_found_k_max
                         );
 
-  int nonlinear_halofit_integrate(
-                                  struct nonlinear *pnl,
+  int fourier_halofit_integrate(
+                                  struct fourier *pfo,
                                   double * integrand_array,
                                   int integrand_size,
                                   int ia_size,
@@ -435,12 +435,12 @@ extern "C" {
                                   double * sum
                                   );
 
-  int nonlinear_hmcode(
+  int fourier_hmcode(
                        struct precision *ppr,
                        struct background *pba,
-                       struct perturbs *ppt,
+                       struct perturbations *ppt,
                        struct primordial *ppm,
-                       struct nonlinear *pnl,
+                       struct fourier *pfo,
                        int index_pk,
                        int index_tau,
                        double tau,
@@ -449,109 +449,109 @@ extern "C" {
                        double **ddlnpk_l,
                        double *k_nl,
                        short * halofit_found_k_max,
-                       struct nonlinear_workspace * pnw
+                       struct fourier_workspace * pnw
                        );
 
-  int nonlinear_hmcode_workspace_init(
+  int fourier_hmcode_workspace_init(
                                       struct precision *ppr,
                                       struct background *pba,
-                                      struct nonlinear *pnl,
-                                      struct nonlinear_workspace * pnw
+                                      struct fourier *pfo,
+                                      struct fourier_workspace * pnw
                                       );
 
-  int nonlinear_hmcode_workspace_free(
-                                      struct nonlinear *pnl,
-                                      struct nonlinear_workspace * pnw
+  int fourier_hmcode_workspace_free(
+                                      struct fourier *pfo,
+                                      struct fourier_workspace * pnw
                                       );
 
-  int nonlinear_hmcode_dark_energy_correction(
+  int fourier_hmcode_dark_energy_correction(
                                               struct precision *ppr,
                                               struct background *pba,
-                                              struct nonlinear *pnl,
-                                              struct nonlinear_workspace * pnw
+                                              struct fourier *pfo,
+                                              struct fourier_workspace * pnw
                                               );
 
-  int nonlinear_hmcode_baryonic_feedback(
-                                         struct nonlinear *pnl
+  int fourier_hmcode_baryonic_feedback(
+                                         struct fourier *pfo
                                          );
 
 
-  int nonlinear_hmcode_fill_sigtab(
+  int fourier_hmcode_fill_sigtab(
                                    struct precision *ppr,
                                    struct background * pba,
-                                   struct perturbs *ppt,
+                                   struct perturbations *ppt,
                                    struct primordial * ppm,
-                                   struct nonlinear * pnl,
+                                   struct fourier * pfo,
                                    int index_tau,
                                    double *lnpk_l,
                                    double *ddlnpk_l,
-                                   struct nonlinear_workspace * pnw
+                                   struct fourier_workspace * pnw
                                    );
 
-  int nonlinear_hmcode_fill_growtab(
+  int fourier_hmcode_fill_growtab(
                                     struct precision *ppr,
                                     struct background * pba,
-                                    struct nonlinear * pnl,
-                                    struct nonlinear_workspace * pnw
+                                    struct fourier * pfo,
+                                    struct fourier_workspace * pnw
                                     );
 
-  int nonlinear_hmcode_growint(
+  int fourier_hmcode_growint(
                                struct precision *ppr,
                                struct background * pba,
-                               struct nonlinear * pnl,
+                               struct fourier * pfo,
                                double a,
                                double w,
                                double wa,
                                double * growth
                                );
 
-  int nonlinear_hmcode_window_nfw(
-                                  struct nonlinear * pnl,
+  int fourier_hmcode_window_nfw(
+                                  struct fourier * pfo,
                                   double k,
                                   double rv,
                                   double c,
                                   double *window_nfw
                                   );
 
-  int nonlinear_hmcode_halomassfunction(
+  int fourier_hmcode_halomassfunction(
                                         double nu,
                                         double *hmf
                                         );
 
-  int nonlinear_hmcode_sigma8_at_z(
+  int fourier_hmcode_sigma8_at_z(
                         struct background *pba,
-                        struct nonlinear * pnl,
+                        struct fourier * pfo,
                         double z,
                         double * sigma_8,
                         double * sigma_8_cb,
-                        struct nonlinear_workspace * pnw
+                        struct fourier_workspace * pnw
                         );
 
-  int nonlinear_hmcode_sigmadisp_at_z(
+  int fourier_hmcode_sigmadisp_at_z(
                         struct background *pba,
-                        struct nonlinear * pnl,
+                        struct fourier * pfo,
                         double z,
                         double * sigma_disp,
                         double * sigma_disp_cb,
-                        struct nonlinear_workspace * pnw
+                        struct fourier_workspace * pnw
                         );
 
-  int nonlinear_hmcode_sigmadisp100_at_z(
+  int fourier_hmcode_sigmadisp100_at_z(
                         struct background *pba,
-                        struct nonlinear * pnl,
+                        struct fourier * pfo,
                         double z,
                         double * sigma_disp_100,
                         double * sigma_disp_100_cb,
-                        struct nonlinear_workspace * pnw
+                        struct fourier_workspace * pnw
                         );
 
-  int nonlinear_hmcode_sigmaprime_at_z(
+  int fourier_hmcode_sigmaprime_at_z(
                         struct background *pba,
-                        struct nonlinear * pnl,
+                        struct fourier * pfo,
                         double z,
                         double * sigma_prime,
                         double * sigma_prime_cb,
-                        struct nonlinear_workspace * pnw
+                        struct fourier_workspace * pnw
                         );
 
 #ifdef __cplusplus

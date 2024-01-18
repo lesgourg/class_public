@@ -10,18 +10,18 @@ int main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
-  struct thermo th;           /* for thermodynamics */
-  struct perturbs pt;         /* for source functions */
-  struct transfers tr;        /* for transfer functions */
+  struct thermodynamics th;           /* for thermodynamics */
+  struct perturbations pt;         /* for source functions */
+  struct transfer tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
-  struct spectra sp;          /* for output spectra */
-  struct nonlinear nl;        /* for non-linear spectra */
+  struct harmonic hr;          /* for output spectra */
+  struct fourier fo;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */
 
-  if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg) == _FAILURE_) {
+  if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&hr,&fo,&le,&sd,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
-    printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
+  if (perturbations_init(&pr,&ba,&th,&pt) == _FAILURE_) {
+    printf("\n\nError in perturbations_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
 
@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
 
   /****** all calculations done, now free the structures ******/
 
-  if (perturb_free(&pt) == _FAILURE_) {
-    printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
+  if (perturbations_free(&pt) == _FAILURE_) {
+    printf("\n\nError in perturbations_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
 

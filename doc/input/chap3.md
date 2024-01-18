@@ -97,23 +97,23 @@ In `class`, each of these steps is associated with a structure:
 
 1. `struct precision`   for input precision parameters (input physical parameters are dispatched among the other structures listed below)
 2. `struct background`  for cosmological background,
-3. `struct thermo`      for thermodynamics,
-4. `struct perturbs`    for source functions,
+3. `struct thermodynamics`      for thermodynamics,
+4. `struct perturbations`    for source functions,
 5. `struct primordial`  for primordial spectra,
-6. `struct nonlinear`   for Fourier spectra,
-7. `struct transfers`   for transfer functions,
-8. `struct spectra`     for harmonic spectra,
+6. `struct fourier`   for Fourier spectra,
+7. `struct transfer`   for transfer functions,
+8. `struct harmonic`     for harmonic spectra,
 9. `struct lensing`     for lensed CMB spectra,
 10. `struct distortions` for CMB spectral distortions,
 
 (11. `struct output`     for auxiliary variable describing the output format.)
 
 A given structure contains "everything concerning one step that the
-subsequent steps need to know" (for instance, `struct perturbs` contains everything about source
+subsequent steps need to know" (for instance, `struct perturbations` contains everything about source
 functions that the transfer module needs to know). In particular, each
 structure contains one array of tabulated values (for `struct background`, background
-quantities as a function of time, for `struct thermo`, thermodynamical quantities as a
-function of redshift, for `struct perturbs`, sources \f$S(k, \tau)\f$, etc.).  It
+quantities as a function of time, for `struct thermodynamics`, thermodynamical quantities as a
+function of redshift, for `struct perturbations`, sources \f$S(k, \tau)\f$, etc.).  It
 also contains information about the size of this array and the value
 of the index of each physical quantity, so that the table can be
 easily read and interpolated. Finally, it contains any derived
@@ -135,9 +135,9 @@ Each structure is defined and filled in one of the following modules
 3. `thermodynamics.c`
 4. `perturbations.c `
 5. `primordial.c`
-6. `nonlinear.c`
+6. `fourier.c`
 7. `transfer.c`
-8. `spectra.c`
+8. `harmonic.c`
 9. `lensing.c`
 10. `distortions.c`
 
@@ -196,17 +196,17 @@ following lines
 
      struct background ba;
 
-     struct thermo th;
+     struct thermodynamics th;
 
-     struct perturbs pt;
+     struct perturbations pt;
 
      struct primordial pm;
 
-     struct nonlinear nl;
+     struct fourier fo;
 
-     struct transfers tr;
+     struct transfer tr;
 
-     struct spectra sp;
+     struct harmonic hr;
 
      struct lensing le;
 
@@ -215,27 +215,27 @@ following lines
      struct output op;
 
 
-     input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg);
+     input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&hr,&fo,&le,&sd,&op,errmsg);
 
      background_init(&pr,&ba);
 
      thermodynamics_init(&pr,&ba,&th);
 
-     perturb_init(&pr,&ba,&th,&pt);
+     perturbations_init(&pr,&ba,&th,&pt);
 
      primordial_init(&pr,&pt,&pm);
 
-     nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl);
+     fourier_init(&pr,&ba,&th,&pt,&pm,&fo);
 
-     transfer_init(&pr,&ba,&th,&pt,&nl,&tr);
+     transfer_init(&pr,&ba,&th,&pt,&fo,&tr);
 
-     spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp);
+     harmonic_init(&pr,&ba,&pt,&pm,&fo,&tr,&hr);
 
-     lensing_init(&pr,&pt,&sp,&nl,&le);
+     lensing_init(&pr,&pt,&hr,&fo,&le);
 
      distortions_init(&pr,&ba,&th,&pt,&pm,&sd);
 
-     output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&op)
+     output_init(&ba,&th,&pt,&pm,&tr,&hr,&fo,&le,&op)
 
 
      /****** done ******/
@@ -245,15 +245,15 @@ following lines
 
      lensing_free(&le);
 
-     spectra_free(&sp);
+     harmonic_free(&hr);
 
      transfer_free(&tr);
 
-     nonlinear_free(&nl);
+     fourier_free(&fo);
 
      primordial_free(&pm);
 
-     perturb_free(&pt);
+     perturbations_free(&pt);
 
      thermodynamics_free(&th);
 
@@ -264,7 +264,7 @@ We can come back on the role of each argument. The arguments above are all point
 
 `input_init_from_arguments` needs all structures, because it will set the precision parameters inside the `precision` structure, and the physical parameters in some fields of the respective other structures. For instance, an input parameter relevant for the primordial spectrum calculation (like the tilt \f$n_s\f$) will be stored in the `primordial` structure. Hence, in ` input_init_from_arguments`, all structures can be seen as output arguments.
 
-Other `module_init()` functions typically need all previous structures, which contain the result of the previous modules, plus its own structures, which contain some relevant input parameters before the function is called, as well as all the result form the module when the function has been executed. Hence all passed structures can be seen as input argument, excepted the last one which is both input and output. An example is `perturb_init(&pr,&ba,&th,&pt)`.
+Other `module_init()` functions typically need all previous structures, which contain the result of the previous modules, plus its own structures, which contain some relevant input parameters before the function is called, as well as all the result form the module when the function has been executed. Hence all passed structures can be seen as input argument, excepted the last one which is both input and output. An example is `perturbations_init(&pr,&ba,&th,&pt)`.
 
 Each function `module_init()`  does not need __all__ previous structures, it happens that a module does not depend on a __all__ previous one. For instance, the primordial module does not need information on the background and thermodynamics evolution in order to compute the primordial spectra, so the dependency is reduced: `primordial_init(&pr,&pt,&pm)`.
 
