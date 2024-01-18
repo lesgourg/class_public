@@ -2,11 +2,6 @@
  *
  * Julien Lesgourgues, 27.08.2010
  * * internal organization of the module structured and improved by Nils Schoeneberg and Matteo Lucca, 07.03.2019
- *
- */
-
-/** @file input.c Documented input module.
- *
  * EDE-Class v0.2 20.01.2020
  */
 
@@ -3822,6 +3817,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                  errmsg);
 
       if (flag1 == _TRUE_) {
+
         if (strstr(string1,"emu_dmonly") != NULL) {
           pfo->feedback = nl_emu_dmonly;
         }
@@ -5046,7 +5042,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
-
       /* Now we have checked all contributions that could change z_max_pk */
     }
   }
@@ -5353,7 +5348,6 @@ int input_read_parameters_additional(struct file_content* pfc,
                                      ErrorMsg errmsg){
 
   /** Summary: */
-
 
   /** Define local variables */
   int flag1;

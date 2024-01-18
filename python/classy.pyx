@@ -120,7 +120,7 @@ cdef class Class:
     property Omega_nu:
         def __get__(self):
             return self.ba.Omega0_ncdm_tot
-    property fourier_method:
+    property nonlinear_method:
         def __get__(self):
             return self.fo.method
 
@@ -2536,9 +2536,9 @@ cdef class Class:
             derived[name] = value
         return derived
 
-    def fourier_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
-        fourier_scale(z, z_size)
+        nonlinear_scale(z, z_size)
 
         Return the nonlinear scale for all the redshift specified in z, of size
         z_size
@@ -2561,10 +2561,10 @@ cdef class Class:
 
         return k_nl
 
-    def fourier_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    def nonlinear_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
 
-make        fourier_scale_cb(z, z_size)
+make        nonlinear_scale_cb(z, z_size)
 
         Return the nonlinear scale for all the redshift specified in z, of size
 
