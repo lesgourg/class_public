@@ -296,14 +296,14 @@ int transfer_init(
   double* window = NULL;
   if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_number_count == _TRUE_)) {
     class_call(transfer_precompute_selection(ppr,
-                                            pba,
-                                            ppt,
-                                            ptr,
-                                            tau_rec,
-                                            tau_size_max,
-                                            &(window)),
-              ptr->error_message,
-              ptr->error_message);
+                                             pba,
+                                             ppt,
+                                             ptr,
+                                             tau_rec,
+                                             tau_size_max,
+                                             &(window)),
+               ptr->error_message,
+               ptr->error_message);
   }
 
   /* (a.3.) workspace, allocated in a parallel zone since in openmp
@@ -1650,7 +1650,7 @@ int transfer_source_tau_size(
 
       /* value of l at which the code switches to Limber approximation
          (necessary for next step) */
-      if(_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)) {
         /* Even if G5 is integrated along the line-of-sight, we do not apply the same Limber criteria as for the other integrated terms, because here we have the derivative of the Bessel.  */
         l_limber=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[bin];
         *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./MIN(l_limber,ppt->l_lss_max)))*ppr->selection_sampling_bessel);
@@ -2240,16 +2240,16 @@ int transfer_sources(
 
         _get_bin_nonintegrated_ncl_(index_tt)
 
-        /* redefine the time sampling */
-        class_call(transfer_selection_sampling(ppr,
-                                               pba,
-                                               ppt,
-                                               ptr,
-                                               bin,
-                                               tau0_minus_tau,
-                                               tau_size),
-                   ptr->error_message,
-                   ptr->error_message);
+          /* redefine the time sampling */
+          class_call(transfer_selection_sampling(ppr,
+                                                 pba,
+                                                 ppt,
+                                                 ptr,
+                                                 bin,
+                                                 tau0_minus_tau,
+                                                 tau_size),
+                     ptr->error_message,
+                     ptr->error_message);
 
         class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
                    ptr->error_message,
@@ -2310,17 +2310,17 @@ int transfer_sources(
 
         _get_bin_integrated_ncl_(index_tt)
 
-        /* redefine the time sampling */
-        class_call(transfer_lensing_sampling(ppr,
-                                             pba,
-                                             ppt,
-                                             ptr,
-                                             bin,
-                                             tau0,
-                                             tau0_minus_tau,
-                                             tau_size),
-                   ptr->error_message,
-                   ptr->error_message);
+          /* redefine the time sampling */
+          class_call(transfer_lensing_sampling(ppr,
+                                               pba,
+                                               ppt,
+                                               ptr,
+                                               bin,
+                                               tau0,
+                                               tau0_minus_tau,
+                                               tau_size),
+                     ptr->error_message,
+                     ptr->error_message);
 
         /* resample the source at those times */
         class_call(transfer_source_resample(ppr,
@@ -4598,14 +4598,14 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
  */
 
 int transfer_precompute_selection(
-                     struct precision * ppr,
-                     struct background * pba,
-                     struct perturbations * ppt,
-                     struct transfer * ptr,
-                     double tau_rec,
-                     int tau_size_max,
-                     double ** window /* Pass a pointer to the pointer, so the pointer can be allocated inside of the function */
-                     ){
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct perturbations * ppt,
+                                  struct transfer * ptr,
+                                  double tau_rec,
+                                  int tau_size_max,
+                                  double ** window /* Pass a pointer to the pointer, so the pointer can be allocated inside of the function */
+                                  ){
   /** Summary: */
 
   /** - define local variables */
@@ -4676,32 +4676,32 @@ int transfer_precompute_selection(
 
     /* First set the corresponding tau size */
     class_call(transfer_source_tau_size(ppr,
-                                    pba,
-                                    ppt,
-                                    ptr,
-                                    tau_rec,
-                                    tau0,
-                                    index_md,
-                                    index_tt,
-                                    &tau_size),
-           ptr->error_message,
-           ptr->error_message);
+                                        pba,
+                                        ppt,
+                                        ptr,
+                                        tau_rec,
+                                        tau0,
+                                        index_md,
+                                        index_tt,
+                                        &tau_size),
+               ptr->error_message,
+               ptr->error_message);
 
     /* Start with non-integrated contributions */
     if (_nonintegrated_ncl_) {
 
       _get_bin_nonintegrated_ncl_(index_tt)
 
-      /* redefine the time sampling */
-      class_call(transfer_selection_sampling(ppr,
-                                             pba,
-                                             ppt,
-                                             ptr,
-                                             bin,
-                                             tau0_minus_tau,
-                                             tau_size),
-                 ptr->error_message,
-                 ptr->error_message);
+        /* redefine the time sampling */
+        class_call(transfer_selection_sampling(ppr,
+                                               pba,
+                                               ppt,
+                                               ptr,
+                                               bin,
+                                               tau0_minus_tau,
+                                               tau_size),
+                   ptr->error_message,
+                   ptr->error_message);
 
       class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
                  ptr->error_message,
@@ -4845,14 +4845,14 @@ int transfer_precompute_selection(
 
       _get_bin_integrated_ncl_(index_tt)
 
-      /* dirac case */
-      if (ppt->selection == dirac) {
-        tau_sources_size=1;
-      }
+        /* dirac case */
+        if (ppt->selection == dirac) {
+          tau_sources_size=1;
+        }
       /* other cases (gaussian, tophat...) */
-      else {
-        tau_sources_size=ppr->selection_sampling;
-      }
+        else {
+          tau_sources_size=ppr->selection_sampling;
+        }
 
       class_alloc(tau0_minus_tau_lensing_sources,
                   tau_sources_size*sizeof(double),
@@ -5067,7 +5067,7 @@ int transfer_f_evo(
                    int last_index,
                    double cotKgen, /* Should be FILLED with values of corresponding time */
                    double* f_evo
-                  ){
+                   ){
   /* Allocate temporary variables for calculation of f_evo */
   double z;
   double dNdz;

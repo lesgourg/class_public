@@ -109,7 +109,7 @@ int distortions_free(struct distortions * psd) {
     }
 
     /** Delete branching ratios */
-    for(index_type=0;index_type<psd->type_size;++index_type){
+    for (index_type=0;index_type<psd->type_size;++index_type){
       free(psd->br_table[index_type]);
     }
     free(psd->br_table);
@@ -118,7 +118,7 @@ int distortions_free(struct distortions * psd) {
     free(psd->dQrho_dz_tot);
 
     /** Delete distortion shapes */
-    for(index_type=0;index_type<psd->type_size;++index_type){
+    for (index_type=0;index_type<psd->type_size;++index_type){
       free(psd->sd_shape_table[index_type]);
       free(psd->sd_table[index_type]);
     }
@@ -157,9 +157,9 @@ int distortions_constants(struct precision * ppr,
   /** Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;
   psd->z_th = 1.98e6*
-         pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
-         pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
-         pow(pba->T_cmb/2.726,1./5.);
+    pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
+    pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
+    pow(pba->T_cmb/2.726,1./5.);
 
   sprintf(psd->sd_PCA_file_generator,"%s/%s",ppr->sd_external_path,"generate_PCA_files.py");
   sprintf(psd->sd_detector_list_file,"%s/%s",ppr->sd_external_path,"detectors_list.dat");
@@ -246,7 +246,7 @@ int distortions_set_detector(struct precision * ppr,
     /* Eliminate blank spaces at beginning of line */
     left=line;
     while (left[0]==' ') {
-        left++;
+      left++;
     }
     if (left[0] > 39) {
       if (sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6) {
@@ -270,7 +270,7 @@ int distortions_set_detector(struct precision * ppr,
         if (has_detector_noise_file == _TRUE_) {
           if (psd->distortions_verbose > 1){
             printf(" -> Properties:    Noise file name = %s \n",
-                        detector_noise_file_name);
+                   detector_noise_file_name);
           }
           if (psd->has_detector_file == _TRUE_) {
             class_test(strcmp(psd->sd_detector_file_name,detector_noise_file_name) != 0,
@@ -288,7 +288,7 @@ int distortions_set_detector(struct precision * ppr,
         else {
           if (psd->distortions_verbose > 1) {
             printf(" -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
-                        nu_min, nu_max, nu_delta, N_bins, delta_Ic);
+                   nu_min, nu_max, nu_delta, N_bins, delta_Ic);
           }
           /* If the user has defined the detector, check that their and our definitions agree */
           if (psd->has_user_defined_detector == _TRUE_) {
@@ -463,7 +463,7 @@ int distortions_read_detector_noisefile(struct precision * ppr,
     /* Eliminate blank spaces at beginning of line */
     left=line;
     while (left[0]==' ') {
-        left++;
+      left++;
     }
 
     if (left[0] > 39) {
@@ -482,16 +482,16 @@ int distortions_read_detector_noisefile(struct precision * ppr,
   }
 
   /** Read parameters */
-  for(index_x=0; index_x<psd->x_size; ++index_x){
+  for (index_x=0; index_x<psd->x_size; ++index_x){
     class_test(fscanf(infile, "%le",
                       &(nu_temp))!=1,                                                 // [-]
-                      psd->error_message,
-                      "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
+               psd->error_message,
+               "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->x[index_x] = nu_temp/psd->x_to_nu;
     class_test(fscanf(infile, "%le",
                       &(delta_Ic_temp))!=1,                            // [-]
-                      psd->error_message,
-                      "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
+               psd->error_message,
+               "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;
   }
 
@@ -513,8 +513,8 @@ int distortions_indices(struct distortions * psd) {
   int index_type = 0;
 
   /** Define indeces for tables - br_table defined in distortions_compute_branching_ratios,
-                                - sd_parameter_table and
-                                - sd_table defined in distortions_compute_spectral_shapes */
+      - sd_parameter_table and
+      - sd_table defined in distortions_compute_spectral_shapes */
   class_define_index(psd->index_type_g,_TRUE_,index_type,1);
   class_define_index(psd->index_type_y,_TRUE_,index_type,1);
   class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
@@ -562,10 +562,10 @@ int distortions_get_xz_lists(struct precision * ppr,
               psd->z_size*sizeof(double),
               psd->error_message);
   class_call(array_trapezoidal_weights(
-                    psd->z,
-                    psd->z_size,
-                    psd->z_weights,
-                    psd->error_message),
+                                       psd->z,
+                                       psd->z_size,
+                                       psd->z_weights,
+                                       psd->error_message),
              psd->error_message,
              psd->error_message);
 
@@ -605,10 +605,10 @@ int distortions_get_xz_lists(struct precision * ppr,
               psd->x_size*sizeof(double),
               psd->error_message);
   class_call(array_trapezoidal_weights(
-                    psd->x,
-                    psd->x_size,
-                    psd->x_weights,
-                    psd->error_message),
+                                       psd->x,
+                                       psd->x_size,
+                                       psd->x_weights,
+                                       psd->error_message),
              psd->error_message,
              psd->error_message);
 
@@ -654,7 +654,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   class_alloc(psd->br_table,
               psd->type_size*sizeof(double*),
               psd->error_message);
-  for(index_type=0; index_type<psd->type_size; ++index_type){
+  for (index_type=0; index_type<psd->type_size; ++index_type){
     class_alloc(psd->br_table[index_type],
                 psd->z_size*sizeof(double),
                 psd->error_message);
@@ -662,7 +662,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
   /** Calulate branching ratios */
   if (psd->sd_branching_approx != bra_exact) {
-    for(index_z=0; index_z<psd->z_size; ++index_z){
+    for (index_z=0; index_z<psd->z_size; ++index_z){
       bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
       /* 1) Calculate branching ratios using sharp_sharp transition */
@@ -734,7 +734,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
                 psd->error_message);
 
     /* Interpolate over z */
-    for(index_z=0; index_z<psd->z_size; ++index_z){
+    for (index_z=0; index_z<psd->z_size; ++index_z){
       class_call(distortions_interpolate_br_data(psd,
                                                  psd->z[index_z],
                                                  &f_g,
@@ -749,7 +749,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       psd->br_table[psd->index_type_g][index_z] = f_g;
       psd->br_table[psd->index_type_y][index_z] = f_y;
       psd->br_table[psd->index_type_mu][index_z] = f_mu;
-      for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+      for (index_k=0; index_k<psd->sd_PCA_size; ++index_k){
         psd->br_table[psd->index_type_PCA+index_k][index_z] = f_E[index_k];
       }
 
@@ -815,7 +815,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
               psd->error_message);
 
   /* Loop over z and calculate the heating at each point */
-  for(index_z=0; index_z<psd->z_size; ++index_z){
+  for (index_z=0; index_z<psd->z_size; ++index_z){
 
     /** Import quantities from background structure */
     class_call(background_tau_of_z(pba,
@@ -904,7 +904,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
   /** Compute distortion amplitudes corresponding to each branching ratio (g, y and mu) */
   /* Define y, mu, g and mu_k from heating rates */
-  for(index_type=0; index_type<psd->type_size; ++index_type){
+  for (index_type=0; index_type<psd->type_size; ++index_type){
     class_call(array_trapezoidal_convolution(psd->dQrho_dz_tot,
                                              psd->br_table[index_type],
                                              psd->z_size,
@@ -931,7 +931,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   class_alloc(psd->sd_shape_table,
               psd->type_size*sizeof(double*),
               psd->error_message);
-  for(index_type=0; index_type<psd->type_size; ++index_type){
+  for (index_type=0; index_type<psd->type_size; ++index_type){
     class_alloc(psd->sd_shape_table[index_type],
                 psd->x_size*sizeof(double),
                 psd->error_message);
@@ -940,14 +940,14 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /** Calculate spectral shapes */
   if (psd->sd_branching_approx != bra_exact || psd->sd_PCA_size == 0) {
     /* If no PCA analysis is required, the shapes have simple analistical form */
-    for(index_x=0; index_x<psd->x_size; ++index_x){
+    for (index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
-                                                           pow(1.-exp(-psd->x[index_x]),2.);        // [-]
+        pow(1.-exp(-psd->x[index_x]),2.);        // [-]
       psd->sd_shape_table[psd->index_type_y][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
-                                                           (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
-                                                           (1.-exp(-psd->x[index_x]))-4.);          // [-]
+        (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
+         (1.-exp(-psd->x[index_x]))-4.);          // [-]
       psd->sd_shape_table[psd->index_type_mu][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
-                                                           (1./2.19229-1./psd->x[index_x]);         // [-]
+        (1./2.19229-1./psd->x[index_x]);         // [-]
     }
   }
   else {
@@ -968,7 +968,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                 psd->error_message);
 
     /* Interpolate over z */
-    for(index_x=0; index_x<psd->x_size; ++index_x){
+    for (index_x=0; index_x<psd->x_size; ++index_x){
       class_call(distortions_interpolate_sd_data(psd,
                                                  psd->x[index_x]*psd->x_to_nu,
                                                  &psd->sd_shape_table[psd->index_type_g][index_x],
@@ -979,7 +979,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                  psd->error_message,
                  psd->error_message);
 
-    for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+      for (index_k=0; index_k<psd->sd_PCA_size; ++index_k){
         psd->sd_shape_table[psd->index_type_PCA+index_k][index_x] = S[index_k];
       }
     }
@@ -1003,7 +1003,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                                           psd->error_message),
                psd->error_message,
                psd->error_message);
-    for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+    for (index_k=0; index_k<psd->sd_PCA_size; ++index_k){
       class_call(array_trapezoidal_integral(psd->sd_shape_table[psd->index_type_PCA+index_k],
                                             psd->x_size,
                                             psd->x_weights,
@@ -1023,22 +1023,22 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   class_alloc(psd->sd_table,
               psd->type_size*sizeof(double*),
               psd->error_message);
-  for(index_type=0; index_type<psd->type_size; ++index_type){
+  for (index_type=0; index_type<psd->type_size; ++index_type){
     class_alloc(psd->sd_table[index_type],
                 psd->x_size*sizeof(double),
                 psd->error_message);
   }
 
   /** Calculate spectral distortions according to Chluba & Jeong 2014 (arxiv:1306.5751, Eq. (11)) */
-  for(index_x=0;index_x<psd->x_size;++index_x){
+  for (index_x=0;index_x<psd->x_size;++index_x){
     psd->DI[index_x] = 0.;
 
-    for(index_type=0;index_type<psd->type_size;++index_type){
+    for (index_type=0;index_type<psd->type_size;++index_type){
       if (index_type==psd->index_type_g) {
         if (psd->include_g_distortion == _TRUE_) {
           g = psd->sd_parameter_table[psd->index_type_g];
           psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
-                                                 g*g*0.5*psd->sd_shape_table[psd->index_type_y][index_x];
+            g*g*0.5*psd->sd_shape_table[psd->index_type_y][index_x];
         }
         else {
           g = 0.;
@@ -1060,7 +1060,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
   /* Reionization */
   if (psd->has_SZ_effect == _TRUE_) {
-    for(index_x=0;index_x<psd->x_size;++index_x){
+    for (index_x=0;index_x<psd->x_size;++index_x){
       class_call(distortions_add_effects_reio(pba,pth,psd,
                                               5.e0,
                                               2.e-4,
@@ -1079,17 +1079,17 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
   /** Compute total heating */
   psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_y]*4.+
-                       psd->sd_parameter_table[psd->index_type_mu]/1.401+
-                       psd->epsilon;
+    psd->sd_parameter_table[psd->index_type_mu]/1.401+
+    psd->epsilon;
 
   if (psd->include_g_distortion == _TRUE_) {
-     psd->Drho_over_rho += psd->sd_parameter_table[psd->index_type_g]*4.;
+    psd->Drho_over_rho += psd->sd_parameter_table[psd->index_type_g]*4.;
   }
 
   /** Print found parameters */
   if (psd->distortions_verbose > 1) {
 
-    if ( psd->distortions_verbose > 3 && psd->include_g_distortion == _TRUE_) {
+    if (psd->distortions_verbose > 3 && psd->include_g_distortion == _TRUE_) {
       printf(" -> g-parameter %g (Note, that this does not include contributions from earlier than sd_z_max=%g)\n", psd->sd_parameter_table[psd->index_type_g], ppr->sd_z_max);
     }
 
@@ -1108,12 +1108,12 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
 
     if (psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0) {
-       if (psd->distortions_verbose > 2) {
-         for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
-           printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
-         }
-       }
-       printf(" -> epsilon-parameter = %g\n", psd->epsilon);
+      if (psd->distortions_verbose > 2) {
+        for (index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+          printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
+        }
+      }
+      printf(" -> epsilon-parameter = %g\n", psd->epsilon);
     }
 
     printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
@@ -1177,26 +1177,26 @@ int distortions_add_effects_reio(struct background * pba,
   double Delta_x[8] = {-1.,
                        x_tilde,
                        -(pow(x_tilde,2.)
-                                     +pow(S_tilde,2.)/2.),
+                         +pow(S_tilde,2.)/2.),
                        x_tilde*(pow(x_tilde,2.)
-                                     +pow(S_tilde,2.)*2.),
+                                +pow(S_tilde,2.)*2.),
                        -(pow(x_tilde,4.)
-                                     +pow(x_tilde,2.)*pow(S_tilde,2.)*11./2.
-                                     +pow(S_tilde,4.)),
+                         +pow(x_tilde,2.)*pow(S_tilde,2.)*11./2.
+                         +pow(S_tilde,4.)),
                        x_tilde*(pow(x_tilde,4.)
-                                     +pow(x_tilde,2.)*pow(S_tilde,2.)*13.
-                                     +pow(S_tilde,4.)*17./2.),
+                                +pow(x_tilde,2.)*pow(S_tilde,2.)*13.
+                                +pow(S_tilde,4.)*17./2.),
                        -(pow(x_tilde,6.)
-                                     +pow(x_tilde,4.)*pow(S_tilde,2.)*57./2.
-                                     +pow(x_tilde,2.)*pow(S_tilde,4.)*45.
-                                     +pow(S_tilde,6.)*17./4.),
+                         +pow(x_tilde,4.)*pow(S_tilde,2.)*57./2.
+                         +pow(x_tilde,2.)*pow(S_tilde,4.)*45.
+                         +pow(S_tilde,6.)*17./4.),
                        x_tilde*(pow(x_tilde,6.)
-                                     +pow(x_tilde,4.)*pow(S_tilde,2.)*60.
-                                     +pow(x_tilde,2.)*pow(S_tilde,4.)*192.
-                                     +pow(S_tilde,6.)*62.)};
+                                +pow(x_tilde,4.)*pow(S_tilde,2.)*60.
+                                +pow(x_tilde,2.)*pow(S_tilde,4.)*192.
+                                +pow(S_tilde,6.)*62.)};
 
   /** Thermal SZ effect (TSZ) */
- /* Fill coefficient tables from appendix A1 of Chluba et al. 2012 */
+  /* Fill coefficient tables from appendix A1 of Chluba et al. 2012 */
   double a[6][3] = {{4., 10.,    15./2.},
                     {1., 47./2., 1023./8.},
                     {0., 42./5., 868./5.},
@@ -1206,9 +1206,9 @@ int distortions_add_effects_reio(struct background * pba,
 
   double Y_k[3] = {0., 0., 0.};
 
-  for(index_k=0; index_k<3; ++index_k){
+  for (index_k=0; index_k<3; ++index_k){
     Y_k[index_k] = 0.;
-    for(index_n=0; index_n<2*index_k+2; ++index_n){
+    for (index_n=0; index_n<2*index_k+2; ++index_n){
       Y_k[index_k]+=a[index_n][index_k]*Delta_x[index_n];
     }
   }
@@ -1218,7 +1218,7 @@ int distortions_add_effects_reio(struct background * pba,
 
   /** Relativistic TSZ */
   DI_tSZ_rel = 0.;
-  for(index_k=1; index_k<3; ++index_k){
+  for (index_k=1; index_k<3; ++index_k){
     DI_tSZ_rel += Dtau*pow(theta_e,index_k+1)*G_T*Y_k[index_k];
   }
 
@@ -1227,99 +1227,99 @@ int distortions_add_effects_reio(struct background * pba,
   /** Kinematic SZ effect (kSZ) */
   /* Calculated according to Nozawa et al. 2005 */
   switch(psd->sd_reio_type){
-    case sd_reio_Nozawa:
+  case sd_reio_Nozawa:
     Y_0 = Y_k[0];
     Y_1 = Y_k[1];
     Y_2 = Y_k[2];
 
     B_0 = 1.*Y_0/3.;
     B_1 = 5.*Y_0/6.
-          +2.*Y_1/3.;
+      +2.*Y_1/3.;
     B_2 = 5.*Y_0/8.
-          +3.*Y_1/2.
-          +Y_2;
+      +3.*Y_1/2.
+      +Y_2;
     B_3 = -5.*Y_0/8.
-          +5.*Y_1/4.
-          +5.*Y_2/2.;
+      +5.*Y_1/4.
+      +5.*Y_2/2.;
 
     C_0 = 1.;
     C_1 = 10.
-          -47.*x_tilde/5.
-          +7.*pow(x_tilde,2.)/5.
-          +7.*pow(S_tilde,2.)/10.;
+      -47.*x_tilde/5.
+      +7.*pow(x_tilde,2.)/5.
+      +7.*pow(S_tilde,2.)/10.;
     C_2 = 25.
-          -1117.*x_tilde/10.
-          +847.*pow(x_tilde,2.)/10.
-          -183.*pow(x_tilde,3.)/10.
-          +11.*pow(x_tilde,4.)/10.
-          +pow(S_tilde,2.)*(847./20.
-                            -183.*x_tilde/5.
-                            +121.*pow(x_tilde,2.)/20.)
-          +11.*pow(S_tilde,4.)/10.;
+      -1117.*x_tilde/10.
+      +847.*pow(x_tilde,2.)/10.
+      -183.*pow(x_tilde,3.)/10.
+      +11.*pow(x_tilde,4.)/10.
+      +pow(S_tilde,2.)*(847./20.
+                        -183.*x_tilde/5.
+                        +121.*pow(x_tilde,2.)/20.)
+      +11.*pow(S_tilde,4.)/10.;
     C_3 = 75./4.
-          -21873.*x_tilde/40.
-          +49161.*pow(x_tilde,2.)/40.
-          -27519.*pow(x_tilde,3.)/35.
-          +6684.*pow(x_tilde,4.)/35.
-          -3917.*pow(x_tilde,5.)/210.
-          +64.*pow(x_tilde,6.)/105.
-          +pow(S_tilde,2.)*(49161./80.
-                            -55038.*x_tilde/35.
-                            +36762.*pow(x_tilde,2.)/35.
-                            -50921.*pow(x_tilde,3.)/210.
-                            +608.*pow(x_tilde,4.)/35.)
-          +pow(S_tilde,4.)*(6684./35.
-                            -66589.*x_tilde/420.
-                            +192.*pow(x_tilde,2.)/7.)
-          +272.*pow(S_tilde,6.)/105.;
+      -21873.*x_tilde/40.
+      +49161.*pow(x_tilde,2.)/40.
+      -27519.*pow(x_tilde,3.)/35.
+      +6684.*pow(x_tilde,4.)/35.
+      -3917.*pow(x_tilde,5.)/210.
+      +64.*pow(x_tilde,6.)/105.
+      +pow(S_tilde,2.)*(49161./80.
+                        -55038.*x_tilde/35.
+                        +36762.*pow(x_tilde,2.)/35.
+                        -50921.*pow(x_tilde,3.)/210.
+                        +608.*pow(x_tilde,4.)/35.)
+      +pow(S_tilde,4.)*(6684./35.
+                        -66589.*x_tilde/420.
+                        +192.*pow(x_tilde,2.)/7.)
+      +272.*pow(S_tilde,6.)/105.;
 
     D_0 = -2./3.
-          +11.*x_tilde/30.;
+      +11.*x_tilde/30.;
     D_1 = -4.
-          +12.*x_tilde
-          -6.*pow(x_tilde,2.)
-          +19.*pow(x_tilde,3.)/30.
-          +pow(S_tilde,2.)*(-3.
-                            +19.*x_tilde/15.);
-   D_2 = -10.
-          +542.*x_tilde/5.
-          -843.*pow(x_tilde,2.)/5.
-          +10603.*pow(x_tilde,3.)/140.
-          -409.*pow(x_tilde,4.)/35.
-          +23.*pow(x_tilde,5.)/42.
-          +pow(S_tilde,2.)*(-843./10.
-                            +10603.*x_tilde/70.
-                            -4499.*pow(x_tilde,2.)/70.
-                            +299.*pow(x_tilde,3.)/42.)
-          +pow(S_tilde,4.)*(-409./35.
-                            +391.*x_tilde/84.);
+      +12.*x_tilde
+      -6.*pow(x_tilde,2.)
+      +19.*pow(x_tilde,3.)/30.
+      +pow(S_tilde,2.)*(-3.
+                        +19.*x_tilde/15.);
+    D_2 = -10.
+      +542.*x_tilde/5.
+      -843.*pow(x_tilde,2.)/5.
+      +10603.*pow(x_tilde,3.)/140.
+      -409.*pow(x_tilde,4.)/35.
+      +23.*pow(x_tilde,5.)/42.
+      +pow(S_tilde,2.)*(-843./10.
+                        +10603.*x_tilde/70.
+                        -4499.*pow(x_tilde,2.)/70.
+                        +299.*pow(x_tilde,3.)/42.)
+      +pow(S_tilde,4.)*(-409./35.
+                        +391.*x_tilde/84.);
     D_3 = -15./2.
-          +4929.*x_tilde/40.
-          -39777.*pow(x_tilde,2.)/20.
-          +1199897.*pow(x_tilde,3.)/560.
-          -4392.*pow(x_tilde,4.)/5.
-          +16364.*pow(x_tilde,5.)/105.
-          -3764.*pow(x_tilde,6.)/315.
-          +101.*pow(x_tilde,7.)/315.
-          +pow(S_tilde,2.)*(-39777./40.
-                            +1199897.*x_tilde/280.
-                            -24156.*pow(x_tilde,2.)/5.
-                            +212732.*pow(x_tilde,3.)/105.
-                            -35758.*pow(x_tilde,4.)/105.
-                            +404.*pow(x_tilde,5.)/21.)
-          +pow(S_tilde,4.)*(-4392./5.
-                            +139094.*x_tilde/105.
-                            -3764.*pow(x_tilde,2.)/7.
-                            +6464.*pow(x_tilde,3.)/105.)
-          +pow(S_tilde,6.)*(-15997./315.
-                            +6262.*x_tilde/315.);
+      +4929.*x_tilde/40.
+      -39777.*pow(x_tilde,2.)/20.
+      +1199897.*pow(x_tilde,3.)/560.
+      -4392.*pow(x_tilde,4.)/5.
+      +16364.*pow(x_tilde,5.)/105.
+      -3764.*pow(x_tilde,6.)/315.
+      +101.*pow(x_tilde,7.)/315.
+      +pow(S_tilde,2.)*(-39777./40.
+                        +1199897.*x_tilde/280.
+                        -24156.*pow(x_tilde,2.)/5.
+                        +212732.*pow(x_tilde,3.)/105.
+                        -35758.*pow(x_tilde,4.)/105.
+                        +404.*pow(x_tilde,5.)/21.)
+      +pow(S_tilde,4.)*(-4392./5.
+                        +139094.*x_tilde/105.
+                        -3764.*pow(x_tilde,2.)/7.
+                        +6464.*pow(x_tilde,3.)/105.)
+      +pow(S_tilde,6.)*(-15997./315.
+                        +6262.*x_tilde/315.);
 
     M_low = G_T*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3);
     D_low = G_T*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3);
     Q_low = G_T*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3);
     break;
-  /* Calculated according to Chluba et al. 2012 */
-    case sd_reio_Chluba:
+    /* Calculated according to Chluba et al. 2012 */
+  case sd_reio_Chluba:
     /* Low temperature approximation */
     if (T_e < 10.) {
       double d[7][3] = {{-2./5., -1./5.,   407./140.},
@@ -1339,40 +1339,40 @@ int distortions_add_effects_reio(struct background * pba,
                         { 0.,      0.,        23./210.}};
 
       M_low = 1./3.*(Y_SZ+G_T);
-      for(index_k=0; index_k<3; ++index_k){
+      for (index_k=0; index_k<3; ++index_k){
         M_k = 0.;
-        for(index_n=0; index_n<2*index_k+2; ++index_n){
+        for (index_n=0; index_n<2*index_k+2; ++index_n){
           M_k += (a[index_n][index_k]-d[index_n][index_k])
-                        *(index_n*(index_n+2)*Delta_x[index_n]+
-                          (2*index_n+3)*Delta_x[index_n+1]+
-                          Delta_x[index_n+2]
-                         );
+            *(index_n*(index_n+2)*Delta_x[index_n]+
+              (2*index_n+3)*Delta_x[index_n+1]+
+              Delta_x[index_n+2]
+              );
         }
         M_k *= 1./3.;
         M_low += pow(theta_e,index_k+1)*M_k*G_T;
       }
 
       D_low = G_T;
-      for(index_k=0; index_k<3; ++index_k){
+      for (index_k=0; index_k<3; ++index_k){
         D_k = 0.;
-        for(index_n=0; index_n<2*index_k+2; ++index_n){
+        for (index_n=0; index_n<2*index_k+2; ++index_n){
           D_k += (d[index_n][index_k]-a[index_n][index_k])
-                        *(index_n*Delta_x[index_n]+
-                          Delta_x[index_n+1]
-                         );
+            *(index_n*Delta_x[index_n]+
+              Delta_x[index_n+1]
+              );
         }
         D_low += pow(theta_e,index_k+1)*D_k*G_T;
       }
 
       Q_low = 11./30.*(x_tilde*G_T);
-      for(index_k=0; index_k<3; ++index_k){
+      for (index_k=0; index_k<3; ++index_k){
         Q_k = 0.;
-        for(index_n=0; index_n<2*index_k+2; ++index_n){
+        for (index_n=0; index_n<2*index_k+2; ++index_n){
           Q_k += (a[index_n][index_k]+q[index_n][index_k]-2.*d[index_n][index_k])
-                        *(index_n*(index_n-1)*Delta_x[index_n]+
-                          2*index_n*Delta_x[index_n+1]+
-                          Delta_x[index_n+2]
-                         );
+            *(index_n*(index_n-1)*Delta_x[index_n]+
+              2*index_n*Delta_x[index_n+1]+
+              Delta_x[index_n+2]
+              );
         }
         Q_k *= 1./3.;
         Q_low += pow(theta_e,index_k+1)*Q_k*G_T;
@@ -1385,8 +1385,8 @@ int distortions_add_effects_reio(struct background * pba,
       Q_low = 0.;
     }
     break;
-    default:
-      class_stop(psd->error_message,"Unrecognized sd_reio_type='%i'.",psd->sd_reio_type);
+  default:
+    class_stop(psd->error_message,"Unrecognized sd_reio_type='%i'.",psd->sd_reio_type);
   }
 
   DI_kSZ = Dtau*beta*(beta*M_low+P_1*D_low+beta*P_2*Q_low);
@@ -1429,7 +1429,7 @@ int distortions_read_br_data(struct precision * ppr,
     /* Eliminate blank spaces at beginning of line */
     left=line;
     while (left[0]==' ') {
-        left++;
+      left++;
     }
 
     if (left[0] > 39) {
@@ -1449,28 +1449,28 @@ int distortions_read_br_data(struct precision * ppr,
   }
 
   /** Read parameters */
-  for(index_z=0; index_z<psd->br_exact_Nz; ++index_z){
+  for (index_z=0; index_z<psd->br_exact_Nz; ++index_z){
     class_test(fscanf(infile, "%le",
                       &(psd->br_exact_z[index_z]))!=1,                                // [-]
-                      psd->error_message,
-                      "Could not read z at line %i in file '%s'",index_z+headlines,br_file);
+               psd->error_message,
+               "Could not read z at line %i in file '%s'",index_z+headlines,br_file);
     class_test(fscanf(infile, "%le",
                       &(psd->f_g_exact[index_z]))!=1,                                 // [-]
-                      psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",index_z+headlines,br_file);
+               psd->error_message,
+               "Could not read f_g at line %i in file '%s'",index_z+headlines,br_file);
     class_test(fscanf(infile, "%le",
                       &(psd->f_y_exact[index_z]))!=1,                                 // [-]
-                      psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",index_z+headlines,br_file);
+               psd->error_message,
+               "Could not read f_y at line %i in file '%s'",index_z+headlines,br_file);
     class_test(fscanf(infile,"%le",
                       &(psd->f_mu_exact[index_z]))!=1,                                // [-]
-                      psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",index_z+headlines,br_file);
-    for(index_k=0; index_k<psd->E_vec_size; ++index_k){
+               psd->error_message,
+               "Could not read f_mu at line %i in file '%s'",index_z+headlines,br_file);
+    for (index_k=0; index_k<psd->E_vec_size; ++index_k){
       class_test(fscanf(infile,"%le",
                         &(psd->E_vec[index_k*psd->br_exact_Nz+index_z]))!=1,           // [-]
-                        psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",index_z+headlines,br_file);
+                 psd->error_message,
+                 "Could not read E vector at line %i in file '%s'",index_z+headlines,br_file);
     }
   }
 
@@ -1519,8 +1519,8 @@ int distortions_spline_br_data(struct distortions* psd){
                                         psd->ddf_y_exact,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
-           psd->error_message,
-           psd->error_message);
+             psd->error_message,
+             psd->error_message);
   class_call(array_spline_table_columns(psd->br_exact_z,
                                         psd->br_exact_Nz,
                                         psd->f_mu_exact,
@@ -1528,8 +1528,8 @@ int distortions_spline_br_data(struct distortions* psd){
                                         psd->ddf_mu_exact,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
-           psd->error_message,
-           psd->error_message);
+             psd->error_message,
+             psd->error_message);
   class_call(array_spline_table_columns(psd->br_exact_z,
                                         psd->br_exact_Nz,
                                         psd->E_vec,
@@ -1537,8 +1537,8 @@ int distortions_spline_br_data(struct distortions* psd){
                                         psd->ddE_vec,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
-           psd->error_message,
-           psd->error_message);
+             psd->error_message,
+             psd->error_message);
 
   return _SUCCESS_;
 }
@@ -1596,7 +1596,7 @@ int distortions_interpolate_br_data(struct distortions* psd,
                                      index+1,
                                      h,a,b);
 
-  for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+  for (index_k=0; index_k<psd->sd_PCA_size; ++index_k){
     f_E[index_k] = array_spline_eval(psd->E_vec+index_k*psd->br_exact_Nz,
                                      psd->ddE_vec+index_k*psd->br_exact_Nz,
                                      index,
@@ -1662,7 +1662,7 @@ int distortions_read_sd_data(struct precision * ppr,
     /* Eliminate blank spaces at beginning of line */
     left=line;
     while (left[0]==' ') {
-        left++;
+      left++;
     }
 
     if (left[0] > 39) {
@@ -1682,31 +1682,31 @@ int distortions_read_sd_data(struct precision * ppr,
   }
 
   /** Read parameters */
-  for(index_x=0; index_x<psd->PCA_Nnu; ++index_x){
+  for (index_x=0; index_x<psd->PCA_Nnu; ++index_x){
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_nu[index_x]))!=1,                                                  // [GHz]
-                      psd->error_message,
-                      "Could not read z at line %i in file '%s'",index_x+headlines,sd_file);
+               psd->error_message,
+               "Could not read z at line %i in file '%s'",index_x+headlines,sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_G_T[index_x]))!=1,                                                 // [10^-18 W/(m^2 Hz sr)]
-                      psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",index_x+headlines,sd_file);
+               psd->error_message,
+               "Could not read f_g at line %i in file '%s'",index_x+headlines,sd_file);
     psd->PCA_G_T[index_x] /= (psd->DI_units*1.e18);                                                 // [-]
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_Y_SZ[index_x]))!=1,                                                // [10^-18 W/(m^2 Hz sr)]
-                      psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",index_x+headlines,sd_file);
+               psd->error_message,
+               "Could not read f_y at line %i in file '%s'",index_x+headlines,sd_file);
     psd->PCA_Y_SZ[index_x] /= (psd->DI_units*1.e18);                                                // [-]
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_M_mu[index_x]))!=1,                                                // [10^-18 W/(m^2 Hz sr)]
-                      psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",index_x+headlines,sd_file);
+               psd->error_message,
+               "Could not read f_mu at line %i in file '%s'",index_x+headlines,sd_file);
     psd->PCA_M_mu[index_x] /= (psd->DI_units*1.e18);                                                // [-]
-    for(index_k=0; index_k<psd->S_vec_size; ++index_k){
+    for (index_k=0; index_k<psd->S_vec_size; ++index_k){
       class_test(fscanf(infile,"%le",
                         &(psd->S_vec[index_k*psd->PCA_Nnu+index_x]))!=1,                            // [10^-18 W/(m^2 Hz sr)]
-                        psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",index_x+headlines,sd_file);
+                 psd->error_message,
+                 "Could not read E vector at line %i in file '%s'",index_x+headlines,sd_file);
       psd->S_vec[index_k*psd->PCA_Nnu+index_x] /= (psd->DI_units*1.e18);                            // [-]
     }
 
@@ -1757,8 +1757,8 @@ int distortions_spline_sd_data(struct distortions* psd){
                                         psd->ddPCA_Y_SZ,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
-           psd->error_message,
-           psd->error_message);
+             psd->error_message,
+             psd->error_message);
   class_call(array_spline_table_columns(psd->PCA_nu,
                                         psd->PCA_Nnu,
                                         psd->PCA_M_mu,
@@ -1766,8 +1766,8 @@ int distortions_spline_sd_data(struct distortions* psd){
                                         psd->ddPCA_M_mu,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
-           psd->error_message,
-           psd->error_message);
+             psd->error_message,
+             psd->error_message);
   class_call(array_spline_table_columns(psd->PCA_nu,
                                         psd->PCA_Nnu,
                                         psd->S_vec,
@@ -1775,8 +1775,8 @@ int distortions_spline_sd_data(struct distortions* psd){
                                         psd->ddS_vec,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
-           psd->error_message,
-           psd->error_message);
+             psd->error_message,
+             psd->error_message);
 
   return _SUCCESS_;
 }
@@ -1836,7 +1836,7 @@ int distortions_interpolate_sd_data(struct distortions* psd,
                             last_index+1,
                             h,a,b);
 
-  for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+  for (index_k=0; index_k<psd->sd_PCA_size; ++index_k){
     S[index_k] = array_spline_eval(psd->S_vec+index_k*psd->PCA_Nnu,
                                    psd->ddS_vec+index_k*psd->PCA_Nnu,
                                    last_index,
@@ -1929,7 +1929,7 @@ int distortions_output_sd_titles(struct distortions * psd,
   class_store_columntitle(titles,"Dimensionless frequency x",_TRUE_);
   class_store_columntitle(titles,"Frequency nu [GHz]",_TRUE_);
   class_store_columntitle(titles,"SD_tot",_TRUE_);
-  for(index_type=0;index_type<psd->type_size;++index_type){
+  for (index_type=0;index_type<psd->type_size;++index_type){
     if (index_type==psd->index_type_g) {
       sprintf(temp_title,"SD[g]");
     }
@@ -1971,7 +1971,7 @@ int distortions_output_sd_data(struct distortions * psd,
     class_store_double(dataptr, psd->x[index_x], _TRUE_,storeidx);
     class_store_double(dataptr, psd->x[index_x]*psd->x_to_nu, _TRUE_,storeidx);
     class_store_double(dataptr, psd->DI[index_x]*1.e26*psd->DI_units, _TRUE_,storeidx);
-    for(index_type=0;index_type<psd->type_size;++index_type){
+    for (index_type=0;index_type<psd->type_size;++index_type){
       class_store_double(dataptr, psd->sd_table[index_type][index_x]*1.e26*psd->DI_units, _TRUE_,storeidx);
     }
   }

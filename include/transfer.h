@@ -13,43 +13,43 @@
 #define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
 /* macro: test if index_tt corresponds to an integrated nCl/sCl contribution */
 #define _integrated_ncl_ (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
+  (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) || \
+    (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) || \
+    (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
 /* macro: test if index_tt corresponds to an non-integrated nCl/sCl contribution */
 #define _nonintegrated_ncl_ (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) || \
-          (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) || \
-          (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) || \
-          (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
+  (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) || \
+    (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) || \
+    (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) || \
+    (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  || \
+    (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  || \
+    (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
 /* macro: bin number associated to particular redshift bin and selection function for non-integrated contributions*/
-#define _get_bin_nonintegrated_ncl_(index_tt)                                                      \
-      if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))     \
-        bin = index_tt - ptr->index_tt_density;                                                    \
-      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))         \
-        bin = index_tt - ptr->index_tt_rsd;                                                        \
-      if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))         \
-        bin = index_tt - ptr->index_tt_d0;                                                         \
-      if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))         \
-        bin = index_tt - ptr->index_tt_d1;                                                         \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))          \
-        bin = index_tt - ptr->index_tt_nc_g1;                                                      \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))          \
-        bin = index_tt - ptr->index_tt_nc_g2;                                                      \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))          \
-        bin = index_tt - ptr->index_tt_nc_g3;
+#define _get_bin_nonintegrated_ncl_(index_tt)                           \
+  if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) \
+    bin = index_tt - ptr->index_tt_density;                             \
+  if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) \
+    bin = index_tt - ptr->index_tt_rsd;                                 \
+  if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) \
+    bin = index_tt - ptr->index_tt_d0;                                  \
+  if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) \
+    bin = index_tt - ptr->index_tt_d1;                                  \
+  if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr)) \
+    bin = index_tt - ptr->index_tt_nc_g1;                               \
+  if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr)) \
+    bin = index_tt - ptr->index_tt_nc_g2;                               \
+  if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr)) \
+    bin = index_tt - ptr->index_tt_nc_g3;
 /* macro: bin number associated to particular redshift bin and selection function for integrated contributions*/
-#define _get_bin_integrated_ncl_(index_tt)                                                               \
-      if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) \
-        bin = index_tt - ptr->index_tt_lensing;                                                          \
-      if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))              \
-        bin = index_tt - ptr->index_tt_nc_lens;                                                          \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr))                \
-        bin = index_tt - ptr->index_tt_nc_g4;                                                            \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))                \
-        bin = index_tt - ptr->index_tt_nc_g5;
+#define _get_bin_integrated_ncl_(index_tt)                              \
+  if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) \
+    bin = index_tt - ptr->index_tt_lensing;                             \
+  if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) \
+    bin = index_tt - ptr->index_tt_nc_lens;                             \
+  if (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) \
+    bin = index_tt - ptr->index_tt_nc_g4;                               \
+  if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)) \
+    bin = index_tt - ptr->index_tt_nc_g5;
 /**
  * Structure containing everything about transfer functions in
  * harmonic space \f$ \Delta_l^{X} (q) \f$ that other modules need to
@@ -205,7 +205,7 @@ struct transfer {
  * know for computing transfer functions (but that can be forgotten
  * once the transfer functions are known, otherwise they would be
  * stored in the transfer module)
-*/
+ */
 
 struct transfer_workspace {
 
@@ -684,7 +684,7 @@ extern "C" {
                           struct transfer_workspace * ptw,
                           int index_q,
                           double tau0
-                           );
+                          );
 
   int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
                                                 int l,
@@ -705,23 +705,23 @@ extern "C" {
                         ErrorMsg error_message);
 
   int transfer_precompute_selection(
-                     struct precision * ppr,
-                     struct background * pba,
-                     struct perturbations * ppt,
-                     struct transfer * ptr,
-                     double tau_rec,
-                     int tau_size_max,
-                     double ** window
-                     );
+                                    struct precision * ppr,
+                                    struct background * pba,
+                                    struct perturbations * ppt,
+                                    struct transfer * ptr,
+                                    double tau_rec,
+                                    int tau_size_max,
+                                    double ** window
+                                    );
 
   int transfer_f_evo(
-                   struct background* pba,
-                   struct transfer * ptr,
-                   double* pvecback,
-                   int last_index,
-                   double cotKgen,
-                   double* f_evo
-                  );
+                     struct background* pba,
+                     struct transfer * ptr,
+                     double* pvecback,
+                     int last_index,
+                     double cotKgen,
+                     double* f_evo
+                     );
 
 #ifdef __cplusplus
 }

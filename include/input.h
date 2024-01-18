@@ -51,11 +51,11 @@
                errmsg,                                                          \
                errmsg);                                                         \
     if (flag_temp == _TRUE_){                                                   \
-      if( string_begins_with(string_temp,'y')                                   \
+      if (string_begins_with(string_temp,'y')                                   \
          || string_begins_with(string_temp,'Y') ){                              \
         destination = _TRUE_;                                                   \
       }                                                                         \
-      else if( string_begins_with(string_temp,'n')                              \
+      else if (string_begins_with(string_temp,'n')                              \
          || string_begins_with(string_temp,'N') ){                              \
         destination = _FALSE_;                                                  \
       }                                                                         \
@@ -73,18 +73,18 @@
                errmsg,                                                          \
                errmsg);                                                         \
     /* Compatibility code BEGIN */                                              \
-    if(flag_temp == _FALSE_){                                                   \
+    if (flag_temp == _FALSE_){                                                   \
       class_call(parser_read_string(pfc,oldname,&string_temp,&flag_temp,errmsg),\
                  errmsg,                                                        \
                  errmsg);                                                       \
     }                                                                           \
     /* Compatibility code END */                                                \
     if (flag_temp == _TRUE_){                                                   \
-      if( string_begins_with(string_temp,'y')                                   \
+      if (string_begins_with(string_temp,'y')                                   \
          || string_begins_with(string_temp,'Y') ){                              \
         destination = _TRUE_;                                                   \
       }                                                                         \
-      else if( string_begins_with(string_temp,'n')                              \
+      else if (string_begins_with(string_temp,'n')                              \
          || string_begins_with(string_temp,'N') ){                              \
         destination = _FALSE_;                                                  \
       }                                                                         \
@@ -141,7 +141,7 @@
                  name, entries_read_temp, siz);                                 \
     }else{                                                                      \
       class_alloc(destination,siz*sizeof(double),errmsg);                       \
-      for(n=0; n<siz; n++){destination[n] = val_default;}                       \
+      for (n=0; n<siz; n++){destination[n] = val_default;}                       \
     }                                                                           \
   } while(0);
 
@@ -161,7 +161,7 @@
                  name, entries_read_temp, siz);                                 \
     }else{                                                                      \
       class_alloc(destination,siz*sizeof(int),errmsg);                          \
-      for(n=0; n<siz; n++){destination[n] = val_default;}                       \
+      for (n=0; n<siz; n++){destination[n] = val_default;}                       \
     }                                                                           \
   } while(0);
 
@@ -204,9 +204,9 @@
  */
 
 /* EDE-edit: add fEDE and z_c (the order is important for speed) */
-enum target_names {tn_fEDE,tn_z_c,theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
-/* Important: Keep this number equal to the number of target_names (except sigma8) */
-#define _NUM_TARGETS_ 8
+enum target_names {tn_fEDE, tn_z_c, theta_s, theta_s_100, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8, S8};
+/* Important: Keep this number equal to the number of target_names (except sigma8, S8), and keep sigma8, S8 at the very end */
+#define _NUM_TARGETS_ 9
 /* Important: add one for each new target_names */
 enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations,
                         cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
