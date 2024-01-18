@@ -404,8 +404,6 @@ int input_read_from_file(struct file_content * pfc,
   /** - Define local variables */
   int input_verbose = 0;
   int has_shooting;
-  int flag = _FALSE_;
-  int i;
 
   /** Set default values
       Before getting into the assignment of parameters and the shooting, we want
@@ -436,16 +434,13 @@ int input_read_from_file(struct file_content * pfc,
                errmsg);
   }
 
-  /** Read the 'write_warnings' flag. This is the correct place to do it,
-      since we want it to happen after all the shooting business */
-  class_read_flag_or_deprecated("write_warnings","write warnings",flag);
-  /* Print warnings for unread parameters */
-  if (flag == _TRUE_){
-    for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _FALSE_)
-        fprintf(stdout,"[WARNING: input line not used: '%s=%s']\n",pfc->name[i],pfc->value[i]);
-    }
-  }
+  /** Write info on the read/unread parameters. This is the correct place to do it,
+      since we want it to happen after all the shooting business,
+      and after the final reading of all parameters */
+  class_call(input_write_info(pfc,pop,
+                              errmsg),
+             errmsg,
+             errmsg);
 
   if (pfo->has_pk_eq == _TRUE_) {
 
@@ -747,6 +742,10 @@ int input_shooting(struct file_content * pfc,
 
     /** Set status of shooting */
     pba->shooting_failed = shooting_failed;
+    if (pba->shooting_failed == _TRUE_) {
+      background_free_input(pba);
+      perturbations_free_input(ppt);
+    }
 
     /* all parameters read in fzw must be considered as read in pfc. At the same
        time the parameters read before in pfc (like theta_s,...) must still be
@@ -1215,6 +1214,7 @@ int input_get_guess(double *xguess,
 
   /** - Deallocate everything allocated by input_read_parameters */
   background_free_input(&ba);
+  perturbations_free_input(&pt);
 
   return _SUCCESS_;
 
@@ -1319,7 +1319,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call(background_init(&pr,&ba), ba.error_message, errmsg);
+    class_call_except(background_init(&pr,&ba), ba.error_message, errmsg, background_free_input(&ba);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -1329,14 +1329,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     th.hyrec_verbose = 0;
-    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba));
+    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
        if (input_verbose>2)
          printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
-    class_call_except(perturbations_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba));
+    class_call_except(perturbations_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba);perturbations_free_input(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
@@ -1448,6 +1448,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pfzw->fc.read[i] = _FALSE_;
   }
 
+  /** Free pointers allocated on input if neccessary */
+  if (pfzw->required_computation_stage < cs_perturbations) {
+    /** Some pointers in ppt may not be allocated if has_perturbations is _FALSE_, but this is handled in perturbations_free_input as neccessary. */
+    perturbations_free_input(&pt);
+  }
+  if (pfzw->required_computation_stage < cs_background) {
+    background_free_input(&ba);
+  }
   return _SUCCESS_;
 
 }
@@ -1733,16 +1741,6 @@ int input_read_parameters_general(struct file_content * pfc,
       pth->compute_damping_scale=_TRUE_;
     }
 
-    /* The following lines make sure that if perturbations are not computed, idm_dr and idr parameters are still freed */
-    if(ppt->has_perturbations == _FALSE_) {
-
-      if (ppt->alpha_idm_dr != NULL)
-        free(ppt->alpha_idm_dr);
-
-      if (ppt->beta_idr != NULL)
-        free(ppt->beta_idr);
-    }
-
     /* Test */
     class_call(parser_check_options(string1, options_output, 33, &flag1),
                errmsg,
@@ -1941,9 +1939,21 @@ int input_read_parameters_general(struct file_content * pfc,
       class_test(ppt->has_cl_cmb_lensing_potential == _TRUE_,
                  errmsg,
                  "Inconsistency: you want C_l's for cmb lensing potential, but no scalar modes\n");
+      class_test(ppt->has_cl_number_count == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want C_l's for number count, but no scalar modes\n");
+      class_test(ppt->has_cl_lensing_potential == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want C_l's for cosmic shear, but no scalar modes\n");
       class_test(ppt->has_pk_matter == _TRUE_,
                  errmsg,
                  "Inconsistency: you want P(k) of matter, but no scalar modes\n");
+      class_test(ppt->has_density_transfers == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want density transfer functions, but no scalar modes\n");
+      class_test(ppt->has_velocity_transfers == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want density transfer functions, but no scalar modes\n");
     }
 
     /** 3.b) List of initial conditions for scalars */
@@ -2459,17 +2469,35 @@ int input_read_parameters_species(struct file_content * pfc,
 
     /** 5.h) Quadrature modes, 0 is qm_auto */
     /* Read */
-    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm); //Deprecated parameter, still read to keep compatibility
-    class_read_list_of_integers_or_default("ncdm_quadrature_strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
+    class_call(parser_read_list_of_integers(pfc, "Quadrature strategy", &entries_read, &(pba->ncdm_quadrature_strategy), &flag1, errmsg),
+               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+    if (flag1 == _TRUE_) {
+      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Quadrature strategy, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+    }
+    else {
+      class_read_list_of_integers_or_default("ncdm_quadrature_strategy", pba->ncdm_quadrature_strategy, 0, N_ncdm);
+    }
 
     /** 5.h.1) qmax, if relevant */
     /* Read */
-    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm); //Deprecated parameter, still read to keep compatibility
-    class_read_list_of_doubles_or_default("ncdm_maximum_q",pba->ncdm_qmax,15,N_ncdm);
+    class_call(parser_read_list_of_doubles(pfc, "Maximum_q", &entries_read, &(pba->ncdm_qmax), &flag1, errmsg),
+               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+    if (flag1 == _TRUE_) {
+      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Maximum_q, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+    }
+    else {
+      class_read_list_of_doubles_or_default("ncdm_maximum_q", pba->ncdm_qmax, 15, N_ncdm);
+    }
 
     /** 5.h.2) Number of momentum bins */
-    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,150,N_ncdm); //Deprecated parameter, still read to keep compatibility
-    class_read_list_of_integers_or_default("ncdm_N_momentum_bins",pba->ncdm_input_q_size,150,N_ncdm);
+    class_call(parser_read_list_of_integers(pfc, "Number of momentum bins", &entries_read, &(pba->ncdm_input_q_size), &flag1, errmsg),
+               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+    if (flag1 == _TRUE_) {
+      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Number of momentum bins, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+    }
+    else {
+      class_read_list_of_integers_or_default("ncdm_N_momentum_bins", pba->ncdm_input_q_size, 150, N_ncdm);
+    }
 
     /** Last step of 5) (i.e. NCDM) -- Calculate the masses and momenta */
     class_call(background_ncdm_init(ppr,pba),
@@ -2815,10 +2843,6 @@ int input_read_parameters_species(struct file_content * pfc,
         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
       }
     }
-    else {
-      ppt->alpha_idm_dr = NULL;
-      ppt->beta_idr = NULL;
-    }
   }
 
   /* ** ADDITIONAL SPECIES ** */
@@ -3105,7 +3129,7 @@ int input_read_parameters_injection(struct file_content * pfc,
 
   /* Complete set of parameters */
   if(pin->DM_annihilation_mass > 0 && pin->DM_annihilation_cross_section > 0.){
-    pin->DM_annihilation_efficiency = pin->DM_annihilation_cross_section*1.e-6/(pin->DM_annihilation_mass*_eV_*1.e9);
+    pin->DM_annihilation_efficiency = pin->DM_annihilation_cross_section*1.e-6/(pin->DM_annihilation_mass*_eV_*1.e9)*pow(pin->DM_annihilation_fraction,2);
   }
 
   if(pin->DM_annihilation_efficiency > 0){
@@ -3372,6 +3396,8 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                errmsg,
                errmsg);
   }
+  class_read_double("halofit_min_k_max",ppr->nonlinear_min_k_max);
+  class_read_double("hmcode_min_k_max",ppr->nonlinear_min_k_max);
   /* Compatibility code END */
 
   if (flag1 == _TRUE_) {
@@ -3383,10 +3409,11 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pfo->method=nl_halofit;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
     }
     else if((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pfo->method=nl_HMcode;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->hmcode_min_k_max,ppr->fourier_min_k_max));
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       class_read_int("extrapolation_method",pfo->extrapolation_method);
 
@@ -5062,10 +5089,6 @@ int input_read_parameters_output(struct file_content * pfc,
   int int1;
   double * pointer1;
   int i;
-  FILE * param_output;
-  FILE * param_unused;
-  char param_output_name[_LINE_LENGTH_MAX_];
-  char param_unused_name[_LINE_LENGTH_MAX_];
 
   /** 1) Output for external files */
   /** 1.a) File name */
@@ -5147,12 +5170,6 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("write_distortions","write distortions",pop->write_distortions);
 
-  /** 1.l) Input/precision parameters */
-  /* Read */
-  flag1 = _FALSE_;
-  class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
-
-
   /** 2) Verbosity */
   /* Read */
   class_read_int("background_verbose",pba->background_verbose);
@@ -5167,12 +5184,49 @@ int input_read_parameters_output(struct file_content * pfc,
   class_read_int("distortions_verbose",psd->distortions_verbose);
   class_read_int("output_verbose",pop->output_verbose);
 
+  return _SUCCESS_;
 
-  /**
-   * This must be the very LAST entry of read_parameters,
-   * since it relies on the pfc->read flags being set to _TRUE_ or _FALSE_
-   * */
-  /* Set the parameters.ini and unused_parameters files */
+}
+
+/**
+ * Write the info related to the used and unused parameters
+ * Additionally, write the warnings for unused parameters
+ *
+ * @param pfc     Input: pointer to local structure
+ * @param pop     Input: pointer to output structure
+ * @param errmsg  Input: Error message
+ * @return the error status
+ */
+
+int input_write_info(struct file_content * pfc,
+                     struct output * pop,
+                     ErrorMsg errmsg){
+
+  /** Summary: */
+
+  /** Define local variables */
+  int i;
+  int flag1, flag2;
+  FILE * param_output;
+  FILE * param_unused;
+  char param_output_name[_LINE_LENGTH_MAX_];
+  char param_unused_name[_LINE_LENGTH_MAX_];
+
+  /* We want to read both flags at once, such that the pfc->read is set correctly */
+  flag1 = _FALSE_;
+  flag2 = _FALSE_;
+  class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
+  class_read_flag_or_deprecated("write_warnings","write warnings",flag2);
+
+  /* Now that all variables are read, we can print the warnings */
+  if (flag2 == _TRUE_){
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _FALSE_)
+        fprintf(stdout,"[WARNING: input line not used: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+    }
+  }
+
+  /* Finally, since all variables are read, we can also print the parameters.ini and unused_parameters files */
   if (flag1 == _TRUE_) {
     sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
     class_open(param_output,param_output_name,"w",errmsg);
@@ -5425,6 +5479,9 @@ int input_default_params(struct background *pba,
   pth->m_idm_dr = 1.e11;
   /** 7.2.d) Approximation mode of idr */
   ppt->idr_nature=idr_free_streaming;
+  /** 7.2.g, 7.2.h) */
+  ppt->alpha_idm_dr = NULL;
+  ppt->beta_idr = NULL;
 
   /* ** ADDITIONAL SPECIES ** */
 

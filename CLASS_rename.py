@@ -52,6 +52,12 @@ exceptions = {"th":[],
               "tr":[],
               "sp":["osp.","resp"]}
 
+prefix_exceptions = {"thermodynamics":[],
+                     "perturbations":[],
+                     "nonlinear":["nonlinear_method","nonlinear_scale","nonlinear_min_k_max"],
+                     "transfer":[],
+                     "spectra":[]}
+
 src_folder = "source"
 incl_folder = "include"
 test_folder = "test"
@@ -323,7 +329,16 @@ elif parse_dict.method == "rename":
                 # III. Treat lines where the prefix appears
                 if xp+"_" in line:
                    # replace all prefix names (e.g. 'nonlinear' -> 'fourier')
+                   # For all prefix exceptions, substitute the problematic string with 'xx'
+                   for i,x in enumerate(prefix_exceptions[xp]):
+                     if x in line:
+                       line = line.replace(x,prefix_exceptions[xp][i].replace(xp,'xx'))
+                   # Now replace all the corresponding names where the prefix appears
                    line = line.replace(xp+"_",yp+"_")
+                   # Finally, re-substitute the original exception string instead of the 'xx'
+                   for i,x in enumerate(prefix_exceptions[xp]):
+                     if x.replace(xp,'xx') in line:
+                       line = line.replace(x.replace(xp,'xx'),prefix_exceptions[xp][i])
 
                 # IV. Treat line where short structure name appears, e.g. 'nl'
                 if xss in line:
