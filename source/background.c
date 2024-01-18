@@ -890,7 +890,6 @@ int background_free(
              pba->error_message,
              pba->error_message);
 
-
   class_call(background_free_input(pba),
              pba->error_message,
              pba->error_message);
@@ -1096,9 +1095,6 @@ int background_indices(
 
     // EDE-edit: potential without CC
   class_define_index(pba->index_bg_V_e_scf,pba->has_scf,index_bg,1);
-    //
-
-
 
   /* - index for Lambda */
   class_define_index(pba->index_bg_rho_lambda,pba->has_lambda,index_bg,1);

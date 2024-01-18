@@ -1487,8 +1487,8 @@ int harmonic_fast_pk_at_kvec_and_zvec(
                                       double * zvec,
                                       int zvec_size,
                                       double * pk_tot_out, // pk_tot_out[index_zvec*kvec_size+index_kvec],
-                                      // already allocated
-                                      //(or NULL if user knows there is no _m output)
+                                                           // already allocated
+                                                           //(or NULL if user knows there is no _m output)
                                       double * pk_cb_tot_out, // idem
                                       int nonlinear
                                       ) {
