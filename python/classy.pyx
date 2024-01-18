@@ -929,12 +929,12 @@ cdef class Class:
                     z[index_tau] = self.z_of_tau(np.exp(self.nl.ln_tau[index_tau]))
 
         # check consitency of the list of redshifts
-
+#EDE-Edit: change CosmoSevereError-->CosmoComputationError
         if nonlinear == True:
             z_max_nonlinear = self.z_of_tau(self.nl.tau[self.nl.index_tau_min_nl])
             z_max_requested = z[0]
             if ((self.nl.tau_size - self.nl.ln_tau_size) < self.nl.index_tau_min_nl):
-                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the input parameter 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or increase the precision parameters 'halofit_min_k_max' and/or 'hmcode_min_k_max', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
+                raise CosmoComputationError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the input parameter 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or increase the precision parameters 'halofit_min_k_max' and/or 'hmcode_min_k_max', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
 
         # get list of k
 
@@ -1043,6 +1043,9 @@ cdef class Class:
     def theta_s_100(self):
         return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
 
+    def zrec(self):
+        return self.th.z_rec
+
     def theta_star_100(self):
         return 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
 
@@ -1068,6 +1071,40 @@ cdef class Class:
     def sigma8_cb(self):
         self.compute(["nonlinear"])
         return self.nl.sigma8[self.nl.index_pk_cb]
+
+    """
+    EDE-Edit: Add in ability to read fEDE and zc as derived parameter
+    """
+    def fEDE(self):
+        return self.ba.fEDE
+
+    def As(self):
+        return self.pm.A_s
+
+    def zreio(self):
+        return self.th.z_reio
+
+    def z_eq(self):
+        return self.ba.z_eq
+
+    def z_c(self):
+        return self.ba.z_c
+
+
+    def log10z_c(self):
+        return self.ba.log10z_c
+
+    """
+    EDE-Edit: read in m_scf and f_scf as derived parameter
+    """
+    def log10f_scf(self):
+        return self.ba.log10f_scf
+
+    def log10m_scf(self):
+        return self.ba.log10m_scf
+
+    def thetai_scf(self):
+        return self.ba.thetai_scf
 
     def rs_drag(self):
         self.compute(["thermodynamics"])
@@ -1162,6 +1199,13 @@ cdef class Class:
         free(pvecback)
 
         return f
+
+#EDE-edit changed to compute at individual value of z.
+    def get_fsigma8(self, z):
+        cdef double fsigma
+        fsigma = self.sigma(8./self.h(),z)*self.scale_independent_growth_factor_f(z)
+        return fsigma
+
 
     def z_of_tau(self, tau):
         """
@@ -1640,6 +1684,11 @@ cdef class Class:
                 value = self.ba.age
             elif name == 'conformal_age':
                 value = self.ba.conformal_age
+
+# EDE-edit: adding Omega_nu
+            elif name == 'Omega_nu':
+                value = self.ba.Omega0_ncdm_tot
+
             elif name == 'm_ncdm_in_eV':
                 value = self.ba.m_ncdm_in_eV[0]
             elif name == 'm_ncdm_tot':
@@ -1664,6 +1713,25 @@ cdef class Class:
                 value = self.th.rs_rec*self.ba.h
             elif name == 'ds_rec':
                 value = self.th.ds_rec
+
+            # EDE-edit: Add in capability to read fEDE and z_c
+            elif name == 'fEDE':
+                value = self.ba.fEDE
+            elif name == 'z_c':
+                value = self.ba.z_c
+            elif name == 'z_eq':
+                value = self.ba.z_eq
+            elif name == 'log10z_c':
+                value = self.ba.log10z_c
+            # EDE-edit: Add in capability to read m and f
+            elif name == 'log10m_scf':
+                value = self.ba.log10m_scf
+            elif name == 'log10f_scf':
+                value = self.ba.log10f_scf
+            elif name == 'thetai_scf':
+                value = self.ba.thetai_scf
+
+
             elif name == 'ds_rec_h':
                 value = self.th.ds_rec*self.ba.h
             elif name == 'ra_rec':

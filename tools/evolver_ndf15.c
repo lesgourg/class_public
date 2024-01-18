@@ -1081,7 +1081,7 @@ int fzero_Newton(int (*func)(double *x,
      take ntrial Newton-Raphson steps to improve the root.
      Stop if the root converges in either summed absolute
      variable increments tolx or summed absolute function values tolf.*/
-  int k,i,j,*indx, ntrial=20;
+  int k,i,j,*indx, ntrial=50; /* EDE-edit: 20-->50 */
   double errx,errf,d,*F0,*Fdel,**Fjac,*p, *lu_work;
   int has_converged = _FALSE_;
   double toljac = 1e-3;
