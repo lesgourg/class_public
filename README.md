@@ -1,11 +1,11 @@
 CLASS: Cosmic Linear Anisotropy Solving System  {#mainpage}
 ==============================================
 
-Authors: Julien Lesgourgues and Thomas Tram
+Authors: Julien Lesgourgues, Thomas Tram, Nils Schoeneberg
 
 with several major inputs from other people, especially Benjamin
 Audren, Simon Prunet, Jesus Torrado, Miguel Zumalacarregui, Francesco
-Montanari, etc.
+Montanari, Deanna Hooper, Samuel Brieden, Daniel Meinert, Matteo Lucca, etc.
 
 For download and information, see http://class-code.net
 
@@ -44,7 +44,9 @@ explaining the use of all possible input parameters. We recommend to
 read it, to keep it unchanged (for future reference), and to create
 for your own purposes some shorter input files, containing only the
 input lines which are useful for you. Input files must have a *.ini
-extension.
+extension. We provide an example of an input file containing a
+selection of the most used parameters, default.ini, that you may use as a
+starting point.
 
 If you want to play with the precision/speed of the code, you can use
 one of the provided precision files (e.g. cl_permille.pre) or modify
