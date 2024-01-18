@@ -392,7 +392,11 @@ int nonlinear_pk_at_k_and_z(
   double * ddout_pk_at_z;
   double * ddout_pk_ic_at_z;
   int last_index;
-  int index_ic_ic;
+  int index_ic1;
+  int index_ic2;
+  int index_ic1_ic1;
+  int index_ic2_ic2;
+  int index_ic1_ic2;
   double kmin;
   double * pk_primordial_k;
   double * pk_primordial_kmin;
@@ -417,8 +421,8 @@ int nonlinear_pk_at_k_and_z(
     *out_pk = 0.;
 
     if (do_ic == _TRUE_) {
-      for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-        out_pk_ic[index_ic_ic] = 0.;
+      for (index_ic1_ic2=0; index_ic1_ic2<pnl->ic_ic_size; index_ic1_ic2++) {
+        out_pk_ic[index_ic1_ic2] = 0.;
       }
     }
   }
@@ -426,8 +430,6 @@ int nonlinear_pk_at_k_and_z(
   /** - deal with 0 < k <= kmax */
 
   else {
-
-    /** --> First, get P(k) at the right z */
 
     class_alloc(out_pk_at_z,
                 pnl->k_size*sizeof(double),
@@ -439,22 +441,25 @@ int nonlinear_pk_at_k_and_z(
                   pnl->error_message);
     }
 
-    class_call(nonlinear_pk_at_z(pba,
-                                 pnl,
-                                 linear,
-                                 pk_output,
-                                 z,
-                                 index_pk,
-                                 out_pk_at_z,
-                                 out_pk_ic_at_z
-                                 ),
-               pnl->error_message,
-               pnl->error_message);
-
-    /** - deal with standard case kmin <= k <= kmax
-        (just need to interpolate at the right k) */
+    /** - deal with standard case kmin <= k <= kmax */
 
     if (k > exp(pnl->ln_k[0])) {
+
+      /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation, and then convert to linear format) */
+
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   logarithmic,
+                                   pk_output,
+                                   z,
+                                   index_pk,
+                                   out_pk_at_z,
+                                   out_pk_ic_at_z
+                                   ),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      /** --> interpolate total spectrum */
 
       class_alloc(ddout_pk_at_z,
                   pnl->k_size*sizeof(double),
@@ -484,6 +489,28 @@ int nonlinear_pk_at_k_and_z(
                  pnl->error_message);
 
       free(ddout_pk_at_z);
+
+      // uncomment this part if you prefer a linear interpolation
+
+      /*
+      class_call(array_interpolate_linear(pnl->ln_k,
+                                            pnl->k_size,
+                                            out_pk_at_z,
+                                            1,
+                                            log(k),
+                                            &last_index,
+                                            out_pk,
+                                            1,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+      */
+
+      /** --> convert from logarithmic to linear format */
+
+      *out_pk = exp(*out_pk);
+
+      /** --> interpolate each ic component */
 
       if (do_ic == _TRUE_) {
 
@@ -515,6 +542,22 @@ int nonlinear_pk_at_k_and_z(
                    pnl->error_message);
 
         free(ddout_pk_ic_at_z);
+
+        /** --> convert each ic component from logarithmic to linear format */
+
+        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+          out_pk_ic[index_ic1_ic1] = exp(out_pk_ic[index_ic1_ic1]);
+        }
+        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+          for (index_ic2=index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
+            index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+            index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+            out_pk_ic[index_ic1_ic2]
+              = out_pk_ic[index_ic1_ic2]*sqrt(out_pk_ic[index_ic1_ic1]*out_pk_ic[index_ic2_ic2]);
+          }
+        }
       }
     }
 
@@ -527,18 +570,32 @@ int nonlinear_pk_at_k_and_z(
      *    This is accurate for the synchronous gauge; TODO: write
      *    newtonian gauge case. Also, In presence of isocurvature
      *    modes, we assumes for simplicity that the mode with
-     *    index_ic_ic=0 dominates at small k: exact treatment should be
+     *    index_ic1_ic2=0 dominates at small k: exact treatment should be
      *    written if needed.
      */
 
     else {
 
+      /** --> First, get P(k) at the right z (in linear format) */
+
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   linear,
+                                   pk_output,
+                                   z,
+                                   index_pk,
+                                   out_pk_at_z,
+                                   out_pk_ic_at_z
+                                   ),
+                 pnl->error_message,
+                 pnl->error_message);
+
       /* get P(kmin) */
       *out_pk = out_pk_at_z[0];
 
       if (do_ic == _TRUE_) {
-        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-          out_pk_ic[index_ic_ic] = out_pk_ic_at_z[index_ic_ic];
+        for (index_ic1_ic2=0; index_ic1_ic2<pnl->ic_ic_size; index_ic1_ic2++) {
+          out_pk_ic[index_ic1_ic2] = out_pk_ic_at_z[index_ic1_ic2];
         }
       }
 
@@ -577,9 +634,9 @@ int nonlinear_pk_at_k_and_z(
       *out_pk *= (k*pk_primordial_k[0]/kmin/pk_primordial_kmin[0]);
 
       if (do_ic == _TRUE_) {
-        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-          out_pk_ic[index_ic_ic] *= (k*pk_primordial_k[index_ic_ic]
-                                     /kmin/pk_primordial_kmin[index_ic_ic]);
+        for (index_ic1_ic2=0; index_ic1_ic2<pnl->ic_ic_size; index_ic1_ic2++) {
+          out_pk_ic[index_ic1_ic2] *= (k*pk_primordial_k[index_ic1_ic2]
+                                     /kmin/pk_primordial_kmin[index_ic1_ic2]);
         }
       }
 
@@ -750,7 +807,7 @@ int nonlinear_pks_at_kvec_and_zvec(
                  pnl->error_message,
                  pnl->error_message);
     }
-    if (pnl->has_pk_m) {
+    if (pnl->has_pk_cb) {
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
@@ -879,6 +936,73 @@ int nonlinear_pks_at_kvec_and_zvec(
   }
 
   return _SUCCESS_;
+}
+
+/**
+ * Return the logarithmic slope of P(k,z) for a given (k,z), a given pk type (_m, _cb)
+ * (computed with linear P_L if pk_output = pk_linear, nonlinear P_NL if pk_output = pk_nonlinear)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pk_output   Input: linear or nonlinear
+ * @param k           Input: wavenumber in 1/Mpc
+ * @param z           Input: redshift
+ * @param index_pk    Input: index of pk type (_m, _cb)
+ * @param n_eff       Output: logarithmic slope of P(k,z)
+ * @return the error status
+ */
+
+int nonlinear_pk_tilt_at_k_and_z(
+                                  struct background * pba,
+                                  struct primordial * ppm,
+                                  struct nonlinear * pnl,
+                                  enum pk_outputs pk_output,
+                                  double k,
+                                  double z,
+                                  int index_pk,
+                                  double * pk_tilt
+                                  ) {
+
+  double dlnk;
+  double out_pk1,out_pk2;
+
+  /* typical step dln(k) on which we believe that out results are not
+     dominated by numerical errors and that the P(k,z) is slowly
+     varying */
+
+  dlnk = pnl->ln_k[pnl->k_size-1] - pnl->ln_k[pnl->k_size-2];
+
+  class_call(nonlinear_pk_at_k_and_z(pba,
+                                     ppm,
+                                     pnl,
+                                     pk_output,
+                                     k/(1.+dlnk),
+                                     z,
+                                     index_pk,
+                                     &out_pk1,
+                                     NULL),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(nonlinear_pk_at_k_and_z(pba,
+                                     ppm,
+                                     pnl,
+                                     pk_output,
+                                     k*(1.+dlnk),
+                                     z,
+                                     index_pk,
+                                     &out_pk2,
+                                     NULL),
+             pnl->error_message,
+             pnl->error_message);
+
+  /* logarithmic derivative: n_eff = (logPk2 - logPk1)/(logk2-logk1) */
+
+  *pk_tilt = (log(out_pk2)-log(out_pk1))/(2.*log(1.+dlnk));
+
+  return _SUCCESS_;
+
 }
 
 /**
@@ -1127,6 +1251,9 @@ int nonlinear_init(
         if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
           fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
+    }
+    if (pba->has_idm_dr){
+      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
     }
   }
 
@@ -1511,7 +1638,7 @@ int nonlinear_init(
  * Free all memory space allocated by nonlinear_init().
  *
  *
- * @param pnl Input: pointer to nonlineard structure (to be freed)
+ * @param pnl Input: pointer to nonlinear structure (to be freed)
  * @return the error status
  */
 
@@ -1572,7 +1699,7 @@ int nonlinear_free(
 }
 
 /**
- * Define indices in the nonlinear array, and when possible, allocate
+ * Define indices in the nonlinear structure, and when possible, allocate
  * arrays in this structure given the index sizes found here
  *
  * @param ppr Input: pointer to precision structure
@@ -2428,7 +2555,7 @@ int nonlinear_halofit(
                       short * nl_corr_not_computable_at_this_k
                       ) {
 
-  double Omega_m,Omega_v,fnu,w0, dw_over_da_fld, integral_fld;
+  double Omega_m,Omega_v,fnu,w, dw_over_da_fld, integral_fld;
 
   /** Determine non linear ratios (from pk) **/
 
@@ -2485,10 +2612,7 @@ int nonlinear_halofit(
 
   if (pnl->has_pk_eq == _FALSE_) {
 
-    /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
-       all required by HALFIT fitting formulas */
-
-    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+    /* default method: compute w(tau) = w_fld(tau), Omega_m(tau) and Omega_v=Omega_DE(tau), all required by HALFIT fitting formulas */
 
     class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
                pba->error_message,
@@ -2497,13 +2621,16 @@ int nonlinear_halofit(
     Omega_m = pvecback[pba->index_bg_Omega_m];
     Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
 
+    /* until v2.9.2 this function was called at a_0=1 instead of a=pvecback[pba->index_bg_a] */
+    class_call(background_w_fld(pba,pvecback[pba->index_bg_a],&w,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
   }
   else {
 
     /* alternative method called Pk_equal, described in 0810.0190 and
        1601.07230, extending the range of validity of
        HALOFIT from constant w to (w0,wa) models. In that
-       case, some effective values of w0(tau_i) and
+       case, some effective values of w(tau_i) and
        Omega_m(tau_i) have been pre-computed in the
        input module, and we just ned to interpolate
        within tabulated arrays, to get them at the
@@ -2525,7 +2652,7 @@ int nonlinear_halofit(
                pnl->error_message,
                pnl->error_message);
 
-    w0 = w_and_Omega[pnl->index_pk_eq_w];
+    w = w_and_Omega[pnl->index_pk_eq_w];
     Omega_m = w_and_Omega[pnl->index_pk_eq_Omega_m];
     Omega_v = 1.-Omega_m;
 
@@ -2807,9 +2934,9 @@ int nonlinear_halofit(
        * based on the results of Takahashi 2012, (arXiv:1208.2701).
        */
       gam=0.1971-0.0843*rneff+0.8460*rncur;
-      a=1.5222+2.8553*rneff+2.3706*rneff*rneff+0.9903*rneff*rneff*rneff+ 0.2250*rneff*rneff*rneff*rneff-0.6038*rncur+0.1749*Omega_v*(1.+w0);
+      a=1.5222+2.8553*rneff+2.3706*rneff*rneff+0.9903*rneff*rneff*rneff+ 0.2250*rneff*rneff*rneff*rneff-0.6038*rncur+0.1749*Omega_v*(1.+w);
       a=pow(10,a);
-      b=pow(10, (-0.5642+0.5864*rneff+0.5716*rneff*rneff-1.5474*rncur+0.2279*Omega_v*(1.+w0)));
+      b=pow(10, (-0.5642+0.5864*rneff+0.5716*rneff*rneff-1.5474*rncur+0.2279*Omega_v*(1.+w)));
       c=pow(10, 0.3698+2.0404*rneff+0.8161*rneff*rneff+0.5869*rncur);
       xmu=0.;
       xnu=pow(10,5.2105+3.6902*rneff);
@@ -2836,7 +2963,12 @@ int nonlinear_halofit(
 
       y=(rk/rknl);
       pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
-      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(0.977-18.015*(pba->Omega0_m-0.3)));
+      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*0.977);
+      /* until v2.9.2 pk_halo did contain an additional correction
+         coming from Simeon Bird: the last factor was
+         (1+fnu*(0.977-18.015*(pba->Omega0_m-0.3))). It seems that Bird
+         gave it up later in his CAMB implementation and thus we also
+         removed it. */
       // rk is in 1/Mpc, 47.48and 1.5 in Mpc**-2, so we need an h**2 here (Credits Antonio J. Cuesta)
       pk_linaa=pk_lin*(1+fnu*47.48*pow(rk/pba->h,2)/(1+1.5*pow(rk/pba->h,2)));
       pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
@@ -3028,7 +3160,6 @@ int nonlinear_hmcode(
   /** include precision parameters that control the number of entries in the growth and sigma tables */
   ng = ppr->n_hmcode_tables;
   nsig = ppr->n_hmcode_tables;
-
 
   /** Compute background quantitites today */
 
@@ -3845,8 +3976,6 @@ int nonlinear_hmcode_growint(
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
   double * pvecback;
   double * integrand;
-  double tau;
-  int last_index;
 
   ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
   ainit = a;

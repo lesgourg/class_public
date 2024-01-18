@@ -1099,15 +1099,25 @@ int output_thermodynamics(
   if (pop->write_header == _TRUE_) {
     fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
     fprintf(thermofile,"# The following notation is used in column titles:\n");
-    fprintf(thermofile,"#    x_e = electron ionization fraction\n");
-    fprintf(thermofile,"# -kappa = optical depth\n");
-    fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
-    fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
-    fprintf(thermofile,"#     Tb = baryon temperature \n");
-    fprintf(thermofile,"#  c_b^2 = baryon sound speed squared \n");
-    fprintf(thermofile,"#  tau_d = baryon drag optical depth \n");
-    if (pth->compute_damping_scale == _TRUE_) {
-      fprintf(thermofile,"#  r_d = simplest analytic approximation to photon comoving damping scale \n");
+    fprintf(thermofile,"#         x_e = electron ionization fraction\n");
+    fprintf(thermofile,"#      -kappa = optical depth\n");
+    fprintf(thermofile,"#      kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
+    fprintf(thermofile,"#           g = kappa' e^-kappa = visibility function \n");
+    fprintf(thermofile,"#          Tb = baryon temperature \n");
+    fprintf(thermofile,"#         w_b = baryon equation of state parameter \n");
+    fprintf(thermofile,"#       c_b^2 = baryon sound speed squared \n");
+    fprintf(thermofile,"#       tau_d = baryon drag optical depth \n");
+    if (pth->compute_damping_scale == _TRUE_)
+      fprintf(thermofile,"#         r_d = approximate comoving value of photon damping scale \n");
+    if(pba->has_idm_dr == _TRUE_) {
+      fprintf(thermofile,"#  dmu_idm_dr = scattering rate of idr with idm_dr (i.e. idr opacity to idm_dr scattering) (units 1/Mpc)\n");
+      fprintf(thermofile,"# ddmu_idm_dr = derivative of this rate\n");
+      fprintf(thermofile,"#  tau_idm_dr = optical depth of idm_dr (due to interactions with idr) \n");
+      fprintf(thermofile,"#     tau_idr = optical depth of idr (due to self-interactions) \n");
+      fprintf(thermofile,"#    g_idm_dr = visibility function of idm_idr \n");
+      fprintf(thermofile,"#  c_idm_dr^2 = interacting dark matter squared sound speed \n");
+      fprintf(thermofile,"#    T_idm_dr = temperature of DM interacting with DR \n");
+      fprintf(thermofile,"#     dmu_idr = idr self-interaction rate \n");
     }
   }
 

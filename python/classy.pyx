@@ -660,8 +660,8 @@ cdef class Class:
 
         # For density Cls, the size is bigger (different redshfit bins)
         # computes the size, given the number of correlations needed to be computed
-        size = (self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
-                (self.sp.d_size-1-self.sp.non_diag))/2;
+        size = int((self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
+                (self.sp.d_size-1-self.sp.non_diag))/2);
         for elem in ['dd', 'll', 'dl']:
             if elem in spectra:
                 cl[elem] = {}
@@ -1007,6 +1007,30 @@ cdef class Class:
 
         return sigma_cb
 
+    # Gives effective logarithmic slope of P_L(k,z) (total matter) for a given (k,z)
+    def pk_tilt(self,double k,double z):
+        """
+        Gives effective logarithmic slope of P_L(k,z) (total matter) for a given k and z
+        (k is the wavenumber in units of 1/Mpc, z is the redshift, the output is dimensionless)
+
+        .. note::
+
+            there is an additional check to verify whether output contains `mPk` and whether k is in the right range
+
+        """
+        cdef double pk_tilt
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get pk_tilt(k,z) you must add mPk to the list of outputs.")
+
+        if (k < self.nl.k[1] or k > self.nl.k[self.nl.k_size-2]):
+            raise CosmoSevereError("In order to get pk_tilt at k=%e 1/Mpc, you should compute P(k,z) in a wider range of k's"%k)
+
+        if nonlinear_pk_tilt_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_total,&pk_tilt)==_FAILURE_:
+            raise CosmoSevereError(self.nl.error_message)
+
+        return pk_tilt
+
     #calculates the hmcode window_function of the Navarrow Frenk White Profile
     def nonlinear_hmcode_window_nfw(self,double k,double rv,double c):
         """
@@ -1064,9 +1088,17 @@ cdef class Class:
     def Neff(self):
         return self.ba.Neff
 
+    def k_eq(self):
+        self.compute(["background"])
+        return self.ba.a_eq*self.ba.H_eq
+
     def sigma8(self):
         self.compute(["nonlinear"])
         return self.nl.sigma8[self.nl.index_pk_m]
+
+    #def neff(self):
+    #    self.compute(["spectra"])
+    #    return self.sp.neff
 
     def sigma8_cb(self):
         self.compute(["nonlinear"])
@@ -1109,6 +1141,10 @@ cdef class Class:
     def rs_drag(self):
         self.compute(["thermodynamics"])
         return self.th.rs_d
+
+    def z_reio(self):
+        self.compute(["thermodynamics"])
+        return self.th.z_reio
 
     def angular_distance(self, z):
         """
@@ -1472,8 +1508,8 @@ cdef class Class:
             raise CosmoSevereError(self.pm.error_message)
 
         tmp = <bytes> titles
-        names = tmp.split("\t")[:-1]
         tmp = str(tmp.decode())
+        names = tmp.split("\t")[:-1]
         number_of_titles = len(names)
         timesteps = self.pm.lnk_size
 
@@ -1698,7 +1734,15 @@ cdef class Class:
             elif name == 'Omega_m':
                 value = self.ba.Omega0_m
             elif name == 'omega_m':
-                value = self.ba.Omega0_m/self.ba.h**2
+                value = self.ba.Omega0_m*self.ba.h**2
+            elif name == 'xi_idr':
+                value = self.ba.T_idr/self.ba.T_cmb
+            elif name == 'N_dg':
+                value = self.ba.Omega0_idr/self.ba.Omega0_g*8./7.*pow(11./4.,4./3.)
+            elif name == 'Gamma_0_nadm':
+                value = self.th.a_idm_dr*(4./3.)*(self.ba.h*self.ba.h*self.ba.Omega0_idr)
+            elif name == 'a_dark':
+                value = self.th.a_idm_dr
             elif name == 'tau_reio':
                 value = self.th.tau_reio
             elif name == 'z_reio':
@@ -1832,6 +1876,9 @@ cdef class Class:
                 value = self.nl.sigma8[self.nl.index_pk_m]
             elif name == 'sigma8_cb':
                 value = self.nl.sigma8[self.nl.index_pk_cb]
+            elif name == 'k_eq':
+                value = self.ba.a_eq*self.ba.H_eq
+
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value

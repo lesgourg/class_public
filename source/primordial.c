@@ -458,11 +458,11 @@ int primordial_init(
 
       /** - expression for alpha_s comes from:
 
-              `ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1`
+          `ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1`
 
-              `ns_1 = (lnpk_pivot-lnpk_minus)/(dlnk)+1`
+          `ns_1 = (lnpk_pivot-lnpk_minus)/(dlnk)+1`
 
-              `alpha_s = dns/dlnk = (ns_2-ns_1)/dlnk = (lnpk_plus-lnpk_pivot-lnpk_pivot+lnpk_minus)/(dlnk)/(dlnk)`
+          `alpha_s = dns/dlnk = (ns_2-ns_1)/dlnk = (lnpk_plus-lnpk_pivot-lnpk_pivot+lnpk_minus)/(dlnk)/(dlnk)`
 
       **/
 
@@ -485,8 +485,8 @@ int primordial_init(
 
       /** - expression for beta_s:
 
-              `ppm->beta_s = (alpha_plus-alpha_minus)/dlnk = (lnpk_plusplus-2.*lnpk_plus+lnpk_pivot -
-              (lnpk_pivot-2.*lnpk_minus+lnpk_minusminus)/pow(dlnk,3)`
+          `ppm->beta_s = (alpha_plus-alpha_minus)/dlnk = (lnpk_plusplus-2.*lnpk_plus+lnpk_pivot -
+          (lnpk_pivot-2.*lnpk_minus+lnpk_minusminus)/pow(dlnk,3)`
       **/
 
       /* Simplification of the beta_s expression: */
@@ -1433,9 +1433,9 @@ int primordial_inflation_solve_inflation(
   else if (ppm->behavior == analytical) {
 
     class_call_except(primordial_inflation_analytic_spectra(ppt,
-                                                              ppm,
-                                                              ppr,
-                                                              y_ini),
+                                                            ppm,
+                                                            ppr,
+                                                            y_ini),
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
@@ -1649,7 +1649,7 @@ int primordial_inflation_spectra(
       tspent += tstop-tstart;
 #endif
 
-     }
+    }
 
 #ifdef _OPENMP
     if (ppm->primordial_verbose>1)
@@ -1708,7 +1708,7 @@ int primordial_inflation_one_wavenumber(
     y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
   /** - evolve the background until the relevant initial time for
-     integrating perturbations */
+      integrating perturbations */
   class_call(primordial_inflation_evolve_background(ppm,
                                                     ppr,
                                                     y,
@@ -1722,7 +1722,7 @@ int primordial_inflation_one_wavenumber(
              ppm->error_message);
 
   /** - evolve the background/perturbation equations from this time and
-     until some time after Horizon crossing */
+      until some time after Horizon crossing */
   class_call(primordial_inflation_one_k(ppm,
                                         ppr,
                                         k,
@@ -2700,7 +2700,7 @@ int primordial_inflation_find_phi_pivot(
 
     case N_star:
 
-     class_call(primordial_inflation_evolve_background(ppm,
+      class_call(primordial_inflation_evolve_background(ppm,
                                                         ppr,
                                                         y,
                                                         dy,
@@ -2893,7 +2893,7 @@ int primordial_inflation_find_phi_pivot(
 
     case N_star:
 
-     class_call(primordial_inflation_evolve_background(ppm,
+      class_call(primordial_inflation_evolve_background(ppm,
                                                         ppr,
                                                         y,
                                                         dy,

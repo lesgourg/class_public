@@ -49,6 +49,8 @@ struct nonlinear {
   double eta_0;      /** for HMcode: halo bloating parameter */
   double z_infinity; /** for HMcode: z value at which Dark Energy correction is evaluated needs to be at early times (default */
 
+  short has_pk_eq;  /**< flag: in case wa_fld is defined and non-zero, should we use the pk_eq method? */
+
   //@}
 
   /** @name - information on number of modes and pairs of initial conditions */
@@ -168,8 +170,6 @@ struct nonlinear {
   /** @name - parameters for the pk_eq method */
 
   //@{
-
-  short has_pk_eq;               /**< flag: will we use the pk_eq method? */
 
   int index_pk_eq_w;                /**< index of w in table pk_eq_w_and_Omega */
   int index_pk_eq_Omega_m;          /**< index of Omega_m in table pk_eq_w_and_Omega */
@@ -308,6 +308,17 @@ extern "C" {
                             enum out_sigmas sigma_output,
                             double * result
                             );
+
+  int nonlinear_pk_tilt_at_k_and_z(
+                                    struct background * pba,
+                                    struct primordial * ppm,
+                                    struct nonlinear * pnl,
+                                    enum pk_outputs pk_output,
+                                    double k,
+                                    double z,
+                                    int index_pk,
+                                    double * pk_tilt
+                                    );
 
   int nonlinear_k_nl_at_z(
                           struct background *pba,
