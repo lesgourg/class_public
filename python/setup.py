@@ -52,11 +52,6 @@ setup(
     description='Python interface to the Cosmological Boltzmann code CLASS',
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
-    ext_modules=[Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
-                           include_dirs=[nm.get_include(), include_folder],
-                           libraries=liblist,
-                           library_dirs=[root_folder, GCCPATH],
-                           extra_link_args=['-lgomp'],
-                           )],
+    ext_modules=[classy_ext],
     #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )
