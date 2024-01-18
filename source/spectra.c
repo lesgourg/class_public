@@ -526,8 +526,6 @@ int spectra_indices(
       psp->has_pd = _FALSE_;
     }
 
-    psp->has_td = _FALSE_;
-
     if ((ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_ll = _TRUE_;
       psp->index_ct_ll=index_ct;
@@ -1307,7 +1305,7 @@ int spectra_pk_at_z(
                     double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
                     ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. It will soon be removed. Use nonlinear_pk_at_z() instead.\n");
 
   class_call(nonlinear_pks_at_z(
                                 pba,
@@ -1357,7 +1355,7 @@ int spectra_pk_at_k_and_z(
                           double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
                           ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. It will soon be removed. Use nonlinear_pk_linear_at_k_and_z() instead.\n");
 
   class_call(nonlinear_pks_at_k_and_z(pba,
                                       ppm,
@@ -1398,7 +1396,7 @@ int spectra_pk_nl_at_z(
                        double * output_cb_tot
                        ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. It will soon be removed. Use nonlinear_pk_at_z() instead.\n");
 
   class_call(nonlinear_pks_at_z(pba,
                                 psp->pnl,
@@ -1442,7 +1440,7 @@ int spectra_pk_nl_at_k_and_z(
                              double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
                              ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_at_k_and_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. It will soon be removed. Use nonlinear_pk_at_k_and_z() instead.\n");
 
   class_call(nonlinear_pks_at_k_and_z(pba,
                                       ppm,
@@ -1496,7 +1494,7 @@ int spectra_fast_pk_at_kvec_and_zvec(
                                      ) {
   enum pk_outputs pk_output;
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_fast_pks_at_kvec_and_zvec() which is deprecated since v2.8. Try using nonlinear_pk_at_kvec_and_zvec() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_fast_pks_at_kvec_and_zvec() which is deprecated since v2.8. It will soon be removed. Use nonlinear_pk_at_kvec_and_zvec() instead.\n");
 
   if (nonlinear == _TRUE_)
     pk_output = pk_nonlinear;
@@ -1543,7 +1541,7 @@ int spectra_sigma(
                   double * sigma
                   ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. It will soon be removed. Use nonlinear_sigmas_at_z() instead.\n");
 
   if (psp->pnl->has_pk_m) {
 
@@ -1586,7 +1584,7 @@ int spectra_sigma_cb(
                      double * sigma_cb
                      ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. It will soon be removed. Use nonlinear_sigmas_at_z() instead.\n");
 
   if (psp->pnl->has_pk_cb) {
 

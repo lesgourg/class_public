@@ -2913,15 +2913,15 @@ int transfer_selection_compute(
       /* get background quantities at this time */
       class_call(background_at_tau(pba,
                                    tau,
-                                   pba->long_info,
-                                   pba->inter_normal,
+                                   long_info,
+                                   inter_normal,
                                    &last_index,
                                    pvecback),
                  pba->error_message,
                  ptr->error_message);
 
-      /* infer redshift */
-      z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+      /* infer redshift (remember that a in the code is in fact a/a_0) */
+      z = 1./pvecback[pba->index_bg_a]-1.;
 
       /* get corresponding dN/dz(z,bin) */
       class_call(transfer_selection_function(ppr,
@@ -4754,8 +4754,8 @@ int transfer_precompute_selection(
         /* corresponding background quantities */
         class_call(background_at_tau(pba,
                                      tau,
-                                     pba->long_info,
-                                     pba->inter_normal,
+                                     long_info,
+                                     inter_normal,
                                      &last_index,
                                      pvecback),
                    pba->error_message,
@@ -5005,8 +5005,8 @@ int transfer_precompute_selection(
 
                 class_call(background_at_tau(pba,
                                              tau0-tau0_minus_tau_lensing_sources[index_tau_sources],
-                                             pba->long_info,
-                                             pba->inter_normal,
+                                             long_info,
+                                             inter_normal,
                                              &last_index,
                                              pvecback),
                            pba->error_message,
@@ -5077,7 +5077,8 @@ int transfer_f_evo(
     temp_f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen
       + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
-    z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+    /* z = a_0/a-1 (remember that a in the code is in fact a/a_0) */
+    z = 1./pvecback[pba->index_bg_a]-1.;
 
     if (ptr->has_nz_evo_file ==_TRUE_) {
 

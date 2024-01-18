@@ -4511,6 +4511,28 @@ int input_read_parameters_spectra(struct file_content * pfc,
       ppt->k_max_for_pk=param2;
     }
 
+    /** 3.a.1) Maximum k in primordial P(k) */
+    /* Read */
+    class_call(parser_read_double(pfc,"primordial_P_k_max_h/Mpc",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"primordial_P_k_max_1/Mpc",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+               errmsg,
+               "You can only enter one of 'primordial_P_k_max_h/Mpc' or 'primordial_P_k_max_1/Mpc'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      ppm->k_max_for_primordial_pk=param1*pba->h;
+      ppm->has_k_max_for_primordial_pk = _TRUE_;
+    }
+    if (flag2 == _TRUE_){
+      ppm->k_max_for_primordial_pk=param2;
+      ppm->has_k_max_for_primordial_pk = _TRUE_;
+    }
+
     /** 3.b) Redshift values */
     /* Read */
     class_call(parser_read_list_of_doubles(pfc,"z_pk",&int1,&pointer1,&flag1,errmsg),
@@ -5093,8 +5115,6 @@ int input_default_params(struct background *pba,
    * Default to input_read_parameters_species
    */
 
-  pba->a_today = 1.; // for compatibility with background.c of 2.9 and 2.10.0
-
   /** 1) Photon density */
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
@@ -5406,6 +5426,8 @@ int input_default_params(struct background *pba,
   /** 3) Power spectrum P(k) */
   /** 3.a) Maximum k in P(k) */
   ppt->k_max_for_pk=1.;
+  /** 3.a) Maximum k in P(k) primordial */
+  ppm->has_k_max_for_primordial_pk = _FALSE_;
   /** 3.b) Redshift values */
   pop->z_pk_num = 1;
   pop->z_pk[0] = 0.;

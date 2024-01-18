@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.10.4"
+#define _VERSION_ "v2.10.5"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 

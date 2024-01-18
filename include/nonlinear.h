@@ -108,7 +108,7 @@ struct nonlinear {
   double ** ln_pk_ic_l;   /**< Matter power spectrum (linear).
                              Depends on indices index_pk, index_ic1_ic2, index_k, index_tau as:
                              ln_pk_ic_l[index_pk][(index_tau * pnl->k_size + index_k)* pnl->ic_ic_size + index_ic1_ic2]
-                             where index-pk labels P(k) types (_m = total matter, _cb = baryons+CDM),
+                             where index-pk labels P(k) types (m = total matter, cb = baryons+CDM),
                              while index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                              the primordial spectrum is symmetric in (index_ic1, index_ic2)).
                              - for diagonal elements (index_ic1 = index_ic2) this arrays contains

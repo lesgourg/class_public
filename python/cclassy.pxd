@@ -448,22 +448,6 @@ cdef extern from "class.h":
 
     int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
 
-    int spectra_sigma(
-                  void * pba,
-                  void * ppm,
-                  void * psp,
-                  double R,
-                  double z,
-                  double * sigma)
-
-    int spectra_sigma_cb(
-                  void * pba,
-                  void * ppm,
-                  void * psp,
-                  double R,
-                  double z,
-                  double * sigma_cb)
-
     int spectra_fast_pk_at_kvec_and_zvec(
                   void * pba,
                   void * psp,
