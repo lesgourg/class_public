@@ -31,6 +31,8 @@ def viewdictitems(d):
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
 
+
+
 # Import the .pxd containing definitions
 from cclassy cimport *
 
@@ -191,7 +193,7 @@ cdef class Class:
             dumcp = kk.encode()
             dumc = dumcp
             sprintf(self.fc.name[i],"%s",dumc)
-            dumcp = str(self._pars[kk]).encode()
+            dumcp = str(self._pars[kk]).strip().encode()
             dumc = dumcp
             sprintf(self.fc.value[i],"%s",dumc)
             self.fc.read[i] = _FALSE_
@@ -350,9 +352,9 @@ cdef class Class:
         # non-understood parameters asked to the wrapper is a problematic
         # situation.
         if "input" in level:
-            if input_init(&self.fc, &self.pr, &self.ba, &self.th,
-                          &self.pt, &self.tr, &self.pm, &self.sp,
-                          &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
+            if input_read_from_file(&self.fc, &self.pr, &self.ba, &self.th,
+                                    &self.pt, &self.tr, &self.pm, &self.sp,
+                                    &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
             self.ncp.add("input")
             # This part is done to list all the unread parameters, for debugging
