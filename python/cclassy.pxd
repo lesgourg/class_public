@@ -22,6 +22,15 @@ cdef extern from "class.h":
 
     ctypedef char FileName[_FILENAMESIZE_]
 
+    cdef enum interpolation_method:
+        inter_normal
+        inter_growing_closeby
+
+    cdef enum vecback_format:
+        short_info
+        normal_info
+        long_info
+
     cdef enum linear_or_logarithmic:
         linear
         logarithmic
@@ -58,8 +67,6 @@ cdef extern from "class.h":
         int index_bg_D
         int index_bg_f
         int index_bg_Omega_m
-        short long_info
-        short inter_normal
         short  has_ncdm
         double T_cmb
         double h
@@ -106,7 +113,6 @@ cdef extern from "class.h":
         int th_size
         int index_th_xe
         int index_th_Tb
-        short inter_normal
         double tau_reio
         double z_reio
         double z_rec
@@ -331,11 +337,13 @@ cdef extern from "class.h":
     int lensing_init(void*,void*,void*,void*,void*)
 
     int background_tau_of_z(void* pba, double z,double* tau)
-    int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
+    int background_z_of_tau(void* pba, double tau,double* z)
+    int background_at_z(void* pba, double z, int return_format, int inter_mode, int * last_index, double *pvecback)
+    int background_at_tau(void* pba, double tau, int return_format, int inter_mode, int * last_index, double *pvecback)
     int background_output_titles(void * pba, char titles[_MAXTITLESTRINGLENGTH_])
     int background_output_data(void *pba, int number_of_titles, double *data)
 
-    int thermodynamics_at_z(void * pba, void * pth, double z, short inter_mode, int * last_index, double *pvecback, double *pvecthermo)
+    int thermodynamics_at_z(void * pba, void * pth, double z, int inter_mode, int * last_index, double *pvecback, double *pvecthermo)
     int thermodynamics_output_titles(void * pba, void *pth, char titles[_MAXTITLESTRINGLENGTH_])
     int thermodynamics_output_data(void *pba, void *pth, int number_of_titles, double *data)
 
