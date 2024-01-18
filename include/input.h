@@ -247,6 +247,7 @@ extern "C" {
                  struct spectra * psp,
                  struct nonlinear * pnl,
                  struct lensing *ple,
+                 struct distortions *psd,
                  struct output *pop,
                  ErrorMsg errmsg);
 
@@ -272,6 +273,7 @@ extern "C" {
                            struct spectra *psp,
                            struct nonlinear *pnl,
                            struct lensing *ple,
+                           struct distortions *psd,
                            struct output *pop,
                            ErrorMsg errmsg);
 
@@ -287,6 +289,7 @@ extern "C" {
                      struct spectra * psp,
                      struct nonlinear * pnl,
                      struct lensing *ple,
+                     struct distortions *psd,
                      struct output *pop,
                      int input_verbose,
                      int * has_shooting,
@@ -346,6 +349,7 @@ extern "C" {
                             struct spectra * psp,
                             struct nonlinear * pnl,
                             struct lensing * ple,
+                            struct distortions *psd,
                             struct output * pop,
                             ErrorMsg errmsg);
 
@@ -361,6 +365,7 @@ extern "C" {
                             struct spectra * psp,
                             struct nonlinear * pnl,
                             struct lensing * ple,
+                            struct distortions *psd,
                             struct output * pop,
                             ErrorMsg errmsg);
 
@@ -368,6 +373,7 @@ extern "C" {
                                     struct background * pba,
                                     struct thermo * pth,
                                     struct perturbs * ppt,
+                                    struct distortions * psd,
                                     ErrorMsg errmsg);
 
   int input_read_parameters_species(struct file_content * pfc,
@@ -423,6 +429,7 @@ extern "C" {
 
   int input_read_parameters_distortions(struct file_content * pfc,
                                         struct precision * ppr,
+                                        struct distortions * psd,
                                         ErrorMsg errmsg);
 
   int input_read_parameters_additional(struct file_content * pfc,
@@ -440,6 +447,7 @@ extern "C" {
                                    struct spectra * psp,
                                    struct nonlinear * pnl,
                                    struct lensing *ple,
+                                   struct distortions *psd,
                                    struct output *pop,
                                    ErrorMsg errmsg);
 
@@ -453,6 +461,7 @@ extern "C" {
                            struct spectra *psp,
                            struct nonlinear *pnl,
                            struct lensing *ple,
+                           struct distortions *psd,
                            struct output *pop);
 
   /* get version number */

@@ -75,7 +75,7 @@ HEADERFILES += $(wildcard ./$(RECFAST)/*.h)
 vpath %.c $(HEATING)
 #CCFLAG += -DHEATING
 INCLUDES += -I../$(HEATING)
-EXTERNAL += injection.o
+EXTERNAL += injection.o noninjection.o
 HEADERFILES += $(wildcard ./$(HEATING)/*.h)
 
 # update flags for including HyRec
@@ -93,7 +93,7 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
 
-SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o
+SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o distortions.o
 
 INPUT = input.o
 
@@ -114,6 +114,8 @@ SPECTRA = spectra.o
 NONLINEAR = nonlinear.o
 
 LENSING = lensing.o
+
+DISTORTIONS = distortions.o
 
 OUTPUT = output.o
 
