@@ -2171,6 +2171,9 @@ int input_read_parameters_species(struct file_content * pfc,
   /** - Define local variables */
   int flag1, flag2, flag3;
   double param1, param2, param3;
+  /* EDE-edit */
+  int flag5, flag6, flag31, flag32, flag41, flag42;
+  double param5, param6, param31, param32, param41, param42;
   char string1[_ARGUMENT_LENGTH_MAX_];
   int fileentries;
   int N_ncdm=0, n, entries_read;
