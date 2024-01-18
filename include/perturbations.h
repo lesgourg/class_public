@@ -148,7 +148,7 @@ struct perturbations
   int l_vector_max; /**< maximum l value for CMB vectors \f$ C_l \f$'s */
   int l_tensor_max; /**< maximum l value for CMB tensors \f$ C_l \f$'s */
   int l_lss_max; /**< maximum l value for LSS \f$ C_l \f$'s (density and lensing potential in  bins) */
-  double k_max_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if \f$ C_l \f$'s also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
+  double k_max_for_pk; /**< maximum value of k in 1/Mpc required for the output of P(k,z) and T(k,z) */
 
   int selection_num;                            /**< number of selection functions
                                                    (i.e. bins) for matter density \f$ C_l \f$'s */
@@ -336,9 +336,11 @@ struct perturbations
                        for non-CMB \f$ C_l \f$ calculations, requiring a coarse
                        sampling in k-space. */
 
-  int * k_size;     /**< k_size[index_md] = total number of k
-                       values, including those needed for P(k) but not
-                       for \f$ C_l \f$'s */
+  int k_size_pk;    /**< number of k values for the P(k,z) and T(k,z) output, not including possible additional values for non-linear corrections */
+
+  int * k_size;     /**< k_size[index_md] = total number of k values,
+                       including those needed for all C_l, P(k),
+                       nonlinear corrections */
 
   double ** k;      /**< k[index_md][index_k] = list of values */
 
@@ -382,9 +384,11 @@ struct perturbations
 
   //@{
 
-  double * ln_tau;     /**< log of the arrau tau_sampling, covering only the final time range required for the output of
-                            Fourier transfer functions (used for interpolations) */
-  int ln_tau_size;     /**< number of values in this array */
+  double * ln_tau;         /**< log of the arrau tau_sampling, covering only the
+                               final time range required for the output of
+                               Fourier transfer functions (used for interpolations) */
+  int ln_tau_size;         /**< total number of values in this array */
+  int index_ln_tau_pk;     /**< first index relevant for output of P(k,z) and T(k,z) */
 
   double *** late_sources; /**< Pointer towards the source interpolation table
                                 late_sources[index_md]
@@ -666,22 +670,61 @@ extern "C" {
 #endif
 
   int perturbations_sources_at_tau(
-                             struct perturbations * ppt,
-                             int index_md,
-                             int index_ic,
-                             int index_tp,
-                             double tau,
-                             double * pvecsources
-                             );
+                                   struct perturbations * ppt,
+                                   int index_md,
+                                   int index_ic,
+                                   int index_tp,
+                                   double tau,
+                                   double * psource_at_tau
+                                   );
+
+  int perturbations_sources_at_z(
+                                 struct background * pba,
+                                 struct perturbations * ppt,
+                                 int index_md,
+                                 int index_ic,
+                                 int index_tp,
+                                 double z,
+                                 double * psource_at_z
+                                 );
+
+   int perturbations_sources_at_k_and_z(
+                                        struct background * pba,
+                                        struct perturbations * ppt,
+                                        int index_md,
+                                        int index_ic,
+                                        int index_tp,
+                                        double k,
+                                        double z,
+                                        double * psource_at_k_and_z
+                                        );
+
+  int perturbations_output_data_at_z(
+                                     struct background * pba,
+                                     struct perturbations * ppt,
+                                     enum file_format output_format,
+                                     double z,
+                                     int number_of_titles,
+                                     double *data
+                                     );
+
+  int perturbations_output_data_at_index_tau(
+                                             struct background * pba,
+                                             struct perturbations * ppt,
+                                             enum file_format output_format,
+                                             int index_tau,
+                                             int number_of_titles,
+                                             double *data
+                                             );
 
   int perturbations_output_data(
-                          struct background * pba,
-                          struct perturbations * ppt,
-                          enum file_format output_format,
-                          double z,
-                          int number_of_titles,
-                          double *data
-                          );
+                                struct background * pba,
+                                struct perturbations * ppt,
+                                enum file_format output_format,
+                                double * tkfull,
+                                int number_of_titles,
+                                double *data
+                                );
 
   int perturbations_output_titles(
                             struct background *pba,
@@ -694,7 +737,7 @@ extern "C" {
                                       struct perturbations *ppt,
                                       int index_ic,
                                       char first_line[_LINE_LENGTH_MAX_],
-                                      FileName ic_suffix
+                                      char ic_suffix[_SUFFIXNAMESIZE_]
                                       );
 
   int perturbations_init(

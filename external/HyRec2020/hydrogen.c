@@ -347,7 +347,7 @@ void interpolate_rates(double Alpha[2], double DAlpha[2], double Beta[2], double
     *error = 1;
     return;
   }
-
+  
   /* T_RATIO is defined to be min(TM_TR, TR_TM) */
   if (TM_TR > 1.) {
     T_RATIO = 1./TM_TR; i = 2;
@@ -434,7 +434,7 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
   int *error = &data->error;
   double fsR = cosmo->fsR, meR = cosmo->meR;
   double Alpha[2], DAlpha[2], Beta[2], R2p2s, RLya;
-  double DK_K_fid, DK_K, fitted_RLya;
+  double DK_K_fid=0., DK_K, fitted_RLya;
   double C_2s, C_2p, gamma_2s, gamma_2p, s, Dxe2;
   static double diff[3];
   unsigned i;
@@ -443,10 +443,10 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
   double T0fid_T0;
   if (*error == 1) return 0.;
 
-  T0fid_T0 = 2.7255 / (TR/kBoltz/(1.+z));
   ratio = TM/TR;
   rescale_T(&TR, fsR, meR);
   TM = ratio * TR;   // This way ensure that TM<=TR is preserved
+  T0fid_T0 = 2.7255 / (TR/kBoltz/(1.+z));
 
   /* The numbers in the following lines are fiducial parameters for correction function (Do not change) */
   diff[0] = (cosmo->ocbh2 - 0.14175)*pow(T0fid_T0,3);
@@ -456,7 +456,7 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
   interpolate_rates(Alpha, DAlpha, Beta, &R2p2s, TR, TM/TR, atomic, fsR, meR, error, data->error_message);
 
   RLya = LYA_FACT(fsR, meR) *H/nH/(1.-xHII);   // 8 PI H/(3 nH x1s lambda_Lya^3)
-
+  
   if (TR/kBoltz > fit->swift_func[0][DKK_SIZE-1]) DK_K = 0.;
   else {
     DK_K_fid = rec_interp1d(fit->swift_func[0][0], 10., fit->swift_func[1], DKK_SIZE, TR/kBoltz, error, data->error_message);
@@ -466,6 +466,7 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
                                                    DKK_SIZE, TR/kBoltz, error, data->error_message);
     }
   }
+
   DK_K = DK_K_fid;
   fitted_RLya = RLya / (1.+DK_K);
   gamma_2s = Beta[0] + 3.*R2p2s + L2s_rescaled(fsR, meR);

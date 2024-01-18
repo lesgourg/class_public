@@ -924,7 +924,7 @@ int output_tk(
   FileName file_name;
   char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
   char first_line[_LINE_LENGTH_MAX_];
-  char ic_suffix[4];   // 4 is enough to write "ad", "bi", "cdi", "nid", "niv", ...
+  char ic_suffix[_SUFFIXNAMESIZE_];   // 4 is enough to write "ad", "bi", "cdi", "nid", "niv", ...
 
 
   index_md=ppt->index_md_scalars;
@@ -966,13 +966,13 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_call(perturbations_output_data(pba,
-                                         ppt,
-                                         pop->output_format,
-                                         pop->z_pk[index_z],
-                                         number_of_titles,
-                                         data
-                                         ),
+    class_call(perturbations_output_data_at_z(pba,
+                                              ppt,
+                                              pop->output_format,
+                                              pop->z_pk[index_z],
+                                              number_of_titles,
+                                              data
+                                              ),
                ppt->error_message,
                pop->error_message);
 

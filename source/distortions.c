@@ -489,7 +489,7 @@ int distortions_read_detector_noisefile(struct precision * ppr,
                       "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->x[index_x] = nu_temp/psd->x_to_nu;
     class_test(fscanf(infile, "%le",
-                      &(psd->delta_Ic_array[index_x]))!=1,                            // [-]
+                      &(delta_Ic_temp))!=1,                            // [-]
                       psd->error_message,
                       "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;
@@ -1038,7 +1038,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
         if (psd->include_g_distortion == _TRUE_) {
           g = psd->sd_parameter_table[psd->index_type_g];
           psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
-                                                 g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
+                                                 g*g*0.5*psd->sd_shape_table[psd->index_type_y][index_x];
         }
         else {
           g = 0.;

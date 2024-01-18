@@ -88,6 +88,13 @@ class_precision_parameter(tol_shooting_deltaF,double,1.e-6)
  * Relative tolerance of root x during shooting (only 1D case)
  */
 class_precision_parameter(tol_shooting_deltax_rel,double,1.e-5)
+/**
+ * Threshold value of M_ncdm=T_ncdm/m_ncdm above wich a species is
+ * considered a "non-free-streaming" when comuting the parameter
+ * Omega0_nfsm, relevant for HyRec and non-linear correction
+ * algorithms
+ */
+class_precision_parameter(M_nfsm_threshold,double,1.e4)
 /*
  * Currently unused parameter.
  */
@@ -468,7 +475,7 @@ class_precision_parameter(selection_sampling_bessel_los,double,ppr->selection_sa
 class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
 
 /*
- * Nonlinear module precision parameters
+ * Fourier module precision parameters
  * */
 
 class_precision_parameter(sigma_k_per_decade,double,80.) /**< logarithmic stepsize controlling the precision of integrals for sigma(R,k) and similar quantitites */
@@ -482,6 +489,9 @@ class_precision_parameter(nonlinear_min_k_max,double,5.0) /**< when
                                is still controlled by P_k_max_1/Mpc or
                                P_k_max_h/Mpc even if they are
                                smaller */
+
+class_precision_parameter(k_max_for_pk_sigma8_min,double,10.) /**< minimal k_max for computation of sigma8 */
+class_precision_parameter(k_max_for_pk_sigma8_max,double,100.) /**< maximal k_max for computation of sigma8 */
 
 /** parameters relevant for HALOFIT computation */
 

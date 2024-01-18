@@ -68,6 +68,8 @@ int thermodynamics_at_z(
 
   /** - define local variables */
   double x0;
+  /* Varying fundamental constants */
+  double sigmaTrescale = 1., alpha = 1., me = 1.;
 
   /* The fact that z is in the pre-computed range 0 <= z <= z_initial will be checked in the interpolation routines below. Before
      trying to interpolate, allow the routine to deal with the case z > z_initial: then, all relevant quantities can be extrapolated
@@ -79,8 +81,16 @@ int thermodynamics_at_z(
     x0= pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_xe];
     pvecthermo[pth->index_th_xe] = x0;
 
+    /* In the case of varying fundamental constants, compute correction factor (according to 1705.03925) */
+    if (pth->has_varconst == _TRUE_) {
+      class_call(background_varconst_of_z(pba, z, &alpha, &me),
+                 pba->error_message,
+                 pth->error_message);
+      sigmaTrescale = alpha*alpha/me/me;
+    }
+
     /* Calculate dkappa/dtau (dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T in units of 1/Mpc) */
-    pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
+    pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * sigmaTrescale * _sigma_ * _Mpc_over_m_;
 
     /* tau_d scales like (1+z)**2 */
     pvecthermo[pth->index_th_tau_d] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_d]*pow((1+z)/(1.+pth->z_table[pth->tt_size-1]),2);
@@ -269,6 +279,9 @@ int thermodynamics_init(
       break;
     }
   }
+
+  /** - set flag for varying constants */
+  pth->has_varconst = pba->has_varconst;
 
   /** - compute and check primordial Helium mass fraction rho_He/(rho_H+rho_He) */
 
@@ -594,6 +607,11 @@ int thermodynamics_helium_from_bbn(
              pth->error_message,
              pth->error_message);
 
+  /** - Take into account impact of varying alpha on helium fraction */
+  if (pth->has_varconst == _TRUE_) {
+    pth->YHe *= pth->bbn_alpha_sensitivity * (pvecback[pba->index_bg_varc_alpha]-1.)+1.;
+  }
+
   /** - deallocate arrays */
   free(omegab);
   free(deltaN);
@@ -665,6 +683,8 @@ int thermodynamics_workspace_init(
 
   /** Define local variables */
   int index_ap;
+  /* for varying fundamental constants */
+  double alpha = 1., me = 1.;
 
   /** - number of z values */
   ptw->Nz_reco_lin = ppr->thermo_Nz_lin;
@@ -739,6 +759,16 @@ int thermodynamics_workspace_init(
   ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_frec] =
     ppr->reionization_z_start_max;                 // beginning reionization
   ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_reio] = 0.0; // today
+
+  /** - Rescale these redshifts in case of varying fundamental constants */
+  if (pth->has_varconst == _TRUE_) {
+    for(index_ap=0;index_ap<ptw->ptdw->ap_size;++index_ap){
+      class_call(background_varconst_of_z(pba,ptw->ptdw->ap_z_limits[index_ap], &alpha, &me),
+                 pba->error_message,
+                 pth->error_message);
+      ptw->ptdw->ap_z_limits[index_ap]*=me*alpha*alpha;
+    }
+  }
 
   /** - store smoothing deltas for transitions at the beginning of each aproximation */
   class_alloc(ptw->ptdw->ap_z_limits_delta,ptw->ptdw->ap_size*sizeof(double),pth->error_message);
@@ -1854,7 +1884,7 @@ int thermodynamics_vector_init(
     ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
 
     /* Obtain initial contents of new vector analytically, especially x_He */
-    class_call(thermodynamics_ionization_fractions(z,ptdw->ptv->y,pth,ptw,ptdw->ap_current-1),
+    class_call(thermodynamics_ionization_fractions(z,ptdw->ptv->y,pba,pth,ptw,ptdw->ap_current-1),
                pth->error_message,
                pth->error_message);
 
@@ -1880,7 +1910,7 @@ int thermodynamics_vector_init(
     ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
 
     /* Obtain initial contents of new vector analytically, especially x_H */
-    class_call(thermodynamics_ionization_fractions(z,ptdw->ptv->y,pth,ptw,ptdw->ap_current-1),
+    class_call(thermodynamics_ionization_fractions(z,ptdw->ptv->y,pba,pth,ptw,ptdw->ap_current-1),
                pth->error_message,
                pth->error_message);
 
@@ -2338,6 +2368,9 @@ int thermodynamics_derivs(
   struct injection * pin;
   int ap_current;
 
+  /* varying fundamental constants */
+  double alpha = 1., me = 1., rescale_rate = 1.;
+
   /* Redshift */
   z = -mz;
 
@@ -2383,6 +2416,13 @@ int thermodynamics_derivs(
   /** Set Tmat from the evolver (it is always evolved) and store it in the workspace. */
   Tmat = y[ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
 
+  /* For varying fundamental constants (according to 1705.03925) */
+  if (pth->has_varconst == _TRUE_) {
+    alpha = pvecback[pba->index_bg_varc_alpha];
+    me = pvecback[pba->index_bg_varc_me];
+    rescale_rate = alpha*alpha/me/me/me;
+  }
+
   /** - The input vector y contains thermodynamic variables like
      (Tmat, x_H,x_He).  The goal of this function is: 1) Depending on
      the chosen code and current approximation, to use either
@@ -2390,7 +2430,7 @@ int thermodynamics_derivs(
      compute re-ionization effects on x_e; The output of this function
      is stored in the workspace ptdw */
 
-  class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current),
+  class_call(thermodynamics_ionization_fractions(z,y,pba,pth,ptw,ap_current),
              pth->error_message,
              error_message);
 
@@ -2422,6 +2462,8 @@ int thermodynamics_derivs(
         for x_H and x_He during reionization, but these are not yet
         fully implemented. */
   case recfast:
+    precfast->fsR = alpha; /**< Pass value of fsR = relative alpha (fine-structure) */
+    precfast->meR = me;    /**< Pass value of meR = relative m_e (effective eletron mass) */
     /* Hydrogen equations */
     if (ptdw->require_H == _TRUE_) {
       class_call(recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
@@ -2440,14 +2482,14 @@ int thermodynamics_derivs(
   case hyrec:
     /* Hydrogen equations */
     if (ptdw->require_H == _TRUE_) {
-      class_call(hyrec_dx_H_dz(pth,ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
+      class_call(hyrec_dx_H_dz(pth,ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,alpha,me,&(dy[ptv->index_ti_x_H])),
                  ptw->ptdw->phyrec->error_message,
                  error_message);
     }
 
     /* Helium equations */
     if (ptdw->require_He == _TRUE_) {
-      class_call(hyrec_dx_He_dz(pth,ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_He])),
+      class_call(hyrec_dx_He_dz(pth,ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,alpha,me,&(dy[ptv->index_ti_x_He])),
                  ptw->ptdw->phyrec->error_message,
                  error_message);
     }
@@ -2472,6 +2514,10 @@ int thermodynamics_derivs(
   */
   /* Photon-Baryon temperature change rate  */
   rate_gamma_b = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_ ) * x / (1.+x+ptw->fHe);
+  if (pth->has_varconst == _TRUE_) {
+    rate_gamma_b *= rescale_rate;
+  }
+
   /* Heat capacity of the IGM */
   heat_capacity = (3./2.)*_k_B_*nH*(1.+ptw->fHe+x);
 
@@ -2655,10 +2701,13 @@ int thermodynamics_sources(
   /** Define local variables */
   /* Shorthand notations */
   double z,x=0.,Tmat,Trad,dTmat;
+  /* Varying fundamental constants */
+  double sigmaTrescale = 1.,alpha = 1.,me = 1.;
   /* Recfast smoothing */
   double x_previous, weight,s;
   /* Structures as shorthand_notation */
   struct thermodynamics_parameters_and_workspace * ptpaw;
+  struct background* pba;
   struct thermodynamics * pth;
   struct thermo_workspace * ptw;
   struct thermo_diffeq_workspace * ptdw;
@@ -2672,6 +2721,7 @@ int thermodynamics_sources(
 
   /* Structs */
   ptpaw = thermo_parameters_and_workspace;
+  pba = ptpaw->pba;
   pth = ptpaw->pth;
   /* Thermo workspace & vector */
   ptw = ptpaw->ptw;
@@ -2698,6 +2748,14 @@ int thermodynamics_sources(
   /* Note that dy[index_ti_Q] represents dQ/d(-z), thus we need -dy here */
   dTmat = -dy[ptv->index_ti_D_Tmat] + Trad/(1.+z);
 
+  /* Get sigmaT rescale factor from fundamental constants */
+  if (pth->has_varconst == _TRUE_) {
+    class_call(background_varconst_of_z(pba, z, &alpha, &me),
+               pba->error_message,
+               pth->error_message);
+    sigmaTrescale = alpha*alpha/me/me;
+  }
+
   /* get x */
   x = ptdw->x_reio;
 
@@ -2706,7 +2764,7 @@ int thermodynamics_sources(
   /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
   if ((ap_current != 0) && (z > ptdw->ap_z_limits[ap_current-1]-2*ptdw->ap_z_limits_delta[ap_current])) {
 
-    class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current-1),
+    class_call(thermodynamics_ionization_fractions(z,y,pba,pth,ptw,ap_current-1),
                pth->error_message,
                error_message);
 
@@ -2741,7 +2799,7 @@ int thermodynamics_sources(
 
   /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
-    = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x * _sigma_ * _Mpc_over_m_;
+    = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x * sigmaTrescale * _sigma_ * _Mpc_over_m_;
 
   return _SUCCESS_;
 }
@@ -3787,6 +3845,7 @@ int thermodynamics_calculate_drag_quantities(
  * @param z            Input: redshift
  * @param y            Input: vector of quantities to integrate with evolver
  * @param pth          Input: pointer to thermodynamics structure
+ * @param pba          Input: pointer to background structure
  * @param ptw          Input/Output: pointer to thermo workspace. Contains output for x, ...
  * @param current_ap   Input: index of current approximation scheme
  * @return the error status
@@ -3795,6 +3854,7 @@ int thermodynamics_calculate_drag_quantities(
 int thermodynamics_ionization_fractions(
                                         double z,
                                         double * y,
+                                        struct background * pba,
                                         struct thermodynamics * pth,
                                         struct thermo_workspace * ptw,
                                         int current_ap
@@ -3807,9 +3867,21 @@ int thermodynamics_ionization_fractions(
   struct thermo_vector * ptv = ptdw->ptv;
 
   /* Thermo quantities */
-  double x_H, x_He, xHeII, x, Tmat;
+  double x_H, x_He, xHeII, x=0., Tmat;
   /* Analytical quantities */
   double rhs, sqrt_val;
+
+  /* Varying fundamental constants (according to 1705.03925) */
+  double rescale_rhs = 1., rescale_T = 1.;
+  double alpha = 1., me = 1.;
+
+  if (pth->has_varconst == _TRUE_) {
+    class_call(background_varconst_of_z(pba, z, &alpha, &me),
+               pba->error_message,
+               pth->error_message);
+    rescale_rhs = alpha*alpha*alpha*me*me*me;
+    rescale_T = 1./alpha/alpha/me;
+  }
 
   /** - Calculate x_noreio from Recfast/Hyrec in each approximation
       regime. Store the results in the workspace. */
@@ -3817,12 +3889,19 @@ int thermodynamics_ionization_fractions(
 
   /* Set Tmat from the y vector (it is always evolved). */
   Tmat = y[ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
+  if (pth->has_varconst == _TRUE_) {
+    Tmat *= rescale_T;
+  }
 
   /** - --> first regime: H and Helium fully ionized */
   if (current_ap == ptdw->index_ap_brec) {
 
     /* This is equivalent to the formula for HeIII --> HeII in Saha, just using rhs' = 1/rhs */
     rhs = ptw->SIunit_nH0/exp( 1.5*log(ptw->const_NR_numberdens*Tmat/(1.+z)/(1.+z)) - ptw->const_Tion_HeII/Tmat );
+    if (pth->has_varconst == _TRUE_) {
+      rhs /= rescale_rhs;
+    }
+
     sqrt_val = sqrt(pow(1.-rhs*(1.+ptw->fHe),2) + 4.*rhs*(1.+2*ptw->fHe));
 
     x = 2.*(1+2.*ptw->fHe)/(1.-rhs*(1.+ptw->fHe) + sqrt_val);
@@ -3836,6 +3915,10 @@ int thermodynamics_ionization_fractions(
 
     /* Assuming Saha equilibrium for HeIII --> HeII */
     rhs = exp( 1.5*log(ptw->const_NR_numberdens*Tmat/(1.+z)/(1.+z)) - ptw->const_Tion_HeII/Tmat ) / ptw->SIunit_nH0;
+    if (pth->has_varconst == _TRUE_) {
+      rhs *= rescale_rhs;
+    }
+
     sqrt_val = sqrt(pow((rhs-1.-ptw->fHe),2) + 4.*(1.+2.*ptw->fHe)*rhs);
 
     x = 0.5*(sqrt_val - (rhs-1.-ptw->fHe));
@@ -3849,6 +3932,10 @@ int thermodynamics_ionization_fractions(
 
     /* Assuming Saha equilibrium for HeII --> HeI with HII fully ionized, again expanding in rhs' = 1/rhs compared to below */
     rhs = 0.25*ptw->SIunit_nH0/exp( 1.5*log(ptw->const_NR_numberdens*Tmat/(1.+z)/(1.+z)) - ptw->const_Tion_HeI/Tmat );
+    if (pth->has_varconst == _TRUE_) {
+      rhs /= rescale_rhs;
+    }
+
     sqrt_val = sqrt(pow(1.-rhs,2) + 4.*rhs*(1.+ptw->fHe));
 
     x = 2.*(1+ptw->fHe)/(1.-rhs + sqrt_val);
@@ -3862,6 +3949,10 @@ int thermodynamics_ionization_fractions(
 
     /* Assuming Saha equilibrium for HeII --> HeI with HII fully ionized */
     rhs = 4.*exp(1.5*log(ptw->const_NR_numberdens*Tmat/(1.+z)/(1.+z)) - ptw->const_Tion_HeI/Tmat ) / ptw->SIunit_nH0;
+    if (pth->has_varconst == _TRUE_) {
+      rhs *= rescale_rhs;
+    }
+
     sqrt_val = sqrt(pow((rhs-1.),2) + 4.*(1.+ptw->fHe)*rhs );
 
     x = 0.5*(sqrt_val - (rhs-1.));
@@ -3875,6 +3966,9 @@ int thermodynamics_ionization_fractions(
   else if (current_ap == ptdw->index_ap_H) {
 
     rhs = exp(1.5*log(ptw->const_NR_numberdens*Tmat/(1.+z)/(1.+z)) - ptw->const_Tion_H/Tmat)/ptw->SIunit_nH0;
+    if (pth->has_varconst == _TRUE_) {
+      rhs *= rescale_rhs;
+    }
 
     /* Assuming Saha equilibrium for HII->HI. Includes xHeII corrections from incomplete recombination of HeII --> HeI (non-zero x_HeII) */
     xHeII = y[ptv->index_ti_x_He]*ptw->fHe;

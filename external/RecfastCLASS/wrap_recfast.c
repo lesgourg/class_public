@@ -21,6 +21,8 @@
   *********************************************************************************************************************************
   *
   * Version 1.5: includes extra fitting function from Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
+  *
+  * Additional changes by Nils Schöneberg to account for a variation of fundamental constants in accordance with 1705.03925
   */
 
 int recfast_init(struct precision* ppr,
@@ -115,6 +117,16 @@ int recfast_dx_H_dz(struct thermodynamics* pth, struct thermorecfast * pre, doub
   double Rup,Rdown,K,C,C_nofudge;
   double ion_H,ion_He,ion_lya;
 
+  /* Einstein coefficient of 2s -> 1s transition in hydrogen */
+  double A2s1sH = _Lambda_;
+
+  /* Varying fundamental constants */
+  if (pth->has_varconst == _TRUE_) {
+    /** - Rescale temperatures by factor alpha^2 * m_e (see e.g. 1705.03925) */
+    Tmat /= pre->fsR*pre->fsR*pre->meR;
+    Trad /= pre->fsR*pre->fsR*pre->meR;
+  }
+
   /** - Get necessary coefficients */
   Rdown = 1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
   switch (pre->photoion_mode){
@@ -137,12 +149,21 @@ int recfast_dx_H_dz(struct thermodynamics* pth, struct thermorecfast * pre, doub
   }
   /* end of new recfast 1.5 piece */
 
+  /* Varying fundamental constants */
+  if (pth->has_varconst == _TRUE_) {
+    /** - Rescale by various powers of fsR = relative alpha and meR = relative m_e (see e.g. 1705.03925) */
+    Rdown *= pre->fsR*pre->fsR/pre->meR/pre->meR;
+    Rup *= pre->fsR*pre->fsR*pre->fsR*pre->fsR*pre->fsR*pre->meR;
+    K *= 1./pow(pre->fsR*pre->fsR*pre->meR,3);
+    A2s1sH *= pow(pre->fsR, 8)*pre->meR;
+  }
+
   /** - Calculate Peebles' coefficient */
   /* Peebles' coefficient (approximated as one when the Hydrogen
    * ionization fraction is very close to one) */
   if (x_H < pre->x_H0_trigger2 || z < pre->z_switch_late) {
-    C = (1. + K*_Lambda_*nH*(1.-x_H))/(1./pre->fudge_H+K*_Lambda_*nH*(1.-x_H)/pre->fudge_H +K*Rup*nH*(1.-x_H));
-    C_nofudge = (1. + K*_Lambda_*nH*(1.-x_H))/(1.+K*_Lambda_*nH*(1.-x_H) + K*Rup*nH*(1.-x_H));
+    C = (1. + K*A2s1sH*nH*(1.-x_H))/(1./pre->fudge_H+K*A2s1sH*nH*(1.-x_H)/pre->fudge_H +K*Rup*nH*(1.-x_H));
+    C_nofudge = (1. + K*A2s1sH*nH*(1.-x_H))/(1.+K*A2s1sH*nH*(1.-x_H) + K*Rup*nH*(1.-x_H));
   }
   else {
     C = 1.;
@@ -188,9 +209,19 @@ int recfast_dx_He_dz(struct thermodynamics* pth, struct thermorecfast * pre, dou
   double n_He;
   int Heflag;
 
+  /* Einstein coefficient of 2s -> 1s transition in helium */
+  double A2s1sHe = _Lambda_He_;
+
   /* This is just to prevent the compiler complaining:
      Technically Rdown_trip/Rup_trip should always be fine */
   Rdown_trip = 0.; Rup_trip = 0.;
+
+  /* Varying fundamental constants */
+  if (pth->has_varconst == _TRUE_) {
+    /** - Rescale temperatures by factor alpha^2 * m_e (see e.g. 1705.03925) */
+    Tmat /= pre->fsR*pre->fsR*pre->meR;
+    Trad /= pre->fsR*pre->fsR*pre->meR;
+  }
 
   /** - Local variables and coefficients */
   n_He = pre->fHe * nH;
@@ -255,6 +286,13 @@ int recfast_dx_He_dz(struct thermodynamics* pth, struct thermorecfast * pre, dou
           Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_))) *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Trad))*pow(pre->CR*Trad,1.5)*4./3.;
           break;
       }
+      /* Varying fundamental constants */
+      if (pth->has_varconst == _TRUE_) {
+        /** - Rescale by various powers of fsR = relative alpha and meR = relative m_e (see e.g. 1705.03925) */
+        Rdown_trip *= pre->fsR*pre->fsR/pre->meR/pre->meR;
+        Rup_trip *= pre->fsR*pre->fsR*pre->fsR*pre->fsR*pre->fsR*pre->meR;
+      }
+
       tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;
       CL_PSt = _h_P_*_c_*(_L_He_2Pt_ - _L_He_2St_)/_k_B_;
@@ -279,6 +317,13 @@ int recfast_dx_He_dz(struct thermodynamics* pth, struct thermorecfast * pre, dou
     }
   }
 
+  /* Varying fundamental constants */
+  if (pth->has_varconst == _TRUE_) {
+    /** - Rescale temperatures by various powers of fsR = relative alpha and meR = relative m_e (see e.g. 1705.03925) */
+    Rdown_He *= pre->fsR*pre->fsR/pre->meR/pre->meR;
+    Rup_He *= pre->fsR*pre->fsR*pre->fsR*pre->fsR*pre->fsR*pre->meR;
+  }
+
   /** - Final helium equations, again fudged Peebles' equations are used */
   if (x_He < 1.e-15){
     *dxHe_dz=0.;
@@ -293,7 +338,12 @@ int recfast_dx_He_dz(struct thermodynamics* pth, struct thermorecfast * pre, dou
       He_Boltz=exp(pre->max_exp_boltz);
     }
 
-    C_He = (1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz);
+    /* Varying fundamental constants */
+    if (pth->has_varconst == _TRUE_) {
+      K_He /= pow(pre->fsR*pre->fsR*pre->meR,3);
+      A2s1sHe *= pow(pre->fsR, 8)*pre->meR;
+    }
+    C_He = (1. + K_He*A2s1sHe*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(A2s1sHe+Rup_He)*n_He*(1.-x_He)*He_Boltz);
 
     /** Final He quations by Peebles with K_He*/
     *dxHe_dz = (x*x_He*nH*Rdown_He - Rup_He*(1.-x_He)*exp(-pre->CL_He/Tmat)) * C_He / (Hz*(1+z));

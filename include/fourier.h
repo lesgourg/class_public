@@ -94,6 +94,7 @@ struct fourier {
   short has_pk_matter; /**< do we need matter Fourier spectrum? */
 
   int k_size;      /**< k_size = total number of k values */
+  int k_size_pk;   /**< k_size = number of k values for P(k,z) and T(k,z) output) */
   double * k;      /**< k[index_k] = list of k values */
   double * ln_k;   /**< ln_k[index_k] = list of log(k) values */
 
@@ -103,7 +104,8 @@ struct fourier {
                         output of P(k) or T(k), and matching the
                         condition z(tau) < z_max_pk */
 
-  int ln_tau_size;     /**< number of values in this array */
+  int ln_tau_size;     /**< total number of values in this array */
+  int index_ln_tau_pk; /**< first index relevant for output of P(k,z) and T(k,z) */
 
   double ** ln_pk_ic_l;   /**< Matter power spectrum (linear).
                              Depends on indices index_pk, index_ic1_ic2, index_k, index_tau as:

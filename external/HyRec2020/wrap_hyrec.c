@@ -50,7 +50,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
   /** - set cosmological parameters for hyrec */
   phy->data->cosmo->T0 = T_cmb;
   phy->data->cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
-  phy->data->cosmo->ocbh2 = (pba->Omega0_b+pba->Omega0_cdm)*pba->h*pba->h;
+  phy->data->cosmo->ocbh2 = pba->Omega0_nfsm*pba->h*pba->h;
 
   phy->data->cosmo->YHe = pth->YHe;
   phy->data->cosmo->Neff = pba->Neff;
@@ -95,10 +95,12 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
  * @param Hz    Input: current value of hubble parameter in 1/s
  * @param Tmat  Input: temperature of baryons in Kelvin
  * @param Trad  Input: temperature of photons in Kelvin
+ * @param alpha Input: fine structure constant relative to today
+ * @param me    Input: effective electron mass relative to today
  * @param dx_H_dz        Output: change in ionization fraction of hydrogen HII
  * @return the error status
  */
-int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_H_dz) {
+int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double alpha, double me, double *dx_H_dz) {
 
   /** Summary: */
 
@@ -106,6 +108,7 @@ int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_
   struct injection* pin = &(pth->in);
   long iz = 0;
   int model;
+  double Trad_phys;
 
   /** - do tests */
   class_test(MODEL == FULL, phy->error_message, "FULL mode is currently not allowed for HyRec-2");
@@ -119,8 +122,15 @@ int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_
     phy->data->cosmo->inj_params->ion = 0.;
     phy->data->cosmo->inj_params->exclya = 0.;
   }
+  if (pth->has_varconst == _TRUE_) {
+    phy->data->cosmo->fsR = alpha;
+    phy->data->cosmo->meR = me;
+  }
 
-  double Trad_phys = Trad*kBoltz/phy->data->cosmo->fsR/phy->data->cosmo->fsR/phy->data->cosmo->meR;
+  Trad_phys = Trad*kBoltz;
+  if (pth->has_varconst == _TRUE_) {
+    Trad_phys /= phy->data->cosmo->fsR*phy->data->cosmo->fsR*phy->data->cosmo->meR; //According to 1705.03925
+  }
 
   if (Trad_phys <= TR_MIN || Tmat/Trad <= T_RATIO_MIN) { model = PEEBLES; }
   else { model = MODEL; }
@@ -150,10 +160,12 @@ int hyrec_dx_H_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_
  * @param Hz    Input: current value of hubble parameter in 1/s
  * @param Tmat  Input: temperature of baryons in Kelvin
  * @param Trad  Input: temperature of photons in Kelvin
+ * @param alpha Input: fine structure constant relative to today
+ * @param me    Input: effective electron mass relative to today
  * @param dx_He_dz       Output: change in ionization fraction of helium HeIII
  * @return the error status
  */
-int hyrec_dx_He_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_He_dz) {
+int hyrec_dx_He_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double alpha, double me, double *dx_He_dz) {
 
   /** Summary: */
 
@@ -172,6 +184,10 @@ int hyrec_dx_He_dz(struct thermodynamics* pth, struct thermohyrec* phy, double x
   else{
     phy->data->cosmo->inj_params->ion = 0.;
     phy->data->cosmo->inj_params->exclya = 0.;
+  }
+  if (pth->has_varconst == _TRUE_) {
+    phy->data->cosmo->fsR = alpha;
+    phy->data->cosmo->meR = me;
   }
 
   if (xHeII<phy->xHeII_limit) {
