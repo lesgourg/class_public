@@ -308,7 +308,7 @@ int perturbations_output_data_at_z(
                 ppt->k_size[index_md]*sizeof(double),
                 ppt->error_message);
 
-    
+
     for (index_tp=0; index_tp<ppt->tp_size[index_md]; index_tp++) {
       for (index_ic=0; index_ic<ppt->ic_size[index_md]; index_ic++) {
 	class_call(perturbations_sources_at_tau(ppt,
@@ -320,7 +320,7 @@ int perturbations_output_data_at_z(
 		   ppt->error_message,
 		   ppt->error_message);
 	for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
-	  
+
           tkfull[(index_k * ppt->ic_size[index_md] + index_ic) * ppt->tp_size[index_md] + index_tp] =
             pvecsources[index_k];
         }
@@ -1667,7 +1667,6 @@ int perturbations_timesampling_for_sources(
   int index_tp;
   int index_ic;
   int index_tau;
-  int index_tau_pk;
   int index_ln_tau;
   int last_index_back;
   int last_index_thermo;
@@ -1692,6 +1691,12 @@ int perturbations_timesampling_for_sources(
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),ppt->error_message);
   class_alloc(pvecthermo,pth->th_size*sizeof(double),ppt->error_message);
+
+  /** - check validity of age_fraction precision parameter */
+  class_test((ppr->perturbations_sampling_boost_above_age_fraction < 0.) || (ppr->perturbations_sampling_boost_above_age_fraction > 1.),
+             ppt->error_message,
+             "The precision parameter perturbations_sampling_boost_above_age_fraction should be between 0 and 1, not %e",
+             ppr->perturbations_sampling_boost_above_age_fraction);
 
   /** - first, just count the number of sampling points in order to allocate the array containing all values */
 
@@ -1908,6 +1913,15 @@ int perturbations_timesampling_for_sources(
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
 
+    /* added in v3.2.2: age fraction (between 0 and 1 ) such that,
+       when tau > conformal_age * age_fraction, the time sampling of
+       sources is twice finer, in order to boost the accuracy of the
+       lensing line-of-sight integrals without changing that of
+       unlensed CMB observables */
+    if (tau > pba->conformal_age * ppr->perturbations_sampling_boost_above_age_fraction) {
+      timescale_source /= 2.;
+    }
+
     class_test(fabs(ppr->perturbations_sampling_stepsize*timescale_source/tau) < ppr->smallest_allowed_variation,
                ppt->error_message,
                "integration step =%e < machine precision : leads either to numerical error or infinite loop",ppr->perturbations_sampling_stepsize*timescale_source);
@@ -1989,6 +2003,15 @@ int perturbations_timesampling_for_sources(
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
 
+    /* added in v3.2.2: age fraction (between 0 and 1 ) such that,
+       when tau > conformal_age * age_fraction, the time sampling of
+       sources is twice finer, in order to boost the accuracy of the
+       lensing line-of-sight integrals without changing that of
+       unlensed CMB observables */
+    if (tau > pba->conformal_age * ppr->perturbations_sampling_boost_above_age_fraction) {
+      timescale_source /= 2.;
+    }
+
     class_test(fabs(ppr->perturbations_sampling_stepsize*timescale_source/tau) < ppr->smallest_allowed_variation,
                ppt->error_message,
                "integration step =%e < machine precision : leads either to numerical error or infinite loop",ppr->perturbations_sampling_stepsize*timescale_source);
@@ -2041,8 +2064,7 @@ int perturbations_timesampling_for_sources(
     }
     index_tau --;
 
-    /* now we are at the largest value of tau such that z>z_max_pk. We store it. */
-    index_tau_pk = index_tau;
+    /* now we are at the largest value of tau such that z>z_max_pk. */
     class_test(index_tau<0,
                ppt->error_message,
                "by construction, this should never happen, a bug must have been introduced somewhere");
@@ -2229,6 +2251,9 @@ int perturbations_get_k_list(
 
     if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
       k_max = MAX(k_max,ppr->nonlinear_min_k_max);
+
+    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->want_lcmb_full_limber == _TRUE_))
+      k_max = MAX(k_max, ppr->k_max_limber_over_l_max_scalars * ppt->l_scalar_max);
 
     /** - --> test that result for k_min, k_max make sense */
 
@@ -9995,10 +10020,10 @@ int perturbations_tca_slip_and_shear(double * y,
 
   /* idm_g effects on tca */
   double theta_idm = 0., theta_idm_prime = 0.;
-  double tau_2_idm_g, dtau_2_idm_g;
+  double tau_2_idm_g=0., dtau_2_idm_g=0.;
   double dmu_idm_g = 0., ddmu_idm_g = 0.;
   /* in case of idm_b - for notation see 1802.06788 */
-  double tau_idm_b, dtau_idm_b;
+  double tau_idm_b=0., dtau_idm_b=0.;
   double R_idm_b = 0., R_idm_b_prime = 0.;
   double S_idm_b = 0.;
 

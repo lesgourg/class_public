@@ -4958,7 +4958,8 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
 
 /**
- * Read the parameters of lensing structure.
+ * Read the parameters of perturbations, transfer and lensing
+ * structures that are relevant for lensing.
  *
  * @param pfc     Input: pointer to local structure
  * @param ppr     Input: pointer to precision structure
@@ -5026,6 +5027,10 @@ int input_read_parameters_lensing(struct file_content * pfc,
     class_read_double("lcmb_tilt",ptr->lcmb_tilt);
     class_read_double("lcmb_pivot",ptr->lcmb_pivot);
   }
+
+  /** 3) In general, do we want to use the full Limber scheme introduced in v3.2.2? With this full Limber scheme, the calculation of the CMB lensing potential spectrum C_l^phiphi for l > ppr->l_switch_limber is based on a new integration scheme. Compared to the previous scheme, which can be recovered by switching this parameter to _FALSE_, the new scheme uses a larger k_max and a coarser k-grid (or q-grid) than the CMB transfer function. The new scheme is used by default, because the old one is inaccurate at large l due to the too small k_max. */
+
+  class_read_flag("want_lcmb_full_limber",ppt->want_lcmb_full_limber);
 
   return _SUCCESS_;
 
@@ -6056,6 +6061,7 @@ int input_default_params(struct background *pba,
   ptr->lcmb_rescale=1.;
   ptr->lcmb_tilt=0.;
   ptr->lcmb_pivot=0.1;
+  ppt->want_lcmb_full_limber = _TRUE_;
 
   /**
    * Default to input_read_parameters_distortions
