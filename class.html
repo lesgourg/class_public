@@ -159,7 +159,7 @@ The purpose of CLASS is to simulate the evolution of linear perturbations in the
 <p>
 The use of CLASS is free provided that when you use it in a publication, you cite at least the paper <a href="http://arxiv.org/abs/1104.2933">CLASS II: Approximation schemes</a> (reference below). You are welcome to cite any other CLASS paper if relevant!
 <p>
-  There are two ways to download CLASS. The simplest thing is to download a tar.gz archive of the latest released (master branch) version, v3.2.1, by clicking <a href="class_public-3.2.1.tar.gz" download="class_public-3.2.1.tar.gz">class_public-3.2.1.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
+  There are two ways to download CLASS. The simplest thing is to download a tar.gz archive of the latest released (master branch) version, v3.2.2, by clicking <a href="class_public-3.2.2.tar.gz" download="class_public-3.2.2.tar.gz">class_public-3.2.2.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
 <br>
 <hr color=#d2b48c>
 <h2><a name="documentation">Documentation</a></h2>
@@ -292,6 +292,7 @@ In case you are interested in downloading an old version, go to the
           <li> Implementation of multi-interacting dark matter (<tt>idm</tt>) as described in <a href="https://arxiv.org/abs/2010.04074" target="_blank">2010.04074</a>. The <tt>idm</tt> species may interact not only with dark radiation following the ETHOS formalism (a feature already introduced in v2.9), but also with photons and baryons, with the possibility to have 1, 2 or 3 interaction channels at the same time. For a description of new functionalities, search for <tt>idm</tt> in <tt>explanatory.ini</tt> (credits: N. Becker, D. C. Hooper, N. Sch&ouml;neberg)
           <li> This release also features minor typo and bug fixes, as well as a systematic correction of the indentation of the C files (credits: D. C. Hooper)
           <li> 10.10.2023 (<tt>v3.2.1</tt>): in the python wrapper classy, new function <tt>scale_dependent_growth_factor()</tt>, and fixes in <tt>get_pk_all()</tt>; in input, new parameter names <tt>ln10^10A_s, 100*theta_s, 100*theta_star, S8</tt>; increased default precision of background module; fixed compatibility issue with cython 3; minor bug fixes (credits: J. Ange, B. Bolliet, S. Guenther, L. Honorez-Lopez, M. Lucca, F. McCarty, C. Pitrou, J. Torrado - and as usual JL, NS, TT)
+          <li> 3.02.2024 (<tt>v3.2.2</tt>): the calculation of the CMB lensing potential power spectrum has been made considerably more accurate and efficient at large l (and also improved at low l in the non-Limber range). One can now obtain very accurate lensed CMB Cl's at very large l values (e.g. 6000 or more) without any slow-down of the code. The Limber approximation is still used below <tt>l_switch_limber</tt>, set by default to 10. The new calculation, called <tt>full_limber</tt> inside the code, is toggled by an input flag <tt>want_lcmb_full_limber</tt> set by default to <tt>yes</tt>. Users interested in the details of this feature can read the comments in <tt>input/precision.h</tt> regarding the new precision parameters <tt>perturbations_sampling_boost_above_age_fraction</tt>, <tt>q_logstep_limber</tt>, <tt>k_max_limber_over_l_max_scalars</tt>, and the modified precision parameter <tt>k_max_tau0_over_l_max</tt> (thanks to B. Bolliet for his precious help on this). Also, in <tt>classy</tt>, enhanced interpolation features in <tt>get_pk_all()</tt>: the log of P(k) can be interpolated with linear or cubic (default) algorithm.
         </ul>
       </td>
     </tr>
@@ -792,6 +793,6 @@ target="_blank">montepython_public</a> page.  <hr color=#d2b48c> </td>
 <td width=30> </td> </table>
 
 <h5>Webmaster Julien Lesgourgues; thanks to Diego Blas for aesthetic advices.</hr>
-<h5>Last update on the 10.10.2023</h5>
+<h5>Last update on the 3.02.2024</h5>
 </body>
 </html>
