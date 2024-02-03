@@ -16,7 +16,6 @@
 
 /**
  * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.
- *
  * This routine evaluates all the \f$C_l\f$'s at a given value of l by
  * interpolating in the pre-computed table. When relevant, it also
  * sums over all initial conditions for each mode, and over all modes.
@@ -295,7 +294,7 @@ int harmonic_init(
 
   if (ppt->has_cls == _TRUE_) {
 
-    class_call(harmonic_cls(pba,ppt,ptr,ppm,phr),
+    class_call(harmonic_cls(ppr,pba,ppt,ptr,ppm,phr),
                phr->error_message,
                phr->error_message);
 
@@ -651,6 +650,7 @@ int harmonic_indices(
  * This routine computes a table of values for all harmonic spectra \f$ C_l \f$'s,
  * given the transfer functions and primordial spectra.
  *
+ * @param ppr Input: pointer to precision structure
  * @param pba Input: pointer to background structure
  * @param ppt Input: pointer to perturbation structure
  * @param ptr Input: pointer to transfer structure
@@ -660,6 +660,7 @@ int harmonic_indices(
  */
 
 int harmonic_cls(
+                 struct precision * ppr,
                  struct background * pba,
                  struct perturbations * ppt,
                  struct transfer * ptr,
@@ -678,6 +679,8 @@ int harmonic_cls(
   int cl_integrand_num_columns;
 
   double * cl_integrand; /* array with argument cl_integrand[index_k*cl_integrand_num_columns+1+phr->index_ct] */
+  double * cl_integrand_limber; /* similar array with same columns but different number of lines (less k values) */
+
   double * transfer_ic1; /* array with argument transfer_ic1[index_tt] */
   double * transfer_ic2; /* idem */
   double * primordial_pk;  /* array with argument primordial_pk[index_ic_ic]*/
@@ -737,8 +740,8 @@ int harmonic_cls(
           /* beginning of parallel region */
 
 #pragma omp parallel                                                    \
-  shared(ptr,ppm,index_md,phr,ppt,cl_integrand_num_columns,index_ic1,index_ic2,abort) \
-  private(tstart,cl_integrand,primordial_pk,transfer_ic1,transfer_ic2,index_l,tstop)
+  shared(ppr,ptr,ppm,index_md,phr,ppt,cl_integrand_num_columns,index_ic1,index_ic2,abort) \
+  private(tstart,cl_integrand,cl_integrand_limber,primordial_pk,transfer_ic1,transfer_ic2,index_l,tstop)
 
           {
 
@@ -749,6 +752,13 @@ int harmonic_cls(
             class_alloc_parallel(cl_integrand,
                                  ptr->q_size*cl_integrand_num_columns*sizeof(double),
                                  phr->error_message);
+
+            cl_integrand_limber = NULL;
+            if (ptr->do_lcmb_full_limber == _TRUE_) {
+              class_alloc_parallel(cl_integrand_limber,
+                                   ptr->q_size_limber*cl_integrand_num_columns*sizeof(double),
+                                   phr->error_message);
+            }
 
             class_alloc_parallel(primordial_pk,
                                  phr->ic_ic_size[index_md]*sizeof(double),
@@ -773,7 +783,8 @@ int harmonic_cls(
 
 #pragma omp flush(abort)
 
-              class_call_parallel(harmonic_compute_cl(pba,
+              class_call_parallel(harmonic_compute_cl(ppr,
+                                                      pba,
                                                       ppt,
                                                       ptr,
                                                       ppm,
@@ -784,6 +795,7 @@ int harmonic_cls(
                                                       index_l,
                                                       cl_integrand_num_columns,
                                                       cl_integrand,
+                                                      cl_integrand_limber,
                                                       primordial_pk,
                                                       transfer_ic1,
                                                       transfer_ic2),
@@ -799,6 +811,10 @@ int harmonic_cls(
                      __func__,tstop-tstart,omp_get_thread_num());
 #endif
             free(cl_integrand);
+
+            if (ptr->do_lcmb_full_limber == _TRUE_) {
+              free(cl_integrand_limber);
+            }
 
             free(primordial_pk);
 
@@ -850,6 +866,7 @@ int harmonic_cls(
  * and multipole, but for all types (TT, TE...), by convolving the
  * transfer functions with the primordial spectra.
  *
+ * @param ppr           Input: pointer to precision structure
  * @param pba           Input: pointer to background structure
  * @param ppt           Input: pointer to perturbation structure
  * @param ptr           Input: pointer to transfer structure
@@ -861,6 +878,7 @@ int harmonic_cls(
  * @param index_l       Input: index of multipole under consideration
  * @param cl_integrand_num_columns Input: number of columns in cl_integrand
  * @param cl_integrand  Input: an allocated workspace
+ * @param cl_integrand_limber  Input: an allocated workspace for full Limber calculation
  * @param primordial_pk Input: table of primordial spectrum values
  * @param transfer_ic1  Input: table of transfer function values for first initial condition
  * @param transfer_ic2  Input: table of transfer function values for second initial condition
@@ -868,6 +886,7 @@ int harmonic_cls(
  */
 
 int harmonic_compute_cl(
+                        struct precision * ppr,
                         struct background * pba,
                         struct perturbations * ppt,
                         struct transfer * ptr,
@@ -879,6 +898,7 @@ int harmonic_compute_cl(
                         int index_l,
                         int cl_integrand_num_columns,
                         double * cl_integrand,
+                        double * cl_integrand_limber,
                         double * primordial_pk,
                         double * transfer_ic1,
                         double * transfer_ic2
@@ -897,12 +917,42 @@ int harmonic_compute_cl(
   double * transfer_ic2_nc=NULL;
   double factor;
   int index_q_spline=0;
+  double * integrand;
+  int num_columns;
+  int num_k;
+  int column_k;
+  int column_integrand;
+  int column_derivative;
+  int index_spline;
+  double q_min;
+  double k_min;
+  double l;
+
+  l = phr->l[index_l];
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,phr->ic_size[index_md]);
 
   if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
     class_alloc(transfer_ic1_nc,phr->d_size*sizeof(double),phr->error_message);
     class_alloc(transfer_ic2_nc,phr->d_size*sizeof(double),phr->error_message);
+  }
+
+  /* Technical point: here, we will do a spline integral over the
+     whole range of k's, excepted in the closed (K>0) case. In that
+     case, it is a bad idea to spline over the values of k
+     corresponding to nu<nu_flat_approximation. In this region, nu
+     values are integer values, so the steps dq and dk have some
+     discrete jumps. This makes the spline routine less accurate than
+     a trapezoidal integral with finer sampling. So, in the closed
+     case, we set index_q_spline to ptr->index_q_flat_approximation,
+     to tell the integration routine that below this index, it should
+     treat the integral as a trapezoidal one. For testing, one is free
+     to set index_q_spline to 0, to enforce spline integration
+     everywhere, or to (ptr->q_size-1), to enforce trapezoidal
+     integration everywhere. */
+
+  if (pba->sgnK == 1) {
+    index_q_spline = ptr->index_q_flat_approximation;
   }
 
   for (index_q=0; index_q < ptr->q_size; index_q++) {
@@ -988,9 +1038,9 @@ int harmonic_compute_cl(
 
         if (ppt->has_nc_lens == _TRUE_) {
           transfer_ic1_nc[index_d1] +=
-            phr->l[index_l]*(phr->l[index_l]+1.)*transfer_ic1[ptr->index_tt_nc_lens+index_d1];
+            l*(l+1.)*transfer_ic1[ptr->index_tt_nc_lens+index_d1];
           transfer_ic2_nc[index_d1] +=
-            phr->l[index_l]*(phr->l[index_l]+1.)*transfer_ic2[ptr->index_tt_nc_lens+index_d1];
+            l*(l+1.)*transfer_ic2[ptr->index_tt_nc_lens+index_d1];
         }
 
         if (ppt->has_nc_gr == _TRUE_) {
@@ -1177,6 +1227,57 @@ int harmonic_compute_cl(
     }
   }
 
+  /* do also a full limber calculation for some types (actually, only pp) */
+
+  if ((ptr->do_lcmb_full_limber == _TRUE_)  && (l>ppr->l_switch_limber)) {
+
+    for (index_q=0; index_q < ptr->q_size_limber; index_q++) {
+
+      //q = ptr->q_limber[index_q];
+      k = ptr->k_limber[index_md][index_q];
+
+      cl_integrand_limber[index_q*cl_integrand_num_columns+0] = k;
+
+      class_call(primordial_spectrum_at_k(ppm,index_md,linear,k,primordial_pk),
+                 ppm->error_message,
+                 phr->error_message);
+
+      /* This is where we define for which types of Cl's we want a
+         full Limber version. If we wanted it for more than phiphi, we
+         would add other if statements below. */
+
+      if (_scalars_ && (phr->has_pp == _TRUE_)) {
+
+        index_tt = ptr->index_tt_lcmb;
+        index_ct = phr->index_ct_pp;
+
+        transfer_ic1[index_tt] =
+          ptr->transfer_limber[index_md]
+          [((index_ic1 * ptr->tt_size[index_md] + ptr->index_tt_lcmb)
+            * ptr->l_size[index_md] + index_l)
+           * ptr->q_size_limber + index_q];
+
+        if (index_ic1 == index_ic2) {
+          transfer_ic2[index_tt] = transfer_ic1[ptr->index_tt_lcmb];
+        }
+        else {
+          transfer_ic2[index_tt] = ptr->transfer_limber[index_md]
+            [((index_ic2 * ptr->tt_size[index_md] + ptr->index_tt_lcmb)
+              * ptr->l_size[index_md] + index_l)
+             * ptr->q_size_limber + index_q];
+        }
+
+        factor = 4. * _PI_ / k;
+
+        cl_integrand_limber[index_q*cl_integrand_num_columns+1+phr->index_ct_pp]=
+          primordial_pk[index_ic1_ic2]
+          * transfer_ic1[index_tt]
+          * transfer_ic2[index_tt]
+          * factor;
+      }
+    }
+  }
+
   for (index_ct=0; index_ct<phr->ct_size; index_ct++) {
 
     /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors, etc. */
@@ -1200,45 +1301,49 @@ int harmonic_compute_cl(
     /* for non-zero spectra, integrate over q */
     else {
 
-      /* spline the integrand over the whole range of k's */
+      /* spline the integrand over the whole range of k's. This is
+         where we decide which of the normal or full Limber scheme
+         will be used at the end. */
 
-      class_call(array_spline(cl_integrand,
-                              cl_integrand_num_columns,
-                              ptr->q_size,
-                              0,
-                              1+index_ct,
-                              1+phr->ct_size+index_ct,
+      if (_scalars_ && (ptr->do_lcmb_full_limber == _TRUE_) && (phr->has_pp == _TRUE_) && (index_ct == phr->index_ct_pp) && (l>ppr->l_switch_limber)) {
+        integrand = cl_integrand_limber;
+        num_columns = cl_integrand_num_columns;
+        num_k = ptr->q_size_limber;
+        index_spline = 0;
+        q_min = ptr->q_limber[0];
+        k_min = ptr->k_limber[0][0];
+      }
+      else{
+        integrand = cl_integrand;
+        num_columns = cl_integrand_num_columns;
+        num_k = ptr->q_size;
+        index_spline = index_q_spline;
+        q_min = ptr->q[0];
+        k_min = ptr->k[0][0];
+      }
+
+      column_k = 0;
+      column_integrand = 1+index_ct;
+      column_derivative = 1+phr->ct_size+index_ct;
+
+      class_call(array_spline(integrand,
+                              num_columns,
+                              num_k,
+                              column_k,
+                              column_integrand,
+                              column_derivative,
                               _SPLINE_EST_DERIV_,
                               phr->error_message),
                  phr->error_message,
                  phr->error_message);
 
-      /* Technical point: we will now do a spline integral over the
-         whole range of k's, excepted in the closed (K>0) case. In
-         that case, it is a bad idea to spline over the values of k
-         corresponding to nu<nu_flat_approximation. In this region, nu
-         values are integer values, so the steps dq and dk have some
-         discrete jumps. This makes the spline routine less accurate
-         than a trapezoidal integral with finer sampling. So, in the
-         closed case, we set index_q_spline to
-         ptr->index_q_flat_approximation, to tell the integration
-         routine that below this index, it should treat the integral
-         as a trapezoidal one. For testing, one is free to set
-         index_q_spline to 0, to enforce spline integration
-         everywhere, or to (ptr->q_size-1), to enforce trapezoidal
-         integration everywhere. */
-
-      if (pba->sgnK == 1) {
-        index_q_spline = ptr->index_q_flat_approximation;
-      }
-
-      class_call(array_integrate_all_trapzd_or_spline(cl_integrand,
-                                                      cl_integrand_num_columns,
-                                                      ptr->q_size,
-                                                      index_q_spline,
-                                                      0,
-                                                      1+index_ct,
-                                                      1+phr->ct_size+index_ct,
+      class_call(array_integrate_all_trapzd_or_spline(integrand,
+                                                      num_columns,
+                                                      num_k,
+                                                      index_spline,
+                                                      column_k,
+                                                      column_integrand,
+                                                      column_derivative,
                                                       &clvalue,
                                                       phr->error_message),
                  phr->error_message,
@@ -1255,7 +1360,7 @@ int harmonic_compute_cl(
       */
 
       if (pba->sgnK == 1) {
-        clvalue += cl_integrand[1+index_ct] * ptr->q[0]/ptr->k[0][0]*sqrt(pba->K)/2.;
+        clvalue += integrand[1+index_ct] * q_min/k_min*sqrt(pba->K)/2.;
       }
 
       /* we have the correct C_l now. We can store it in the transfer structure. */
