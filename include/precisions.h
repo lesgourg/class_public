@@ -247,7 +247,7 @@ class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshi
 
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
-class_precision_parameter(k_max_tau0_over_l_max,double,2.4) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
+class_precision_parameter(k_max_tau0_over_l_max,double,1.8) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two. In v3.2.2: lowered from 2.4 to 1.8, because the high value 2.4 was needed to keep CMB lensing accurate enough. With the new Limber scheme, this will be the case anyway, and k_max can be lowered in other observables in order to speed up the code. */
 class_precision_parameter(k_step_sub,double,0.05) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
 class_precision_parameter(k_step_super,double,0.002) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */
 class_precision_parameter(k_step_transition,double,0.2) /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
@@ -325,6 +325,15 @@ class_precision_parameter(perturbations_integration_stepsize,double,0.5)
  * default step \f$ d \tau \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
  */
 class_precision_parameter(perturbations_sampling_stepsize,double,0.1)
+/**
+ * added in v 3.2.2: age fraction (between 0 and 1 ) such that, when
+ * tau > conformal_age * age_fraction, the time sampling of sources is
+ * twice finer, in order to boost the accuracy of the lensing
+ * line-of-sight integrals (for l < l_switch_limber) without changing
+ * that of unlensed CMB observables. Setting to 1.0 disables this
+ * functionality.
+*/
+class_precision_parameter(perturbations_sampling_boost_above_age_fraction, double, 0.9)
 /**
  * control parameter for the precision of the perturbation integration,
  * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15
@@ -460,6 +469,9 @@ class_precision_parameter(q_numstep_transition,double,250.0) /**< number of step
                                  from q_logstep_trapzd steps to
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */
+
+class_precision_parameter(q_logstep_limber,double,1.025) /**< new in v3.2.2: in the new 'full limber' scheme, logarithmic step for the k-grid (and q-grid) */
+class_precision_parameter(k_max_limber_over_l_max_scalars,double,0.001) /**< new in v3.2.2: in the new 'full limber' scheme, the integral runs up to k_max = l_max_scalars times this parameter (units of 1/Mpc) */
 
 class_precision_parameter(transfer_neglect_delta_k_S_t0,double,0.15) /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
 class_precision_parameter(transfer_neglect_delta_k_S_t1,double,0.04) /**< same for temperature source function T1 of scalar mode */

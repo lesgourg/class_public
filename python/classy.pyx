@@ -894,7 +894,7 @@ cdef class Class:
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
-    def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0):
+    def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0, interpolation_kind='cubic'):
         """ General function to get the P(k,z) for ARBITRARY shapes of k,z
             Additionally, it includes the functionality of selecting wether to use the non-linear parts or not,
             and wether to use the cdm baryon power spectrum only
@@ -929,7 +929,7 @@ cdef class Class:
 
         # Only get the nonlinear function where the nonlinear treatment is possible
         def _islinear(z):
-          if z > z_max_nonlinear:
+          if z > z_max_nonlinear or (self.fo.method == nl_none):
             return True
           else:
             return False
@@ -937,8 +937,8 @@ cdef class Class:
         # A simple wrapper for writing the P(k) in the given location and interpolating it
         def _interpolate_pk_at_z(karr,z):
           _write_pk(z,_islinear(z),ispkcb)
-          interp_func = interp1d(k_out,pk_out,kind='linear',copy=True)
-          return interp_func(karr)
+          interp_func = interp1d(k_out,np.log(pk_out),kind=interpolation_kind,copy=True)
+          return np.exp(interp_func(karr))
 
         # 2) Check if z array, or z value
         if not isinstance(z,(list,np.ndarray)):

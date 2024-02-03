@@ -181,6 +181,7 @@ extern "C" {
                        );
 
   int harmonic_cls(
+                   struct precision * ppr,
                    struct background * pba,
                    struct perturbations * ppt,
                    struct transfer * ptr,
@@ -189,6 +190,7 @@ extern "C" {
                    );
 
   int harmonic_compute_cl(
+                          struct precision * ppr,
                           struct background * pba,
                           struct perturbations * ppt,
                           struct transfer * ptr,
@@ -200,6 +202,7 @@ extern "C" {
                           int index_l,
                           int cl_integrand_num_columns,
                           double * cl_integrand,
+                          double * cl_integrand_limber,
                           double * primordial_pk,
                           double * transfer_ic1,
                           double * transfer_ic2
