@@ -6,7 +6,7 @@ MDIR := $(shell pwd)
 WRKDIR = $(MDIR)/build
 
 .base:
-	if ! [ -e $(WRKDIR) ]; then mkdir $(WRKDIR) ; mkdir $(WRKDIR)/lib; fi;
+	if ! [ -e "$(WRKDIR)" ]; then mkdir "$(WRKDIR)" ; mkdir "$(WRKDIR)/lib"; fi;
 	touch build/.base
 
 vpath %.c source:tools:main:test
@@ -89,7 +89,7 @@ HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
 
 %.o:  %.c .base $(HEADERFILES)
-	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
+	cd "$(WRKDIR)";$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
 
@@ -199,8 +199,8 @@ endif
 	rm python/autosetup.py
 
 clean: .base
-	rm -rf $(WRKDIR);
+	rm -rf "$(WRKDIR)";
 	rm -f libclass.a
-	rm -f $(MDIR)/python/classy.c
-	rm -rf $(MDIR)/python/build
+	rm -f "$(MDIR)/python/classy.c"
+	rm -rf "$(MDIR)/python/build"
 	rm -f python/autosetup.py
