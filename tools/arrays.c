@@ -3,6 +3,7 @@
  * Julien Lesgourgues, 18.04.2010
  */
 
+#include <float.h>
 #include "arrays.h"
 
 /**
@@ -1813,12 +1814,12 @@ int array_interpolate_spline(
 
   if (x_array[inf] < x_array[sup]){
 
-    if (x < x_array[inf]) {
+    if (x < x_array[inf] - FLT_EPSILON) {
       sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[inf]);
       return _FAILURE_;
     }
 
-    if (x > x_array[sup]) {
+    if (x > x_array[sup] + FLT_EPSILON) {
       sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[sup]);
       return _FAILURE_;
     }
@@ -1835,12 +1836,12 @@ int array_interpolate_spline(
 
   else {
 
-    if (x < x_array[sup]) {
+    if (x < x_array[sup] - FLT_EPSILON) {
       sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[sup]);
       return _FAILURE_;
     }
 
-    if (x > x_array[inf]) {
+    if (x > x_array[inf] + FLT_EPSILON) {
       sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[inf]);
       return _FAILURE_;
     }
