@@ -15,6 +15,7 @@
  */
 
 #include "primordial.h"
+#include "parallel.h"
 
 /**
  * Primordial spectra for arbitrary argument and for all initial conditions.
@@ -1598,73 +1599,20 @@ int primordial_inflation_spectra(
                                  ) {
   int index_k;
 
-  /* number of threads (always one if no openmp) */
-  int number_of_threads=1;
-  /* index of the thread (always 0 if no openmp) */
-  int thread=0;
+  class_setup_parallel();
+  /* loop over Fourier wavenumbers */
+  for (index_k=0; index_k < ppm->lnk_size; index_k++) {
 
+    class_run_parallel(with_arguments(ppt,ppm,ppr,y_ini,index_k),
 
-  /* This code can be optionally compiled with the openmp option for parallel computation.
-     Inside parallel regions, the use of the command "return" is forbidden.
-     For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
-     parallel region. */
-  int abort;
-
-#ifdef _OPENMP
-  /* instrumentation times */
-  double tstart, tstop, tspent;
-#endif
-
-#ifdef _OPENMP
-
-#pragma omp parallel
-  {
-    number_of_threads = omp_get_num_threads();
+    class_call(primordial_inflation_one_wavenumber(ppt,ppm,ppr,y_ini,index_k),
+               ppm->error_message,
+               ppm->error_message);
+    return _SUCCESS_;
+    );
   }
-#endif
 
-  abort = _FALSE_;
-
-#pragma omp parallel shared(ppt,ppm,ppr,abort,y_ini) private(index_k,thread,tspent,tstart,tstop) num_threads(number_of_threads)
-
-  {
-
-#ifdef _OPENMP
-    thread = omp_get_thread_num();
-    tspent=0.;
-#endif
-
-#pragma omp for schedule (dynamic)
-
-    /* loop over Fourier wavenumbers */
-    for (index_k=0; index_k < ppm->lnk_size; index_k++) {
-
-#ifdef _OPENMP
-      tstart = omp_get_wtime();
-#endif
-
-      class_call_parallel(primordial_inflation_one_wavenumber(ppt,ppm,ppr,y_ini,index_k),
-                          ppm->error_message,
-                          ppm->error_message);
-
-#ifdef _OPENMP
-      tstop = omp_get_wtime();
-
-      tspent += tstop-tstart;
-#endif
-
-    }
-
-#ifdef _OPENMP
-    if (ppm->primordial_verbose>1)
-      printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-             __func__,tspent,thread);
-#endif
-
-  } /* end of parallel zone */
-
-  if (abort == _TRUE_) return _FAILURE_;
+  class_finish_parallel();
 
   ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
   ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
@@ -3073,7 +3021,7 @@ int primordial_inflation_derivs(
   struct primordial_inflation_parameters_and_workspace * ppipaw;
   struct primordial * ppm;
 
-  ppipaw = parameters_and_workspace;
+  ppipaw = (struct primordial_inflation_parameters_and_workspace *)parameters_and_workspace;
   ppm = ppipaw->ppm;
 
   // a2

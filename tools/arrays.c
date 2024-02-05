@@ -4,6 +4,7 @@
  */
 
 #include "arrays.h"
+#include "parallel.h"
 
 /**
  * Called by thermodynamics_init(); perturbations_sources().
@@ -355,7 +356,7 @@ int array_spline(
     return _FAILURE_;
   }
 
-  u = malloc((n_lines-1) * sizeof(double));
+  u = (double*)malloc((n_lines-1) * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -469,7 +470,7 @@ int array_spline_table_line_to_line(
              errmsg,
              "no possible spline with less than three lines");
 
-  u = malloc((n_lines-1) * sizeof(double));
+  u = (double*)malloc((n_lines-1) * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -571,10 +572,10 @@ int array_spline_table_lines(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_size-1) * y_size * sizeof(double));
-  p = malloc(y_size * sizeof(double));
-  qn = malloc(y_size * sizeof(double));
-  un = malloc(y_size * sizeof(double));
+  u = (double*)malloc((x_size-1) * y_size * sizeof(double));
+  p = (double*)malloc(y_size * sizeof(double));
+  qn = (double*)malloc(y_size * sizeof(double));
+  un = (double*)malloc(y_size * sizeof(double));
 
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
@@ -733,10 +734,10 @@ int array_logspline_table_lines(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_size-1) * y_size * sizeof(double));
-  p = malloc(y_size * sizeof(double));
-  qn = malloc(y_size * sizeof(double));
-  un = malloc(y_size * sizeof(double));
+  u = (double*)malloc((x_size-1) * y_size * sizeof(double));
+  p = (double*)malloc(y_size * sizeof(double));
+  qn = (double*)malloc(y_size * sizeof(double));
+  un = (double*)malloc(y_size * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -895,10 +896,10 @@ int array_spline_table_columns(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_size-1) * y_size * sizeof(double));
-  p = malloc(y_size * sizeof(double));
-  qn = malloc(y_size * sizeof(double));
-  un = malloc(y_size * sizeof(double));
+  u = (double*)malloc((x_size-1) * y_size * sizeof(double));
+  p = (double*)malloc(y_size * sizeof(double));
+  qn = (double*)malloc(y_size * sizeof(double));
+  un = (double*)malloc(y_size * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1060,16 +1061,13 @@ int array_spline_table_columns2(
   double * qn;
   double * un;
   double * u;
-  double sig;
-  int index_x;
-  int index_y;
-  double dy_first;
-  double dy_last;
 
-  u = malloc((x_size-1) * y_size * sizeof(double));
-  p = malloc(y_size * sizeof(double));
-  qn = malloc(y_size * sizeof(double));
-  un = malloc(y_size * sizeof(double));
+  int index_y;
+
+  u = (double*)malloc((x_size-1) * y_size * sizeof(double));
+  p = (double*)malloc(y_size * sizeof(double));
+  qn = (double*)malloc(y_size * sizeof(double));
+  un = (double*)malloc(y_size * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1089,15 +1087,16 @@ int array_spline_table_columns2(
 
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
 
-#pragma omp parallel                                                \
-  shared(x,x_size,y_array,y_size,ddy_array,spline_mode,p,qn,un,u)   \
-  private(index_y,index_x,sig,dy_first,dy_last)
-  {
+  class_setup_parallel();
 
-#pragma omp for schedule (dynamic)
+  for (index_y=0; index_y < y_size; index_y++) {
 
-    for (index_y=0; index_y < y_size; index_y++) {
+    class_run_parallel(=,
 
+      double dy_first;
+      double dy_last;
+      int index_x;
+      double sig;
       if (spline_mode == _SPLINE_NATURAL_) {
         ddy_array[index_y*x_size+0] = 0.0;
         u[0*y_size+index_y] = 0.0;
@@ -1174,8 +1173,12 @@ int array_spline_table_columns2(
           ddy_array[index_y*x_size+(index_x+1)] + u[index_x*y_size+index_y];
 
       }
-    }
+      return _SUCCESS_;
+    );
   }
+
+  class_finish_parallel();
+
   free(qn);
   free(p);
   free(u);
@@ -1205,7 +1208,7 @@ int array_spline_table_one_column(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_size-1) * sizeof(double));
+  u = (double*)malloc((x_size-1) * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1340,7 +1343,7 @@ int array_logspline_table_one_column(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_stop-1) * sizeof(double));
+  u = (double*)malloc((x_stop-1) * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -3131,7 +3134,7 @@ int array_smooth_trg(double * array,
   double weigth;
   double *coeff;
 
-  smooth=malloc(k_size*sizeof(double));
+  smooth=(double*)malloc(k_size*sizeof(double));
   if (smooth == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate smooth",__func__,__LINE__);
     return _FAILURE_;
@@ -3261,7 +3264,7 @@ int array_smooth(double * array,
   int i,j,jmin,jmax;
   double weigth;
 
-  smooth=malloc(n_lines*sizeof(double));
+  smooth=(double*)malloc(n_lines*sizeof(double));
   if (smooth == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate smooth",__func__,__LINE__);
     return _FAILURE_;

@@ -41,7 +41,9 @@ classy_ext = Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
                            include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
                            libraries=liblist,
                            library_dirs=[root_folder, GCCPATH],
-                           extra_link_args=['-lgomp']
+                           #extra_link_args=['-lgomp'],
+                           language="c++",
+                           extra_compile_args=["-std=c++11"]
                        )
 import sys
 classy_ext.cython_directives = {'language_level': "3" if sys.version_info.major>=3 else "2"}
@@ -53,5 +55,4 @@ setup(
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
     ext_modules=[classy_ext],
-    #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )
