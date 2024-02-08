@@ -59,7 +59,8 @@ HEATING = external/heating
 ########################################################
 
 # pass current working directory to the code
-CCFLAG += -D__CLASSDIR__='"$(MDIR)"'
+CLASSDIR ?= $(MDIR)
+CCFLAG += -D__CLASSDIR__='"$(CLASSDIR)"'
 
 # where to find include files *.h
 INCLUDES = -I../include
