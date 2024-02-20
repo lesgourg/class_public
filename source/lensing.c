@@ -121,16 +121,6 @@ int lensing_init(
   double * ksip = NULL;  /* ksip[index_mu] */
   double * ksim = NULL;  /* ksim[index_mu] */
 
-  double fac,fac1;
-  double X_000;
-  double X_p000;
-  double X_220;
-  double X_022;
-  double X_p022;
-  double X_121;
-  double X_132;
-  double X_242;
-
   int num_mu,index_mu,icount;
   int l;
   double ll;
@@ -140,9 +130,6 @@ int lensing_init(
   double * cl_ee = NULL; /* unlensed  cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
   double * cl_bb = NULL; /* unlensed  cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
   double * cl_pp; /* potential cl, to be filled to avoid repeated calls to harmonic_cl_at_l */
-
-  double res,resX,lens;
-  double resp, resm, lensp, lensm;
 
   double * sqrt1;
   double * sqrt2;
@@ -1286,14 +1273,13 @@ int lensing_d00(
   class_setup_parallel();
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       int l;
       dlm1=1.0/sqrt(2.); /* l=0 */
       d00[index_mu][0]=dlm1*sqrt(2.);
       dl=mu[index_mu] * sqrt(3./2.); /*l=1*/
       d00[index_mu][1]=dl*sqrt(2./3.);
       for (l=1;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d00 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*mu[index_mu]*dl - fac2[l]*dlm1;
         d00[index_mu][l+1] = dlp1 * fac3[l];
@@ -1328,7 +1314,7 @@ int lensing_d11(
                 int lmax,
                 double ** d11
                 ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1348,14 +1334,13 @@ int lensing_d11(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d11[index_mu][0]=0;
       dlm1=(1.0+mu[index_mu])/2. * sqrt(3./2.); /*l=1*/
       d11[index_mu][1]=dlm1 * sqrt(2./3.);
       dl=(1.0+mu[index_mu])/2.*(2.0*mu[index_mu]-1.0) * sqrt(5./2.); /*l=2*/
       d11[index_mu][2] = dl * sqrt(2./5.);
       for (l=2;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d11 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
         d11[index_mu][l+1] = dlp1 * fac4[l];
@@ -1389,7 +1374,7 @@ int lensing_d1m1(
                  int lmax,
                  double ** d1m1
                  ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1408,14 +1393,13 @@ int lensing_d1m1(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d1m1[index_mu][0]=0;
       dlm1=(1.0-mu[index_mu])/2. * sqrt(3./2.); /*l=1*/
       d1m1[index_mu][1]=dlm1 * sqrt(2./3.);
       dl=(1.0-mu[index_mu])/2.*(2.0*mu[index_mu]+1.0) * sqrt(5./2.); /*l=2*/
       d1m1[index_mu][2] = dl * sqrt(2./5.);
       for (l=2;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d1m1 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
         d1m1[index_mu][l+1] = dlp1 * fac4[l];
@@ -1449,7 +1433,7 @@ int lensing_d2m2(
                  int lmax,
                  double ** d2m2
                  ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1469,14 +1453,13 @@ int lensing_d2m2(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d2m2[index_mu][0]=0;
       dlm1=0.; /*l=1*/
       d2m2[index_mu][1]=0;
       dl=(1.0-mu[index_mu])*(1.0-mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
       d2m2[index_mu][2] = dl * sqrt(2./5.);
       for (l=2;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d2m2 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
         d2m2[index_mu][l+1] = dlp1 * fac4[l];
@@ -1510,7 +1493,7 @@ int lensing_d22(
                 int lmax,
                 double ** d22
                 ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1530,14 +1513,13 @@ int lensing_d22(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d22[index_mu][0]=0;
       dlm1=0.; /*l=1*/
       d22[index_mu][1]=0;
       dl=(1.0+mu[index_mu])*(1.0+mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
       d22[index_mu][2] = dl * sqrt(2./5.);
       for (l=2;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
         d22[index_mu][l+1] = dlp1 * fac4[l];
@@ -1571,7 +1553,7 @@ int lensing_d20(
                 int lmax,
                 double ** d20
                 ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1589,14 +1571,13 @@ int lensing_d20(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d20[index_mu][0]=0;
       dlm1=0.; /*l=1*/
       d20[index_mu][1]=0;
       dl=sqrt(15.)/4.*(1-mu[index_mu]*mu[index_mu]); /*l=2*/
       d20[index_mu][2] = dl * sqrt(2./5.);
       for (l=2;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*mu[index_mu]*dl - fac3[l]*dlm1;
         d20[index_mu][l+1] = dlp1 * fac4[l];
@@ -1630,7 +1611,7 @@ int lensing_d31(
                 int lmax,
                 double ** d31
                 ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1650,7 +1631,7 @@ int lensing_d31(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d31[index_mu][0]=0;
       d31[index_mu][1]=0;
       dlm1=0.; /*l=2*/
@@ -1658,7 +1639,6 @@ int lensing_d31(
       dl=sqrt(105./2.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
       d31[index_mu][3] = dl * sqrt(2./7.);
       for (l=3;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
         d31[index_mu][l+1] = dlp1 * fac4[l];
@@ -1692,7 +1672,7 @@ int lensing_d3m1(
                  int lmax,
                  double ** d3m1
                  ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1712,7 +1692,7 @@ int lensing_d3m1(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d3m1[index_mu][0]=0;
       d3m1[index_mu][1]=0;
       dlm1=0.; /*l=2*/
@@ -1720,7 +1700,6 @@ int lensing_d3m1(
       dl=sqrt(105./2.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
       d3m1[index_mu][3] = dl * sqrt(2./7.);
       for (l=3;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
         d3m1[index_mu][l+1] = dlp1 * fac4[l];
@@ -1754,7 +1733,7 @@ int lensing_d3m3(
                  int lmax,
                  double ** d3m3
                  ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1774,7 +1753,7 @@ int lensing_d3m3(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d3m3[index_mu][0]=0;
       d3m3[index_mu][1]=0;
       dlm1=0.; /*l=2*/
@@ -1782,7 +1761,6 @@ int lensing_d3m3(
       dl=sqrt(7./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
       d3m3[index_mu][3] = dl * sqrt(2./7.);
       for (l=3;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
         d3m3[index_mu][l+1] = dlp1 * fac4[l];
@@ -1816,7 +1794,7 @@ int lensing_d40(
                 int lmax,
                 double ** d40
                 ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1834,7 +1812,7 @@ int lensing_d40(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d40[index_mu][0]=0;
       d40[index_mu][1]=0;
       d40[index_mu][2]=0;
@@ -1843,7 +1821,6 @@ int lensing_d40(
       dl=sqrt(315.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
       d40[index_mu][4] = dl * sqrt(2./9.);
       for (l=4;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*mu[index_mu]*dl - fac3[l]*dlm1;
         d40[index_mu][l+1] = dlp1 * fac4[l];
@@ -1877,7 +1854,7 @@ int lensing_d4m2(
                  int lmax,
                  double ** d4m2
                  ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1897,7 +1874,7 @@ int lensing_d4m2(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d4m2[index_mu][0]=0;
       d4m2[index_mu][1]=0;
       d4m2[index_mu][2]=0;
@@ -1906,7 +1883,6 @@ int lensing_d4m2(
       dl=sqrt(126.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
       d4m2[index_mu][4] = dl * sqrt(2./9.);
       for (l=4;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
         d4m2[index_mu][l+1] = dlp1 * fac4[l];
@@ -1940,7 +1916,7 @@ int lensing_d4m4(
                  int lmax,
                  double ** d4m4
                  ) {
-  double ll, dlm1, dl, dlp1;
+  double ll;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
   ErrorMsg erreur;
@@ -1960,7 +1936,7 @@ int lensing_d4m4(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     class_run_parallel(=,
       int l;
-      double declare_list_of_variables_inside_parallel_region(ll, dlm1, dl, dlp1);
+      double declare_list_of_variables_inside_parallel_region(dlm1, dl, dlp1);
       d4m4[index_mu][0]=0;
       d4m4[index_mu][1]=0;
       d4m4[index_mu][2]=0;
@@ -1969,7 +1945,6 @@ int lensing_d4m4(
       dl=sqrt(9./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
       d4m4[index_mu][4] = dl * sqrt(2./9.);
       for (l=4;l<lmax;l++){
-        ll=(double) l;
         /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
         dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
         d4m4[index_mu][l+1] = dlp1 * fac4[l];

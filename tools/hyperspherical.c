@@ -27,7 +27,7 @@ int hyperspherical_HIS_create(int K,
       then relative to ppHIS.
   */
   double deltax, beta2, lambda, x, xfwd;
-  double *sqrtK, *one_over_sqrtK,*PhiL;
+  double *sqrtK, *one_over_sqrtK;
   int j, k, l, nx, lmax, l_recurrence_max;
 
   beta2 = beta*beta;
@@ -880,6 +880,9 @@ int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
         alpha*log((sqrt(alpha2-w2)+sqrt(1.0-w2))/sqrt(alpha2-1.0));
       airy_sign = 1;
     }
+  }
+  else{
+    return _FAILURE_;
   }
   argu = 3.0*S/(2.0*e);
   Q = CscK*CscK-alpha2;

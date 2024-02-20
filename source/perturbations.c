@@ -562,7 +562,7 @@ int perturbations_output_titles(
       class_store_columntitle(titles,"d_idr",pba->has_idr);
       if (pba->has_ncdm == _TRUE_) {
         for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-          sprintf(tmp,"d_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"d_ncdm[%d]",n_ncdm);
           class_store_columntitle(titles,tmp,_TRUE_);
         }
       }
@@ -591,7 +591,7 @@ int perturbations_output_titles(
       class_store_columntitle(titles,"t_idr",pba->has_idr);
       if (pba->has_ncdm == _TRUE_) {
         for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-          sprintf(tmp,"t_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"t_ncdm[%d]",n_ncdm);
           class_store_columntitle(titles,tmp,_TRUE_);
         }
       }
@@ -708,8 +708,6 @@ int perturbations_init(
   int index_k;
   /* running index for type of perturbation */
   int index_tp;
-  /* pointer to one struct perturbations_workspace per thread (one if no openmp) */
-  struct perturbations_workspace ** pppw;
   /* background quantities */
   double w_fld_ini, w_fld_0,dw_over_da_fld,integral_fld;
 
@@ -2278,7 +2276,6 @@ int perturbations_get_k_list(
     ppt->k_size[ppt->index_md_scalars] = index_k;
 
     class_realloc(ppt->k[ppt->index_md_scalars],
-                  ppt->k[ppt->index_md_scalars],
                   ppt->k_size[ppt->index_md_scalars]*sizeof(double),
                   ppt->error_message);
   }
@@ -2412,7 +2409,6 @@ int perturbations_get_k_list(
     ppt->k_size[ppt->index_md_vectors] = index_k;
 
     class_realloc(ppt->k[ppt->index_md_vectors],
-                  ppt->k[ppt->index_md_vectors],
                   ppt->k_size[ppt->index_md_vectors]*sizeof(double),
                   ppt->error_message);
   }
@@ -2546,7 +2542,6 @@ int perturbations_get_k_list(
     ppt->k_size[ppt->index_md_tensors] = index_k;
 
     class_realloc(ppt->k[ppt->index_md_tensors],
-                  ppt->k[ppt->index_md_tensors],
                   ppt->k_size[ppt->index_md_tensors]*sizeof(double),
                   ppt->error_message);
   }
@@ -3338,13 +3333,13 @@ int perturbations_prepare_k_output(struct background * pba,
       /* Non-cold dark matter */
       if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_))) {
         for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
-          sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
-          sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
-          sprintf(tmp,"cs2_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"cs2_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
         }
       }
@@ -3386,11 +3381,11 @@ int perturbations_prepare_k_output(struct background * pba,
 
       if (ppt->evolve_tensor_ncdm == _TRUE_) {
         for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->tensor_titles,tmp,_TRUE_);
-          sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->tensor_titles,tmp,_TRUE_);
-          sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+          class_sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
           class_store_columntitle(ppt->tensor_titles,tmp,_TRUE_);
         }
       }
@@ -8202,7 +8197,7 @@ int perturbations_print_variables(double tau,
         theta_idr = y[ppw->pv->index_pt_theta_idr];
 
         if (ppt->idr_nature == idr_free_streaming){
-          if ((ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on)){
+          if (ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on){
             shear_idr = ppw->tca_shear_idm_dr;
           }
           else{
@@ -8410,9 +8405,9 @@ int perturbations_print_variables(double tau,
       ppt->size_scalar_perturbation_data[ppw->index_ikout] = 0;
     }
     else{
-      ppt->scalar_perturbations_data[ppw->index_ikout] =
-        (double*)realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
-                sizeof(double)*(ppt->size_scalar_perturbation_data[ppw->index_ikout]+ppt->number_of_scalar_titles));
+      class_realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
+                    (ppt->size_scalar_perturbation_data[ppw->index_ikout]+ppt->number_of_scalar_titles)*sizeof(double),
+                    ppt->error_message);
     }
     storeidx = 0;
     dataptr = ppt->scalar_perturbations_data[ppw->index_ikout]+
@@ -8776,7 +8771,7 @@ int perturbations_derivs(double tau,
       photon_scattering_rate += pvecthermo[pth->index_th_dmu_idm_g];
       S_idm_g = 4./3. * pvecback[pba->index_bg_rho_g] / pvecback[pba->index_bg_rho_idm];
     }
-    if ((pth->has_idm_dr == _TRUE_)){
+    if (pth->has_idm_dr == _TRUE_){
       S_idm_dr = 4./3. * pvecback[pba->index_bg_rho_idr]/ pvecback[pba->index_bg_rho_idm];
       dmu_idm_dr = pvecthermo[pth->index_th_dmu_idm_dr];
       dmu_idr = pth->b_idr/pth->a_idm_dr*pba->Omega0_idr/pba->Omega0_idm*dmu_idm_dr;

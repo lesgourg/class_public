@@ -215,8 +215,8 @@ private:
 
   const unsigned int count_;
   std::vector<std::thread> threads_;
-  std::vector<NotificationQueue> queues_;
   std::atomic<unsigned int> index_;
+  std::vector<NotificationQueue> queues_;
 };
 
 }

@@ -3227,7 +3227,7 @@ int primordial_external_spectrum_init(
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   FILE *process;
   int n_data_guess, n_data = 0;
-  double *k = NULL, *pks = NULL, *pkt = NULL, *tmp = NULL;
+  double *k = NULL, *pks = NULL, *pkt = NULL;
   double this_k, this_pks, this_pkt;
   int status;
   int index_k;
@@ -3242,16 +3242,16 @@ int primordial_external_spectrum_init(
   /* Prepare the command */
   /* If the command is just a "cat", no arguments need to be passed */
   if (strncmp("cat ", ppm->command, 4) == 0) {
-    sprintf(arguments, " ");
+    class_sprintf(arguments, " ");
   }
   /* otherwise pass the list of arguments */
   else {
-    sprintf(arguments, " %g %g %g %g %g %g %g %g %g %g",
+    class_sprintf(arguments, " %g %g %g %g %g %g %g %g %g %g",
             ppm->custom1, ppm->custom2, ppm->custom3, ppm->custom4, ppm->custom5,
             ppm->custom6, ppm->custom7, ppm->custom8, ppm->custom9, ppm->custom10);
   }
   /* write the actual command in a string */
-  sprintf(command_with_arguments, "%s %s", ppm->command, arguments);
+  class_sprintf(command_with_arguments, "%s %s", ppm->command, arguments);
   if (ppm->primordial_verbose > 0)
     printf(" -> running: %s\n",command_with_arguments);
 
@@ -3273,24 +3273,12 @@ int primordial_external_spectrum_init(
     /* (it is faster and safer that reallocating every new line) */
     if ((n_data+1) > n_data_guess) {
       n_data_guess *= 2;
-      tmp = (double *)realloc(k,   n_data_guess*sizeof(double));
-      class_test(tmp == NULL,
-                 ppm->error_message,
-                 "Error allocating memory to read the external spectrum.\n");
-      k = tmp;
-      tmp = (double *)realloc(pks, n_data_guess*sizeof(double));
-      class_test(tmp == NULL,
-                 ppm->error_message,
-                 "Error allocating memory to read the external spectrum.\n");
-      pks = tmp;
+      class_realloc(k, n_data_guess*sizeof(double), ppm->error_message);
+      class_realloc(pks, n_data_guess*sizeof(double), ppm->error_message);
       if (ppt->has_tensors == _TRUE_) {
-        tmp = (double *)realloc(pkt, n_data_guess*sizeof(double));
-        class_test(tmp == NULL,
-                   ppm->error_message,
-                   "Error allocating memory to read the external spectrum.\n");
-        pkt = tmp;
-      };
-    };
+        class_realloc(pkt, n_data_guess*sizeof(double), ppm->error_message);
+      }
+    }
     /* Store */
     k  [n_data]   = this_k;
     pks[n_data]   = this_pks;
@@ -3328,24 +3316,19 @@ int primordial_external_spectrum_init(
   ppm->lnk_size = n_data;
   /** - Make room */
   class_realloc(ppm->lnk,
-                ppm->lnk,
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
   class_realloc(ppm->lnpk[ppt->index_md_scalars],
-                ppm->lnpk[ppt->index_md_scalars],
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
   class_realloc(ppm->ddlnpk[ppt->index_md_scalars],
-                ppm->ddlnpk[ppt->index_md_scalars],
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
   if (ppt->has_tensors == _TRUE_) {
     class_realloc(ppm->lnpk[ppt->index_md_tensors],
-                  ppm->lnpk[ppt->index_md_tensors],
                   ppm->lnk_size*sizeof(double),
                   ppm->error_message);
     class_realloc(ppm->ddlnpk[ppt->index_md_tensors],
-                  ppm->ddlnpk[ppt->index_md_tensors],
                   ppm->lnk_size*sizeof(double),
                   ppm->error_message);
   };

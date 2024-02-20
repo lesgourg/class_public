@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v3.2.2"
+#define _VERSION_ "v3.2.3"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -99,6 +99,16 @@ extern "C" {
 #endif
 
 /* general CLASS macros */
+
+//This macro receives additional 'do {' and '} while(0)' to safeguard
+//in single-line if else clauses without '{' and '}'
+//Also, careful: Since sprintf(NULL,0,x) returns the size of characters
+//that are inside of the string x, then the buffer needs to be
+//actually one character longer to hold also the null character '\0'
+#define class_sprintf(string, format...) do {                                                                       \
+  int _buffer_size_sprintf = snprintf(NULL, 0, format);                                                          \
+  snprintf(string, _buffer_size_sprintf+1, format);                                                                \
+} while (0)
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \
@@ -188,8 +198,8 @@ extern "C" {
 }
 
 /* macro for re-allocating memory, returning error if it failed */
-#define class_realloc(pointer, newname, size, error_message_output)  {                                          \
-    pointer=(__typeof__(pointer))realloc(newname,size);                                                                               \
+#define class_realloc(pointer, size, error_message_output)  {                                          \
+    pointer=(__typeof__(pointer))realloc(pointer,size);                                                                               \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -334,6 +344,17 @@ extern "C" {
 //The name for this macro can be at most 30 characters total
 #define class_print_species(name,type) \
 printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
+
+//Generic evolver prototype
+#define EVOLVER_PROTOTYPE \
+    int (*)(double, double *, double *, void *, ErrorMsg), \
+    double, double, double *, int *, \
+    int, void *, double, double, \
+    int (*)(double, void *, double *, ErrorMsg), \
+    double, double *, int, \
+    int (*)(double, double *, double *, int, void *, ErrorMsg), \
+    int (*)(double, double *, double *, void *, ErrorMsg), \
+    ErrorMsg
 
 /* Forward-Declare the structs of CLASS */
 struct background;
