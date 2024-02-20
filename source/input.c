@@ -277,7 +277,7 @@ int input_set_root(char* input_file,
       /* No file has been found yet */
       found_filenum = _FALSE_;
       for (iextens = 0; iextens < n_extensions; ++iextens){
-        sprintf(tmp_file,"%s%02d_%s", outfname, filenum, output_extensions[iextens]);
+        class_sprintf(tmp_file,"%s%02d_%s", outfname, filenum, output_extensions[iextens]);
         if (file_exists(tmp_file) == _TRUE_){
           /* Found a file, the outer loop is forced to keep searching */
           found_filenum = _TRUE_;
@@ -295,8 +295,8 @@ int input_set_root(char* input_file,
                              pfc->filename,
                              errmsg),
                  errmsg,errmsg);
-      sprintf(fc_root.name[0],"root");
-      sprintf(fc_root.value[0],"%s%02d_",outfname,filenum);
+      class_sprintf(fc_root.name[0],"root");
+      class_sprintf(fc_root.value[0],"%s%02d_",outfname,filenum);
       fc_root.read[0] = _FALSE_;
       class_call(parser_cat(pfc,
                             &fc_root,
@@ -314,7 +314,7 @@ int input_set_root(char* input_file,
     }
     /* If root was found, set the index in the fc_input struct */
     else{
-      sprintf(pfc->value[index_root_in_fc_input],"%s%02d_",outfname,filenum);
+      class_sprintf(pfc->value[index_root_in_fc_input],"%s%02d_",outfname,filenum);
       (*ppfc_input) = pfc;
     }
   }
@@ -328,8 +328,8 @@ int input_set_root(char* input_file,
                              pfc->filename,
                              errmsg),
                  errmsg,errmsg);
-      sprintf(fc_root.name[0],"root");
-      sprintf(fc_root.value[0],"%s_",outfname);
+      class_sprintf(fc_root.name[0],"root");
+      class_sprintf(fc_root.value[0],"%s_",outfname);
       fc_root.read[0] = _FALSE_;
       class_call(parser_cat(pfc,
                             &fc_root,
@@ -347,7 +347,7 @@ int input_set_root(char* input_file,
     }
     /* If root was found, set the index in the fc_input struct */
     else{
-      sprintf(pfc->value[index_root_in_fc_input],"%s_",outfname);
+      class_sprintf(pfc->value[index_root_in_fc_input],"%s_",outfname);
       (*ppfc_input) = pfc;
     }
   }
@@ -658,7 +658,7 @@ int input_shooting(struct file_content * pfc,
       /* Store xzero */
       // This needs to be done with enough accuracy. A standard double has a relative
       // precision of around 1e-16, so 1e-20 should be good enough for the shooting
-      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%.20e",xzero);
+      class_sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%.20e",xzero);
       if (input_verbose > 0) {
         fprintf(stdout," -> found '%s = %s'\n",
                 fzw.fc.name[fzw.unknown_parameters_index[0]],
@@ -705,7 +705,7 @@ int input_shooting(struct file_content * pfc,
       // This needs to be done with enough accuracy. A standard double has a relative
       // precision of around 1e-16, so 1e-20 should be good enough for the shooting
       for (counter = 0; counter < unknown_parameters_size; counter++){
-        sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
+        class_sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
                 "%.20e",x_inout[counter]);
         if (input_verbose > 0) {
           fprintf(stdout," -> found '%s = %s'\n",
@@ -838,7 +838,7 @@ int input_shooting(struct file_content * pfc,
     A_s = (fzw.target_value[0]/sigma8_or_S8) *(fzw.target_value[0]/sigma8_or_S8) * A_s; //(truesigma/sigma_for_guess)^2 *A_s_for_guess
 
     /* Store the derived value with high enough accuracy */
-    sprintf(fzw.fc.value[pfc->size],"%.20e",A_s);
+    class_sprintf(fzw.fc.value[pfc->size],"%.20e",A_s);
     if (input_verbose > 0) {
       fprintf(stdout," -> found '%s = %s'\n",
               fzw.fc.name[pfc->size],
@@ -1345,7 +1345,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   // This needs to be done with enough accuracy. A standard double has a relative
   // precision of around 1e-16, so 1e-20 should be good enough for the shooting
   for (i=0; i < unknown_parameters_size; i++) {
-    sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],"%.20e",unknown_parameter[i]);
+    class_sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],"%.20e",unknown_parameter[i]);
   }
 
   class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&hr,&fo,&le,&sd,&op,
@@ -3001,7 +3001,7 @@ int input_read_parameters_species(struct file_content * pfc,
           if (ppt->perturbations_verbose > 0) {
             printf("WARNING: only %i entries of alpha_idm_dr were provided for %i moments, filling up the rest with the last entry provided\n", entries_read, ppr->l_max_idr-1);
           }
-          class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+          class_realloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
           for (n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
         }
       }
@@ -3044,7 +3044,7 @@ int input_read_parameters_species(struct file_content * pfc,
           if (ppt->perturbations_verbose > 0) {
             printf("WARNING: only %i entries of beta_idr were provided for %i moments, filling up the rest with the last entry provided\n", entries_read, ppr->l_max_idr-1);
           }
-          class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+          class_realloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
           for (n=entries_read; n<(ppr->l_max_idr-1); n++)
             ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
         }
@@ -3133,7 +3133,7 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /** 7.3) Final consistency checks for dark matter species */
 
-  class_test(abs(f_cdm + f_idm - 1.) > 1e-10,
+  class_test(fabs(f_cdm + f_idm - 1.) > 1e-10,
              errmsg,
              "The dark matter species do not add up to the expected value");
 
@@ -3146,7 +3146,7 @@ int input_read_parameters_species(struct file_content * pfc,
   class_test((f_idm > 0.) && (pba->Omega0_cdm == 0.),
              errmsg,
              "If you want a fraction of interacting, to be consistent, you should not set the fraction of CDM to zero");
-  class_test(abs(f_cdm + f_idm - 1.) > ppr->tol_fraction_accuracy,
+  class_test(fabs(f_cdm + f_idm - 1.) > ppr->tol_fraction_accuracy,
              errmsg,
              "The dark matter species do not add up to the expected value");
   if ( f_idm > 0. )
@@ -4814,7 +4814,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                errmsg,
                errmsg);
     /* Complete set of parameters */
-    if ((flag1 == _TRUE_)) {
+    if (flag1 == _TRUE_) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_analytic = _TRUE_;
       }
@@ -4829,7 +4829,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                errmsg,
                errmsg);
     /* Complete set of parameters */
-    if ((flag1 == _TRUE_)) {
+    if (flag1 == _TRUE_) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_evo_analytic = _TRUE_;
       }
@@ -5535,7 +5535,7 @@ int input_write_info(struct file_content * pfc,
 
   /* Finally, since all variables are read, we can also print the parameters.ini and unused_parameters files */
   if (flag1 == _TRUE_) {
-    sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
+    class_sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
     class_open(param_output,param_output_name,"w",errmsg);
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");
@@ -5544,7 +5544,7 @@ int input_write_info(struct file_content * pfc,
     fprintf(param_output,"# This file can be used as the input file of another run\n");
     fprintf(param_output,"#\n");
 
-    sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
+    class_sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
     class_open(param_unused,param_unused_name,"w",errmsg);
     fprintf(param_unused,"# List of input/precision parameters passed\n");
     fprintf(param_unused,"# but not used (just for info)\n");
@@ -5890,13 +5890,13 @@ int input_default_params(struct background *pba,
   /** 5) Injection efficiency */
   pin->f_eff_type = f_eff_on_the_spot;
   pin->f_eff = 1.;
-  sprintf(pin->f_eff_file,"external/heating/example_f_eff_file.dat");
+  class_sprintf(pin->f_eff_file,"external/heating/example_f_eff_file.dat");
 
   /** 6) Deposition function */
   pin->chi_type = chi_CK;
   /** 6.1) External file */
-  sprintf(pin->chi_z_file,"external/heating/example_chiz_file.dat");
-  sprintf(pin->chi_x_file,"external/heating/example_chix_file.dat");
+  class_sprintf(pin->chi_z_file,"external/heating/example_chiz_file.dat");
+  class_sprintf(pin->chi_x_file,"external/heating/example_chix_file.dat");
 
   /**
    * Default to input_read_parameters_nonlinear
@@ -6076,7 +6076,7 @@ int input_default_params(struct background *pba,
   /** 1.a.3) Detector name */
   psd->has_user_defined_name = _FALSE_;
   psd->has_user_defined_detector = _FALSE_;
-  sprintf(psd->sd_detector_name,"PIXIE");
+  class_sprintf(psd->sd_detector_name,"PIXIE");
   /** 1.3.a.1) Detector nu min */
   psd->sd_detector_nu_min = 30.;
   /** 1.3.a.2) Detector nu max */
@@ -6114,7 +6114,7 @@ int input_default_params(struct background *pba,
 
   /** 1) Output for external files */
   /** 1.a) File name */
-  sprintf(pop->root,"output/");
+  class_sprintf(pop->root,"output/");
   /** 1.b) Headers */
   pop->write_header = _TRUE_;
   /** 1.c) Format */

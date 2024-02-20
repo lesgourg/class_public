@@ -304,17 +304,17 @@ int get_qsampling(double *x,
   }
   //printf("N_adapt=%d, N_combined=%d at level=%d, Nlag=%d\n",Nadapt,N_comb,level,NLag);
   if (adapt_converging==_TRUE_){
-    sprintf(method_chosen,"Adaptive Gauss-Kronrod Quadrature");
+    class_sprintf(method_chosen,"Adaptive Gauss-Kronrod Quadrature");
     /* Gather weights and xvalues from tree: */
     i = Nadapt-1;
     get_leaf_x_and_w(root,&i,x,w,_TRUE_);
   }
   else if (Laguerre_converging==_TRUE_){
-    sprintf(method_chosen,"Gauss-Laguerre Quadrature");
+    class_sprintf(method_chosen,"Gauss-Laguerre Quadrature");
     /* x and w is already populated in this case. */
   }
   else if (combined_converging == _TRUE_){
-    sprintf(method_chosen,"Combined Quadrature");
+    class_sprintf(method_chosen,"Combined Quadrature");
     for(i=0; i<N_comb_leg; i++){
       x[i] = q_leg[i];
       w[i] = w_leg[i];

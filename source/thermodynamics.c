@@ -1553,9 +1553,9 @@ int thermodynamics_solve(
   struct thermodynamics_parameters_and_workspace tpaw;
 
   /* function pointer to ODE evolver and names of possible evolvers. */
-  extern int evolver_rk();
-  extern int evolver_ndf15();
-  int (*generic_evolver)() = evolver_ndf15;
+  extern int evolver_rk(EVOLVER_PROTOTYPE);
+  extern int evolver_ndf15(EVOLVER_PROTOTYPE);
+  int (*generic_evolver)(EVOLVER_PROTOTYPE) = evolver_ndf15;
 
   /** - choose evolver */
   switch (ppr->thermo_evolver) {
@@ -2190,9 +2190,9 @@ int thermodynamics_reionization_evolve_with_tau(
   struct thermo_workspace * ptw;
 
   /* function pointer to ODE evolver and names of possible evolvers */
-  extern int evolver_rk();
-  extern int evolver_ndf15();
-  int (*generic_evolver)() = evolver_ndf15;
+  extern int evolver_rk(EVOLVER_PROTOTYPE);
+  extern int evolver_ndf15(EVOLVER_PROTOTYPE);
+  int (*generic_evolver)(EVOLVER_PROTOTYPE) = evolver_ndf15;
 
   /* pointers towards two thermo vector stuctures (see below) */
 
@@ -4647,7 +4647,7 @@ int thermodynamics_obtain_z_ini(
       if (pth->thermodynamics_verbose > 3)
         printf("The decoupling redshift for idm_dr is z_idm_dec = %.5e\n", z_idm_dec);
       /* we need to be careful if idm is coupled to photons and idr at the same time */
-      class_test(z_idm_dec_min != _HUGE_ && abs(pba->T_idr - pba->T_cmb) > 1e-2,
+      class_test(z_idm_dec_min != _HUGE_ && fabs(pba->T_idr - pba->T_cmb) > 1e-2,
                  pth->error_message,
                  "It seems that at early times idm is thermally coupled to both idr and photons (possibly through baryons).\nPlease set the initial temperatures equal or disable this error.");
 

@@ -632,15 +632,15 @@ int parser_cat(struct file_content * pfc1,
 
   if (pfc1->size == 0) {
     class_alloc(pfc3->filename,(strlen(pfc2->filename)+1)*sizeof(char),errmsg);
-    sprintf(pfc3->filename,"%s",pfc2->filename);
+    class_sprintf(pfc3->filename,"%s",pfc2->filename);
   }
   if (pfc2->size == 0) {
     class_alloc(pfc3->filename,(strlen(pfc1->filename)+1)*sizeof(char),errmsg);
-    sprintf(pfc3->filename,"%s",pfc1->filename);
+    class_sprintf(pfc3->filename,"%s",pfc1->filename);
   }
   if ((pfc1->size !=0) && (pfc2->size != 0)) {
     class_alloc(pfc3->filename,(strlen(pfc1->filename)+strlen(pfc2->filename)+5)*sizeof(char),errmsg);
-    sprintf(pfc3->filename,"%s or %s",pfc1->filename,pfc2->filename);
+    class_sprintf(pfc3->filename,"%s or %s",pfc1->filename,pfc2->filename);
   }
 
   pfc3->size = pfc1->size + pfc2->size;
