@@ -5,8 +5,6 @@
 
 #include "fourier.h"
 #include "hyperspherical.h"
-#include <sys/shm.h>
-#include <sys/stat.h>
 #include "errno.h"
 
 /* macro: test if index_tt is in the range between index and index+num, while the flag is true */
