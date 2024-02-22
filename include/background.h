@@ -10,10 +10,6 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
-/** list of possible types of spatial curvature */
-
-enum spatial_curvature {flat,open,closed};
-
 /** list of possible parametrisations of the DE equation of state */
 
 enum equation_of_state {CLP,EDE};
