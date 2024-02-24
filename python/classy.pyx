@@ -171,6 +171,62 @@ cdef class Class:
         self._pars = {}
         self.computed = False
 
+    def delpars(self, pars):
+        """
+        delpars(item)
+
+        Deletes one or more given parameters by name
+        NOTE: calling this function with argument self.pars.keys() is
+        equivalent to calling self.empty()
+
+        Parameters
+        ----------
+        item : string or iterable of string
+                The item(s) that should be deleted.
+
+        Returns
+        ----------
+        output : dict
+                Dictionary with item(s) as keys, with values True/False if it was/wasn't deleted.
+        """
+        temp_params = dict()
+        # case 0: None
+        if not pars:
+            return temp_params
+        # case 1: a simple string
+        if type(pars) is str:
+            if pars in self._pars:
+                del self._pars[pars]
+                temp_params[pars] = True
+            else:
+                temp_params[pars] = False
+        # case 2: something else that is listable
+        else:
+            try:
+                pars = list(pars)
+            except TypeError:
+                raise CosmoSevereError(
+                    "unable to convert object of type {} into a list; "
+                    "please use format of type 'str' or 'list' of 'str'".format(type(pars))
+                )
+            # iterate over items
+            for par in pars:
+                # try converting item into string
+                try:
+                    par = str(par)
+                except TypeError:
+                    raise CosmoSevereError(
+                        "unable to convert object of type {} into a string; "
+                        "please use format of type 'str'".format(type(pars))
+                    )
+                # if it exists, delete it
+                if par in self._pars:
+                    del self._pars[par]
+                    temp_params[par] = True
+                else:
+                    temp_params[par] = False
+        return temp_params
+
     # Create an equivalent of the parameter file. Non specified values will be
     # taken at their default (in Class)
     def _fillparfile(self):
