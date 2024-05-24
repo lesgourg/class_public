@@ -603,6 +603,14 @@ extern "C" {
 /* remark: sigma_B = 2 pi^5 k_B^4 / (15h^3c^2) = 5.670400e-8
    = Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
+//
+// KC 5/24/24
+// This multiplies little omegas to give an energy density
+// in 1/Mpc^2
+//
+#define _little_omega_to_geo_energy_density_in_Mpc_ 1.32812817e-8 
+#define _little_omega_to_mks_mass_density_ 1.87834162e-26
+#define _little_omega_to_mks_energy_density_ 1.68816926e-9
 //@}
 
 /**

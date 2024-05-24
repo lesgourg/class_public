@@ -2063,33 +2063,42 @@ int input_read_parameters_general(struct file_content * pfc,
 
   // KC 5/24/24
   // If without_h was specified, parse it
-  if (flag1 == _TRUE_) {
+  if (flag1 == _FALSE_) {
+    pba->has_h = _TRUE_;
+  }
+  else {
     if (string_begins_with(string1, 'y') || string_begins_with(string1, 'Y')) {
       pba->has_h = _FALSE_;
       pba->h = 0;
     }
+    else {
+      pba->has_h = _TRUE_;
+    }
   }
-
+  
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
   class_call(parser_read_double(pfc,"h",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-  
+
+  // Because we explicitly can request or deny h, don't accept default values
+  // anymore
+  class_test( (pba->has_h == _TRUE_) && (flag1 == _FALSE_) && (flag2 == _FALSE_),
+	      errmsg,
+	      "Because we now explicitly flag whether or not we have a priori Hubble, omission of Hubble will not adopt a default value.");
+
   /* Test */
-  if((flag1 == _TRUE_) || (flag2 == _TRUE_)) {
-    class_test(pba->has_h == _FALSE_,
-	       errmsg,
-	       "You cannot solve for h (via physical densities alone), and also demand an h.");
-    pba->has_h = _TRUE_;
-  }
+  class_test( (pba->has_h == _FALSE_) && ((flag1 == _TRUE_) || (flag2 == _TRUE_)),
+	      errmsg,
+	      "You cannot solve for h (via physical densities alone), and also demand an h.");
   
   // Check for over-specification
   class_test(pba->has_h && (flag1 == _TRUE_) && (flag2 == _TRUE_),
 	     errmsg,
 	     "You can only enter one of 'h' or 'H0'.");
-  
+	      
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->H0 = param1*1.e3/_c_;
@@ -2377,14 +2386,18 @@ int input_read_parameters_species(struct file_content * pfc,
     // Looks like omega0_g will be in the correct units now
     //
     // sigma_B is in Kg/K^4/s^3.
-    pba->omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+    // pba->omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+    pba->omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / _little_omega_to_mks_energy_density_;
   }
   else {
     if (flag1 == _TRUE_){
       // KC 5/24/24
       // We remove the little h's again
-      pba->omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+      // pba->omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+      pba->omega0_g = (4.*sigma_B/_c_*pow(param1,4.)) / _little_omega_to_mks_energy_density_;
       pba->T_cmb=param1;
+      printf("This is what we got for omega0_g: %e\n", pba->omega0_g);
+
     }
     if (flag2 == _TRUE_){
       // KC 5/24/24
@@ -2394,7 +2407,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
     if (flag3 == _TRUE_){
       pba->omega0_g = param3;
-      pba->T_cmb = pow(pba->omega0_g*(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
+      pba->T_cmb = pow(pba->omega0_g*_little_omega_to_mks_mass_density_/(4.*sigma_B/_c_),0.25);
     }
   }
   class_test(pba->omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
@@ -5754,7 +5767,7 @@ int input_default_params(struct background *pba,
 
   /** 1) Photon density */
   pba->T_cmb = 2.7255;
-  pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+  pba->omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
 
   /** 2) Baryon density */
   pba->Omega0_b = 0.02238280/pow(pba->h,2);
@@ -5763,7 +5776,7 @@ int input_default_params(struct background *pba,
       assuming as default value N_eff=3.044 (see 2008.01074 and
       2012.02726. This value is more accurate than the previous
       default value of 3.046) */
-  pba->Omega0_ur = 3.044*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+  pba->omega0_ur = 3.044*7./8.*pow(4./11.,4./3.)*pba->omega0_g;
 
   /** 3.a) Effective squared sound speed and viscosity parameter */
   ppt->three_ceff2_ur=1.;
