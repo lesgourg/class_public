@@ -438,14 +438,14 @@ int background_functions(
   rho_r += pvecback[pba->index_bg_rho_g];
 
   /* baryons */
-  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a,3);
+  pvecback[pba->index_bg_rho_b] = pba->omega0_b * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
   rho_m += pvecback[pba->index_bg_rho_b];
 
   /* cdm */
   if (pba->has_cdm == _TRUE_) {
-    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a,3);
+    pvecback[pba->index_bg_rho_cdm] = pba->omega0_cdm * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_cdm];
@@ -1751,7 +1751,7 @@ int background_checks(
   int filenum=0;
 
   /** - control that we have photons and baryons in the problem */
-  class_test((pba->omega0_g<=0) || (pba->Omega0_b<=0),
+  class_test((pba->omega0_g<=0) || (pba->omega0_b<=0),
              pba->error_message,
              "CLASS is conceived to work in a universe containing at least two species: photons and baryons. You could work in the limit where Omega_g or Omega_b are very small, but not zero");
 

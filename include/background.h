@@ -63,16 +63,18 @@ struct background
   double h;  /**< reduced Hubble parameter */
 
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$: photons */
-  double omega0_g; /**< \f$ \omega_{0 \gamma} \f$: physical photon density */
+  double omega0_g; /**< \f$ \omega_{0 \gamma} \f$: projected physical photon density */
   
   double T_cmb;    /**< \f$ T_{cmb} \f$: current CMB temperature in Kelvins */
 
   double Omega0_b; /**< \f$ \Omega_{0 b} \f$: baryons */
-
+  double omega0_b; /**< \f$ \omega_{0 b} \f$: projected physical baryon density */
+  
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
-  double omega0_ur; /**< \f$ \omega_{0 \nu r} \f$: ultra-relativistic neutrino physical density */
+  double omega0_ur; /**< \f$ \omega_{0 \nu r} \f$: projected ultra-relativistic neutrino physical density */
   
   double Omega0_cdm;      /**< \f$ \Omega_{0 cdm} \f$: cold dark matter */
+  double omega0_cdm;      /**< \f$ \omega_{0 cdm} \f$: projected CDM physical density */
 
   double Omega0_idm; /**< \f$ \Omega_{0 idm} \f$: interacting dark matter with photons, baryons, and idr */
 
