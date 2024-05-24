@@ -453,6 +453,7 @@ int background_functions(
 
   /* idm */
   if (pba->has_idm == _TRUE_) {
+    // XXX
     pvecback[pba->index_bg_rho_idm] = pba->Omega0_idm * pow(pba->H0,2) / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_idm];
     p_tot += 0.;
@@ -2099,10 +2100,17 @@ int background_solve(
   pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
   pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
   // KC 5/24/24
-  // XXX needs to get fixed 
-  pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
+  // XXX needs to get fixed
+  if(pba->has_h == _TRUE_) {
+    pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
+  }
+  else {
+    // We don't do it by closure anymore, we rip it from the table.
+    pba->Omega0_de = 0.0; // pba->background_table[(pba->bt_size-1)*pba->bg_size*pba->index_bg_Omega_de];
+  }
 
   /* Compute the density fraction of non-free-streaming matter (in the minimal LambdaCDM model, this would be just Omega_b + Omega_cdm). This definition takes into account interating, decaying and warm dark matter, but it would need to be refined if some part of the matter component was modelled by the fluid (fld) or the scalar field (scf). */
+  // XXX
   pba->Omega0_nfsm =  pba->Omega0_b;
   if (pba->has_cdm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_cdm;
@@ -2211,6 +2219,7 @@ int background_initial_conditions(
     omega_rad += pba->omega0_ur;
   }
   if (pba->has_idr == _TRUE_) {
+    // XXX
     omega_rad += pba->Omega0_idr;
   }
   rho_rad = omega_rad/pow(a,4);
@@ -2243,6 +2252,7 @@ int background_initial_conditions(
        * ignoring f(a) in the Hubble rate.
        */
 
+      // XXX almost certainly
       f = 1./3.*pow(a,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(omega_rad/pba->h/pba->h);
       pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a,4);
     }

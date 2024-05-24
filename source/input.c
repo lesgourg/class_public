@@ -3334,7 +3334,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
   else {
-    printf("No a prior Hubble given, so budget matching is *disabled*.\n");
+    printf("No a priori Hubble given, so budget matching is *disabled*.\n");
   }
   
   /* ** END OF BUDGET EQUATION ** */
@@ -5906,7 +5906,14 @@ int input_default_params(struct background *pba,
   /** 9) Dark energy contributions */
   pba->Omega0_fld = 0.;
   pba->Omega0_scf = 0.;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr - pba->Omega0_idr -pba->Omega0_idm;
+
+  if(pba->has_h == _TRUE_) {
+    pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr - pba->Omega0_idr -pba->Omega0_idm;
+  }
+  else {
+    pba->Omega0_lambda = 0;
+  }
+  
   /** 8.a) Omega fluid */
   /** 8.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;
