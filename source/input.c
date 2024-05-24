@@ -2407,7 +2407,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
     if (flag3 == _TRUE_){
       pba->omega0_g = param3;
-      pba->T_cmb = pow(pba->omega0_g*_little_omega_to_mks_mass_density_/(4.*sigma_B/_c_),0.25);
+      pba->T_cmb = pow(pba->omega0_g*_little_omega_to_mks_energy_density_/(4.*sigma_B/_c_),0.25);
     }
   }
   class_test(pba->omega0_g<0,errmsg,"You cannot set the photon density to negative values.");

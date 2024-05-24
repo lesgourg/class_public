@@ -566,7 +566,7 @@ int background_functions(
 
   /* relativistic neutrinos (and all relativistic relics) */
   if (pba->has_ur == _TRUE_) {
-    pvecback[pba->index_bg_rho_ur] = pba->omega0_ur / pow(a,4);
+    pvecback[pba->index_bg_rho_ur] = pba->omega0_ur * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,4);
     rho_tot += pvecback[pba->index_bg_rho_ur];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
