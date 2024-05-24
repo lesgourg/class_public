@@ -557,7 +557,7 @@ int background_functions(
 
   /* relativistic neutrinos (and all relativistic relics) */
   if (pba->has_ur == _TRUE_) {
-    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a,4);
+    pvecback[pba->index_bg_rho_ur] = pba->omega0_ur / pow(a,4);
     rho_tot += pvecback[pba->index_bg_rho_ur];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
@@ -1008,7 +1008,7 @@ int background_indices(
   if (pba->Omega0_fld != 0.)
     pba->has_fld = _TRUE_;
 
-  if (pba->Omega0_ur != 0.)
+  if (pba->omega0_ur != 0.)
     pba->has_ur = _TRUE_;
 
   if (pba->Omega0_idr != 0.)
@@ -1742,7 +1742,7 @@ int background_checks(
   int filenum=0;
 
   /** - control that we have photons and baryons in the problem */
-  class_test((pba->Omega0_g<=0) || (pba->Omega0_b<=0),
+  class_test((pba->omega0_g<=0) || (pba->Omega0_b<=0),
              pba->error_message,
              "CLASS is conceived to work in a universe containing at least two species: photons and baryons. You could work in the limit where Omega_g or Omega_b are very small, but not zero");
 
@@ -2089,6 +2089,8 @@ int background_solve(
   /**  - store information in the background structure */
   pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
   pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
+  // KC 5/24/24
+  // XXX needs to get fixed 
   pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
 
   /* Compute the density fraction of non-free-streaming matter (in the minimal LambdaCDM model, this would be just Omega_b + Omega_cdm). This definition takes into account interating, decaying and warm dark matter, but it would need to be refined if some part of the matter component was modelled by the fluid (fld) or the scalar field (scf). */
@@ -2141,7 +2143,7 @@ int background_initial_conditions(
   double a;
 
   double rho_ncdm, p_ncdm, rho_ncdm_rel_tot=0.;
-  double f,Omega_rad, rho_rad;
+  double f,omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
   double scf_lambda;
   double rho_fld_today;
@@ -2195,19 +2197,25 @@ int background_initial_conditions(
   }
 
   /* Set initial values of {B} variables: */
-  Omega_rad = pba->Omega0_g;
+  omega_rad = pba->omega0_g;
   if (pba->has_ur == _TRUE_) {
-    Omega_rad += pba->Omega0_ur;
+    omega_rad += pba->omega0_ur;
   }
   if (pba->has_idr == _TRUE_) {
-    Omega_rad += pba->Omega0_idr;
+    omega_rad += pba->Omega0_idr;
   }
-  rho_rad = Omega_rad*pow(pba->H0,2)/pow(a,4);
+  rho_rad = omega_rad/pow(a,4);
   if (pba->has_ncdm == _TRUE_) {
     /** - We must add the relativistic contribution from NCDM species */
     rho_rad += rho_ncdm_rel_tot;
   }
   if (pba->has_dcdm == _TRUE_) {
+    // KC 5/24/24
+    // XXX This is now broken when we specify things with physical densities
+    class_test(pba->has_h == _FALSE_,
+	       NULL,
+	       "DCDM needs to be updated to work with h determined at end of integration");
+
     /* Remember that the critical density today in CLASS conventions is H0^2 */
     pvecback_integration[pba->index_bi_rho_dcdm] =
       pba->Omega_ini_dcdm*pba->H0*pba->H0*pow(a,-3);
@@ -2225,7 +2233,8 @@ int background_initial_conditions(
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
        */
-      f = 1./3.*pow(a,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
+
+      f = 1./3.*pow(a,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(omega_rad/pba->h/pba->h);
       pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a,4);
     }
     else{

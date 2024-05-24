@@ -2346,11 +2346,18 @@ int input_read_parameters_species(struct file_content * pfc,
              errmsg,
              errmsg);
   class_call(parser_read_double(pfc,"Omega_g",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
+	     errmsg,
+	     errmsg);  
   class_call(parser_read_double(pfc,"omega_g",&param3,&flag3,errmsg),
              errmsg,
              errmsg);
+
+  // KC 5/24/24
+  // Die if we don't have an h and we tried to give Omega_h without T_cmb or omega_g
+  class_test(pba->has_h == _FALSE_ && flag2 == _TRUE_,
+	     errmsg,
+	     "Without h, you must specify a direct multiple of physical density for photons (g)");
+  
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
              "You can only enter one of 'T_cmb', 'Omega_g' or 'omega_g'.");
@@ -2359,23 +2366,38 @@ int input_read_parameters_species(struct file_content * pfc,
      rho_g = (4 sigma_B/c) T^4
      rho_c0 = 3 c^2 H_0^2/(8 \pi G) */
   if (class_none_of_three(flag1,flag2,flag3)){
-    pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+    //pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+
+    // KC 5/24/24
+    // We're never going to use big Omegas anymore to set up the integration,
+    // because the class code always went back to physical densities anyway...
+    //
+    // So we just take out the little h's.
+    //
+    // Looks like omega0_g will be in the correct units now
+    //
+    // sigma_B is in Kg/K^4/s^3.
+    pba->omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   }
   else {
     if (flag1 == _TRUE_){
-      pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+      // KC 5/24/24
+      // We remove the little h's again
+      pba->omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
       pba->T_cmb=param1;
     }
     if (flag2 == _TRUE_){
-      pba->Omega0_g = param2;
-      pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
+      // KC 5/24/24
+      // We already tested for the presence of an h.  So we know we have it here
+      pba->omega0_g = param2 * pba->h * pba->h;
+      pba->T_cmb = pow(pba->omega0_g*(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
     }
     if (flag3 == _TRUE_){
-      pba->Omega0_g = param3/pba->h/pba->h;
-      pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
+      pba->omega0_g = param3;
+      pba->T_cmb = pow(pba->omega0_g*(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
     }
   }
-  class_test(pba->Omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
+  class_test(pba->omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
 
 
   /** 2) Omega_0_b (baryons) */
@@ -2427,6 +2449,11 @@ int input_read_parameters_species(struct file_content * pfc,
   class_call(parser_read_double(pfc,"omega_ur",&param3,&flag3,errmsg),
              errmsg,
              errmsg);
+
+  class_test((pba->has_h == _FALSE_) && (flag2 == _TRUE_),
+	     errmsg,
+	     "You cannot specify ultrarelativistic density with Omegas if there is no a prori h.");
+  
   /* Test */
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
@@ -2435,20 +2462,24 @@ int input_read_parameters_species(struct file_content * pfc,
      (see 2008.01074 and 2012.02726. This value is more accurate than
      the previous default value of 3.046) */
   if (class_none_of_three(flag1,flag2,flag3)) {
-    pba->Omega0_ur = 3.044*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+    // KC 5/24/24
+    // Because omega0_g is in the correct units, omega0_ur will also be in
+    // the correct units here.
+    pba->omega0_ur = 3.044*7./8.*pow(4./11.,4./3.)*pba->omega0_g;
   }
   else {
     if (flag1 == _TRUE_) {
-      pba->Omega0_ur = param1*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+      pba->omega0_ur = param1*7./8.*pow(4./11.,4./3.)*pba->omega0_g;
     }
     if (flag2 == _TRUE_) {
-      pba->Omega0_ur = param2;
+      // We know we have an h if we got this far.
+      pba->omega0_ur = param2*pba->h*pba->h;
     }
     if (flag3 == _TRUE_) {
-      pba->Omega0_ur = param3/pba->h/pba->h;
+      pba->omega0_ur = param3;
     }
   }
-  class_test(pba->Omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values.");
+  class_test(pba->omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values.");
 
   /** 3.a) Case of non-standard properties */
   /* Read */
