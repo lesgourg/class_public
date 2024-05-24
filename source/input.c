@@ -2057,16 +2057,39 @@ int input_read_parameters_general(struct file_content * pfc,
 
   /** 5) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
   /* Read */
+  class_call(parser_read_string(pfc, "without_h", &string1, &flag1, errmsg),
+	     errmsg,
+	     errmsg);
+
+  // KC 5/24/24
+  // If without_h was specified, parse it
+  if (flag1 == _TRUE_) {
+    if (string_begins_with(string1, 'y') || string_begins_with(string1, 'Y')) {
+      pba->has_h = _FALSE_;
+      pba->h = 0;
+    }
+  }
+
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
   class_call(parser_read_double(pfc,"h",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
+  
   /* Test */
-  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-             errmsg,
-             "You can only enter one of 'h' or 'H0'.");
+  if((flag1 == _TRUE_) || (flag2 == _TRUE_)) {
+    class_test(pba->has_h == _FALSE_,
+	       errmsg,
+	       "You cannot solve for h (via physical densities alone), and also demand an h.");
+    pba->has_h = _TRUE_;
+  }
+  
+  // Check for over-specification
+  class_test(pba->has_h && (flag1 == _TRUE_) && (flag2 == _TRUE_),
+	     errmsg,
+	     "You can only enter one of 'h' or 'H0'.");
+  
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->H0 = param1*1.e3/_c_;
@@ -2076,8 +2099,7 @@ int input_read_parameters_general(struct file_content * pfc,
     pba->H0 = param2*1.e5/_c_;
     pba->h = param2;
   }
-
-
+      
   /** 6) Primordial helium fraction */
   /* Read */
   class_call(parser_read_string(pfc,"YHe",&string1,&flag1,errmsg),
@@ -2311,10 +2333,13 @@ int input_read_parameters_species(struct file_content * pfc,
   double f_cdm=1., f_idm=0.;
   short has_m_budget = _FALSE_, has_cdm_userdefined = _FALSE_;
   double Omega_m_remaining = 0.;
-
+  short has_hubble = _TRUE_;
 
   sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
 
+  /** We're going to go through and remove */
+
+  
   /** 1) Omega_0_g (photons) and T_cmb */
   /* Read */
   class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
@@ -2630,6 +2655,10 @@ int input_read_parameters_species(struct file_content * pfc,
                    pba->error_message,
                    errmsg);
         if (pba->Omega0_ncdm[n] == 0.0){
+	  class_test(pba->has_h == _FALSE_,
+		     errmsg,
+		     "non-cold relic code must be modified to accept physical densities if there is no h given apriori.");
+	  
           pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
         }
         else{
@@ -2660,9 +2689,23 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /** 6) Omega_0_k (effective fractional density of curvature) */
   /* Read */
-  class_read_double("Omega_k",pba->Omega0_k);
-  /* Complete set of parameters */
-  pba->K = -pba->Omega0_k*pow(pba->H0,2);
+  class_call(parser_read_double(pfc,"Omega_k",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  
+  if(pba->has_h == _TRUE_) {
+    class_read_double("Omega_k",pba->Omega0_k);
+    /* Complete set of parameters */
+    pba->K = -pba->Omega0_k*pow(pba->H0,2);
+  }
+  else {
+    // KC 5/24/24
+    // Do we flip the sign here?  Seems
+    // conventional that the physical curvature density have
+    // inverted sign from the Omega.
+    class_read_double("omega_k", pba->K);
+  }
+  
   if (pba->K > 0.){
     pba->sgnK = 1;
   }
@@ -5623,7 +5666,12 @@ int input_default_params(struct background *pba,
   ppt->has_Nbody_gauge_transfers = _FALSE_;
 
   /** 5) Hubble parameter */
-  pba->h = 0.67810;
+  //
+  // KC 5/24/24
+  // We set this to zero by default to crash out any places
+  // we failed to convert the h mechanics.
+  //
+  pba->h = 0; // 0.67810;
   pba->H0 = pba->h*1.e5/_c_;
 
   /** 6) Primordial Helium fraction */

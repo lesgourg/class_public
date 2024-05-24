@@ -296,6 +296,7 @@ struct background
   short has_curvature; /**< presence of global spatial curvature? */
   short has_varconst;  /**< presence of varying fundamental constants? */
 
+  short has_h;         /**< do we specify an h at the outset, or work only with physical densities and get an h? */
   //@}
 
 
