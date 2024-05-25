@@ -110,6 +110,8 @@ struct background
   double Omega0_k;         /**< \f$ \Omega_{0_k} \f$: curvature contribution */
 
   double Omega0_lambda;    /**< \f$ \Omega_{0_\Lambda} \f$: cosmological constant */
+  double omega0_lambda;    /**< \f$ \omega_{0_\Lambda} \f$: cosmological constant, or equivalently a DE floor */
+  
   double Omega0_fld;       /**< \f$ \Omega_{0 de} \f$: fluid */
   double Omega0_scf;       /**< \f$ \Omega_{0 scf} \f$: scalar field */
   short use_ppf; /**< flag switching on PPF perturbation equations instead of true fluid equations for perturbations. It could have been defined inside
@@ -610,7 +612,7 @@ extern "C" {
 // This multiplies little omegas to give an energy density
 // in 1/Mpc^2
 //
-#define _little_omega_to_geo_energy_density_in_Mpc_ 1.32812817e-8 
+#define _little_omega_to_geo_energy_density_in_Mpc_ 1.32812817e-8
 #define _little_omega_to_mks_mass_density_ 1.87834162e-26
 #define _little_omega_to_mks_energy_density_ 1.68816926e-9
 //@}

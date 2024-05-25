@@ -424,13 +424,6 @@ int background_functions(
   /* photons */
   // KC 5/24/24
   // Gotta get the units right.
-  // h ~ c 10^3 / Mpc
-  // H0 ~ 1 / Mpc
-  //
-  // dakara: \Omega0_g H_0^2 (originally here)
-  //           = \Omega0_g (100 h/c1e3)^2
-  //           = \omega0_g (100/c1e3)^2
-  //           = \omega0_g (1/10c)^2
   pvecback[pba->index_bg_rho_g] = pba->omega0_g * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,4);
   rho_tot += pvecback[pba->index_bg_rho_g];
   p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
@@ -541,7 +534,7 @@ int background_functions(
 
   /* Lambda */
   if (pba->has_lambda == _TRUE_) {
-    pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
+    pvecback[pba->index_bg_rho_lambda] = pba->omega0_lambda * _little_omega_to_geo_energy_density_in_Mpc_;
     rho_tot += pvecback[pba->index_bg_rho_lambda];
     p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
@@ -700,6 +693,7 @@ int background_w_fld(
       - (pba->Omega0_fld - pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld)))*(1.-pba->Omega0_fld)*3.*pba->w0_fld*pow(a,3.*pba->w0_fld-1.)/pow(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld),2)
       + pba->Omega_EDE*3.*pba->w0_fld*pow(a,-3.*pba->w0_fld-1.);
 
+    // XXX
     // find a_equality (needed because EDE tracks first radiation, then matter)
     Omega_r = pba->Omega0_g * (1. + 3.044 * 7./8.*pow(4./11.,4./3.)); // assumes LambdaCDM + eventually massive neutrinos so light that they are relativistic at equality; needs to be generalised later on.
     Omega_m = pba->Omega0_b;

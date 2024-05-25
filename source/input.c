@@ -3228,6 +3228,7 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /* After all the other possibly non-relativistic species have been determined, we can fianlly compute the CDM density */
   if (has_m_budget == _TRUE_) {
+    printf("Setting cdm to remaining matter density\n");
     pba->omega0_cdm = omega_m_remaining;
   }
 
@@ -3250,42 +3251,47 @@ int input_read_parameters_species(struct file_content * pfc,
     pba->Omega0_cdm = 0.;
 
   /* avoid Omega0_cdm exactly zero in synchronous gauge */
-  if ((ppt->gauge == synchronous) && (pba->Omega0_cdm < ppr->Omega0_cdm_min_synchronous)) {
-    pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
+  // XXX may cause issues in synchronous gauge if working with little omegas.
+  if(pba->has_h == _TRUE_) {
+    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm < ppr->Omega0_cdm_min_synchronous)) {
+      printf("We have some issues here.");
+      pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
+    }
   }
-
+  
   /* At this point all the species should be set, and used for the budget equation below */
 
   /** 8) Dark energy
       Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
       fluid), Omega0_scf (scalar field) */
   /* Read */
-  class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
-             errmsg,
-             "'Omega_Lambda' or 'Omega_fld' must be left unspecified, except if 'Omega_scf' is set and < 0.");
-  class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
-             errmsg,
-             "You have entered 'Omega_scf' < 0 , so you have to specify both 'Omega_lambda' and 'Omega_fld'.");
-  /* Complete set of parameters
-     Case of (flag3 == _FALSE_) || (param3 >= 0.) means that either we have not
-     read Omega_scf so we are ignoring it (unlike lambda and fld!) OR we have
-     read it, but it had a positive value and should not be used for filling.
-     We now proceed in two steps:
-     1) set each Omega0 and add to the total for each specified component.
-     2) go through the components in order {lambda, fld, scf} and fill using
-     first unspecified component. */
-
   if(pba->has_h == _TRUE_) {
+
+    class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+    class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
+	       errmsg,
+	       errmsg);
+    class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
+	       errmsg,
+	       errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
+	       errmsg,
+	       "'Omega_Lambda' or 'Omega_fld' must be left unspecified, except if 'Omega_scf' is set and < 0.");
+    class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
+	       errmsg,
+	       "You have entered 'Omega_scf' < 0 , so you have to specify both 'Omega_lambda' and 'Omega_fld'.");
+    /* Complete set of parameters
+       Case of (flag3 == _FALSE_) || (param3 >= 0.) means that either we have not
+       read Omega_scf so we are ignoring it (unlike lambda and fld!) OR we have
+       read it, but it had a positive value and should not be used for filling.
+       We now proceed in two steps:
+       1) set each Omega0 and add to the total for each specified component.
+       2) go through the components in order {lambda, fld, scf} and fill using
+       first unspecified component. */
+
     /* ** BUDGET EQUATION ** -> Add your species here */
     /* Compute Omega_tot */
     Omega_tot = pba->Omega0_g;
@@ -3300,6 +3306,7 @@ int input_read_parameters_species(struct file_content * pfc,
     /* Step 1 */
     if (flag1 == _TRUE_){
       pba->Omega0_lambda = param1;
+      pba->omega0_lambda = param1 * pba->h * pba->h;
       Omega_tot += pba->Omega0_lambda;
     }
     if (flag2 == _TRUE_){
@@ -3314,6 +3321,7 @@ int input_read_parameters_species(struct file_content * pfc,
     if (flag1 == _FALSE_) {
       /* Fill with Lambda */
       pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
+      pba->omega0_lambda = pba->omega0_lambda / pba->h / pba->h;
       if (input_verbose > 0){
 	printf(" -> matched budget equations by adjusting Omega_Lambda = %g\n",pba->Omega0_lambda);
       }
@@ -3333,8 +3341,20 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
   }
-  else {
-    printf("No a priori Hubble given, so budget matching is *disabled*.\n");
+  else {    
+    printf("No a priori Hubble given, so budget matching is *disabled*.\nWe will still total up all the energy and compute critical.");
+
+    class_call(parser_read_double(pfc,"omega_Lambda",&param1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+ 
+    // KC 5/24/24
+    if(flag1 == _TRUE_) {
+      pba->omega0_lambda = param1;
+    }
+    else {
+      pba->omega0_lambda = 0.0;
+    }
   }
   
   /* ** END OF BUDGET EQUATION ** */
@@ -5760,10 +5780,9 @@ int input_default_params(struct background *pba,
   /** 5) Hubble parameter */
   //
   // KC 5/24/24
-  // We set this to zero by default to crash out any places
-  // we failed to convert the h mechanics.
-  //
-  pba->h = 0; // 0.67810;
+  // We set this to -1 to keep other species that divide by H0
+  // that have not been ported over from exploding.
+  pba->h = 0; //-1; // 0.67810;
   pba->H0 = pba->h*1.e5/_c_;
 
   /** 6) Primordial Helium fraction */
