@@ -431,7 +431,7 @@ int background_functions(
   rho_r += pvecback[pba->index_bg_rho_g];
 
   /* baryons */
-  pvecback[pba->index_bg_rho_b] = pba->omega0_b * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,3);
+  pvecback[pba->index_bg_rho_b] = pba->omega0_b * _little_omega_to_mks_mass_density_ * _mks_mass_density_to_geo_Mpc_ / pow(a,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
   rho_m += pvecback[pba->index_bg_rho_b];

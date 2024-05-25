@@ -613,8 +613,14 @@ extern "C" {
 // in 1/Mpc^2
 //
 #define _little_omega_to_geo_energy_density_in_Mpc_ 1.32812817e-8
+#define _little_omega_to_geo_mass_density_in_Mpc_ 1.4
+
 #define _little_omega_to_mks_mass_density_ 1.87834162e-26
 #define _little_omega_to_mks_energy_density_ 1.68816926e-9
+
+#define _mks_energy_density_to_geo_Mpc_ 7.86726904
+#define _mks_mass_density_to_geo_Mpc_ 7.0707488e17
+
 //@}
 
 /**
