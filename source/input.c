@@ -3321,7 +3321,7 @@ int input_read_parameters_species(struct file_content * pfc,
     if (flag1 == _FALSE_) {
       /* Fill with Lambda */
       pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
-      pba->omega0_lambda = pba->Omega0_lambda / pba->h / pba->h;
+      pba->omega0_lambda = pba->Omega0_lambda * pba->h * pba->h;
       if (input_verbose > 0){
 	printf(" -> matched budget equations by adjusting Omega_Lambda = %g\n",pba->Omega0_lambda);
       }
