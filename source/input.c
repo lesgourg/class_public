@@ -3323,7 +3323,7 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
       pba->omega0_lambda = pba->Omega0_lambda * pba->h * pba->h;
       if (input_verbose > 0){
-	printf(" -> matched budget equations by adjusting Omega_Lambda = %g\n",pba->Omega0_lambda);
+	printf(" -> matched budget equations by adjusting Omega_Lambda = %g (omega0_lambda = %g)\n",pba->Omega0_lambda, pba->omega0_lambda);
       }
     }
     else if (flag2 == _FALSE_) {
@@ -3342,7 +3342,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
   else {    
-    printf("No a priori Hubble given, so budget matching is *disabled*.\nWe will still total up all the energy and compute critical.");
+    printf("No a priori Hubble given, so budget matching is *disabled*.\nWe will still total up all the energy and compute critical.\n");
 
     class_call(parser_read_double(pfc,"omega_Lambda",&param1,&flag1,errmsg),
 	       errmsg,
@@ -3351,6 +3351,10 @@ int input_read_parameters_species(struct file_content * pfc,
     // KC 5/24/24
     if(flag1 == _TRUE_) {
       pba->omega0_lambda = param1;
+      if (input_verbose > 0){
+	printf(" -> set explicitly given physical omega_Lambda = %g\n",pba->omega0_lambda);
+      }
+
     }
     else {
       pba->omega0_lambda = 0.0;

@@ -988,7 +988,7 @@ int background_indices(
   pba->has_curvature = _FALSE_;
   pba->has_varconst  = _FALSE_;
 
-  if (pba->Omega0_cdm != 0.)
+  if (pba->omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
 
   if (pba->Omega0_idm != 0.)
@@ -1006,7 +1006,7 @@ int background_indices(
   if (pba->Omega0_scf != 0.)
     pba->has_scf = _TRUE_;
 
-  if (pba->Omega0_lambda != 0.)
+  if (pba->omega0_lambda != 0.)
     pba->has_lambda = _TRUE_;
 
   if (pba->Omega0_fld != 0.)
@@ -2099,6 +2099,23 @@ int background_solve(
     pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
   }
   else {
+
+    // KC 5/27/24
+    // If we don't have h, we do have it now.  This is so the downstream code
+    // can remain unalatered.  Woot.
+    pba->H0 = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_H];
+
+    // Now compute the little guy
+    pba->h = pba->H0 / 1e5 * _c_;
+
+    printf("h-less: computed H0 = %g (1/Mpc) and h = %g\n", pba->H0, pba->h);
+
+    // Now go through and compute the Omegas, because they are used downstream
+    pba->Omega0_b = pba->omega0_b / pba->h / pba->h;
+    pba->Omega0_cdm = pba->omega0_cdm / pba->h / pba->h;
+    pba->Omega0_ur = pba->omega0_ur / pba->h / pba->h;
+    pba->Omega0_g = pba->omega0_g / pba->h / pba->h;
+	
     // We don't do it by closure anymore, we rip it from the table.
     pba->Omega0_de = 0.0; // pba->background_table[(pba->bt_size-1)*pba->bg_size*pba->index_bg_Omega_de];
   }
@@ -2227,7 +2244,7 @@ int background_initial_conditions(
     // KC 5/24/24
     // XXX This is now broken when we specify things with physical densities
     class_test(pba->has_h == _FALSE_,
-	       NULL,
+	       pba->error_message,
 	       "DCDM needs to be updated to work with h determined at end of integration");
 
     /* Remember that the critical density today in CLASS conventions is H0^2 */
