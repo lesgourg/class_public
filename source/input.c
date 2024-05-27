@@ -2396,7 +2396,7 @@ int input_read_parameters_species(struct file_content * pfc,
       // pba->omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
       pba->omega0_g = (4.*sigma_B/_c_*pow(param1,4.)) / _little_omega_to_mks_energy_density_;
       pba->T_cmb=param1;
-      printf("This is what we got for omega0_g: %e\n", pba->omega0_g);
+      //printf("This is what we got for omega0_g: %e\n", pba->omega0_g);
 
     }
     if (flag2 == _TRUE_){
@@ -2408,7 +2408,7 @@ int input_read_parameters_species(struct file_content * pfc,
     if (flag3 == _TRUE_){
       pba->omega0_g = param3;
       pba->T_cmb = pow(pba->omega0_g*_little_omega_to_mks_energy_density_/(4.*sigma_B/_c_),0.25);
-      printf("I think the CMB is: %e Kelvin\n", pba->T_cmb);
+      // printf("I think the CMB is: %e Kelvin\n", pba->T_cmb);
     }
   }
   class_test(pba->omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
@@ -2452,7 +2452,7 @@ int input_read_parameters_species(struct file_content * pfc,
   }
   class_test(pba->omega0_b<0,errmsg,"You cannot set the baryon density to negative values.");
 
-  printf("I think omega0_b is: %e\n", pba->omega0_b);
+  // printf("I think omega0_b is: %e\n", pba->omega0_b);
 
   /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
   /**
@@ -2778,6 +2778,10 @@ int input_read_parameters_species(struct file_content * pfc,
   class_call(parser_read_double(pfc,"Omega_k",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
+
+  class_test(pba->has_h == _FALSE_ && (flag1 == _TRUE_),
+	     errmsg,
+	     "h-less: You cannot specify a curvature as a fraction of critical without a priori Hubble.");
   
   if(pba->has_h == _TRUE_) {
     class_read_double("Omega_k",pba->Omega0_k);
@@ -3342,7 +3346,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
   else {    
-    printf("No a priori Hubble given, so budget matching is *disabled*.\nWe will still total up all the energy and compute critical.\n");
+    printf("h-less: No a priori Hubble given, so budget matching is *disabled*.\n        We will still total up all the energy and compute critical.\n");
 
     class_call(parser_read_double(pfc,"omega_Lambda",&param1,&flag1,errmsg),
 	       errmsg,
@@ -3351,9 +3355,9 @@ int input_read_parameters_species(struct file_content * pfc,
     // KC 5/24/24
     if(flag1 == _TRUE_) {
       pba->omega0_lambda = param1;
-      if (input_verbose > 0){
-	printf(" -> set explicitly given physical omega_Lambda = %g\n",pba->omega0_lambda);
-      }
+      //if (input_verbose > 0){
+      //  printf(" -> set explicitly given physical omega_Lambda = %g\n",pba->omega0_lambda);
+      //}
 
     }
     else {

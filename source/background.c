@@ -2110,12 +2110,19 @@ int background_solve(
 
     printf("h-less: computed H0 = %g (1/Mpc) and h = %g\n", pba->H0, pba->h);
 
-    // Now go through and compute the Omegas, because they are used downstream
+    // KC 5/27/24
+    // Now go through and compute the *projected* Omegas, because they are used downstream.
+    //
+    printf("h-less: computing projected Omega0's for use by downstream code.  Always \n        base your physics on the background table integrated quantities, fellow kids.\n");
     pba->Omega0_b = pba->omega0_b / pba->h / pba->h;
     pba->Omega0_cdm = pba->omega0_cdm / pba->h / pba->h;
     pba->Omega0_ur = pba->omega0_ur / pba->h / pba->h;
     pba->Omega0_g = pba->omega0_g / pba->h / pba->h;
-	
+
+    // Note that minus sign
+    pba->Omega0_k = -pba->K / pba->h / pba->h;
+    pba->Omega0_de = pba->omega0_lambda / pba->h / pba->h;
+    
     // We don't do it by closure anymore, we rip it from the table.
     pba->Omega0_de = 0.0; // pba->background_table[(pba->bt_size-1)*pba->bg_size*pba->index_bg_Omega_de];
   }
