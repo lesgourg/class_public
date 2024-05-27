@@ -424,21 +424,21 @@ int background_functions(
   /* photons */
   // KC 5/24/24
   // Gotta get the units right.
-  pvecback[pba->index_bg_rho_g] = pba->omega0_g * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,4);
+  pvecback[pba->index_bg_rho_g] = pba->omega0_g * _little_omega_to_CLASS_ / pow(a,4);
   rho_tot += pvecback[pba->index_bg_rho_g];
   p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
   dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_g];
   rho_r += pvecback[pba->index_bg_rho_g];
 
   /* baryons */
-  pvecback[pba->index_bg_rho_b] = pba->omega0_b * _little_omega_to_mks_mass_density_ * _mks_mass_density_to_geo_Mpc_ / pow(a,3);
+  pvecback[pba->index_bg_rho_b] = pba->omega0_b * _little_omega_to_CLASS_ / pow(a,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
   rho_m += pvecback[pba->index_bg_rho_b];
 
   /* cdm */
   if (pba->has_cdm == _TRUE_) {
-    pvecback[pba->index_bg_rho_cdm] = pba->omega0_cdm * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,3);
+    pvecback[pba->index_bg_rho_cdm] = pba->omega0_cdm * _little_omega_to_CLASS_ / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_cdm];
@@ -534,7 +534,7 @@ int background_functions(
 
   /* Lambda */
   if (pba->has_lambda == _TRUE_) {
-    pvecback[pba->index_bg_rho_lambda] = pba->omega0_lambda * _little_omega_to_geo_energy_density_in_Mpc_;
+    pvecback[pba->index_bg_rho_lambda] = pba->omega0_lambda * _little_omega_to_CLASS_;
     rho_tot += pvecback[pba->index_bg_rho_lambda];
     p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
@@ -560,7 +560,7 @@ int background_functions(
 
   /* relativistic neutrinos (and all relativistic relics) */
   if (pba->has_ur == _TRUE_) {
-    pvecback[pba->index_bg_rho_ur] = pba->omega0_ur * _little_omega_to_geo_energy_density_in_Mpc_ / pow(a,4);
+    pvecback[pba->index_bg_rho_ur] = pba->omega0_ur * _little_omega_to_CLASS_ / pow(a,4);
     rho_tot += pvecback[pba->index_bg_rho_ur];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
@@ -2216,9 +2216,11 @@ int background_initial_conditions(
     // XXX
     omega_rad += pba->Omega0_idr;
   }
-  rho_rad = omega_rad/pow(a,4);
+  rho_rad = omega_rad/pow(a,4) * _little_h_to_CLASS_;
+  
   if (pba->has_ncdm == _TRUE_) {
     /** - We must add the relativistic contribution from NCDM species */
+    // XXX
     rho_rad += rho_ncdm_rel_tot;
   }
   if (pba->has_dcdm == _TRUE_) {

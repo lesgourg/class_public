@@ -2408,6 +2408,7 @@ int input_read_parameters_species(struct file_content * pfc,
     if (flag3 == _TRUE_){
       pba->omega0_g = param3;
       pba->T_cmb = pow(pba->omega0_g*_little_omega_to_mks_energy_density_/(4.*sigma_B/_c_),0.25);
+      printf("I think the CMB is: %e Kelvin\n", pba->T_cmb);
     }
   }
   class_test(pba->omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
@@ -2451,7 +2452,7 @@ int input_read_parameters_species(struct file_content * pfc,
   }
   class_test(pba->omega0_b<0,errmsg,"You cannot set the baryon density to negative values.");
 
-
+  printf("I think omega0_b is: %e\n", pba->omega0_b);
 
   /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
   /**
@@ -2508,15 +2509,14 @@ int input_read_parameters_species(struct file_content * pfc,
     }
     if (flag3 == _TRUE_) {
       pba->omega0_ur = param3;
-      
-      // KC 5/24/24
-      // If we have a little h, we can define Omega0_g
-      if(pba->has_h == _TRUE_) {
-	pba->Omega0_ur = pba->omega0_ur / pba->h / pba->h;
-      }
-
     }
   }
+  // KC 5/24/24
+  // If we have a little h, we can define Omega0_g
+  if(pba->has_h == _TRUE_) {
+    pba->Omega0_ur = pba->omega0_ur / pba->h / pba->h;
+  }
+
   class_test(pba->omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values.");
 
   /** 3.a) Case of non-standard properties */
