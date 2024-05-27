@@ -2216,7 +2216,7 @@ int background_initial_conditions(
     // XXX
     omega_rad += pba->Omega0_idr;
   }
-  rho_rad = omega_rad/pow(a,4) * _little_h_to_CLASS_;
+  rho_rad = omega_rad/pow(a,4) * _little_omega_to_CLASS_;
   
   if (pba->has_ncdm == _TRUE_) {
     /** - We must add the relativistic contribution from NCDM species */
