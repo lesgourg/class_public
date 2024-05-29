@@ -2113,6 +2113,8 @@ int background_solve(
     // KC 5/27/24
     // Now go through and compute the *projected* Omegas, because they are used downstream.
     //
+    // XXX this will get the thermodynamics wrong, because the thermodynamics needs projected physical
+    //     and this quantity is a hybrid...
     printf("h-less: computing projected Omega0's for use by downstream code.  Always \n        base your physics on the background table integrated quantities, fellow kids.\n");
     pba->Omega0_b = pba->omega0_b / pba->h / pba->h;
     pba->Omega0_cdm = pba->omega0_cdm / pba->h / pba->h;

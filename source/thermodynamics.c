@@ -92,6 +92,12 @@ int thermodynamics_at_z(
     }
 
     /* Calculate dkappa/dtau (dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T in units of 1/Mpc) */
+    //
+    // KC 5/27/24
+    // XXX
+    // This is broken in h-less because, in the presence of baryon decay, pth->n_e at a=1 is not a correct
+    // proxy to the necessary quantity earlier.
+    //
     pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * sigmaTrescale * _sigma_ * _Mpc_over_m_;
 
     /* tau_d scales like (1+z)**2 */

@@ -2609,6 +2609,11 @@ int input_read_parameters_species(struct file_content * pfc,
   class_read_int("N_ncdm",N_ncdm);
   /* Complete set of parameters */
   if (N_ncdm > 0){
+
+    class_test(pba->has_h == _FALSE_,
+	       errmsg,
+	       "h-less: N_cdm code has not been updated to work with h-less.  Please provide an h.");
+      
     pba->N_ncdm = N_ncdm;
     if (ppt->gauge == synchronous){
       ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
@@ -2818,6 +2823,10 @@ int input_read_parameters_species(struct file_content * pfc,
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "You can only enter one of 'Omega_dcdmdr' or 'omega_dcdmdr'.");
+  
+  class_test(pba->has_h == _FALSE_ && ((flag2 == _TRUE_) || (flag1 == _TRUE_)),
+	     errmsg,
+	     "h-less: Decaying DM into DR code has not been updated to work with h-less.  Please provide an h.");
 
   /* ---> if user passes directly the density of dcdmdr */
   if (flag1 == _TRUE_)
@@ -2900,6 +2909,10 @@ int input_read_parameters_species(struct file_content * pfc,
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
              "In input file, you can only enter one of {Omega_idm, omega_idm, f_idm}, choose one");
+  
+  class_test(pba->has_h == _FALSE_ && ( (flag1 == _TRUE_) || (flag2 == _TRUE_) || (flag3 == _TRUE_)),
+	     errmsg,
+	     "h-less: Interacting dark matter (idm) code has not been updated to work with h-less.  Please provide an h.");
 
   /* ---> if user passes directly the density of idm */
   if (flag1 == _TRUE_)
@@ -2957,6 +2970,10 @@ int input_read_parameters_species(struct file_content * pfc,
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
              "In input file, you can only enter one of {N_idr, N_dg, xi_idr}, choose one");
+
+  class_test(pba->has_h == _FALSE_ && ( (flag1 == _TRUE_) || (flag2 == _TRUE_) || (flag3 == _TRUE_)),
+	     errmsg,
+	     "h-less: Interacting dark radiation (idr) code has not been updated to work with h-less.  Please provide an h.");
 
   /** 7.2.2.b) stat_f_idr  */
   class_read_double("stat_f_idr",stat_f_idr);
@@ -3313,6 +3330,11 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->omega0_lambda = param1 * pba->h * pba->h;
       Omega_tot += pba->Omega0_lambda;
     }
+
+    class_test(pba->has_h == _FALSE_ && ( (flag2 == _TRUE_) || (flag3 == _TRUE_)),
+	       errmsg,
+	       "h-less: w0wa (fld) and scalar field (scf) code has not been updated to work with h-less.  Please provide an h.");
+
     if (flag2 == _TRUE_){
       pba->Omega0_fld = param2;
       Omega_tot += pba->Omega0_fld;
