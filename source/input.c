@@ -3286,17 +3286,21 @@ int input_read_parameters_species(struct file_content * pfc,
       Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
       fluid), Omega0_scf (scalar field) */
   /* Read */
-  if(pba->has_h == _TRUE_) {
+  class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
+	     errmsg,
+	     errmsg);
 
-    class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
-	       errmsg,
-	       errmsg);
-    class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
-	       errmsg,
-	       errmsg);
-    class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
-	       errmsg,
-	       errmsg);
+  class_test(pba->has_h == _FALSE_ && ( (flag2 == _TRUE_) || (flag3 == _TRUE_)),
+	     errmsg,
+	     "h-less: w0wa (fld) and scalar field (scf) code has not been updated to work with h-less.  Please provide an h.");
+
+  if(pba->has_h == _TRUE_) {
     /* Test */
     class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
 	       errmsg,
@@ -3330,10 +3334,6 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->omega0_lambda = param1 * pba->h * pba->h;
       Omega_tot += pba->Omega0_lambda;
     }
-
-    class_test(pba->has_h == _FALSE_ && ( (flag2 == _TRUE_) || (flag3 == _TRUE_)),
-	       errmsg,
-	       "h-less: w0wa (fld) and scalar field (scf) code has not been updated to work with h-less.  Please provide an h.");
 
     if (flag2 == _TRUE_){
       pba->Omega0_fld = param2;
