@@ -100,6 +100,19 @@ extern "C" {
                            int N_options,
                            int* valid);
 
+  int parser_extend(struct file_content * pfc,
+                    int N_extend,
+                    ErrorMsg errmsg);
+
+  int parser_copy(struct file_content * pfc_source,
+                  struct file_content * pfc_destination,
+                  int index_start,
+                  int index_end);
+
+  int parser_init_from_pfc(struct file_content * pfc_source,
+                           struct file_content * pfc_destination,
+                           ErrorMsg errmsg);
+
 #ifdef __cplusplus
 }
 #endif

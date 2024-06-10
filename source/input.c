@@ -421,12 +421,16 @@ int input_read_from_file(struct file_content * pfc,
              errmsg,
              errmsg);
 
-  /** If no shooting is necessary, initialize read parameters without it */
-  if (has_shooting == _FALSE_){
-    class_call(input_read_parameters(pfc,ppr,pba,pth,ppt,ptr,ppm,phr,pfo,ple,psd,pop,
-                                     errmsg),
-               errmsg,
-               errmsg);
+  /** Update structs with input that is potentially updated after shooting */
+  class_call(input_read_parameters(pfc,ppr,pba,pth,ppt,ptr,ppm,phr,pfo,ple,psd,pop,
+                                    errmsg),
+              errmsg,
+              errmsg);
+
+  if (has_shooting == _TRUE_ && pba->shooting_failed == _TRUE_) {
+    // Shooting failed, but error must be thrown in background in order to trigger a
+    // runtime error, so here we skip the rest and go straight to background
+    return _SUCCESS_;
   }
 
   /** Write info on the read/unread parameters. This is the correct place to do it,
@@ -587,16 +591,11 @@ int input_shooting(struct file_content * pfc,
     *has_shooting=_TRUE_;
 
     /* Create file content structure with additional entries */
-    class_call(parser_init(&(fzw.fc),
-                           pfc->size+unknown_parameters_size,
-                           pfc->filename,
-                           errmsg),
+    class_call(parser_extend(pfc, unknown_parameters_size, errmsg),
                errmsg,errmsg);
 
-    /* Copy input file content to the new file content structure: */
-    memcpy(fzw.fc.name, pfc->name, pfc->size*sizeof(FileArg));
-    memcpy(fzw.fc.value, pfc->value, pfc->size*sizeof(FileArg));
-    memcpy(fzw.fc.read, pfc->read, pfc->size*sizeof(short));
+    class_call(parser_init_from_pfc(pfc, &(fzw.fc), errmsg),
+               errmsg,errmsg);
 
     class_alloc(unknown_parameter,
                 unknown_parameters_size*sizeof(double),
@@ -628,7 +627,7 @@ int input_shooting(struct file_content * pfc,
       fzw.target_name[counter] = index_target;
       /* store target value of target parameter */
       fzw.target_value[counter] = param1;
-      fzw.unknown_parameters_index[counter]=pfc->size+counter;
+      fzw.unknown_parameters_index[counter]=pfc->size+counter-unknown_parameters_size;
       /* substitute the name of the target parameter with the name of the
          corresponding unknown parameter */
       strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
@@ -723,32 +722,14 @@ int input_shooting(struct file_content * pfc,
       fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
     }
 
-    /** Read all parameters from the fc obtained through shooting */
-    class_call(input_read_parameters(&(fzw.fc),ppr,pba,pth,ppt,ptr,ppm,phr,pfo,ple,psd,pop,
-                                     errmsg),
-               errmsg,
-               errmsg);
-
     /** Set status of shooting */
     pba->shooting_failed = shooting_failed;
-    if (pba->shooting_failed == _TRUE_) {
-      background_free_input(pba);
-      thermodynamics_free_input(pth);
-      perturbations_free_input(ppt);
-    }
 
-    /* all parameters read in fzw must be considered as read in pfc. At the same
-       time the parameters read before in pfc (like theta_s,...) must still be
-       considered as read (hence we could not do a memcopy) */
-    for (i=0; i < pfc->size; i ++) {
-      if (fzw.fc.read[i] == _TRUE_)
-        pfc->read[i] = _TRUE_;
-    }
-
-    /* Free tuned pfc */
-    parser_free(&(fzw.fc));
+    parser_copy(&(fzw.fc), pfc, pfc->size - unknown_parameters_size, pfc->size);
 
     /** Free arrays allocated */
+    class_call(parser_free(&(fzw.fc)),
+               errmsg, errmsg);
     free(unknown_parameter);
     free(fzw.unknown_parameters_index);
     free(fzw.target_name);
@@ -769,17 +750,13 @@ int input_shooting(struct file_content * pfc,
   if (flag1 == _TRUE_ || flag2 == _TRUE_) {
     /* Tell the main function that shooting indeed has occured */
     *has_shooting=_TRUE_;
-    /* Create file content structure with additional entries */
-    class_call(parser_init(&(fzw.fc),
-                           pfc->size+1,
-                           pfc->filename,
-                           errmsg),
-               errmsg,errmsg);
 
-    /* Copy input file content to the new file content structure: */
-    memcpy(fzw.fc.name, pfc->name, pfc->size*sizeof(FileArg));
-    memcpy(fzw.fc.value, pfc->value, pfc->size*sizeof(FileArg));
-    memcpy(fzw.fc.read, pfc->read, pfc->size*sizeof(short));
+    /* Create file content structure with additional entries */
+    class_call(parser_extend(pfc, 1, errmsg),
+               errmsg,errmsg);
+    
+    class_call(parser_init_from_pfc(pfc, &(fzw.fc), errmsg),
+               errmsg,errmsg);
 
     fzw.target_size = 1;
     class_alloc(fzw.unknown_parameters_index,
@@ -802,11 +779,11 @@ int input_shooting(struct file_content * pfc,
       fzw.target_value[0] = param2;
     }
     /* store target value of target parameter */
-    fzw.unknown_parameters_index[0]=pfc->size;
+    fzw.unknown_parameters_index[0]=pfc->size - 1;
     fzw.required_computation_stage = cs_nonlinear;
     /* substitute the name of the target parameter with the name of the
        corresponding unknown parameter */
-    strcpy(fzw.fc.name[pfc->size],"A_s");
+    strcpy(fzw.fc.name[pfc->size - 1],"A_s");
 
     /* Print to the user */
     if (input_verbose > 0) {
@@ -838,31 +815,18 @@ int input_shooting(struct file_content * pfc,
     A_s = (fzw.target_value[0]/sigma8_or_S8) *(fzw.target_value[0]/sigma8_or_S8) * A_s; //(truesigma/sigma_for_guess)^2 *A_s_for_guess
 
     /* Store the derived value with high enough accuracy */
-    class_sprintf(fzw.fc.value[pfc->size],"%.20e",A_s);
+    class_sprintf(fzw.fc.value[pfc->size - 1],"%.20e",A_s);
     if (input_verbose > 0) {
       fprintf(stdout," -> found '%s = %s'\n",
-              fzw.fc.name[pfc->size],
-              fzw.fc.value[pfc->size]);
+              fzw.fc.name[pfc->size - 1],
+              fzw.fc.value[pfc->size - 1]);
     }
-
-    /* Now read the remaining parameters from the fine tuned fzw into the individual structures */
-    class_call(input_read_parameters(&(fzw.fc),ppr,pba,pth,ppt,ptr,ppm,phr,pfo,ple,psd,pop,
-                                     errmsg),
-               errmsg,
-               errmsg);
-
-    /* all parameters read in fzw must be considered as read in pfc. At the same
-       time the parameters read before in pfc (like theta_s,...) must still be
-       considered as read (hence we could not do a memcopy) */
-    for (i=0; i < pfc->size; i ++) {
-      if (fzw.fc.read[i] == _TRUE_)
-        pfc->read[i] = _TRUE_;
-    }
-
-    /* Free tuned pfc */
-    parser_free(&(fzw.fc));
+  
+    parser_copy(&(fzw.fc), pfc, pfc->size - 1, pfc->size);
 
     /** Free arrays allocated */
+    class_call(parser_free(&(fzw.fc)),
+               errmsg, errmsg);
     free(fzw.unknown_parameters_index);
     free(fzw.target_name);
     free(fzw.target_value);
