@@ -2923,24 +2923,12 @@ int input_read_parameters_species(struct file_content * pfc,
         pth->n_index_idm_dr = param3;
       }
 
-      /** 7.2.2.e) idr_nature */
-      class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      if (flag1 == _TRUE_) {
-        if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
-          ppt->idr_nature = idr_free_streaming;
-        }
-        if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
-          ppt->idr_nature = idr_fluid;
-        }
-      }
     }
 
-    /** 7.2.2.f) Strength of self interactions */
+    /** 7.2.2.e) Strength of self interactions */
     class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
 
-    /** 7.2.2.g) Read alpha_idm_dr or alpha_dark */
+    /** 7.2.2.f) Read alpha_idm_dr or alpha_dark */
     class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2978,6 +2966,24 @@ int input_read_parameters_species(struct file_content * pfc,
     /* If we don't have perturbations, we should free the arrays again if necessary */
     else if (ppt->alpha_idm_dr != NULL) {
       free(ppt->alpha_idm_dr);
+    }
+  }
+
+  /** 7.2.2.g) idr_nature */
+  if (pba->T_idr > 0) {
+    class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+        ppt->idr_nature = idr_free_streaming;
+      }
+      else if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+        ppt->idr_nature = idr_fluid;
+      }
+      else {
+        class_stop(errmsg, "idr_nature has to be either free_streaming or fluid, but you entered %s.", string1);
+      }
     }
   }
 

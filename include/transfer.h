@@ -673,7 +673,7 @@ extern "C" {
   int transfer_workspace_init(
                               struct transfer * ptr,
                               struct precision * ppr,
-                              struct transfer_workspace **ptw,
+                              struct transfer_workspace *ptw,
                               int perturbations_tau_size,
                               int tau_size_max,
                               double K,
