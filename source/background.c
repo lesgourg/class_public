@@ -2131,19 +2131,30 @@ int background_solve(
 
   /* Compute the density fraction of non-free-streaming matter (in the minimal LambdaCDM model, this would be just Omega_b + Omega_cdm). This definition takes into account interating, decaying and warm dark matter, but it would need to be refined if some part of the matter component was modelled by the fluid (fld) or the scalar field (scf). */
   // XXX
-  pba->Omega0_nfsm =  pba->Omega0_b;
+  pba->omega0_nfsm =  pba->omega0_b;
   if (pba->has_cdm == _TRUE_)
-    pba->Omega0_nfsm += pba->Omega0_cdm;
+    pba->omega0_nfsm += pba->omega0_cdm;
+
+  // We will define a big Omega0 for it, but this is just asking for trouble
+  pba->Omega0_nfsm = pba->omega0_nfsm / pba->h / pba->h;
+  
+  // XXX
+  // KC 6/17/24
+  // HyRec uses the projected physical density of non-free streaming species
+  // so we need to compute this correctly
+  //
+  /*
   if (pba->has_idm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_idm;
   if (pba->has_dcdm == _TRUE_)
     pba->Omega0_nfsm += pba->Omega0_dcdm;
   for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
-    /* here we define non-free-streaming matter as: any non-relatistic species with a dimensionless ratio m/T bigger than a threshold ppr->M_nfsm_threshold; if this threshold is of the order of 10^4, this corresponds to the condition "becoming non-relativistic during radiation domination". Beware: this definition won't work in the case in which the user passes a customised p.s.d. for ncdm, such that M_ncdm is not defined.  */
+    // here we define non-free-streaming matter as: any non-relatistic species with a dimensionless ratio m/T bigger than a threshold ppr->M_nfsm_threshold; if this threshold is of the order of 10^4, this corresponds to the condition "becoming non-relativistic during radiation domination". Beware: this definition won't work in the case in which the user passes a customised p.s.d. for ncdm, such that M_ncdm is not defined. 
     if (pba->M_ncdm[n_ncdm] > ppr->M_nfsm_threshold) {
       pba->Omega0_nfsm += pba->Omega0_ncdm[n_ncdm];
     }
-  }
+  */
+
 
   class_free(pvecback);
   class_free(pvecback_integration);

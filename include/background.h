@@ -16,7 +16,7 @@ enum spatial_curvature {flat,open,closed};
 
 /** list of possible parametrisations of the DE equation of state */
 
-enum equation_of_state {CLP,EDE};
+enum equation_of_state {CLP,EDE,C3O};
 
 
 /** list of possible parametrizations of the varying fundamental constants */
@@ -151,7 +151,10 @@ struct background
   double Omega0_m;  /**< total non-relativistic matter today */
   double Omega0_r;  /**< total ultra-relativistic radiation today */
   double Omega0_de; /**< total dark energy density today, currently defined as 1 - Omega0_m - Omega0_r - Omega0_k */
+
   double Omega0_nfsm; /**< total non-free-streaming matter, that is, cdm, baryons and wdm */
+  double omega0_nfsm; /**< total projected density of non-free-streaming matter */
+  
   double a_eq;      /**< scale factor at radiation/matter equality */
   double H_eq;      /**< Hubble rate at radiation/matter equality [Mpc^-1] */
   double z_eq;      /**< redshift at radiation/matter equality */
@@ -594,6 +597,7 @@ extern "C" {
 
 #define _Mpc_over_m_ 3.085677581282e22  /**< conversion factor from meters to megaparsecs */
 /* remark: CAMB uses 3.085678e22: good to know if you want to compare  with high accuracy */
+// KC 6/17/24 --> LOL <-- 
 
 #define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears
                                        (c=1 units, Julian years of 365.25 days) */

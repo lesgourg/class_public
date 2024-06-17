@@ -49,14 +49,29 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
 
   /** - set cosmological parameters for hyrec */
   phy->data->cosmo->T0 = T_cmb;
-  phy->data->cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
-  phy->data->cosmo->ocbh2 = pba->Omega0_nfsm*pba->h*pba->h;
+
+  // KC 6/17/24
+  //
+  // HyRec needs to work with what was present in the early universe,
+  // and the projected little omegas give that. i.e. if you scale them by, say, 1/a^3
+  // you get the right physical densities.  Remember, if there is baryon depletion,
+  // or species interconversion at late-times, the present-day values cannot be
+  // projected backwards.  So we have "co-opted" the little omegas to encode
+  // physical densities that, if projected backwards, give the *TRUE* physical
+  // density at that epoch.
+  //
+  phy->data->cosmo->obh2 = pba->omega0_b; // pba->Omega0_b*pba->h*pba->h;
+  phy->data->cosmo->ocbh2 = pba->omega0_nfsm; // pba->Omega0_nfsm*pba->h*pba->h;
 
   phy->data->cosmo->YHe = pth->YHe;
   phy->data->cosmo->Neff = pba->Neff;
   phy->data->cosmo->fHe = fHe; /* abundance of helium relative to hydrogen by number */
   phy->data->cosmo->fsR = 1.;
   phy->data->cosmo->meR = 1.;
+
+  // If HyRec uses the abundance today and projects backwards, its bad news.
+  // Let's assume that they are doing this.
+  // Then this quantity needs to be a lie, so we need to feed it the lie
   phy->data->cosmo->nH0 = Nnow*1e-6;
 
   /** - set other parameters for hyrec */

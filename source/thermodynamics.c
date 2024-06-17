@@ -98,7 +98,20 @@ int thermodynamics_at_z(
     // This is broken in h-less because, in the presence of baryon decay, pth->n_e at a=1 is not a correct
     // proxy to the necessary quantity earlier.
     //
-    pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * sigmaTrescale * _sigma_ * _Mpc_over_m_;
+
+    // KC 6/17/24
+    //
+    // n_e(a) = rho_b(a) / m_H * (1 - YHe(a))
+    //
+    // The original line: 
+    // pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * sigmaTrescale * _sigma_ * _Mpc_over_m_;
+
+    //
+    // We need to get the background at this z...
+    // this should be given to us in pvecback...
+    // The leading 1/(1+z) comes from moving the Thomas scattering being defined wrt proper time, not conformal
+    //
+    pvecthermo[pth->index_th_dkappa] = 1/(1.+z) * pvecback[pba->index_bg_rho_b] * _Jm3_over_Mpc2_ / (_m_H_ * _c_ * _c_) * (1. - pth->YHe) * x0 * sigmaTrescale * _sigma_;
 
     /* tau_d scales like (1+z)**2 */
     pvecthermo[pth->index_th_tau_d] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_d]*pow((1+z)/(1.+pth->z_table[pth->tt_size-1]),2);
@@ -358,6 +371,10 @@ int thermodynamics_init(
   pth->fHe = pth->YHe/(_not4_ *(1.-pth->YHe));
 
   /** - infer number of hydrogen nuclei today in m**-3 */
+  //
+  // KC 6/17/24
+  // DANGER: This is correct, but it **CANNOT** be reliably projected backwards with 1/a^3 scaling
+  //
   pth->n_e = 3.*pow(pba->H0 * _c_ / _Mpc_over_m_,2)*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-pth->YHe);
 
   /** - test whether all parameters are in the correct regime */
@@ -608,7 +625,7 @@ int thermodynamics_helium_from_bbn(
              pth->error_message,
              pth->error_message);
 
-  omega_b=pba->Omega0_b*pba->h*pba->h;
+  omega_b= pba->omega0_b; // pba->Omega0_b*pba->h*pba->h;
 
   class_test(omega_b < omegab[0],
              pth->error_message,
@@ -764,7 +781,15 @@ int thermodynamics_workspace_init(
   /* Hubble parameter today in SI units */
   ptw->SIunit_H0 = pba->H0 * _c_ / _Mpc_over_m_;
   /* H number density today in SI units*/
-  ptw->SIunit_nH0 = 3.*ptw->SIunit_H0*ptw->SIunit_H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-ptw->YHe);
+  //ptw->SIunit_nH0 = 3.*ptw->SIunit_H0*ptw->SIunit_H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-ptw->YHe);
+  // KC 6/17/24
+  // This needs to become a projected quantity.  So not the actual nH0, but the projected one as if there
+  // had not been any baryon loss.
+  // WARNING: If HyRec is used during reionization as well, this becomes lots of trouble...
+  //
+  // ptw->SIunit_nH0 = 3.*ptw->SIunit_H0*ptw->SIunit_H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-ptw->YHe);
+  ptw->SIunit_nH0 = pba->omega0_b * _little_omega_to_CLASS_ * _Jm3_over_Mpc2_ / (_m_H_ * _c_ * _c_) * (1. - ptw->YHe);
+  
   /* CMB temperature today in Kelvin */
   ptw->Tcmb = pba->T_cmb;
 
@@ -866,6 +891,10 @@ int thermodynamics_workspace_init(
     break;
 
   case recfast:
+    class_test(pba->has_h == _FALSE_,
+	       "h-less: Hubble-free compatability wiht recfast has not yet been implemented.",
+	       pth->error_message);
+    
     class_alloc(ptw->ptdw->precfast,
                 sizeof(struct thermorecfast),
                 pth->error_message);
@@ -2549,7 +2578,19 @@ int thermodynamics_derivs(
   Hz = pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
 
   /* Total number density of Hydrogen nuclei in SI units */
-  nH = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
+  // KC 6/17/24
+  // XXX
+  // This is broken, cannot project backwards.  Must use integrated quantites.
+  // nH = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
+  //
+  // Q: What units is _m_H_ in??
+  // A: SI
+  //
+  // The way I've written things now, ptw->SIunit_nH0 / a**3 := nH, but this will only
+  // work if the baryon depletion regime is distinct from epochs where optical depth is
+  // changing.  So, true for recombination, false for reionization.
+  //
+  nH = pvecback[pba->index_bg_rho_b] * _Jm3_over_Mpc2_ / (_m_H_ * _c_ * _c_) * (1. - pth->YHe);
 
   /* Photon temperature in Kelvins. Modify this for some non-trivial photon temperature changes */
   Trad = ptw->Tcmb * (1.+z);
@@ -2958,7 +2999,12 @@ int thermodynamics_sources(
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_cb2]
     = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. + (1.+z) * dTmat / Tmat / 3.);
 
+  /// KC 6/17/24
+  // XXX
+  // This is wrong, because it projects back the Thompson scattering rate
   /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
+  // But we give it an SIunit_nH0 that, when projected backwards, will give the desired quantity...
+  //
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
     = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x * sigmaTrescale * _sigma_ * _Mpc_over_m_;
 
