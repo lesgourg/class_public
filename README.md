@@ -1,4 +1,4 @@
-crash-less & (partial) _h_-less CLASS {#mainpage}
+crash-less & (partial) _h_-less CLASS
 =============================================
 (Scroll down for original CLASS v3.2.0 README.md contents)
 
