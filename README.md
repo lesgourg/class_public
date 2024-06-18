@@ -37,7 +37,7 @@ without_h = yes
 What then happens is that you are only permitted to specify the little omegas (&omega;'s).
 These are already physical quantities, because they have a density scale baked into them.
 CLASS then interprets the &omega; quantities as densities that _can_ be projected backwards in time for initial conditions.
-Anywhere in the code that made projection assumptions at intermediate scale factors, presumably for simplicity, has been adjusted to use the actual integrated densities determined by CLASS in the background module.
+Anywhere in the code that made projection assumptions at intermediate scale factors, presumably for simplicity, has been adjusted to use the actual integrated densities determined by CLASS in the `background` module.
 
 The motivation for this is that CMB experiments are telling you about early universe physics, before squirrely late-time things could be happening.
 So the best-fit parameters should be describing the early-universe.
@@ -47,6 +47,8 @@ The upshot of all this is that early-time and late-time physical processes deter
 TLDR - if `without_h` is enabled, then the &omega;'s describe the universe that would result today if late-time physical processes do not alter the background expansion history.  Hubble can no longer be specified, as it becomes determined by the expansion history from initial conditions set by the &omega;'s projected backwards.
 
 **CAVEAT** - Only implemented in `background` and `thermodynamics` for now.
+Also, departures from &Lambda;CDM like dark radiation, interacting dark radiation, CLP and EDE fluids, and warm relics have not been updated because I don't require these in my work.
+If you'd like to port these over, fix bugs, or do work on the other CLASS modules, I am super receptive and gracious to PRs!
 
 (Below is the CLASS boilerplate)
 
