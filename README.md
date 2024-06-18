@@ -44,9 +44,9 @@ So the best-fit parameters should be describing the early-universe.
 Other parameters can describe departures from the post-recombination conditions established by the little &omega;'s.
 The upshot of all this is that early-time and late-time physical processes determine the resultant _H_<sub>0</sub>, so it obviously becomes a derived parameter, as it should be.
 
-TLDR - if `without_h` is enabled, then the little omegas describe the universe that would result today if late-time physical processes do not alter the background expansion history.  Hubble can no longer be specified, as it becomes determined by the expansion history from initial conditions set by the little omegas projected backwards.
+TLDR - if `without_h` is enabled, then the &omega;'s describe the universe that would result today if late-time physical processes do not alter the background expansion history.  Hubble can no longer be specified, as it becomes determined by the expansion history from initial conditions set by the &omega;'s projected backwards.
 
-*CAVEAT* - Only implemented in `background` and `thermodynamics` for now.
+**CAVEAT** - Only implemented in `background` and `thermodynamics` for now.
 
 (Below is the CLASS boilerplate)
 
