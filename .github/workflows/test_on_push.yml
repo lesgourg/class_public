@@ -8,7 +8,7 @@ jobs:
 
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: main_class
     - name: make
@@ -21,7 +21,7 @@ jobs:
 
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: main_class
     - name: Create or update virtual Python environment
@@ -31,10 +31,12 @@ jobs:
         source venv/bin/activate
         pip install --upgrade pip
         pip install numpy scipy pandas matplotlib cython nose parameterized
+        deactivate
     - name: make classy
-      run: source venv/bin/activate && cd main_class && make -j
+      run: source venv/bin/activate && cd main_class && make -j && deactivate
     - name: Testing 🤖
       run: |
         source venv/bin/activate
         cd main_class/python
-        OMP_NUM_THREADS=16 TEST_LEVEL=1 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
+        OMP_NUM_THREADS=16 TEST_LEVEL=1 python "$(which nosetests)" -v -a test_scenario test_class.py --nologcapture --nocapture
+        deactivate

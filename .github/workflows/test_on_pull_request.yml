@@ -8,11 +8,11 @@ jobs:
 
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: main_class
     - name: Checkout reference 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         ref: devel
         path: ref_class
@@ -23,8 +23,9 @@ jobs:
         source venv/bin/activate
         pip install --upgrade pip
         pip install numpy scipy pandas matplotlib cython nose parameterized
+        deactivate
     - name: make classy
-      run: source venv/bin/activate && cd main_class && make -j
+      run: source venv/bin/activate && cd main_class && make -j && deactivate
     - name: make reference classy
       run: |
         source venv/bin/activate
@@ -32,14 +33,16 @@ jobs:
         sed -i.bak "s/'classy'/'classyref'/g" python/setup.py
         sed -i.bak 's/"classy"/"classyref"/g' python/setup.py
         make -j
+        deactivate
     - name: Testing 🤖
       run: |
         source venv/bin/activate
         cd main_class/python
         OMP_NUM_THREADS=16 COMPARE_OUTPUT_REF=1 TEST_LEVEL=2 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
+        deactivate
     - name: Upload plots 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
           name: BranchVsMasterPlots
           path: main_class/python/faulty_figs
