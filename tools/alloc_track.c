@@ -254,6 +254,11 @@ void * tracked_realloc(void *ptr, size_t size) {
   void *newblock;
   int me = 0;
   struct chunk *list_cur;
+
+  // Mimic POSIX semantics.
+  // realloc() is equivalent to malloc() if ptr is null
+  if(!ptr)
+    return tracked_alloc(size);
   
 #ifdef _OPENMP
   me = omp_get_thread_num();
