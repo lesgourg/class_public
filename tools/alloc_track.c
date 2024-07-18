@@ -258,7 +258,7 @@ void * tracked_realloc(void *ptr, size_t size) {
   // Mimic POSIX semantics.
   // realloc() is equivalent to malloc() if ptr is null
   if(!ptr)
-    return tracked_alloc(size);
+    return tracked_malloc(size);
   
 #ifdef _OPENMP
   me = omp_get_thread_num();
