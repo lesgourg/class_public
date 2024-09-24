@@ -475,18 +475,8 @@ cdef class Class:
                 important from the python point of view. It also returns now the
                 ell array.
         """
+        self.compute(["harmonic"])
         cdef int lmaxR
-        cdef double *rcl = <double*> calloc(self.hr.ct_size,sizeof(double))
-
-        # Quantities for tensor modes
-        cdef double **cl_md = <double**> calloc(self.hr.md_size, sizeof(double*))
-        for index_md in range(self.hr.md_size):
-            cl_md[index_md] = <double*> calloc(self.hr.ct_size, sizeof(double))
-
-        # Quantities for isocurvature modes
-        cdef double **cl_md_ic = <double**> calloc(self.hr.md_size, sizeof(double*))
-        for index_md in range(self.hr.md_size):
-            cl_md_ic[index_md] = <double*> calloc(self.hr.ct_size*self.hr.ic_ic_size[index_md], sizeof(double))
 
         # Define a list of integers, refering to the flags and indices of each
         # possible output Cl. It allows for a clear and concise way of looping
@@ -504,8 +494,11 @@ cdef class Class:
             if flag:
                 spectra.append(name)
 
+        # We need to be able to gracefully exit BEFORE allocating things (!)
         if not spectra:
             raise CosmoSevereError("No Cl computed")
+
+        # We need to be able to gracefully exit BEFORE allocating things (!)
         lmaxR = self.hr.l_max_tot
         if lmax == -1:
             lmax = lmaxR
@@ -516,15 +509,32 @@ cdef class Class:
             else:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
+        # Now that the conditions are all checked, we can allocate and do what we want
+
+        #temporary storage for the cls (total)
+        cdef double *rcl = <double*> calloc(self.hr.ct_size,sizeof(double))
+
+        # Quantities for tensor modes
+        cdef double **cl_md = <double**> calloc(self.hr.md_size, sizeof(double*))
+        for index_md in range(self.hr.md_size):
+            cl_md[index_md] = <double*> calloc(self.hr.ct_size, sizeof(double))
+
+        # Quantities for isocurvature modes
+        cdef double **cl_md_ic = <double**> calloc(self.hr.md_size, sizeof(double*))
+        for index_md in range(self.hr.md_size):
+            cl_md_ic[index_md] = <double*> calloc(self.hr.ct_size*self.hr.ic_ic_size[index_md], sizeof(double))
+
         # Initialise all the needed Cls arrays
         cl = {}
         for elem in spectra:
             cl[elem] = np.zeros(lmax+1, dtype=np.double)
 
+        success = True
         # Recover for each ell the information from CLASS
         for ell from 2<=ell<lmax+1:
             if harmonic_cl_at_l(&self.hr, ell, rcl, cl_md, cl_md_ic) == _FAILURE_:
-                raise CosmoSevereError(self.hr.error_message)
+                success = False
+                break
             for flag, index, name in has_flags:
                 if name in spectra:
                     cl[name][ell] = rcl[index]
@@ -536,6 +546,10 @@ cdef class Class:
             free(cl_md_ic[index_md])
         free(cl_md)
         free(cl_md_ic)
+
+        # This has to be delayed until AFTER freeing the memory
+        if not success:
+          raise CosmoSevereError(self.hr.error_message)
 
         return cl
 
@@ -561,8 +575,8 @@ cdef class Class:
                 index associated with each is defined wrt. Class convention, and are non
                 important from the python point of view.
         """
+        self.compute(["lensing"])
         cdef int lmaxR
-        cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
 
         # Define a list of integers, refering to the flags and indices of each
         # possible output Cl. It allows for a clear and concise way of looping
@@ -580,10 +594,12 @@ cdef class Class:
             if flag:
                 spectra.append(name)
 
+        # We need to be able to gracefully exit BEFORE allocating things (!)
         if not spectra:
             raise CosmoSevereError("No lensed Cl computed")
-        lmaxR = self.le.l_lensed_max
 
+        # We need to be able to gracefully exit BEFORE allocating things (!)
+        lmaxR = self.le.l_lensed_max
         if lmax == -1:
             lmax = lmaxR
         if lmax > lmaxR:
@@ -593,19 +609,29 @@ cdef class Class:
             else:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
+        # Now that the conditions are all checked, we can allocate and do what we want
+        cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
+
         cl = {}
+        success = True
         # Simple Cls, for temperature and polarisation, are not so big in size
         for elem in spectra:
             cl[elem] = np.zeros(lmax+1, dtype=np.double)
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
-                raise CosmoSevereError(self.le.error_message)
+                success = False
+                break
             for flag, index, name in has_flags:
                 if name in spectra:
                     cl[name][ell] = lcl[index]
         cl['ell'] = np.arange(lmax+1)
 
         free(lcl)
+
+        # This has to be delayed until AFTER freeing the memory
+        if not success:
+          raise CosmoSevereError(self.le.error_message)
+
         return cl
 
     def density_cl(self, lmax=-1, nofail=False):
@@ -629,18 +655,8 @@ cdef class Class:
             following bins, then self correlation of 2nd bin, etc. The array
             starts at index_ct_dd.
         """
+        self.compute(["harmonic"])
         cdef int lmaxR
-        cdef double *dcl = <double*> calloc(self.hr.ct_size,sizeof(double))
-
-        # Quantities for tensor modes
-        cdef double **cl_md = <double**> calloc(self.hr.md_size, sizeof(double*))
-        for index_md in range(self.hr.md_size):
-            cl_md[index_md] = <double*> calloc(self.hr.ct_size, sizeof(double))
-
-        # Quantities for isocurvature modes
-        cdef double **cl_md_ic = <double**> calloc(self.hr.md_size, sizeof(double*))
-        for index_md in range(self.hr.md_size):
-            cl_md_ic[index_md] = <double*> calloc(self.hr.ct_size*self.hr.ic_ic_size[index_md], sizeof(double))
 
         lmaxR = self.pt.l_lss_max
         has_flags = [
@@ -661,8 +677,11 @@ cdef class Class:
                             name.upper(), l_max_flag) +
                         "but you asked a l=%i" % lmax)
 
+        # We need to be able to gracefully exit BEFORE allocating things (!)
         if not spectra:
             raise CosmoSevereError("No density Cl computed")
+
+        # We need to be able to gracefully exit BEFORE allocating things (!)
         if lmax == -1:
             lmax = lmaxR
         if lmax > lmaxR:
@@ -672,6 +691,19 @@ cdef class Class:
                 self.compute()
             else:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+
+        # Now that the conditions are all checked, we can allocate and do what we want
+        cdef double *dcl = <double*> calloc(self.hr.ct_size,sizeof(double))
+
+        # Quantities for tensor modes
+        cdef double **cl_md = <double**> calloc(self.hr.md_size, sizeof(double*))
+        for index_md in range(self.hr.md_size):
+            cl_md[index_md] = <double*> calloc(self.hr.ct_size, sizeof(double))
+
+        # Quantities for isocurvature modes
+        cdef double **cl_md_ic = <double**> calloc(self.hr.md_size, sizeof(double*))
+        for index_md in range(self.hr.md_size):
+            cl_md_ic[index_md] = <double*> calloc(self.hr.ct_size*self.hr.ic_ic_size[index_md], sizeof(double))
 
         cl = {}
 
@@ -689,9 +721,11 @@ cdef class Class:
             if elem in spectra:
                 cl[elem] = np.zeros(lmax+1, dtype=np.double)
 
+        success = True
         for ell from 2<=ell<lmax+1:
             if harmonic_cl_at_l(&self.hr, ell, dcl, cl_md, cl_md_ic) == _FAILURE_:
-                raise CosmoSevereError(self.hr.error_message)
+                success = False
+                break
             if 'dd' in spectra:
                 for index in range(size):
                     cl['dd'][index][ell] = dcl[self.hr.index_ct_dd+index]
@@ -714,9 +748,14 @@ cdef class Class:
         free(cl_md)
         free(cl_md_ic)
 
+        # This has to be delayed until AFTER freeing the memory
+        if not success:
+          raise CosmoSevereError(self.hr.error_message)
         return cl
 
     def z_of_r (self,z_array):
+        self.compute(["background"])
+
         cdef int last_index=0 #junk
         cdef double * pvecback
         r = np.zeros(len(z_array),'float64')
@@ -728,6 +767,7 @@ cdef class Class:
         for redshift in z_array:
 
             if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                free(pvecback) #manual free due to error
                 raise CosmoSevereError(self.ba.error_message)
 
             # store r
@@ -738,21 +778,26 @@ cdef class Class:
             i += 1
 
         free(pvecback)
+
         return r[:],dzdr[:]
 
     def luminosity_distance(self, z):
         """
         luminosity_distance(z)
         """
+        self.compute(["background"])
+
         cdef int last_index = 0  # junk
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba, z, long_info,
                 inter_normal, &last_index, pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         lum_distance = pvecback[self.ba.index_bg_lum_distance]
         free(pvecback)
+
         return lum_distance
 
     # Gives the total matter pk for a given (k,z)
@@ -766,6 +811,8 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        self.compute(["fourier"])
+
         cdef double pk
 
         if (self.pt.has_pk_matter == _FALSE_):
@@ -791,6 +838,8 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        self.compute(["fourier"])
+
         cdef double pk_cb
 
         if (self.pt.has_pk_matter == _FALSE_):
@@ -818,6 +867,8 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        self.compute(["fourier"])
+
         cdef double pk_lin
 
         if (self.pt.has_pk_matter == _FALSE_):
@@ -839,6 +890,8 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        self.compute(["fourier"])
+
         cdef double pk_cb_lin
 
         if (self.pt.has_pk_matter == _FALSE_):
@@ -854,6 +907,8 @@ cdef class Class:
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
+        self.compute(["fourier"])
+
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
@@ -865,6 +920,8 @@ cdef class Class:
 
     def get_pk_cb(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
+        self.compute(["fourier"])
+
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
@@ -876,6 +933,8 @@ cdef class Class:
 
     def get_pk_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the linear power spectrum on a k and z array """
+        self.compute(["fourier"])
+
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
@@ -887,6 +946,8 @@ cdef class Class:
 
     def get_pk_cb_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the linear power spectrum on a k and z array """
+        self.compute(["fourier"])
+
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
@@ -902,6 +963,8 @@ cdef class Class:
             and wether to use the cdm baryon power spectrum only
             For Multi-Dimensional k-arrays, it assumes that one of the dimensions is the z-axis
             This is handled by the z_axis_in_k_arr integer, as described in the source code """
+        self.compute(["fourier"])
+
         # z_axis_in_k_arr specifies the integer position of the z_axis wihtin the n-dimensional k_arr
         # Example: 1-d k_array -> z_axis_in_k_arr = 0
         # Example: 3-d k_array with z_axis being the first axis -> z_axis_in_k_arr = 0
@@ -1015,6 +1078,7 @@ cdef class Class:
         k : vector of k values, k[index_k] (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
         z : vector of z values, z[index_z]
         """
+        self.compute(["fourier"])
 
         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.fo.k_size_pk),'float64')
@@ -1115,6 +1179,8 @@ cdef class Class:
         k : vector of k values (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
         z : vector of z values
         """
+        self.compute(["transfer"])
+
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.pt.k_size_pk),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.pt.ln_tau_size),'float64')
         cdef int index_k, index_tau
@@ -1142,11 +1208,15 @@ cdef class Class:
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
         if perturbations_output_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
+            free(titles) # manual free due to error
             raise CosmoSevereError(self.pt.error_message)
 
         tmp = <bytes> titles
         tmp = str(tmp.decode())
         names = tmp.split("\t")[:-1]
+
+        free(titles)
+
         number_of_titles = len(names)
 
         # get list of redshifts
@@ -1186,6 +1256,7 @@ cdef class Class:
 
         for index_tau in range(len(z)):
             if perturbations_output_data_at_index_tau(&self.ba, &self.pt, outf, index_tau, number_of_titles, data)==_FAILURE_:
+                free(data) # manual free due to error
                 raise CosmoSevereError(self.pt.error_message)
 
             for index_type,name in enumerate(names):
@@ -1218,6 +1289,8 @@ cdef class Class:
         k : vector of k values, k[index_k] (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
         z : vector of z values, z[index_z]
         """
+        self.compute(["fourier"])
+
         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((self.fo.k_size_pk,self.fo.ln_tau_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.fo.ln_tau_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=2] k4 = np.zeros((self.fo.k_size_pk, self.fo.ln_tau_size),'float64')
@@ -1268,6 +1341,8 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        self.compute(["fourier"])
+
         cdef double sigma
 
         R_in_Mpc = (R if not h_units else R/self.ba.h)
@@ -1298,6 +1373,8 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        self.compute(["fourier"])
+
         cdef double sigma_cb
 
         R_in_Mpc = (R if not h_units else R/self.ba.h)
@@ -1331,6 +1408,8 @@ cdef class Class:
             there is an additional check to verify whether output contains `mPk` and whether k is in the right range
 
         """
+        self.compute(["fourier"])
+
         cdef double pk_tilt
 
         if (self.pt.has_pk_matter == _FALSE_):
@@ -1350,6 +1429,8 @@ cdef class Class:
         Gives window_nfw for a given wavevector k, virial radius rv and concentration c
 
         """
+        self.compute(["fourier"])
+
         cdef double window_nfw
 
 
@@ -1369,6 +1450,7 @@ cdef class Class:
         return self.pm.n_s
 
     def tau_reio(self):
+        self.compute(["thermodynamics"])
         return self.th.tau_reio
 
     def Omega_m(self):
@@ -1378,9 +1460,11 @@ cdef class Class:
         return self.ba.Omega0_r
 
     def theta_s_100(self):
+        self.compute(["thermodynamics"])
         return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
 
     def theta_star_100(self):
+        self.compute(["thermodynamics"])
         return 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
 
     def Omega_Lambda(self):
@@ -1396,6 +1480,7 @@ cdef class Class:
         return self.ba.Omega0_b * self.ba.h * self.ba.h
 
     def Neff(self):
+        self.compute(["background"])
         return self.ba.Neff
 
     def k_eq(self):
@@ -1445,12 +1530,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #Manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         D_A = pvecback[self.ba.index_bg_ang_distance]
@@ -1480,6 +1568,8 @@ cdef class Class:
         -------
         d_A(z1,z2) in Mpc
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
@@ -1490,12 +1580,14 @@ cdef class Class:
             pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
             if background_at_z(&self.ba,z1,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                free(pvecback) #manual free due to error
                 raise CosmoSevereError(self.ba.error_message)
 
             # This is the comoving distance to object at z1
             chi1 = pvecback[self.ba.index_bg_conf_distance]
 
             if background_at_z(&self.ba,z2,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                free(pvecback) #manual free due to error
                 raise CosmoSevereError(self.ba.error_message)
 
             # This is the comoving distance to object at z2
@@ -1521,12 +1613,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         r = pvecback[self.ba.index_bg_conf_distance]
@@ -1547,12 +1642,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         D = pvecback[self.ba.index_bg_D]
@@ -1573,12 +1671,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         f = pvecback[self.ba.index_bg_f]
@@ -1604,6 +1705,7 @@ cdef class Class:
         k : float
                 Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
         """
+        self.compute(["fourier"])
 
         # build array of z values at wich P(k,z) was pre-computed by class (for numerical derivative)
         # check that P(k,z) was stored at different zs
@@ -1764,6 +1866,8 @@ cdef class Class:
         tau : float
                 Conformal time
         """
+        self.compute(["background"])
+
         cdef double z
         cdef int last_index #junk
         cdef double * pvecback
@@ -1771,6 +1875,7 @@ cdef class Class:
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_tau(&self.ba,tau,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         z = 1./pvecback[self.ba.index_bg_a]-1.
@@ -1791,12 +1896,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         H = pvecback[self.ba.index_bg_H]
@@ -1817,12 +1925,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         Om_m = pvecback[self.ba.index_bg_Omega_m]
@@ -1843,12 +1954,15 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         Om_b = pvecback[self.ba.index_bg_rho_b]/pvecback[self.ba.index_bg_rho_crit]
@@ -1869,6 +1983,8 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
@@ -1877,6 +1993,7 @@ cdef class Class:
             pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
             if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                free(pvecback) #manual free due to error
                 raise CosmoSevereError(self.ba.error_message)
 
             Om_cdm = pvecback[self.ba.index_bg_rho_cdm]/pvecback[self.ba.index_bg_rho_crit]
@@ -1901,6 +2018,8 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["background"])
+
         cdef int last_index #junk
         cdef double * pvecback
 
@@ -1909,6 +2028,7 @@ cdef class Class:
             pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
             if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                free(pvecback) #manual free due to error
                 raise CosmoSevereError(self.ba.error_message)
 
             rho_ncdm = 0.
@@ -1935,6 +2055,8 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["thermodynamics"])
+
         cdef int last_index #junk
         cdef double * pvecback
         cdef double * pvecthermo
@@ -1943,9 +2065,13 @@ cdef class Class:
         pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
+            free(pvecthermo) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         if thermodynamics_at_z(&self.ba,&self.th,z,inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
+            free(pvecback) #manual free due to error
+            free(pvecthermo) #manual free due to error
             raise CosmoSevereError(self.th.error_message)
 
         xe = pvecthermo[self.th.index_th_xe]
@@ -1966,6 +2092,8 @@ cdef class Class:
         z : float
                 Desired redshift
         """
+        self.compute(["thermodynamics"])
+
         cdef int last_index #junk
         cdef double * pvecback
         cdef double * pvecthermo
@@ -1974,9 +2102,13 @@ cdef class Class:
         pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
 
         if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+            free(pvecback) #manual free due to error
+            free(pvecthermo) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         if thermodynamics_at_z(&self.ba,&self.th,z,inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
+            free(pvecback) #manual free due to error
+            free(pvecthermo) #manual free due to error
             raise CosmoSevereError(self.th.error_message)
 
         Tb = pvecthermo[self.th.index_th_Tb]
@@ -2011,11 +2143,14 @@ cdef class Class:
         -------
         background : dictionary containing background.
         """
+        self.compute(["background"])
+
         cdef char *titles
         cdef double* data
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
         if background_output_titles(&self.ba, titles)==_FAILURE_:
+            free(titles) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         tmp = <bytes> titles
@@ -2027,6 +2162,8 @@ cdef class Class:
         data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
 
         if background_output_data(&self.ba, number_of_titles, data)==_FAILURE_:
+            free(titles) #manual free due to error
+            free(data) #manual free due to error
             raise CosmoSevereError(self.ba.error_message)
 
         background = {}
@@ -2048,12 +2185,15 @@ cdef class Class:
         -------
         thermodynamics : dictionary containing thermodynamics.
         """
+        self.compute(["thermodynamics"])
+
         cdef char *titles
         cdef double* data
 
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
         if thermodynamics_output_titles(&self.ba, &self.th, titles)==_FAILURE_:
+            free(titles) #manual free due to error
             raise CosmoSevereError(self.th.error_message)
 
         tmp = <bytes> titles
@@ -2065,6 +2205,8 @@ cdef class Class:
         data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
 
         if thermodynamics_output_data(&self.ba, &self.th, number_of_titles, data)==_FAILURE_:
+            free(titles) #manual free due to error
+            free(data) #manual free due to error
             raise CosmoSevereError(self.th.error_message)
 
         thermodynamics = {}
@@ -2087,12 +2229,15 @@ cdef class Class:
         -------
         primordial : dictionary containing k-vector and primordial scalar and tensor P(k).
         """
+        self.compute(["primordial"])
+
         cdef char *titles
         cdef double* data
 
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
         if primordial_output_titles(&self.pt, &self.pm, titles)==_FAILURE_:
+            free(titles) #manual free due to error
             raise CosmoSevereError(self.pm.error_message)
 
         tmp = <bytes> titles
@@ -2104,6 +2249,8 @@ cdef class Class:
         data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
 
         if primordial_output_data(&self.pt, &self.pm, number_of_titles, data)==_FAILURE_:
+            free(titles) #manual free due to error
+            free(data) #manual free due to error
             raise CosmoSevereError(self.pm.error_message)
 
         primordial = {}
@@ -2134,6 +2281,7 @@ cdef class Class:
                 dictionary containing scalar perturbations.
                 Similar for perturbations['vector'] and perturbations['tensor'].
         """
+        self.compute(["perturbations"])
 
         perturbations = {}
 
@@ -2202,6 +2350,8 @@ cdef class Class:
         -------
         tk : dictionary containing transfer functions.
         """
+        self.compute(["transfer"])
+
         cdef char *titles
         cdef double* data
         cdef char ic_info[1024]
@@ -2220,6 +2370,7 @@ cdef class Class:
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
         if perturbations_output_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
+            free(titles) #manual free due to error
             raise CosmoSevereError(self.pt.error_message)
 
         tmp = <bytes> titles
@@ -2240,6 +2391,8 @@ cdef class Class:
 
         for index_ic in range(ic_num):
             if perturbations_output_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
+                free(titles) #manual free due to error
+                free(data) #manual free due to error
                 raise CosmoSevereError(self.pt.error_message)
             ic_key = <bytes> ic_suffix
 
@@ -2288,6 +2441,8 @@ cdef class Class:
         if type(names) != type([]):
             raise TypeError("Deprecated")
 
+        self.compute(["thermodynamics"])
+
         derived = {}
         for name in names:
             if name == 'h':
@@ -2303,7 +2458,6 @@ cdef class Class:
             elif name == 'conformal_age':
                 value = self.ba.conformal_age
             elif name == 'm_ncdm_in_eV':
-                self.compute(["background"])
                 value = self.ba.m_ncdm_in_eV[0]
             elif name == 'm_ncdm_tot':
                 value = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
@@ -2491,6 +2645,8 @@ cdef class Class:
         z_size : int
                 Size of the redshift array
         """
+        self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
@@ -2518,6 +2674,8 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
+        self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
@@ -2540,6 +2698,8 @@ make        nonlinear_scale_cb(z, z_size)
         Return sigma_8 for all the redshift specified in z, of size
 
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
 
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
@@ -2558,6 +2718,8 @@ make        nonlinear_scale_cb(z, z_size)
         Return sigma_8 for all the redshift specified in z, of size
 
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
 
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
@@ -2607,6 +2769,8 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
@@ -2631,6 +2795,8 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
@@ -2655,6 +2821,8 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
@@ -2679,6 +2847,8 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
@@ -2703,6 +2873,8 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
+        #self.compute(["fourier"])
+
         cdef int index_z
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
@@ -2749,6 +2921,7 @@ make        nonlinear_scale_cb(z, z_size)
 
     def get_pk_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
         """ Fast function to get the power spectrum on a k and z array """
+        self.compute(["fourier"])
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
 
@@ -2762,6 +2935,7 @@ make        nonlinear_scale_cb(z, z_size)
 
     def get_pk_cb_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
         """ Fast function to get the power spectrum on a k and z array """
+        self.compute(["fourier"])
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
 
@@ -2781,6 +2955,7 @@ make        nonlinear_scale_cb(z, z_size)
         return self.ba.Omega0_cdm
 
     def spectral_distortion_amplitudes(self):
+        self.compute(["distortions"])
         if self.sd.type_size == 0:
           raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
         cdef np.ndarray[DTYPE_t, ndim=1] sd_type_amps = np.zeros(self.sd.type_size,'float64')
@@ -2789,6 +2964,7 @@ make        nonlinear_scale_cb(z, z_size)
         return sd_type_amps
 
     def spectral_distortion(self):
+        self.compute(["distortions"])
         if self.sd.x_size == 0:
           raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
         cdef np.ndarray[DTYPE_t, ndim=1] sd_amp = np.zeros(self.sd.x_size,'float64')
@@ -2809,6 +2985,7 @@ make        nonlinear_scale_cb(z, z_size)
         k_array : numpy array containing k values.
         tau_array: numpy array containing tau values.
         """
+        self.compute(["fourier"])
         sources = {}
 
         cdef:
@@ -2975,3 +3152,4 @@ make        nonlinear_scale_cb(z, z_size)
             sources[name] = np.asarray(tmparray)
 
         return (sources, np.asarray(k_array), np.asarray(tau_array))
+
