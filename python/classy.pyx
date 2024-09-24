@@ -753,18 +753,20 @@ cdef class Class:
           raise CosmoSevereError(self.hr.error_message)
         return cl
 
-    def z_of_r (self,z_array):
+    def z_of_r (self, z):
         self.compute(["background"])
-
         cdef int last_index=0 #junk
         cdef double * pvecback
-        r = np.zeros(len(z_array),'float64')
-        dzdr = np.zeros(len(z_array),'float64')
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+
+        r = np.zeros(len(zarr),'float64')
+        dzdr = np.zeros(len(zarr),'float64')
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         i = 0
-        for redshift in z_array:
+        for redshift in zarr:
 
             if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                 free(pvecback) #manual free due to error
@@ -779,7 +781,7 @@ cdef class Class:
 
         free(pvecback)
 
-        return r[:],dzdr[:]
+        return (r[0], dzdr[0]) if np.isscalar(z) else (r,dzdr)
 
     def luminosity_distance(self, z):
         """
@@ -788,17 +790,22 @@ cdef class Class:
         self.compute(["background"])
 
         cdef int last_index = 0  # junk
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba, z, long_info,
-                inter_normal, &last_index, pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        lum_distance = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba, redshift, long_info,
+                  inter_normal, &last_index, pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        lum_distance = pvecback[self.ba.index_bg_lum_distance]
+          lum_distance[iz] = pvecback[self.ba.index_bg_lum_distance]
         free(pvecback)
 
-        return lum_distance
+        return (lum_distance[0] if np.isscalar(z) else lum_distance)
 
     # Gives the total matter pk for a given (k,z)
     def pk(self,double k,double z):
@@ -1327,7 +1334,7 @@ cdef class Class:
 
     #################################
     # Gives sigma(R,z) for a given (R,z)
-    def sigma(self,double R,double z, h_units = False):
+    def sigma(self,R,z, h_units = False):
         """
         Gives sigma (total matter) for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z).
@@ -1345,7 +1352,8 @@ cdef class Class:
 
         cdef double sigma
 
-        R_in_Mpc = (R if not h_units else R/self.ba.h)
+        zarr = np.atleast_1d(z).astype(np.float64)
+        Rarr = np.atleast_1d(R).astype(np.float64)
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
@@ -1353,10 +1361,17 @@ cdef class Class:
         if (self.pt.k_max_for_pk < self.ba.h):
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R_in_Mpc,z,self.fo.index_pk_m,out_sigma,&sigma)==_FAILURE_:
-            raise CosmoSevereError(self.fo.error_message)
+        R_in_Mpc = (Rarr if not h_units else Rarr/self.ba.h)
 
-        return sigma
+        pairs = np.array(np.meshgrid(zarr,Rarr)).T.reshape(-1,2)
+
+        sigmas = np.empty(pairs.shape[0])
+        for ip, pair in enumerate(pairs):
+          if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,pair[1],pair[0],self.fo.index_pk_m,out_sigma,&sigma)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+          sigmas[ip] = sigma
+
+        return (sigmas[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigmas.reshape(len(zarr),len(Rarr))))
 
     # Gives sigma_cb(R,z) for a given (R,z)
     def sigma_cb(self,double R,double z, h_units = False):
@@ -1377,7 +1392,8 @@ cdef class Class:
 
         cdef double sigma_cb
 
-        R_in_Mpc = (R if not h_units else R/self.ba.h)
+        zarr = np.atleast_1d(z).astype(np.float64)
+        Rarr = np.atleast_1d(R).astype(np.float64)
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
@@ -1388,14 +1404,17 @@ cdef class Class:
         if (self.pt.k_max_for_pk < self.ba.h):
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        # If necessary, convert R to units of Mpc
-        if h_units:
-            R /= self.ba.h
+        R_in_Mpc = (Rarr if not h_units else Rarr/self.ba.h)
 
-        if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R,z,self.fo.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
+        pairs = np.array(np.meshgrid(zarr,Rarr)).T.reshape(-1,2)
+
+        sigmas_cb = np.empty(pairs.shape[0])
+        for ip, pair in enumerate(pairs):
+          if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,R,z,self.fo.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
+          sigmas_cb[ip] = sigma_cb
 
-        return sigma_cb
+        return (sigmas_cb[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigmas_cb.reshape(len(zarr),len(Rarr))))
 
     # Gives effective logarithmic slope of P_L(k,z) (total matter) for a given (k,z)
     def pk_tilt(self,double k,double z):
@@ -1535,17 +1554,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #Manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        D_A = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #Manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        D_A = pvecback[self.ba.index_bg_ang_distance]
+          D_A[iz] = pvecback[self.ba.index_bg_ang_distance]
 
         free(pvecback)
 
-        return D_A
+        return (D_A[0] if np.isscalar(z) else D_A)
 
     #################################
     # Get angular diameter distance of object at z2 as seen by observer at z1,
@@ -1618,17 +1641,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        r = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        r = pvecback[self.ba.index_bg_conf_distance]
+          r[iz] = pvecback[self.ba.index_bg_conf_distance]
 
         free(pvecback)
 
-        return r
+        return (r[0] if np.isscalar(z) else r)
 
     def scale_independent_growth_factor(self, z):
         """
@@ -1647,17 +1674,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        D = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        D = pvecback[self.ba.index_bg_D]
+          D[iz] = pvecback[self.ba.index_bg_D]
 
         free(pvecback)
 
-        return D
+        return (D[0] if np.isscalar(z) else D)
 
     def scale_independent_growth_factor_f(self, z):
         """
@@ -1676,17 +1707,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        f = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        f = pvecback[self.ba.index_bg_f]
+          f[iz] = pvecback[self.ba.index_bg_f]
 
         free(pvecback)
 
-        return f
+        return (f[0] if np.isscalar(z) else f)
 
     #################################
     def scale_dependent_growth_factor_f(self, k, z, h_units=False, nonlinear=False, Nz=20):
@@ -1804,6 +1839,11 @@ cdef class Class:
         """
 
         # we need d sigma8/d ln a = - (d sigma8/dz)*(1+z)
+        if hasattr(z, "__len__"):
+          out_array = np.empty_like(z,dtype=np.float64)
+          for iz, redshift in enumerate(z):
+            out_array[iz] = self.effective_f_sigma8(redshift, z_step=z_step)
+          return out_array
 
         # if possible, use two-sided derivative with default value of z_step
         if z >= z_step:
@@ -1837,9 +1877,19 @@ cdef class Class:
         -------
         (d ln sigma8/d ln a)(z) (dimensionless)
         """
+        self.compute(["fourier"])
+
+        if hasattr(z, "__len__"):
+          out_array = np.empty_like(z,dtype=np.float64)
+          for iz, redshift in enumerate(z):
+            out_array[iz] = self.effective_f_sigma8_spline(redshift, Nz=Nz)
+          return out_array
 
         # we need d sigma8/d ln a = - (d sigma8/dz)*(1+z)
-        z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
+        if self.fo.ln_tau_size>0:
+          z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
+        else:
+          z_max = 0
 
         if (z<0) or (z>z_max):
             raise CosmoSevereError("You asked for effective_f_sigma8 at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
@@ -1851,9 +1901,7 @@ cdef class Class:
         else:
             z_array = np.linspace(z_max-0.2, z_max, num = Nz)
 
-        sig8_array = np.empty_like(z_array)
-        for iz, zval in enumerate(z_array):
-            sig8_array[iz] = self.sigma(8,zval,h_units=True)
+        sig8_array = self.sigma(8,z_array,h_units=True)
         return -CubicSpline(z_array,sig8_array).derivative()(z)*(1+z)
 
    #################################
@@ -1868,21 +1916,24 @@ cdef class Class:
         """
         self.compute(["background"])
 
-        cdef double z
         cdef int last_index #junk
         cdef double * pvecback
 
+        tauarr = np.atleast_1d(tau).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_tau(&self.ba,tau,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        z = np.empty_like(tauarr)
+        for itau, tauval in enumerate(tauarr):
+          if background_at_tau(&self.ba,tauval,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        z = 1./pvecback[self.ba.index_bg_a]-1.
+          z[itau] = 1./pvecback[self.ba.index_bg_a]-1.
 
         free(pvecback)
 
-        return z
+        return (z[0] if np.isscalar(tau) else z)
 
     def Hubble(self, z):
         """
@@ -1901,17 +1952,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        H = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        H = pvecback[self.ba.index_bg_H]
+          H[iz] = pvecback[self.ba.index_bg_H]
 
         free(pvecback)
 
-        return H
+        return (H[0] if np.isscalar(z) else H)
 
     def Om_m(self, z):
         """
@@ -1930,17 +1985,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        Om_m = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        Om_m = pvecback[self.ba.index_bg_Omega_m]
+          Om_m[iz] = pvecback[self.ba.index_bg_Omega_m]
 
         free(pvecback)
 
-        return Om_m
+        return (Om_m[0] if np.isscalar(z) else Om_m)
 
     def Om_b(self, z):
         """
@@ -1959,17 +2018,21 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        Om_b = np.empty_like(zarr)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        Om_b = pvecback[self.ba.index_bg_rho_b]/pvecback[self.ba.index_bg_rho_crit]
+          Om_b[iz] = pvecback[self.ba.index_bg_rho_b]/pvecback[self.ba.index_bg_rho_crit]
 
         free(pvecback)
 
-        return Om_b
+        return (Om_b[0] if np.isscalar(z) else Om_b)
 
     def Om_cdm(self, z):
         """
@@ -1988,23 +2051,24 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
+        Om_cdm = np.zeros_like(zarr)
+
         if self.ba.has_cdm == True:
 
-            pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+          pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+          for iz, redshift in enumerate(zarr):
 
-            if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-                free(pvecback) #manual free due to error
-                raise CosmoSevereError(self.ba.error_message)
+              if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                  free(pvecback) #manual free due to error
+                  raise CosmoSevereError(self.ba.error_message)
 
-            Om_cdm = pvecback[self.ba.index_bg_rho_cdm]/pvecback[self.ba.index_bg_rho_crit]
+              Om_cdm[iz] = pvecback[self.ba.index_bg_rho_cdm]/pvecback[self.ba.index_bg_rho_crit]
 
-            free(pvecback)
+          free(pvecback)
 
-        else:
-
-            Om_cdm = 0.
-
-        return Om_cdm
+        return (Om_cdm[0] if np.isscalar(z) else Om_cdm)
 
     def Om_ncdm(self, z):
         """
@@ -2023,26 +2087,27 @@ cdef class Class:
         cdef int last_index #junk
         cdef double * pvecback
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+
+        Om_ncdm = np.zeros_like(zarr)
+
         if self.ba.has_ncdm == True:
 
             pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-            if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-                free(pvecback) #manual free due to error
-                raise CosmoSevereError(self.ba.error_message)
+            for iz, redshift in enumerate(zarr):
+              if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                  free(pvecback) #manual free due to error
+                  raise CosmoSevereError(self.ba.error_message)
 
-            rho_ncdm = 0.
-            for n in range(self.ba.N_ncdm):
-                rho_ncdm += pvecback[self.ba.index_bg_rho_ncdm1+n]
-            Om_ncdm = rho_ncdm/pvecback[self.ba.index_bg_rho_crit]
+              rho_ncdm = 0.
+              for n in range(self.ba.N_ncdm):
+                  rho_ncdm += pvecback[self.ba.index_bg_rho_ncdm1+n]
+              Om_ncdm[iz] = rho_ncdm/pvecback[self.ba.index_bg_rho_crit]
 
             free(pvecback)
 
-        else:
-
-            Om_ncdm = 0.
-
-        return Om_ncdm
+        return (Om_ncdm[0] if np.isscalar(z) else Om_ncdm)
 
     def ionization_fraction(self, z):
         """
@@ -2061,25 +2126,29 @@ cdef class Class:
         cdef double * pvecback
         cdef double * pvecthermo
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+        xe = np.empty_like(zarr)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
         pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            free(pvecthermo) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              free(pvecthermo) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        if thermodynamics_at_z(&self.ba,&self.th,z,inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
-            free(pvecback) #manual free due to error
-            free(pvecthermo) #manual free due to error
-            raise CosmoSevereError(self.th.error_message)
+          if thermodynamics_at_z(&self.ba,&self.th,redshift,inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
+              free(pvecback) #manual free due to error
+              free(pvecthermo) #manual free due to error
+              raise CosmoSevereError(self.th.error_message)
 
-        xe = pvecthermo[self.th.index_th_xe]
+          xe[iz] = pvecthermo[self.th.index_th_xe]
 
         free(pvecback)
         free(pvecthermo)
 
-        return xe
+        return (xe[0] if np.isscalar(z) else xe)
 
     def baryon_temperature(self, z):
         """
@@ -2098,25 +2167,29 @@ cdef class Class:
         cdef double * pvecback
         cdef double * pvecthermo
 
+        zarr = np.atleast_1d(z).astype(np.float64)
+        Tb = np.empty_like(zarr)
+
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
         pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
 
-        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            free(pvecback) #manual free due to error
-            free(pvecthermo) #manual free due to error
-            raise CosmoSevereError(self.ba.error_message)
+        for iz, redshift in enumerate(zarr):
+          if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+              free(pvecback) #manual free due to error
+              free(pvecthermo) #manual free due to error
+              raise CosmoSevereError(self.ba.error_message)
 
-        if thermodynamics_at_z(&self.ba,&self.th,z,inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
-            free(pvecback) #manual free due to error
-            free(pvecthermo) #manual free due to error
-            raise CosmoSevereError(self.th.error_message)
+          if thermodynamics_at_z(&self.ba,&self.th,redshift,inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
+              free(pvecback) #manual free due to error
+              free(pvecthermo) #manual free due to error
+              raise CosmoSevereError(self.th.error_message)
 
-        Tb = pvecthermo[self.th.index_th_Tb]
+          Tb[iz] = pvecthermo[self.th.index_th_Tb]
 
         free(pvecback)
         free(pvecthermo)
 
-        return Tb
+        return (Tb[0] if np.isscalar(z) else Tb)
 
     def T_cmb(self):
         """
