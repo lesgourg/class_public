@@ -527,6 +527,7 @@ int input_shooting(struct file_content * pfc,
   /* array of parameters passed by the user for which we need shooting (= target parameters) */
   char * const target_namestrings[] = {"100*theta_s",
                                        "theta_s_100",
+                                       "Neff",
                                        "Omega_dcdmdr",
                                        "omega_dcdmdr",
                                        "Omega_scf",
@@ -536,6 +537,7 @@ int input_shooting(struct file_content * pfc,
   /* array of corresponding parameters that must be adjusted in order to meet the target (= unknown parameters) */
   char * const unknown_namestrings[] = {"h",                        /* unknown param for target '100*theta_s' */
                                         "h",                        /* unknown param for target 'theta_s_100' */
+                                        "N_ur",                     /* unknown param for target 'Neff' */
                                         "Omega_ini_dcdm",           /* unknown param for target 'Omega_dcdmd' */
                                         "omega_ini_dcdm",           /* unknown param for target 'omega_dcdmdr' */
                                         "scf_shooting_parameter",   /* unknown param for target 'Omega_scf' */
@@ -547,6 +549,7 @@ int input_shooting(struct file_content * pfc,
      each time to saves a lot of time) */
   enum computation_stage target_cs[] = {cs_thermodynamics, /* computation stage for target '100*theta_s' */
                                         cs_thermodynamics, /* computation stage for target 'theta_s_100' */
+                                        cs_background,     /* computation stage for target 'Neff' */
                                         cs_background,     /* computation stage for target 'Omega_dcdmdr' */
                                         cs_background,     /* computation stage for target 'omega_dcdmdr' */
                                         cs_background,     /* computation stage for target 'Omega_scf' */
@@ -865,6 +868,7 @@ int input_needs_shooting_for_target(struct file_content * pfc,
   case Omega_scf:
   case Omega_ini_dcdm:
   case omega_ini_dcdm:
+  case Neff:
     /* Check that Omega's or omega's are nonzero: */
     if (target_value == 0.)
       *needs_shooting = _FALSE_;
@@ -922,6 +926,8 @@ int input_find_root(double *xzero,
   /* Try fifteen times to go above and below the root (i.e. where shooting succeeds) */
   for (iter=1; iter<=15; iter++){
     x2 = x1 - dx;
+    // Early stopping if the two points are infinitessimaly close together, i.e. the answer is already reached
+    if(abs(x2/x1-1) < tol_x_rel){*xzero = x1; return _SUCCESS_;}
     /* Try three times to get a 'reasonable' value, i.e. no CLASS error */
     for (iter2=1; iter2 <= 3; iter2++) {
       return_function = input_fzerofun_1d(x2, pfzw, &f2, errmsg);
@@ -1143,6 +1149,7 @@ int input_get_guess(double *xguess,
   int i;
   double Omega_M, a_decay, gamma, Omega0_dcdmdr=1.0;
   int index_guess;
+  int index_ncdm; double N_nonur_guess = 0.0;
 
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
@@ -1168,6 +1175,14 @@ int input_get_guess(double *xguess,
       /** Update pb to reflect guess */
       ba.h = xguess[index_guess];
       ba.H0 = ba.h *  1.e5 / _c_;
+      break;
+    case Neff:
+      for(index_ncdm=0;index_ncdm<ba.N_ncdm;++index_ncdm){
+        N_nonur_guess += ba.deg_ncdm[index_ncdm]* 1.0132;
+      }
+      N_nonur_guess += ba.Omega0_idr/ba.Omega0_g/(7./8.)*pow(11./4.,(4./3.));
+      xguess[index_guess] = pfzw->target_value[index_guess] - N_nonur_guess;
+      dxdy[index_guess] = 1.;
       break;
     case Omega_dcdmdr:
       Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
@@ -1421,6 +1436,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
     case theta_s:
     case theta_s_100:
       output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
+      break;
+    case Neff:
+      output[i] = ba.Neff-pfzw->target_value[i];
       break;
     case Omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
@@ -2380,25 +2398,10 @@ int input_read_parameters_species(struct file_content * pfc,
 
 
   /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
-  /**
-   * We want to keep compatibility with old input files, and as such 'N_eff' is still
-   * an allowed parameter name, although it is deprecated and its use is discouraged.
-   * */
   /* Read */
   class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
-  /* Compability code BEGIN */
-  class_call(parser_read_double(pfc,"N_eff",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-             errmsg,
-             "You added both 'N_eff' (deprecated) and 'N_ur'. Please use solely 'N_ur'.");
-  if (flag2 == _TRUE_){
-    param1 = param2;
-    flag1 = _TRUE_;
-  }
   /* Compability code END */
   class_call(parser_read_double(pfc,"Omega_ur",&param2,&flag2,errmsg),
              errmsg,
