@@ -53,6 +53,7 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct background:
+        short is_allocated
         ErrorMsg error_message
         int bg_size
         int index_bg_ang_distance
@@ -106,6 +107,7 @@ cdef extern from "class.h":
         double tau_eq
 
     cdef struct thermodynamics:
+        short is_allocated
         ErrorMsg error_message
         int th_size
         int index_th_xe
@@ -141,6 +143,7 @@ cdef extern from "class.h":
         int tt_size
 
     cdef struct perturbations:
+        short is_allocated
         ErrorMsg error_message
         short has_scalars
         short has_vectors
@@ -277,9 +280,11 @@ cdef extern from "class.h":
         int ln_tau_size
 
     cdef struct transfer:
+        short is_allocated
         ErrorMsg error_message
 
     cdef struct primordial:
+        short is_allocated
         ErrorMsg error_message
         double k_pivot
         double A_s
@@ -311,6 +316,7 @@ cdef extern from "class.h":
         int lnk_size
 
     cdef struct harmonic:
+        short is_allocated
         ErrorMsg error_message
         int has_tt
         int has_te
@@ -350,6 +356,7 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct distortions:
+        short is_allocated
         double * sd_parameter_table
         int index_type_g
         int index_type_mu
@@ -365,6 +372,7 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct lensing:
+        short is_allocated
         int has_tt
         int has_ee
         int has_te
@@ -395,6 +403,7 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct fourier:
+        short is_allocated
         short has_pk_matter
         int method
         int ic_size

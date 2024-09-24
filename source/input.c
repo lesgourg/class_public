@@ -5596,6 +5596,19 @@ int input_default_params(struct background *pba,
      non-linear corrections neglected */
 
   /**
+   * Default to any module: not allocated yet
+   */
+  pba->is_allocated = _FALSE_;
+  pth->is_allocated = _FALSE_;
+  ppt->is_allocated = _FALSE_;
+  pfo->is_allocated = _FALSE_;
+  ptr->is_allocated = _FALSE_;
+  phr->is_allocated = _FALSE_;
+  ppm->is_allocated = _FALSE_;
+  ple->is_allocated = _FALSE_;
+  psd->is_allocated = _FALSE_;
+
+  /**
    * Default to input_read_parameters_general
    */
 

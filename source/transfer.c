@@ -400,6 +400,7 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
 
+  ptr->is_allocated = _TRUE_;
   return _SUCCESS_;
 }
 
@@ -457,6 +458,8 @@ int transfer_free(
       free(ptr->nz_evo_dd_dlog_nz);
     }
   }
+
+  ptr->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 
