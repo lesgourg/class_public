@@ -449,6 +449,66 @@ cdef class Class:
         # following functions are only to output the desired numbers
         return
 
+    def set_baseline(self, baseline_name):
+        # Taken from montepython [https://github.com/brinckmann/montepython_public] (see also 1210.7183, 1804.07261)
+        if ('planck' in baseline_name and '18' in baseline_name and 'lens' in baseline_name and 'bao' in baseline_name) or 'p18lb' in baseline_name.lower():
+          self.set({'omega_b':2.255065e-02,
+                    'omega_cdm':1.193524e-01,
+                    'H0':6.776953e+01,
+                    'A_s':2.123257e-09,
+                    'n_s':9.686025e-01,
+                    'z_reio':8.227371e+00,
+
+                    'N_ur':2.0328,
+                    'N_ncdm':1,
+                    'm_ncdm':0.06,
+                    'T_ncdm':0.71611,
+
+                    'output':'mPk, tCl, pCl, lCl',
+                    'lensing':'yes',
+                    'P_k_max_h/Mpc':1.0,
+                    'non_linear':'halofit'
+                    })
+
+        elif ('planck' in baseline_name and '18' in baseline_name and 'lens' in baseline_name) or 'p18l' in baseline_name.lower():
+          self.set({'omega_b':2.236219e-02,
+                    'omega_cdm':1.201668e-01,
+                    'H0':6.726996e+01,
+                    'A_s':2.102880e-09,
+                    'n_s':9.661489e-01,
+                    'z_reio':7.743057e+00,
+
+                    'N_ur':2.0328,
+                    'N_ncdm':1,
+                    'm_ncdm':0.06,
+                    'T_ncdm':0.71611,
+
+                    'output':'mPk, tCl, pCl, lCl',
+                    'lensing':'yes',
+                    'P_k_max_h/Mpc':1.0,
+                    'non_linear':'halofit'
+                    })
+
+        elif ('planck' in baseline_name and '18' in baseline_name) or 'p18' in baseline_name.lower():
+          self.set({'omega_b':2.237064e-02,
+                    'omega_cdm':1.214344e-01,
+                    'H0':6.685836e+01,
+                    'A_s':2.112203e-09,
+                    'n_s':9.622800e-01,
+                    'z_reio':7.795700e+00,
+
+                    'N_ur':2.0328,
+                    'N_ncdm':1,
+                    'm_ncdm':0.06,
+                    'T_ncdm':0.71611,
+
+                    'output':'mPk, tCl, pCl, lCl',
+                    'lensing':'yes',
+                    'P_k_max_h/Mpc':1.0})
+        else:
+          raise CosmoSevereError("Unrecognized baseline case '{}'".format(baseline_name))
+
+
     def raw_cl(self, lmax=-1, nofail=False):
         """
         raw_cl(lmax=-1, nofail=False)
