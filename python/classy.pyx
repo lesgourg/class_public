@@ -767,16 +767,21 @@ cdef class Class:
 
         cl = {}
 
-        # For density Cls, the size is bigger (different redshfit bins)
-        # computes the size, given the number of correlations needed to be computed
-        size = int((self.hr.d_size*(self.hr.d_size+1)-(self.hr.d_size-self.hr.non_diag)*
-                (self.hr.d_size-1-self.hr.non_diag))/2);
-        for elem in ['dd', 'll', 'dl']:
+        # For density Cls, we compute the names for each combination, which will also correspond to the size
+        names = {'dd':[],'ll':[],'dl':[]}
+        for index_d1 in range(self.hr.d_size):
+          for index_d2 in range(index_d1, min(index_d1+self.hr.non_diag+1, self.hr.d_size)):
+            names['dd'].append("dens[%d]-dens[%d]"%(index_d1+1, index_d2+1))
+            names['ll'].append("lens[%d]-lens[%d]"%(index_d1+1, index_d2+1))
+          for index_d2 in range(max(index_d1-self.hr.non_diag,0), min(index_d1+self.hr.non_diag+1, self.hr.d_size)):
+            names['dl'].append("dens[%d]-lens[%d]"%(index_d1+1, index_d2+1))
+
+        for elem in names:
             if elem in spectra:
                 cl[elem] = {}
-                for index in range(size):
-                    cl[elem][index] = np.zeros(
-                        lmax+1, dtype=np.double)
+                for name in names[elem]:
+                    cl[elem][name] = np.zeros(lmax+1, dtype=np.double)
+
         for elem in ['td', 'tl']:
             if elem in spectra:
                 cl[elem] = np.zeros(lmax+1, dtype=np.double)
@@ -787,14 +792,14 @@ cdef class Class:
                 success = False
                 break
             if 'dd' in spectra:
-                for index in range(size):
-                    cl['dd'][index][ell] = dcl[self.hr.index_ct_dd+index]
+                for index, name in enumerate(names['dd']):
+                  cl['dd'][name][ell] = dcl[self.hr.index_ct_dd+index]
             if 'll' in spectra:
-                for index in range(size):
-                    cl['ll'][index][ell] = dcl[self.hr.index_ct_ll+index]
+                for index, name in enumerate(names['ll']):
+                  cl['ll'][name][ell] = dcl[self.hr.index_ct_ll+index]
             if 'dl' in spectra:
-                for index in range(size):
-                    cl['dl'][index][ell] = dcl[self.hr.index_ct_dl+index]
+                for index, name in enumerate(names['dl']):
+                  cl['dl'][name][ell] = dcl[self.hr.index_ct_dl+index]
             if 'td' in spectra:
                 cl['td'][ell] = dcl[self.hr.index_ct_td]
             if 'tl' in spectra:
