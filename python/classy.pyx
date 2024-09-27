@@ -1428,7 +1428,7 @@ cdef class Class:
 
         R_in_Mpc = (Rarr if not h_units else Rarr/self.ba.h)
 
-        pairs = np.array(np.meshgrid(zarr,Rarr)).T.reshape(-1,2)
+        pairs = np.array(np.meshgrid(zarr,R_in_Mpc)).T.reshape(-1,2)
 
         sigmas = np.empty(pairs.shape[0])
         for ip, pair in enumerate(pairs):
@@ -1471,7 +1471,7 @@ cdef class Class:
 
         R_in_Mpc = (Rarr if not h_units else Rarr/self.ba.h)
 
-        pairs = np.array(np.meshgrid(zarr,Rarr)).T.reshape(-1,2)
+        pairs = np.array(np.meshgrid(zarr,R_in_Mpc)).T.reshape(-1,2)
 
         sigmas_cb = np.empty(pairs.shape[0])
         for ip, pair in enumerate(pairs):
