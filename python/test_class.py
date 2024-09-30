@@ -351,9 +351,19 @@ class TestClass(unittest.TestCase):
                             cl = self.cosmo.density_cl(100)
                         else:
                             cl = self.cosmo.raw_cl(100)
-                        self.assertIsNotNone(cl, "raw_cl returned nothing")
-                        cl_length = np.shape(cl[cl_type][0])[0] if is_density_cl else np.shape(cl[cl_type])[0]
-                        self.assertEqual(cl_length, 101, "raw_cl returned wrong size")
+                        if is_density_cl:
+                          self.assertIsNotNone(cl, "density_cl returned nothing")
+                          if cl_type=='ell':
+                            cl_length = np.shape(cl[cl_type])[0]
+                            self.assertEqual(cl_length, 101, "density_cl returned wrong ell size")
+                            continue
+                          for val in cl[cl_type]:
+                            cl_length = np.shape(cl[cl_type][val])[0]
+                            self.assertEqual(cl_length, 101, "density_cl returned wrong size")
+                        else:
+                          cl_length = np.shape(cl[cl_type])[0]
+                          self.assertIsNotNone(cl, "raw_cl returned nothing")
+                          self.assertEqual(cl_length, 101, "raw_cl returned wrong size")
                 if elem == 'mPk':
                     pk = self.cosmo.pk(0.1, 0)
                     self.assertIsNotNone(pk, "pk returned nothing")

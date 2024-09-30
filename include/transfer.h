@@ -5,8 +5,6 @@
 
 #include "fourier.h"
 #include "hyperspherical.h"
-#include <sys/shm.h>
-#include <sys/stat.h>
 #include "errno.h"
 
 /* macro: test if index_tt is in the range between index and index+num, while the flag is true */
@@ -206,6 +204,8 @@ struct transfer {
   short transfer_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
+
+  short is_allocated; /**< flag is set to true if allocated */
 
   //@}
 };
@@ -675,7 +675,7 @@ extern "C" {
   int transfer_workspace_init(
                               struct transfer * ptr,
                               struct precision * ppr,
-                              struct transfer_workspace **ptw,
+                              struct transfer_workspace *ptw,
                               int perturbations_tau_size,
                               int tau_size_max,
                               double K,

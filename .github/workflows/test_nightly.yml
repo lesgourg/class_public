@@ -41,7 +41,7 @@ jobs:
     if: needs.iftest.outputs.should_run > 0
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: main_class
     - name: Create or update virtual Python environment
@@ -60,7 +60,7 @@ jobs:
         OMP_NUM_THREADS=32 COMPARE_OUTPUT_GAUGE=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
     - name: Upload plots 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ComparePlots
         path: main_class/python/faulty_figs
@@ -72,23 +72,29 @@ jobs:
     timeout-minutes: 1440
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: main_class
     - name: Create or update virtual Python environment
       run: |
-        rm -f venv/bin/python
+        rm -rf venv
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
         pip install numpy scipy pandas matplotlib cython nose parameterized
+        deactivate
     - name: make
-      run: cd main_class && make OMPFLAG="" -j
+      run: |
+        source venv/bin/activate
+        cd main_class
+        make -j
+        deactivate
     - name: Generate input files
       run: |
         source venv/bin/activate
         cd main_class/python
-        TEST_LEVEL=3 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
+        TEST_LEVEL=3 CLASS_VERBOSE=1 python "$(which nosetests)" -a dump_ini_files test_class.py
+        deactivate
     - name: Valgrind 🤖
       run: |
         cd main_class/python/faulty_figs
@@ -98,11 +104,11 @@ jobs:
         find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 32 bash -c ': \
           && printf "\nk_step_sub = 10.0\nk_step_super = 0.4\nk_per_decade_for_pk = 2\nk_per_decade_for_bao = 5\n" >> {}'
         find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 32 bash -c ': \
-          && (valgrind --track-origins=yes --show-leak-kinds=all --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
+          && (OMP_NUM_THREADS=1 valgrind --track-origins=yes --show-leak-kinds=all --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
           || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
     - name: Upload errors 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ValgrindOutputWideShallow
         path: main_class/python/faulty_figs/valgrind_output
@@ -114,23 +120,29 @@ jobs:
     timeout-minutes: 1440
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: main_class
     - name: Create or update virtual Python environment
       run: |
-        rm -f venv/bin/python
+        rm -rf venv
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
         pip install numpy scipy pandas matplotlib cython nose parameterized
+        deactivate
     - name: make
-      run: cd main_class && make OMPFLAG="" -j
+      run: |
+        source venv/bin/activate
+        cd main_class
+        make -j
+        deactivate
     - name: Generate input files
       run: |
         source venv/bin/activate
         cd main_class/python
         TEST_LEVEL=1 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
+        deactivate
     - name: Valgrind 🤖
       run: |
         cd main_class/python/faulty_figs
@@ -138,11 +150,11 @@ jobs:
         rm -rf valgrind_output && mkdir valgrind_output
         cp ../../class .
         find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 32 bash -c ': \
-          && (valgrind --track-origins=yes --show-leak-kinds=all --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
+          && (OMP_NUM_THREADS=1 valgrind --track-origins=yes --show-leak-kinds=all --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
           || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
     - name: Upload errors 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ValgrindOutputNarrowDeep
         path: main_class/python/faulty_figs/valgrind_output

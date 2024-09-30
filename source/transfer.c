@@ -303,10 +303,12 @@ int transfer_init(
       /* compute the transfer functions in the normal case (not the
          full Limber one) */
 
-      struct transfer_workspace * ptw = NULL;
+      struct transfer_workspace tw;
+      struct transfer_workspace * ptw = &tw;
+
       class_call(transfer_workspace_init(ptr,
                                          ppr,
-                                         &ptw,
+                                         ptw,
                                          ppt->tau_size,
                                          tau_size_max,
                                          pba->K,
@@ -398,6 +400,7 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
 
+  ptr->is_allocated = _TRUE_;
   return _SUCCESS_;
 }
 
@@ -455,6 +458,8 @@ int transfer_free(
       free(ptr->nz_evo_dd_dlog_nz);
     }
   }
+
+  ptr->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 
@@ -4465,7 +4470,7 @@ int transfer_global_selection_read(
 int transfer_workspace_init(
                             struct transfer * ptr,
                             struct precision * ppr,
-                            struct transfer_workspace **ptw,
+                            struct transfer_workspace *ptw,
                             int perturbations_tau_size,
                             int tau_size_max,
                             double K,
@@ -4473,24 +4478,22 @@ int transfer_workspace_init(
                             double tau0_minus_tau_cut,
                             HyperInterpStruct * pBIS){
 
-  class_calloc(*ptw,1,sizeof(struct transfer_workspace),ptr->error_message);
+  ptw->tau_size_max = tau_size_max;
+  ptw->l_size = ptr->l_size_max;
+  ptw->HIS_allocated=_FALSE_;
+  ptw->pBIS = pBIS;
+  ptw->K = K;
+  ptw->sgnK = sgnK;
+  ptw->tau0_minus_tau_cut = tau0_minus_tau_cut;
+  ptw->neglect_late_source = _FALSE_;
 
-  (*ptw)->tau_size_max = tau_size_max;
-  (*ptw)->l_size = ptr->l_size_max;
-  (*ptw)->HIS_allocated=_FALSE_;
-  (*ptw)->pBIS = pBIS;
-  (*ptw)->K = K;
-  (*ptw)->sgnK = sgnK;
-  (*ptw)->tau0_minus_tau_cut = tau0_minus_tau_cut;
-  (*ptw)->neglect_late_source = _FALSE_;
-
-  class_alloc((*ptw)->interpolated_sources,perturbations_tau_size*sizeof(double),ptr->error_message);
-  class_alloc((*ptw)->sources,tau_size_max*sizeof(double),ptr->error_message);
-  class_alloc((*ptw)->tau0_minus_tau,tau_size_max*sizeof(double),ptr->error_message);
-  class_alloc((*ptw)->w_trapz,tau_size_max*sizeof(double),ptr->error_message);
-  class_alloc((*ptw)->chi,tau_size_max*sizeof(double),ptr->error_message);
-  class_alloc((*ptw)->cscKgen,tau_size_max*sizeof(double),ptr->error_message);
-  class_alloc((*ptw)->cotKgen,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(ptw->interpolated_sources,perturbations_tau_size*sizeof(double),ptr->error_message);
+  class_alloc(ptw->sources,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(ptw->tau0_minus_tau,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(ptw->w_trapz,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(ptw->chi,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(ptw->cscKgen,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(ptw->cotKgen,tau_size_max*sizeof(double),ptr->error_message);
 
   return _SUCCESS_;
 }
@@ -4514,7 +4517,6 @@ int transfer_workspace_free(
   free(ptw->cscKgen);
   free(ptw->cotKgen);
 
-  //free(ptw);
   return _SUCCESS_;
 }
 

@@ -992,6 +992,8 @@ int perturbations_init(
     class_finish_parallel();
   }
 
+  ppt->is_allocated = _TRUE_;
+
   return _SUCCESS_;
 }
 
@@ -1093,6 +1095,7 @@ int perturbations_free(
 
   }
 
+  ppt->is_allocated = _FALSE_;
   return _SUCCESS_;
 
 }

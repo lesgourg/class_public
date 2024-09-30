@@ -426,6 +426,8 @@ int thermodynamics_init(
 
   free(pvecback);
 
+  pth->is_allocated = _TRUE_;
+
   return _SUCCESS_;
 }
 
@@ -456,6 +458,8 @@ int thermodynamics_free(
   class_call(thermodynamics_free_input(pth),
              pth->error_message,
              pth->error_message);
+
+  pth->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 }
