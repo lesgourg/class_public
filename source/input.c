@@ -412,6 +412,9 @@ int input_read_from_file(struct file_content * pfc,
   class_read_int("input_verbose",input_verbose);
   if (input_verbose >0) printf("Reading input parameters\n");
 
+  /** -- Special setting of parameter, before anything else: did shooting fail? */
+  pba->shooting_failed = _FALSE_;
+
   /** Find out if shooting necessary and, eventually, shoot and initialize
       read parameters */
   class_call(input_shooting(pfc,ppr,pba,pth,ppt,ptr,ppm,phr,pfo,ple,psd,pop,
@@ -641,10 +644,9 @@ int input_shooting(struct file_content * pfc,
 
       /* We can do 1 dimensional root finding */
       if (input_verbose > 0) {
-        fprintf(stdout,
-                "Computing unknown input parameter '%s' using input parameter '%s'\n",
-                fzw.fc.name[fzw.unknown_parameters_index[0]],
-                target_namestrings[fzw.target_name[0]]);
+        printf("Computing unknown input parameter '%s' using input parameter '%s'\n",
+               fzw.fc.name[fzw.unknown_parameters_index[0]],
+               target_namestrings[fzw.target_name[0]]);
       }
 
       /* If shooting fails, postpone error to background module to play nice with MontePython. */
@@ -662,9 +664,14 @@ int input_shooting(struct file_content * pfc,
       // precision of around 1e-16, so 1e-20 should be good enough for the shooting
       class_sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%.20e",xzero);
       if (input_verbose > 0) {
-        fprintf(stdout," -> found '%s = %s'\n",
-                fzw.fc.name[fzw.unknown_parameters_index[0]],
-                fzw.fc.value[fzw.unknown_parameters_index[0]]);
+        if (shooting_failed == _FALSE_){
+          printf(" -> found '%s = %s'\n",
+                  fzw.fc.name[fzw.unknown_parameters_index[0]],
+                  fzw.fc.value[fzw.unknown_parameters_index[0]]);
+        }
+        else{
+          printf("Shooting failed! Aborting...\n");
+        }
       }
 
     }
@@ -673,7 +680,7 @@ int input_shooting(struct file_content * pfc,
 
       /* We need to do multidimensional root finding */
       if (input_verbose > 0) {
-        fprintf(stdout,"Computing unknown input parameters\n");
+        printf("Computing unknown input parameters\n");
       }
 
       /* Allocate local variables */
@@ -710,9 +717,14 @@ int input_shooting(struct file_content * pfc,
         class_sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
                 "%.20e",x_inout[counter]);
         if (input_verbose > 0) {
-          fprintf(stdout," -> found '%s = %s'\n",
-                  fzw.fc.name[fzw.unknown_parameters_index[counter]],
-                  fzw.fc.value[fzw.unknown_parameters_index[counter]]);
+          if (shooting_failed == _FALSE_){
+            printf(" -> found '%s = %s'\n",
+                    fzw.fc.name[fzw.unknown_parameters_index[counter]],
+                    fzw.fc.value[fzw.unknown_parameters_index[counter]]);
+          }
+          else{
+            printf("Shooting failed! Aborting...\n");
+          }
         }
       }
 
@@ -721,8 +733,8 @@ int input_shooting(struct file_content * pfc,
       free(dxdF);
     }
 
-    if (input_verbose > 1) {
-      fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
+    if (input_verbose > 1 && shooting_failed == _FALSE_) {
+      printf("Shooting completed using %d function evaluations\n",fevals);
     }
 
     /** Set status of shooting */
@@ -790,10 +802,9 @@ int input_shooting(struct file_content * pfc,
 
     /* Print to the user */
     if (input_verbose > 0) {
-      fprintf(stdout,
-              "Computing unknown input parameter '%s' using input parameter '%s'\n",
-              (flag1 ==_TRUE_?"sigma8":"S8"),
-              "A_s");
+      printf("Computing unknown input parameter '%s' using input parameter '%s'\n",
+             (flag1 ==_TRUE_?"sigma8":"S8"),
+             "A_s");
     }
 
     /* Set a guess for A_s from LCDM (doesn't need to be super accurate) */
@@ -820,9 +831,9 @@ int input_shooting(struct file_content * pfc,
     /* Store the derived value with high enough accuracy */
     class_sprintf(fzw.fc.value[pfc->size - 1],"%.20e",A_s);
     if (input_verbose > 0) {
-      fprintf(stdout," -> found '%s = %s'\n",
-              fzw.fc.name[pfc->size - 1],
-              fzw.fc.value[pfc->size - 1]);
+      printf(" -> found '%s = %s'\n",
+             fzw.fc.name[pfc->size - 1],
+             fzw.fc.value[pfc->size - 1]);
     }
 
     parser_copy(&(fzw.fc), pfc, pfc->size - 1, pfc->size);
@@ -868,7 +879,6 @@ int input_needs_shooting_for_target(struct file_content * pfc,
   case Omega_scf:
   case Omega_ini_dcdm:
   case omega_ini_dcdm:
-  case Neff:
     /* Check that Omega's or omega's are nonzero: */
     if (target_value == 0.)
       *needs_shooting = _FALSE_;
@@ -926,8 +936,6 @@ int input_find_root(double *xzero,
   /* Try fifteen times to go above and below the root (i.e. where shooting succeeds) */
   for (iter=1; iter<=15; iter++){
     x2 = x1 - dx;
-    // Early stopping if the two points are infinitessimaly close together, i.e. the answer is already reached
-    if(abs(x2/x1-1) < tol_x_rel){*xzero = x1; return _SUCCESS_;}
     /* Try three times to get a 'reasonable' value, i.e. no CLASS error */
     for (iter2=1; iter2 <= 3; iter2++) {
       return_function = input_fzerofun_1d(x2, pfzw, &f2, errmsg);
@@ -1154,6 +1162,9 @@ int input_get_guess(double *xguess,
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
 
+  /* Assume for now shooting did not fail */
+  ba.shooting_failed = _FALSE_;
+
   class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&hr,&fo,&le,&sd,&op,
                                    errmsg),
              errmsg,
@@ -1318,6 +1329,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
   int flag;
   int param;
   short compute_sigma8 = _FALSE_;
+
+  /* Assume for now shooting did not fail */
+  ba.shooting_failed = _FALSE_;
 
   pfzw = (struct fzerofun_workspace *) voidpfzw;
   /** Read input parameters */
@@ -2433,7 +2447,7 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->Omega0_ur = param3/pba->h/pba->h;
     }
   }
-  class_test(pba->Omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values.");
+  class_test(pba->Omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values. You might have input a total Neff smaller than what your massive neutrinos require minimally (around 1.02 * N_ncdm * deg_ncdm).");
 
   /** 3.a) Case of non-standard properties */
   /* Read */
@@ -5831,8 +5845,6 @@ int input_default_params(struct background *pba,
   pba->phi_prime_ini_scf = 1;          //     factors of the radiation attractor values
   /** 9.b.3) Tuning parameter */
   pba->scf_tuning_index = 0;
-  /** 9.b.4) Shooting parameter */
-  pba->shooting_failed = _FALSE_;
 
   /**
    * Deafult to input_read_parameters_heating
