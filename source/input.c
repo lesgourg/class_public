@@ -757,7 +757,7 @@ int input_shooting(struct file_content * pfc,
     /* Create file content structure with additional entries */
     class_call(parser_extend(pfc, 1, errmsg),
                errmsg,errmsg);
-    
+
     class_call(parser_init_from_pfc(pfc, &(fzw.fc), errmsg),
                errmsg,errmsg);
 
@@ -824,7 +824,7 @@ int input_shooting(struct file_content * pfc,
               fzw.fc.name[pfc->size - 1],
               fzw.fc.value[pfc->size - 1]);
     }
-  
+
     parser_copy(&(fzw.fc), pfc, pfc->size - 1, pfc->size);
 
     /** Free arrays allocated */
@@ -2076,6 +2076,9 @@ int input_read_parameters_general(struct file_content * pfc,
     class_read_flag_or_deprecated("nbody_gauge_transfer_functions","Nbody gauge transfer functions",ppt->has_Nbody_gauge_transfers);
 
   }
+
+  /** 4.c) Do we want matter and baryon+CDM sources in current gauge, instead of automatic conversion to gauge-invariant variables? */
+  class_read_flag("matter_source_in_current_gauge",ppt->has_matter_source_in_current_gauge);
 
   /** 5) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
   /* Read */
@@ -5658,6 +5661,8 @@ int input_default_params(struct background *pba,
   ppt->gauge=synchronous;
   /** 4.b) N-body gauge */
   ppt->has_Nbody_gauge_transfers = _FALSE_;
+  /** 4.c) keep delta_m, theta_m, delta_cb, theta_cb in current gauge */
+  ppt->has_matter_source_in_current_gauge = _FALSE_;
 
   /** 5) Hubble parameter */
   pba->h = 0.67810;

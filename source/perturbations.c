@@ -866,9 +866,9 @@ int perturbations_init(
                ppt->z_max_pk,
                pth->z_rec);
 
-    class_test(ppt->has_source_delta_m == _TRUE_,
+    class_test((ppt->has_source_delta_m == _TRUE_) && (ppt->has_matter_source_in_current_gauge == _FALSE_),
                ppt->error_message,
-               "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you ask only transfer functions, e.g. with 'output=mTk' or 'output=mTk,vTk'. But if you need the total matter (e.g. with 'mPk', 'dCl', etc.) there is an issue with the calculation of delta_m at very early times. By default, delta_m is a gauge-invariant variable (the density fluctuation in comoving gauge) and this quantity is hard to get accurately at very early times. The solution is to define delta_m as the density fluctuation in the current gauge, synchronous or newtonian. For the moment this must be done manually by commenting the line 'ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;' in perturbations_sources(). In the future there will be an option for doing it in an easier way.",
+               "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you ask only transfer functions, e.g. with 'output=mTk' or 'output=mTk,vTk'. But if you need the total matter (e.g. with 'mPk', 'dCl', etc.) there is an issue with the calculation of delta_m (or delta_cb) at very early times. By default, delta_m and delta_cb are expressed by the code as gauge-invariant variables (the density fluctuation in comoving gauge). This quantity is hard to get accurately at very early times. The solution is to define delta_m and delta_cb as density fluctuations in the current gauge, e.g. synchronous or newtonian. This is done by setting the input flag 'matter_source_in_current_gauge' to 'yes'.",
                ppt->z_max_pk,
                pth->z_rec);
 
@@ -6610,31 +6610,33 @@ int perturbations_einstein(
        gauge-independent variables (you could comment this out if you
        really want gauge-dependent results) */
 
-    if (ppt->has_source_delta_m == _TRUE_) {
-      ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
-      // note: until 2.4.3 there was a typo, the factor was (-2 H'/H) instead
-      // of (3 aH). There is the same typo in the CLASSgal paper
-      // 1307.1459v1,v2,v3. It came from a confusion between (1+w_total)
-      // and (1+w_matter)=1 [the latter is the relevant one here].
-      //
-      // note2: at this point this gauge-invariant variable is only
-      // valid if all matter components are pressureless and
-      // stable. This relation will be generalized soon to the case
-      // of decaying dark matter.
-    }
-
-    if (ppt->has_source_delta_cb == _TRUE_) {
-      ppw->delta_cb += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_cb/k2;//check gauge transformation
-    }
-
-    if (ppt->has_source_theta_m == _TRUE_) {
-      if  (ppt->gauge == synchronous) {
-        ppw->theta_m += ppw->pvecmetric[ppw->index_mt_alpha]*k2;
+    if (ppt->has_matter_source_in_current_gauge == _FALSE_) {
+      if (ppt->has_source_delta_m == _TRUE_) {
+        ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+        // note: until 2.4.3 there was a typo, the factor was (-2 H'/H) instead
+        // of (3 aH). There is the same typo in the CLASSgal paper
+        // 1307.1459v1,v2,v3. It came from a confusion between (1+w_total)
+        // and (1+w_matter)=1 [the latter is the relevant one here].
+        //
+        // note2: at this point this gauge-invariant variable is only
+        // valid if all matter components are pressureless and
+        // stable. This relation will be generalized soon to the case
+        // of decaying dark matter.
       }
-    }
-    if (ppt->has_source_theta_cb == _TRUE_){
-      if  (ppt->gauge == synchronous) {
-        ppw->theta_cb += ppw->pvecmetric[ppw->index_mt_alpha]*k2; //check gauge transformation
+
+      if (ppt->has_source_delta_cb == _TRUE_) {
+        ppw->delta_cb += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_cb/k2;//check gauge transformation
+      }
+
+      if (ppt->has_source_theta_m == _TRUE_) {
+        if  (ppt->gauge == synchronous) {
+          ppw->theta_m += ppw->pvecmetric[ppw->index_mt_alpha]*k2;
+        }
+      }
+      if (ppt->has_source_theta_cb == _TRUE_){
+        if  (ppt->gauge == synchronous) {
+          ppw->theta_cb += ppw->pvecmetric[ppw->index_mt_alpha]*k2; //check gauge transformation
+        }
       }
     }
   }
