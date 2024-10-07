@@ -143,8 +143,8 @@ class DataConnection(tornado.websocket.WebSocketHandler):
         self.write_message(json.dumps({'type': 'extrema', 'extrema': extrema}))
         progress = float(redindex) / len(self.calc.redshift)
 
-        real = {quantity: base64.b64encode(data.astype(np.float32)) for quantity, data in Valuenew.iteritems()}
-        transfer = {quantity: base64.b64encode(data.astype(np.float32)) for quantity, data in TransferData.iteritems()}
+        real = {quantity: base64.b64encode(data.astype(np.float32)).decode() for quantity, data in Valuenew.items()}
+        transfer = {quantity: base64.b64encode(data.astype(np.float32)).decode() for quantity, data in TransferData.items()}
         self.write_message(
             json.dumps({
                 'type': 'data',
@@ -166,9 +166,9 @@ class DataConnection(tornado.websocket.WebSocketHandler):
         extremastring = json.dumps({'type': 'extrema', 'extrema': extrema})
         datastring = json.dumps({
             'type': 'data',
-            'real': base64.b64encode(Value.astype(np.float32)),
+            'real': base64.b64encode(Value.astype(np.float32)).decode(),
             'fourier': [],
-            'transfer': base64.b64encode(TransferData.astype(np.float32)),
+            'transfer': base64.b64encode(TransferData.astype(np.float32)).decode(),
             'k': krange.tolist()
             })
         self.write_message(extremastring)
@@ -212,6 +212,7 @@ class DataConnection(tornado.websocket.WebSocketHandler):
 
             z_of_decoupling = self.calc.z_dec
             frame_of_decoupling = np.argmin(np.abs(z_of_decoupling - self.calc.redshift))
+            frame_of_decoupling = int(frame_of_decoupling) # this is np.int64 object, which json doesn't like
             if self.calc.redshift[frame_of_decoupling] > z_of_decoupling:
                 frame_of_decoupling -= 1
             messages.append({

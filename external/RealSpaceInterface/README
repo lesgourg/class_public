@@ -1,8 +1,14 @@
+CLASS real space interface
+07.2015: started by Max Beutelspacher
+09.2018: improved by Georgios Samaras and released in class v2.7.0
+10.2025: for v3.2.5: made compatible with python 3, credits Timothy Morton and Mowen Zhao
+
+
 For installation of python packages, run
 
     pip install -r requirements.txt
 
-Launch the application with
+To see the real space interface, go to this directory (external/RealSpaceInterface/) and launch the application with
 
     python tornadoserver.py
 
@@ -15,4 +21,3 @@ Then in any browser open the URL
 Cache files are located in cache/, so to clear the cache, run
 
     rm cache/*
-

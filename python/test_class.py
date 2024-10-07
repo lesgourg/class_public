@@ -93,6 +93,8 @@ CLASS_VERBOSE = bool(int(os.getenv('CLASS_VERBOSE', '0'))) # Print output from C
 COMPARE_OUTPUT_GAUGE = bool(int(os.getenv('COMPARE_OUTPUT_GAUGE', '0'))) # Compare synchronous and Newtonian gauge outputs?
 COMPARE_OUTPUT_REF = bool(int(os.getenv('COMPARE_OUTPUT_REF', '0'))) # Compare classy with classyref?
 POWER_ALL = bool(int(os.getenv('POWER_ALL', '0'))) # Combine every extension with each other? (Very slow!)
+VALGRIND_MODE = bool(int(os.getenv('VALGRIND_MODE', '0')))
+
 TEST_LEVEL = int(os.getenv('TEST_LEVEL', '0')) # 0 <= TEST_LEVEL <= 3
 
 if COMPARE_OUTPUT_REF:
@@ -108,6 +110,7 @@ COMPARE_CL_ABSOLUTE_ERROR = 1e-20
 COMPARE_PK_RELATIVE_ERROR = 1e-2
 COMPARE_PK_RELATIVE_ERROR_GAUGE = 5*1e-2
 COMPARE_PK_ABSOLUTE_ERROR = 1e-20
+COMPARE_SHOOTING_RELATIVE_ERROR = 1e-5
 
 # Dictionary of models to test the wrapper against. Each of these scenario will
 # be run against all the possible output choices (nothing, tCl, mPk, etc...),
@@ -115,6 +118,10 @@ COMPARE_PK_ABSOLUTE_ERROR = 1e-20
 # Never input the default value, as this will be **automatically** tested
 # against. Indeed, when not specifying a field, CLASS takes the default input.
 CLASS_INPUT = {}
+
+# power = compare ALL settings with each of the entries
+# normal = compare only the power settings with this entry
+# onlyfull = compare only for 'full' output settings (see below)
 
 CLASS_INPUT['Output_spectra'] = (
     [{'output': 'mPk', 'P_k_max_1/Mpc': 2},
@@ -126,7 +133,8 @@ CLASS_INPUT['Output_spectra'] = (
     'power')
 
 CLASS_INPUT['Nonlinear'] = (
-    [{'non linear': 'halofit'}],
+    [{'non_linear': 'halofit'},
+    {'non_linear': 'hmcode'}],
     'power')
 
 CLASS_INPUT['Lensing'] = (
@@ -148,44 +156,65 @@ if TEST_LEVEL > 1:
     CLASS_INPUT['modes'] = (
         [{'modes': 't'},
         {'modes': 's, t'}],
-        'power')
+        'normal')
 
     CLASS_INPUT['Tensor_method'] = (
         [{'tensor method': 'exact'},
         {'tensor method': 'photons'}],
-        'power')
+        'onlyfull')
 
 if TEST_LEVEL > 2:
     CLASS_INPUT['Isocurvature_modes'] = (
         [{'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5}],
-        'normal')
+        'onlyfull')
 
     CLASS_INPUT['Scalar_field'] = (
         [{'Omega_scf': 0.1, 'attractor_ic_scf': 'yes',
         'scf_parameters': '10, 0, 0, 0'}],
-        'normal')
+        'onlyfull')
 
     CLASS_INPUT['Inflation'] = (
-        [{'P_k_ini type': 'inflation_V'},
-        {'P_k_ini type': 'inflation_H'}],
-        'normal')
-    # CLASS_INPUT['Inflation'] = (
-    #     [{'P_k_ini type': 'inflation_V'},
-    #     {'P_k_ini type': 'inflation_H'},
-    #     {'P_k_ini type': 'inflation_V_end'}],
-    #     'normal')
+        [{'Pk_ini_type': 'inflation_V'},
+        {'Pk_ini_type': 'inflation_H'}],
+        'onlyfull')
+
+    CLASS_INPUT['Shooting'] = (
+        [{'sigma8': 0.8},
+        {'S8': 0.8},
+        {'theta_s_100': 1.04},
+        {'Neff': 4.0},
+        {'Neff': 2.0},
+        {'Neff': 2.0,'N_ncdm':1,'m_ncdm':0.06},
+        {'Neff': 3.0,'N_ncdm':1,'m_ncdm':0.06},
+        {'Neff': 4.0,'N_ncdm':1,'m_ncdm':0.06},
+        {'Neff': 4.0,'N_ncdm':1,'m_ncdm':0.06, 'theta_s_100':1.04,'sigma8':0.8},
+        {'Neff': 4.0,'N_ncdm':1,'m_ncdm':0.06, 'theta_s_100':1.04,'S8':0.8},
+        {'tau_reio':0.05}
+        ],
+        'onlyfull')
+# TODO :: possibly another one with nonlinear=hmcode in the future, but for now this is more stable
+FULL_SETTINGS = {'output':'mPk mTk vTk tCl pCl lCl sCl nCl','P_k_max_1/Mpc': 2,'lensing':'yes','modes':'s,t'}
 
 if POWER_ALL:
     for k, v in iteritems(CLASS_INPUT):
         models, state = v
         CLASS_INPUT[k] = (models, 'power')
+if VALGRIND_MODE:
+    for k, v in iteritems(CLASS_INPUT):
+        if k == 'Output_spectra':
+            continue
+        models, state = v
+        CLASS_INPUT[k] = (models, 'normal')
 
 INPUTPOWER = []
 INPUTNORMAL = [{}]
+INPUTONLYFULL = [{}]
 for key, value in list(CLASS_INPUT.items()):
     models, state = value
     if state == 'power':
         INPUTPOWER.append([{}]+models)
+    elif state == 'onlyfull':
+        INPUTONLYFULL.extend(models)
     else:
         INPUTNORMAL.extend(models)
 
@@ -199,6 +228,10 @@ for key, value in list(CLASS_INPUT.items()):
                 temp_dict.update(elem)
             DICTARRAY.append(temp_dict)
 
+    for onlyfull in INPUTONLYFULL:
+        temp_dict = onlyfull.copy()
+        temp_dict.update(FULL_SETTINGS)
+        DICTARRAY.append(temp_dict)
 
 TUPLE_ARRAY = []
 for e in DICTARRAY:
@@ -212,7 +245,7 @@ def powerset(iterable):
         itertools.combinations(xs, n) for n in range(1, len(xs)+1))
 
 def custom_name_func(testcase_func, param_num, param):
-    special_keys = ['N_ncdm']
+    special_keys = ['N_ncdm','Pk_ini_type','ic','Neff','sigma8','S8','theta_s_100','tau_reio']
     somekeys = []
     for key in param.args[0]:
         if key in special_keys:
@@ -435,9 +468,9 @@ class TestClass(unittest.TestCase):
             if not has_tensor(self.scenario):
                 should_fail = True
 
-        # If we have specified non linear, we must have some form of
+        # If we have specified non_linear, we must have some form of
         # perturbations output.
-        if 'non linear' in self.scenario:
+        if 'non_linear' in self.scenario:
             if 'output' not in self.scenario:
                 should_fail = True
 
@@ -460,7 +493,7 @@ class TestClass(unittest.TestCase):
 
         # If we use inflation module, we must have scalar modes,
         # tensor modes, no vector modes and we should only have adiabatic IC:
-        if 'P_k_ini type' in self.scenario and self.scenario['P_k_ini type'].find('inflation') != -1:
+        if 'Pk_ini_type' in self.scenario and self.scenario['Pk_ini_type'].find('inflation') != -1:
             if 'modes' not in self.scenario:
                 should_fail = True
             else:
@@ -471,6 +504,8 @@ class TestClass(unittest.TestCase):
                 if self.scenario['modes'].find('t') == -1:
                     should_fail = True
             if 'ic' in self.scenario and self.scenario['ic'].find('i') != -1:
+                should_fail = True
+            if 'non_linear' in self.scenario and self.scenario['non_linear'].find('hmcode') != -1:
                 should_fail = True
 
 
@@ -545,6 +580,36 @@ class TestClass(unittest.TestCase):
                     self.pk_faulty_plot(k, reference_pk, reference_name, candidate_pk, candidate_name, rtol_pk)
                     status_pass = False
 
+        if 'output' in self.scenario and self.scenario['output'].find('mPk') != -1:
+            ref_sigma8 = reference.sigma8()
+            can_sigma8 = candidate.sigma8()
+            ref_sigma = reference.sigma(8, 0, h_units=True)
+            can_sigma = candidate.sigma(8, 0, h_units=True)
+            try:
+                np.testing.assert_allclose([ref_sigma8, ref_sigma, can_sigma8],
+                                           [can_sigma8, can_sigma, can_sigma],
+                                           rtol=rtol_pk,
+                                           atol=COMPARE_PK_ABSOLUTE_ERROR)
+            except AssertionError:
+                status_pass = False
+
+        if 'sigma8' in self.scenario:
+            if not np.isclose(self.scenario['sigma8'], candidate.sigma8(), rtol=COMPARE_SHOOTING_RELATIVE_ERROR, atol=0):
+              status_pass = False
+            if not np.isclose(candidate.sigma8(), reference.sigma8(), rtol=COMPARE_SHOOTING_RELATIVE_ERROR, atol=0):
+              status_pass = False
+
+        if 'Neff' in self.scenario:
+            if not np.isclose(self.scenario['Neff'], candidate.Neff(), rtol=COMPARE_SHOOTING_RELATIVE_ERROR, atol=0):
+              status_pass = False
+            if not np.isclose(candidate.Neff(), reference.Neff(), rtol=COMPARE_SHOOTING_RELATIVE_ERROR, atol=0):
+              status_pass = False
+
+        if 'theta_s_100' in self.scenario:
+            if not np.isclose(self.scenario['theta_s_100'], candidate.theta_s_100(), rtol=COMPARE_SHOOTING_RELATIVE_ERROR, atol=0):
+              status_pass = False
+            if not np.isclose(candidate.theta_s_100(), reference.theta_s_100(), rtol=COMPARE_SHOOTING_RELATIVE_ERROR, atol=0):
+              status_pass = False
         return status_pass
 
     def store_ini_file(self, path):

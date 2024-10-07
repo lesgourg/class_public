@@ -42,6 +42,7 @@ def ComputeTransferFunctionList(cosmologicalParameters, redshift, kperdecade=200
     class_settings.update({
         "output": "mTk",
         "gauge": "newtonian",
+        "matter_source_in_current_gauge": "yes",
         "evolver": "1",
         "P_k_max_h/Mpc": P_k_max,
         "k_per_decade_for_pk": kperdecade,

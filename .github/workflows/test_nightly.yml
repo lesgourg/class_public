@@ -93,7 +93,7 @@ jobs:
       run: |
         source venv/bin/activate
         cd main_class/python
-        TEST_LEVEL=3 CLASS_VERBOSE=1 python "$(which nosetests)" -a dump_ini_files test_class.py
+        TEST_LEVEL=3 VALGRIND_MODE=1 CLASS_VERBOSE=1 python "$(which nosetests)" -a dump_ini_files test_class.py
         deactivate
     - name: Valgrind 🤖
       run: |
