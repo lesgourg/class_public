@@ -1,7 +1,7 @@
 CLASS real space interface
 07.2015: started by Max Beutelspacher
 09.2018: improved by Georgios Samaras and released in class v2.7.0
-10.2025: for v3.2.5: made compatible with python 3, credits Thimothy Morton and Mowen Zhao
+10.2025: for v3.2.5: made compatible with python 3, credits Timothy Morton and Mowen Zhao
 
 
 For installation of python packages, run

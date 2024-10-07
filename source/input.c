@@ -2560,18 +2560,28 @@ int input_read_parameters_species(struct file_content * pfc,
                errmsg,
                errmsg);
 
-    /** 5.d) Mass or Omega of each ncdm species */
+    /** 5.d) Mass and/or Omega of each ncdm species */
     /* Read */
     class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
+    for (n=0; n<N_ncdm; n++){
+      class_test(pba->m_ncdm_in_eV[n]<0,
+                 errmsg,
+                 "You entered a negative non-CDM mass m_ncdm[%d], which makes no sense. This error was not caught in previous CLASS versions because the mass is always squared in the code, so CLASS returned the exact same results form +m_ncdm and -m_ncdm. If you want to define an 'effective negative neutrino mass' in the sense of e.g. 2405.00836 or 2407.10965, you can implement it in a python script following e.g. eq.(3) of 2407.10965",n);
+    }
+
     class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
+    // the name M_ncdm is borrowed temporarily to store omega_ncdm
     class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0,N_ncdm);
     for (n=0; n<N_ncdm; n++){
       if (pba->M_ncdm[n]!=0.0){
         /* Test */
         class_test(pba->Omega0_ncdm[n]!=0,errmsg,
                    "You can only enter one of 'Omega_ncdm' or 'omega_ncdm' for ncdm species %d.",n);
-        /* Complete set of parameters */
+        /* Complete set of parameters: if the user passed either
+           Omega_ncdm or omega_ncdm, now it's stored anyway as
+           Omega_0_ncdm */
         pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
+        // the name M_ncdm is now available for its real destination
       }
       /* Set default value
          this is the right place for passing the default value of the mass
