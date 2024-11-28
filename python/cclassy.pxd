@@ -449,6 +449,11 @@ cdef extern from "class.h":
     cdef int _FALSE_
     cdef int _TRUE_
 
+    cdef double _Mpc_over_m_
+    cdef double _c_
+    cdef double _G_
+    cdef double _eV_
+
     int input_read_from_file(void*, void*, void*, void*, void*, void*, void*, void*, void*,
         void*, void*, void*, char*)
     int background_init(void*,void*)

@@ -494,6 +494,38 @@ cdef class Class:
         else:
           raise CosmoSevereError("Unrecognized baseline case '{}'".format(baseline_name))
 
+    @property
+    def density_factor(self):
+        """
+        The density factor required to convert from the class-units of density to kg/m^3 (SI units)
+        """
+        return 3*_c_*_c_/(8*np.pi*_G_)/(_Mpc_over_m_*_Mpc_over_m_)
+
+    @property
+    def Mpc_to_m(self):
+        return _Mpc_over_m_
+
+    @property
+    def kg_to_eV(self):
+        return _c_*_c_/_eV_
+
+    @property
+    def kgm3_to_eVMpc3(self):
+        """
+        Convert from kg/m^3 to eV/Mpc^3
+        """
+        return self.kg_to_eV*self.Mpc_to_m**3
+
+    @property
+    def kg_to_Msol(self):
+        return 1/(2.0e30)
+
+    @property
+    def kgm3_to_MsolMpc3(self):
+        """
+        Convert from kg/m^3 to Msol/Mpc^3
+        """
+        return self.kg_to_Msol*self.Mpc_to_m**3
 
     def raw_cl(self, lmax=-1, nofail=False):
         """
