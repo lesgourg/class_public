@@ -107,6 +107,8 @@ cdef class Class:
     cdef object _pars # Dictionary of the parameters
     cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
+    _levellist = ["input","background","thermodynamics","perturbations", "primordial", "fourier", "transfer", "harmonic", "lensing", "distortions"]
+
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
     # access other quantities. Alternatively, you can also define a method, and
@@ -249,34 +251,18 @@ cdef class Class:
             ['lensing']
 
         """
-        if "distortions" in level:
-            if "lensing" not in level:
-                level.append("lensing")
-        if "lensing" in level:
-            if "harmonic" not in level:
-                level.append("harmonic")
-        if "harmonic" in level:
-            if "transfer" not in level:
-                level.append("transfer")
-        if "transfer" in level:
-            if "fourier" not in level:
-                level.append("fourier")
-        if "fourier" in level:
-            if "primordial" not in level:
-                level.append("primordial")
-        if "primordial" in level:
-            if "perturb" not in level:
-                level.append("perturb")
-        if "perturb" in level:
-            if "thermodynamics" not in level:
-                level.append("thermodynamics")
-        if "thermodynamics" in level:
-            if "background" not in level:
-                level.append("background")
-        if len(level)!=0 :
-            if "input" not in level:
-                level.append("input")
-        return level
+        # If it's a string only, treat as a list
+        if isinstance(level, str):
+          level=[level]
+        # For each item in the list
+        levelset = set()
+        for item in level:
+          # If the item is not in the list of allowed levels, make error message
+          if item not in self._levellist:
+            raise CosmoSevereError("Unknown computation level: '{}'".format(item))
+          # Otherwise, add to list of levels up to and including the specified level
+          levelset.update(self._levellist[:self._levellist.index(item)+1])
+        return levelset
 
     def _pars_check(self, key, value, contains=False, add=""):
         val = ""
@@ -393,12 +379,12 @@ cdef class Class:
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
 
-        if "perturb" in level:
+        if "perturbations" in level:
             if perturbations_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
-            self.ncp.add("perturb")
+            self.ncp.add("perturbations")
 
         if "primordial" in level:
             if primordial_init(&(self.pr), &(self.pt),
@@ -2402,7 +2388,7 @@ cdef class Class:
         free(data)
         return primordial
 
-    def get_perturbations(self):
+    def get_perturbations(self, return_copy=True):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested
         k-values.
@@ -2411,6 +2397,11 @@ cdef class Class:
 
             you need to specify both 'k_output_values', and have some
             perturbations computed, for instance by setting 'output' to 'tCl'.
+
+            Do not enable 'return_copy=False' unless you know exactly what you are doing.
+            This will mean that you get access to the direct C pointers inside CLASS.
+            That also means that if class is deallocated,
+            your perturbations array will become invalid. Beware!
 
         Returns
         -------
@@ -2465,7 +2456,7 @@ cdef class Class:
                     tmpdict={}
                     data_mv = <double[:timesteps,:number_of_titles]> thedata[j]
                     for i in range(number_of_titles):
-                        tmpdict[names[i]] = np.asarray(data_mv[:,i])
+                        tmpdict[names[i]] = (np.asarray(data_mv[:,i]).copy() if return_copy else np.asarray(data_mv[:,i]))
                     tmparray.append(tmpdict)
             perturbations[mode] = tmparray
 
