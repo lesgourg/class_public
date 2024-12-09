@@ -207,5 +207,5 @@ classy: libclass.a python/classy.pyx python/cclassy.pxd
 clean: .base
 	rm -rf $(WRKDIR);
 	rm -f libclass.a
-	rm -f $(MDIR)/python/classy.c
+	rm -f $(MDIR)/python/classy.cpp
 	rm -rf $(MDIR)/python/build
