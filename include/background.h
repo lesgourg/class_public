@@ -70,6 +70,18 @@ struct background
   double Omega0_idm; /**< \f$ \Omega_{0 idm} \f$: interacting dark matter with photons, baryons, and idr */
 
 
+//-----------------------------------------------------------------------------
+  /* BEGIN MODIFICATION UG */
+  double delta;
+  double a_start;
+  double Delta_rho_Lambda;
+   
+  short has_UG;
+
+  /* END MODIFICATION UG */
+//-----------------------------------------------------------------------------
+
+
   double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
   double T_idr;      /**< \f$ T_{idr} \f$: current temperature of interacting dark radiation in Kelvins */
 
