@@ -4,7 +4,7 @@ Modifications unimodular gravity based in the paper:   {#mainpage}
 Cosmological constraints on unimodular gravity models with diffusion (2022)
 Authors: Susana J. Landau, Micol Benetti, Alejandro Perez, Daniel Sudarsky 
 
-
+file to read (terminal) UG.ini
 
 
 
