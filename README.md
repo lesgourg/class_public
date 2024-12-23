@@ -1,12 +1,22 @@
 Modifications unimodular gravity based in the paper:   {#mainpage}
 ==============================================
 
-Cosmological constraints on unimodular gravity models with diffusion (2022)
-Authors: Susana J. Landau, Micol Benetti, Alejandro Perez, Daniel Sudarsky 
+Cosmological constraints on unimodular gravity models with diffusion (2022). Authors: Susana J. Landau, Micol Benetti, Alejandro Perez, Daniel Sudarsky 
 
 file to read (terminal) UG.ini:
       
       ./class UG.ini
+
+The modification is based in the following equations 
+
+(eq. 11)
+
+$\dot{\rho_M} + 3H \rho_m = \dot{\rho_{\Lambda}}$
+
+(eq.14)
+
+$\rho_{\Lambda}(a)= \rho_{\Lambda}^{0} + \Delta \rho [f(a)-1] $
+
 
 
 
