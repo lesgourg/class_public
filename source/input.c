@@ -2706,7 +2706,17 @@ int input_read_parameters_species(struct file_content * pfc,
 
 
   /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
+  /* BEGIN MODIFICATION ML */
+  class_read_double("delta",pba->delta);
+  class_read_double("a_start",pba->a_start);
+  class_read_double("Delta_rho_Lambda",pba->Delta_rho_Lambda);
+    
+  /* END MODIFICATION ML */
 
+
+
+
+   
   /** 7.1) Decaying DM into DR */
   /** 7.1.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
   /* Read */
