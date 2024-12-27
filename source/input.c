@@ -6149,6 +6149,15 @@ int input_default_params(struct background *pba,
   pop->write_distortions = _FALSE_;
 
 
+  /* BEGIN MODIFICATION ML */
+  
+  pba->delta=0.22;
+  pba->a_start=0.8;
+  pba->Delta_rho_Lambda= -0.0003;
+
+  /* END MODIFICATION ML */
+
+   
   /** 2) Verbosity */
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
