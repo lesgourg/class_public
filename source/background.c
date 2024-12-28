@@ -428,19 +428,88 @@ int background_functions(
   dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_g];
   rho_r += pvecback[pba->index_bg_rho_g];
 
+/*-----------------------------------------------------Previous program ---------------------------------------------*/
+  
   /* baryons */
+  if (pba->has_UG == _FALSE_){
   pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
-  rho_m += pvecback[pba->index_bg_rho_b];
+  rho_m += pvecback[pba->index_bg_rho_b];  }
 
-  /* cdm */
-  if (pba->has_cdm == _TRUE_) {
+  /* cdm */ 
+  if (pba->has_cdm == _TRUE_ && pba->has_UG==_FALSE_) {
     pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
-    rho_m += pvecback[pba->index_bg_rho_cdm];
+    rho_m += pvecback[pba->index_bg_rho_cdm];   
+  }   
+/*----------------------------------------------------------------------------------------------------------------------*/
+    /* BEGIN MODIFICATION ML */
+  double rho_dm0 = pba->Omega0_cdm*pow(pba->H0,2.);
+  double rho_b0 = pba->Omega0_b*pow(pba->H0,2.);
+  double delta = pba->delta;  
+  double Delta_rho_Lambda = pba->Delta_rho_Lambda;
+  double a_start = pba->a_start;
+  double rho_lambda = pba->Omega0_lambda*pow(pba->H0,2.);
+
+
+if(pba->has_UG == _TRUE_){
+/* for a ---(a_rad, a_start-delta/2) */
+  if(a<= a_start-delta/2 ){
+  // Baryonic density
+  pvecback[pba->index_bg_rho_b]= (rho_b0 + (rho_b0/(rho_b0+rho_dm0))*Delta_rho_Lambda*(pow(a_start,3)+a_start*pow(delta,2)/4))/pow(a,3) ;
+  // Dark matter density 
+  pvecback[pba->index_bg_rho_cdm]= (rho_dm0 + (rho_dm0/(rho_b0+rho_dm0))*Delta_rho_Lambda*(pow(a_start,3)+a_start*pow(delta,2)/4))/pow(a,3);
+  // Cosmological "constant"
+  pvecback[pba->index_bg_rho_lambda]= rho_lambda-delta ;
+  
   }
+ 
+/*for a ---(a_rad-delta, a_start+delta/2)  */
+  if(a>a_start-delta/2 || a<a_start+delta/2  ){
+  // Baryonic density
+  pvecback[pba->index_bg_rho_b]= (rho_b0 + (rho_b0/(rho_b0+rho_dm0))*Delta_rho_Lambda*(pow(a_start,3)+a_start*pow(delta,2)/4))/pow(a,3)- (rho_b0/(rho_b0+rho_dm0))*(Delta_rho_Lambda/(4*delta))*(a-pow((a_start-delta/2),4)/pow(a,3));
+  // Dark matter density  
+  pvecback[pba->index_bg_rho_cdm]= (rho_dm0 + (rho_dm0/(rho_b0+rho_dm0))*Delta_rho_Lambda*(pow(a_start,3)+a_start*pow(delta,2)/4))/pow(a,3)- (rho_dm0/(rho_b0+rho_dm0))*(Delta_rho_Lambda/(4*delta))*(a-pow(a_start-delta/2,4)/pow(a,3));
+  // Cosmological density 
+  pvecback[pba->index_bg_rho_lambda]= rho_lambda-delta*((a-a_start+delta/2)/delta-1) ;
+  }
+
+/*for a ---(a_start+delta/2, a_0)  */
+  if(a>=a_start+delta/2 ){
+  // Baryonic density
+  pvecback[pba->index_bg_rho_b]= rho_b0/pow(a,3);
+  // Dark matter density  
+  pvecback[pba->index_bg_rho_cdm]= rho_dm0/pow(a,3);
+  // Cosmological density 
+  pvecback[pba->index_bg_rho_lambda]= rho_lambda;
+  
+  }}
+  else{
+      pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm*pow(pba->H0,2)/pow(a,3);
+    }
+
+    
+    rho_tot += pvecback[pba->index_bg_rho_cdm];
+    p_tot += 0.;
+    rho_m += pvecback[pba->index_bg_rho_cdm];
+    rho_tot += pvecback[pba->index_bg_rho_b];
+    rho_m += pvecback[pba->index_bg_rho_b];
+  }
+/* END MODIFICATION ML */
+
+
+
+
+
+
+
+  
+
+
+
+
 
   /* idm */
   if (pba->has_idm == _TRUE_) {
