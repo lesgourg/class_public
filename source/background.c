@@ -448,13 +448,14 @@ int background_functions(
     /* BEGIN MODIFICATION ML */
   double rho_dm0 = pba->Omega0_cdm*pow(pba->H0,2.);
   double rho_b0 = pba->Omega0_b*pow(pba->H0,2.);
+
+if(pba->has_UG == _TRUE_){
   double delta = pba->delta;  
   double Delta_rho_Lambda = pba->Delta_rho_Lambda;
   double a_start = pba->a_start;
   double rho_lambda = pba->Omega0_lambda*pow(pba->H0,2.);
 
 
-if(pba->has_UG == _TRUE_){
 /* for a ---(a_rad, a_start-delta/2) */
   if(a<= a_start-delta/2 ){
   // Baryonic density
@@ -485,7 +486,7 @@ if(pba->has_UG == _TRUE_){
   // Cosmological density 
   pvecback[pba->index_bg_rho_lambda]= rho_lambda;
   
-  }}
+  }
   else{
       pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm*pow(pba->H0,2)/pow(a,3);
     }
