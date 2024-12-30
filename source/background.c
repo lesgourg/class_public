@@ -1184,6 +1184,14 @@ int background_indices(
 
   /* - put here additional ingredients that you want to appear in the
      normal vector */
+
+  /*----------------------------------------------------------------------*/
+  /* BEGIN MODIFICATION ML*/
+  class_define_index(pba->index_bg_delta,pba->has_UG,index_bg,1);
+  class_define_index(pba->index_bg_a_start,pba->has_UG,index_bg,1);
+  class_define_index(pba->index_bg_Delta_rho_Lambda,pba->has_UG,index_bg,1);
+  /* END MODIFICATION M */
+  /*----------------------------------------------------------------------*/
   /*    */
   /*    */
 
@@ -1227,11 +1235,6 @@ int background_indices(
 
   /* -> put here additional quantities describing background */
 
-  /* BEGIN MODIFICATION ML */
-  class_define_index(pba->index_bg_delta,pba->has_UG,index_bg,1);
-  class_define_index(pba->index_bg_a_start,pba->has_UG,index_bg,1);
-  class_define_index(pba->index_bg_Delta_rho_Lambda,pba->has_UG,index_bg,1);
-  /* END MODIFICATION M */
   /*    */
   /*    */
 
