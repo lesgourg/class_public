@@ -224,14 +224,14 @@ struct background
   int bg_size_normal; /**< size of background vector in the "normal format" */
   int bg_size;        /**< size of background vector in the "long format" */
 
-
+/*-----------------------------------------------------------------------------*/
 /* BEGIN MODIFICATION */
   int index_bg_delta;
   int index_bg_a_start;
-  int Delta_rho_Lambda;
+  int index_bg_Delta_rho_Lambda;
 
 /* END MODIFICATION */
-
+/*-----------------------------------------------------------------------------*/
   //@}
 
 
