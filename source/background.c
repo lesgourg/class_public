@@ -607,7 +607,10 @@ if(pba->has_UG == _TRUE_){
   }
 
   /* Lambda */
-  if (pba->has_lambda == _TRUE_) {
+                                      /* BEGIN MODIFICATION */ 
+  if (pba->has_lambda == _TRUE_ && pba->has_UG ==_FALSE_) {
+                                     /* END MODIFICATION    */
+    
     pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
     rho_tot += pvecback[pba->index_bg_rho_lambda];
     p_tot -= pvecback[pba->index_bg_rho_lambda];
