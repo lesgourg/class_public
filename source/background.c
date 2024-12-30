@@ -1223,7 +1223,7 @@ int background_indices(
   /* BEGIN MODIFICATION ML */
   class_define_index(pba->index_bg_delta,pba->has_UG,index_bg,1);
   class_define_index(pba->index_bg_a_start,pba->has_UG,index_bg,1);
-  class_define_index(pba->Delta_rho_Lambda,pba->has_UG,index_bg,1);
+  class_define_index(pba->index_bg_Delta_rho_Lambda,pba->has_UG,index_bg,1);
   /* END MODIFICATION M */
   /*    */
   /*    */
