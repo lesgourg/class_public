@@ -2707,7 +2707,7 @@ int input_read_parameters_species(struct file_content * pfc,
    
 
   /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
-  /* BEGIN MODIFICATION ML */
+  /* BEGIN MODIFICATION UG */
   class_read_double("delta",pba->delta);
   class_read_double("a_start",pba->a_start);
   class_read_double("Delta_rho_Lambda",pba->Delta_rho_Lambda);
@@ -2724,7 +2724,7 @@ int input_read_parameters_species(struct file_content * pfc,
      printf("Delta_rho_Lambda %f \n",pba->Delta_rho_Lambda);
      printf("--------------------------------------------------");
      printf("\n");}}
-  /* END MODIFICATION ML */
+  /* END MODIFICATION UG */
 
    
    
