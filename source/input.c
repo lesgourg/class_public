@@ -2705,20 +2705,25 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
    
+
   /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
   /* BEGIN MODIFICATION ML */
   class_read_double("delta",pba->delta);
   class_read_double("a_start",pba->a_start);
   class_read_double("Delta_rho_Lambda",pba->Delta_rho_Lambda);
+  class_read_double("has_UG", pba->has_UG);
+  
+  if (pba->has_UG==1){ 
+   if (pba->a_start != 0. || pba->delta != 0. || pba->Delta_rho_Lambda != 0. ){
 
-   printf("--------------------------------------------------");
-   printf("\n");
-   printf("Unimodular gravity \n");
-   printf("delta= %f \n",pba->delta);
-   printf("a_start =%f \n",pba->a_start);
-   printf("Delta_rho_Lambda %f \n",pba->Delta_rho_Lambda);
-   printf("--------------------------------------------------");
-   printf("\n");
+     printf("--------------------------------------------------");
+     printf("\n");
+     printf("Unimodular gravity \n");
+     printf("delta= %f \n",pba->delta);
+     printf("a_start =%f \n",pba->a_start);
+     printf("Delta_rho_Lambda %f \n",pba->Delta_rho_Lambda);
+     printf("--------------------------------------------------");
+     printf("\n");}}
   /* END MODIFICATION ML */
 
    
