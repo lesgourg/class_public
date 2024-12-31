@@ -1068,9 +1068,12 @@ int background_indices(
 
  /* BEGIN MODIFICATION ML */
   pba->has_UG = _FALSE_;
-
+  
   if (pba->a_start != 0. || pba->delta!= 0. || pba->Delta_rho_Lambda != 0.)
     pba->has_UG = _TRUE_;
+
+  
+
   
  /* END MODIFICATION M */
 
