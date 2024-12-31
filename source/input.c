@@ -2711,9 +2711,9 @@ int input_read_parameters_species(struct file_content * pfc,
   class_read_double("a_start",pba->a_start);
   class_read_double("Delta_rho_Lambda",pba->Delta_rho_Lambda);
 
-   printf("delta",pba->delta);
-   printf("a_start",pba->a_start);
-   printf("Delta_rho_Lambda",pba->Delta_rho_Lambda);
+   printf("delta %s",pba->delta);
+   printf("a_start %s",pba->a_start);
+   printf("Delta_rho_Lambda %s",pba->Delta_rho_Lambda);
   /* END MODIFICATION ML */
 
 
