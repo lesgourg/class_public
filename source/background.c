@@ -431,14 +431,14 @@ int background_functions(
 /*-----------------------------------------------------Previous program ---------------------------------------------*/
   
   /* baryons */
-  if (pba->has_UG == _FALSE_){
+  if (pba->has_UG != _TRUE_){
   pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
   rho_m += pvecback[pba->index_bg_rho_b];  }
 
   /* cdm */ 
-  if (pba->has_cdm == _TRUE_ && pba->has_UG==_FALSE_) {
+  if (pba->has_cdm == _TRUE_ && pba->has_UG !=_TRUE_) {
     pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
