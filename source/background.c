@@ -1070,7 +1070,7 @@ int background_indices(
   pba->has_UG = _FALSE_;
 
   if (pba->a_start != 0. || pba->delta!= 0. || pba->Delta_rho_Lambda != 0.)
-      class_test(pba->has_UG==0,
+      class_test(pba->has_UG==_TRUE_,
              pba->error_message,
              "You must active the unimodular gravity modification");
   
