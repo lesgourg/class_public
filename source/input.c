@@ -2704,21 +2704,24 @@ int input_read_parameters_species(struct file_content * pfc,
     pba->sgnK = -1;
   }
 
-
+   
   /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
   /* BEGIN MODIFICATION ML */
   class_read_double("delta",pba->delta);
   class_read_double("a_start",pba->a_start);
   class_read_double("Delta_rho_Lambda",pba->Delta_rho_Lambda);
 
-   printf("delta %s",pba->delta);
-   printf("a_start %s",pba->a_start);
-   printf("Delta_rho_Lambda %s",pba->Delta_rho_Lambda);
+   printf("--------------------------------------------------");
+   printf("\n");
+   printf("Unimodular gravity \n");
+   printf("delta= %f \n",pba->delta);
+   printf("a_start =%f \n",pba->a_start);
+   printf("Delta_rho_Lambda %f \n",pba->Delta_rho_Lambda);
+   printf("--------------------------------------------------");
+   printf("\n");
   /* END MODIFICATION ML */
 
-
-
-
+   
    
   /** 7.1) Decaying DM into DR */
   /** 7.1.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
