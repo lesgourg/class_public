@@ -499,7 +499,8 @@ if(pba->has_UG == _TRUE_){
     rho_tot += pvecback[pba->index_bg_rho_b];
     rho_m += pvecback[pba->index_bg_rho_b];
    
-  
+    rho_tot += pvecback[pba->index_bg_rho_lambda];
+    p_tot -= pvecback[pba->index_bg_rho_lambda];
        
   }
 /* END MODIFICATION ML */
