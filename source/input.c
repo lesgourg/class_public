@@ -2727,7 +2727,6 @@ int input_read_parameters_species(struct file_content * pfc,
 
    if (pba->has_UG !=1){
       if (pba->a_start != 0. || pba->delta != 0. || pba->Delta_rho_Lambda != 0. ){
-        printf("Shooting completed using %d function evaluations\n",fevals);
         class_test(pba->has_UG==_FALSE_, pba->error_message, "You must active the unimodular gravity modification");}}
    
   /* END MODIFICATION UG */
