@@ -451,7 +451,7 @@ int background_functions(
 if(pba->has_UG == _TRUE_){
   double rho_dm0 = pba->Omega0_cdm*pow(pba->H0,2.);
   double rho_b0 = pba->Omega0_b*pow(pba->H0,2.);
-  double delta = pba->delta;  
+  double delta = pba->delta;
   double Delta_rho_Lambda = pba->Delta_rho_Lambda;
   double a_start = pba->a_start;
   double rho_lambda = pba->Omega0_lambda*pow(pba->H0,2.);
