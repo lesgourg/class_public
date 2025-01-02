@@ -488,10 +488,6 @@ if(pba->has_UG == _TRUE_){
   pvecback[pba->index_bg_rho_lambda]= rho_lambda;
   
   }
-  else{
-      pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm*pow(pba->H0,2)/pow(a,3);
-    }
-
     
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
