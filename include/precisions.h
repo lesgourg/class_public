@@ -17,7 +17,7 @@ class_precision_parameter(background_Nloga,int,40000)
  * Evolver to be used for thermodynamics (rk, ndf15)
  */
 
-/* BEGIN MODIFICATION UG */
+/* BEGIN MODIFICATION UG    (the original was ndf15)*/
 class_type_parameter(background_evolver,int,enum evolver_type,rk)
 /* END MODIFICATION UG */
 
