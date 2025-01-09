@@ -143,7 +143,11 @@ class_precision_parameter(thermo_Nz_log,int,5000)
 /**
  * Evolver to be used for thermodynamics (rk, ndf15)
  */
+
+/* BEGIN MODIFICATION UG    (the original was ndf15)*/
 class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
+/* END MODIFICATION UG  */
+
 /**
  * Tolerance of the relative value of integral during thermodynamical integration
  * (used by both evolvers)
