@@ -464,7 +464,7 @@ if(pba->has_UG == _TRUE_){
   // Dark matter density 
   pvecback[pba->index_bg_rho_cdm]= (rho_dm0 + (rho_dm0/(rho_b0+rho_dm0))*Delta_rho_Lambda*(pow(a_start,3)+a_start*pow(delta,2)/4))/pow(a,3);
   // Cosmological "constant"
-  pvecback[pba->index_bg_rho_lambda]= rho_lambda-delta ;
+  pvecback[pba->index_bg_rho_lambda]= rho_lambda-Delta_rho_Lambda ;
 
   }
  
