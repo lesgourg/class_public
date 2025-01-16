@@ -75,8 +75,12 @@ struct background
   double delta;
   double a_start;
   double Delta_rho_Lambda;
-   
+  
+  double count;  /*to print count number of results in the terminal */
+  
   short has_UG;
+  
+  double count_terminal;
 
   /* END MODIFICATION UG */
 /*-----------------------------------------------------------------------------*/
