@@ -445,7 +445,7 @@ int background_functions(
     rho_m += pvecback[pba->index_bg_rho_cdm];   
   
   /* TERMINAL */
-if(pba->count<=10){ 
+if(pba->count<=pba->count_terminal){ 
   printf("count %f\n ", pba->count);
   printf("a= %f\n ", a);
   printf("RHO_m %f\n ", rho_m);
@@ -514,12 +514,12 @@ if(pba->has_UG == _TRUE_){
 /* END MODIFICATION ML */
 
 /* TERMINAL */
-if(pba->count_terminal<=10){ 
+if(pba->count<=pba->count_terminal){ 
   printf("count %f\n ", pba->count);
   printf("a= %f\n ", a);
   printf("RHO_m %f\n ", rho_m);
   printf("RHO_r %f\n ", rho_r);
-  pba->count_terminal=pba->count_terminal+  1;
+  pba->count=pba->count+  1;
   } 
 
 /* END MODIFICATION ML */
