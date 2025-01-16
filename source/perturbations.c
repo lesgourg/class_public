@@ -5193,9 +5193,11 @@ int perturbations_vector_init(
         if (ppt->perturbations_verbose>2)
           fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at tau=%e\n",k,tau);
 
-        ppv->y[ppv->index_pt_delta_g] = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        /* Use tight-coupling relation F_0^(2) = sqrt(6)*4/3* H'/kappa' (Credits C. Pitrou v3.3.0) */
+        ppv->y[ppv->index_pt_delta_g] = _SQRT6_*4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
 
-        ppv->y[ppv->index_pt_pol0_g] = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        /* Use tight-coupling relation G_0^(2) = -sqrt(2/3)* H'/kappa' (Credits C. Pitrou v3.3.0) */
+        ppv->y[ppv->index_pt_pol0_g] = -_SQRT6_/3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
       }
 
       /* -- case of switching on radiation streaming
@@ -5292,74 +5294,76 @@ int perturbations_initial_conditions(struct precision * ppr,
   double delta_tot;
   double velocity_tot;
   double s2_squared;
+  double h_corr_2,rho_fs; //For corrections to initial conditions to tensor modes
+
+
+  /** - (a) compute relevant background quantities: compute rho_r,
+      rho_m, rho_nu (= all relativistic except photons), and their
+      ratio. rho_r is needed for both scalars and tensors */
+
+  class_call(background_at_tau(pba,
+                               tau,
+                               normal_info,
+                               inter_normal,
+                               &(ppw->last_index_back),
+                               ppw->pvecback),
+             pba->error_message,
+             ppt->error_message);
+
+  /* 8piG/3 rho_r(t_i) */
+  rho_r = ppw->pvecback[pba->index_bg_rho_g];
+
+  /* 8piG/3 rho_m(t_i) */
+  rho_m = ppw->pvecback[pba->index_bg_rho_b];
+
+  /* 8piG/3 rho_nu(t_i) (all neutrinos and collisionless relics being relativistic at that time) */
+  rho_nu = 0.;
+
+  if (pba->has_cdm == _TRUE_) {
+    rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
+  }
+
+  if (pba->has_idm == _TRUE_) {
+    rho_m += ppw->pvecback[pba->index_bg_rho_idm];
+  }
+
+  if (pba->has_dcdm == _TRUE_) {
+    rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+  }
+
+  if (pba->has_dr == _TRUE_) {
+    rho_r += ppw->pvecback[pba->index_bg_rho_dr];
+    rho_nu += ppw->pvecback[pba->index_bg_rho_dr];
+  }
+
+  if (pba->has_ur == _TRUE_) {
+    rho_r += ppw->pvecback[pba->index_bg_rho_ur];
+    rho_nu += ppw->pvecback[pba->index_bg_rho_ur];
+  }
+
+  if (pba->has_idr == _TRUE_) {
+    rho_r += ppw->pvecback[pba->index_bg_rho_idr];
+    rho_nu += ppw->pvecback[pba->index_bg_rho_idr];
+  }
+
+  if (pba->has_ncdm == _TRUE_) {
+    for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
+      rho_r += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
+      rho_nu += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
+    }
+  }
+
+  class_test(rho_r == 0.,
+             ppt->error_message,
+             "stop to avoid division by zero");
+
+  a = ppw->pvecback[pba->index_bg_a];
+
+  a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
 
   /** --> For scalars */
 
   if (_scalars_) {
-
-    /** - (a) compute relevant background quantities: compute rho_r,
-        rho_m, rho_nu (= all relativistic except photons), and their
-        ratio. */
-
-    class_call(background_at_tau(pba,
-                                 tau,
-                                 normal_info,
-                                 inter_normal,
-                                 &(ppw->last_index_back),
-                                 ppw->pvecback),
-               pba->error_message,
-               ppt->error_message);
-
-    a = ppw->pvecback[pba->index_bg_a];
-
-    a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
-
-    /* 8piG/3 rho_r(t_i) */
-    rho_r = ppw->pvecback[pba->index_bg_rho_g];
-
-    /* 8piG/3 rho_m(t_i) */
-    rho_m = ppw->pvecback[pba->index_bg_rho_b];
-
-    /* 8piG/3 rho_nu(t_i) (all neutrinos and collisionless relics being relativistic at that time) */
-    rho_nu = 0.;
-
-    if (pba->has_cdm == _TRUE_) {
-      rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
-    }
-
-    if (pba->has_idm == _TRUE_) {
-      rho_m += ppw->pvecback[pba->index_bg_rho_idm];
-    }
-
-    if (pba->has_dcdm == _TRUE_) {
-      rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
-    }
-
-    if (pba->has_dr == _TRUE_) {
-      rho_r += ppw->pvecback[pba->index_bg_rho_dr];
-      rho_nu += ppw->pvecback[pba->index_bg_rho_dr];
-    }
-
-    if (pba->has_ur == _TRUE_) {
-      rho_r += ppw->pvecback[pba->index_bg_rho_ur];
-      rho_nu += ppw->pvecback[pba->index_bg_rho_ur];
-    }
-
-    if (pba->has_idr == _TRUE_) {
-      rho_r += ppw->pvecback[pba->index_bg_rho_idr];
-      rho_nu += ppw->pvecback[pba->index_bg_rho_idr];
-    }
-
-    if (pba->has_ncdm == _TRUE_) {
-      for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
-        rho_r += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
-        rho_nu += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
-      }
-    }
-
-    class_test(rho_r == 0.,
-               ppt->error_message,
-               "stop to avoid division by zero");
 
     /* f_nu = Omega_nu(t_i) / Omega_r(t_i) */
     fracnu = rho_nu/rho_r;
@@ -5965,6 +5969,71 @@ int perturbations_initial_conditions(struct precision * ppr,
       }
       else {
         ppw->pv->y[ppw->pv->index_pt_gw] = 0.;
+      }
+    }
+
+    /**
+        Corrections which are of order (k*tau)^2 for h, but order (k*tau) for h' (Credits C. Pitrou v3.3.0)
+        Not including them results in 0.2-0.3% differences, which remain till final values and
+        are not washed away after initial transition to the correct attractor. They read:
+
+        \f[ h = h0 + const*(k*tau)^2 \f]
+
+        with:
+
+        \f[ const = -(1+2K/k^2)/(6 + \sum 8/5 \sum_s Omega_s/Omega_r ) * h0 \f]
+
+        or more precisely:
+
+        \f[ const = -(1+2K/k^2)/(6 + \sum 8/5 \sum_fs (3*P_fs)/rho_r ) * h0 \f]
+
+        where the sum is over free-streaming particles and P_fs means the background pressure of a free-streaming species.
+        Photons are not free-streaming initially, but ur and ncdm are.
+    */
+
+    /** - We first build the energy density of free-streaming particles (in fact 3*Pressure of free-streaming species) */
+
+    rho_fs = 0.;
+
+    /** - --> ur contribution to 3*P_fs .  */
+    if (pba->has_ur == _TRUE_)
+      rho_fs += ppw->pvecback[pba->index_bg_rho_ur];
+
+    /** - --> ncdm contribution to 3*P_fs */
+    if (pba->has_ncdm == _TRUE_) {
+      for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+        rho_fs += 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+      }
+    }
+
+    /** - We then correct the initial condition for h and h'. It is crucial for h' since it is of order tau.
+          We could however omit the correction in h. */
+
+    h_corr_2 = - ppw->pv->y[ppw->pv->index_pt_gw] *(k2+2.*pba->K)/(6. + 8./5.*rho_fs/rho_r) *tau*tau;
+    ppw->pv->y[ppw->pv->index_pt_gw] += h_corr_2;
+    ppw->pv->y[ppw->pv->index_pt_gwdot] = 2.*h_corr_2/tau;
+
+    /** - We also set the quadrupoles (aka F_0^(2) in optimal hierarchy) to their order tau^2 value so that the equation
+          starts being correct.
+          We use the fact that F_0^(2)' = sqrt(6)*h' +... as seen in Eq 2.35 of 1305.3261
+          If one wishes to use the TAM hierarchy, we shall use here Theta_2^(2) = -1/sqrt(6) F_0^(2) since the F_2^(2) and
+          F_4^(2) are subdominant for initial conditions. */
+
+    if (ppt->evolve_tensor_ur == _TRUE_)
+      ppw->pv->y[ppw->pv->index_pt_delta_ur] = _SQRT6_*h_corr_2;
+
+    /** - Same for non-cold dark matter. */
+
+    if (ppt->evolve_tensor_ncdm == _TRUE_){
+      idx = ppw->pv->index_pt_psi0_ncdm1;
+      for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+
+          // C. Pitrou: TBC ! I have guessed this condition from the hierarchy by asking it is the same as for ur species.
+          ppw->pv->y[idx] = _SQRT6_*h_corr_2* (-0.25 * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q]);
+          // jump to next momentum
+          idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
+        }
       }
     }
 
@@ -7974,7 +8043,8 @@ int perturbations_sources(
 
       }
       else {
-        P = 2./5.*_SQRT6_*y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+        /* modified by C. Pitrou (v3.3.0): tca solution P^(2) = -1/3 H'/kappa', valid in both hierarchies */
+        P = -1./3.*y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
       }
     }
     else {
@@ -8489,10 +8559,12 @@ int perturbations_print_variables(double tau,
         pol4_g = y[ppw->pv->index_pt_pol0_g+4];
       }
       else {
-        delta_g = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa]; //TBC
+        /* Corrected by C. Pitrou (V3.3.0): Tight coupling gives F_0^(2) = 4/3*sqrt(6) H'/kappa' */
+        delta_g = 4./3.*_SQRT6_*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa];
         shear_g = 0.;
         l4_g = 0.;
-        pol0_g = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa]; //TBC
+	    /* Corrected by C. Pitrou (V3.3.0): tight coupling gives G_0^(2) = -sqrt(2/3) H'/kappa' */
+        pol0_g = -_SQRT6_/3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa];
         pol2_g = 0.;
         pol4_g = 0.;
       }
