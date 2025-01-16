@@ -145,7 +145,7 @@ class_precision_parameter(thermo_Nz_log,int,5000)
  */
 
 /* BEGIN MODIFICATION UG    (the original was ndf15)*/
-class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
+class_type_parameter(thermo_evolver,int,enum evolver_type,rk)
 /* END MODIFICATION UG  */
 
 /**
