@@ -108,7 +108,7 @@ class_precision_parameter(M_nfsm_threshold,double,1.e4)
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
-class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
+class_string_parameter(sBBN_file,"/external/bbn/sBBN_2025.dat","sBBN file")
 
 /*
  *  Thermodynamical quantities
