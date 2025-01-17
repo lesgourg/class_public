@@ -524,7 +524,7 @@ if(pba->count<=pba->count_terminal){
 
 /* END MODIFICATION ML */
 FILE *fptr;
-fptr = fopen("/home/jesus/CLASS/output/filename.txt", "a");
+fptr = fopen("/home/jesus/CLASS/output/filename.dat", "a");
 fprintf(fptr, "%lf %lf %lf %lf %lf\n", a, rho_m, rho_r, pvecback[pba->index_bg_rho_lambda], rho_m/rho_r);
 // Close the file
 fclose(fptr); 
