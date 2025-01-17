@@ -106,6 +106,17 @@ cdef extern from "class.h":
         double z_eq
         double tau_eq
 
+/*BEGIN modification */        
+        double delta;
+        double a_start;
+        double Delta_rho_Lambda;
+        double count;  /*to print count number of results in the terminal */
+        short has_UG;
+        double count_terminal;
+/*END modification */        
+
+        
+
     cdef struct thermodynamics:
         short is_allocated
         ErrorMsg error_message
