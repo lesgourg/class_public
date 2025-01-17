@@ -522,12 +522,15 @@ if(pba->count<=pba->count_terminal){
   pba->count=pba->count+  1;
   } 
 
-/* END MODIFICATION ML */
-FILE *fptr;
+/* Used to proving*/
+/*FILE *fptr;
 fptr = fopen("/home/jesus/CLASS/output/filename.dat", "a");
 fprintf(fptr, "%lf %lf %lf %lf %lf\n", a, rho_m, rho_r, pvecback[pba->index_bg_rho_lambda], rho_m/rho_r);
 // Close the file
-fclose(fptr); 
+fclose(fptr); */
+/* END MODIFICATION ML */
+
+
   
 
 
