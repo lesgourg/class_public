@@ -2712,7 +2712,7 @@ int input_read_parameters_species(struct file_content * pfc,
   class_read_double("a_start",pba->a_start);
   class_read_double("Delta_rho_Lambda",pba->Delta_rho_Lambda);
   class_read_double("has_UG", pba->has_UG);
-  class_read_double("count_terminal", pba->coun_terminal);
+  class_read_double("count_terminal", pba->count_terminal);
   
   if (pba->has_UG==1){ 
    if (pba->a_start != 0. || pba->delta != 0. || pba->Delta_rho_Lambda != 0. ){
