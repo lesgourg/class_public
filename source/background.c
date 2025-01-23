@@ -458,7 +458,7 @@ if(pba->count<=pba->count_terminal){
     /* BEGIN MODIFICATION ML */
 
 
-if(pba->has_UG == _FALSE_){
+if(pba->has_UG == _TRUE_){
   double rho_dm0 = pba->Omega0_cdm*pow(pba->H0,2.);
   double rho_b0 = pba->Omega0_b*pow(pba->H0,2.);
   double delta = pba->delta;
