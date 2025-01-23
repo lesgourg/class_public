@@ -466,7 +466,7 @@ if(pba->has_UG == _TRUE_){
 /* densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
       \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
   
-  double Delta_rho =3*pba->Delta_rho_Lambda*pow(100,2.)/(8*_G_*_PI_);
+  double Delta_rho =3*_Mpc_over_m_*_Mpc_over_m_*pba->Delta_rho_Lambda*pow(100,2.)/(8*_G_*_PI_);
   double a_start = pba->a_start;
   double rho_lambda = pba->Omega0_lambda*pow(pba->H0,2.);
 
