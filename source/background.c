@@ -513,14 +513,14 @@ if(pba->has_UG == _TRUE_){
   }
 /* END MODIFICATION ML */
 
-/* TERMINAL */
+/* TERMINAL 
 if(pba->count<=pba->count_terminal){ 
   printf("count %f\n ", pba->count);
   printf("a= %f\n ", a);
   printf("RHO_m %f\n ", rho_m);
   printf("RHO_r %f\n ", rho_r);
   pba->count=pba->count+  1;
-  } 
+  } */
 
 /* Used to proving*/
 /*FILE *fptr;
