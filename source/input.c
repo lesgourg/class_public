@@ -2714,7 +2714,9 @@ int input_read_parameters_species(struct file_content * pfc,
   class_read_double("has_UG", pba->has_UG);
   class_read_double("count_terminal", pba->count_terminal);
   
-  if (pba->has_UG==1){ 
+ 
+   
+    /*if (pba->has_UG==1){ 
    if (pba->a_start != 0. || pba->delta != 0. || pba->Delta_rho_Lambda != 0. ){
 
      printf("--------------------------------------------------");
@@ -2724,7 +2726,7 @@ int input_read_parameters_species(struct file_content * pfc,
      printf("a_start =%f \n",pba->a_start);
      printf("Delta_rho_Lambda %f \n",pba->Delta_rho_Lambda);
      printf("--------------------------------------------------");
-     printf("\n");}}
+     printf("\n");}}*/
 
    if (pba->has_UG !=1){
       if (pba->a_start != 0. || pba->delta != 0. || pba->Delta_rho_Lambda != 0. ){
