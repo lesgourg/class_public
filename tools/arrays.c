@@ -269,8 +269,9 @@ int array_integrate_spline_table_line_to_line(
 
     h = (x_array[i+1]-x_array[i]);
 
+    // the second line ended with an incorrect + sign until v3.2 included (Credits: C. Radermacher)
     *(array+(i+1)*n_columns+index_inty) = *(array+i*n_columns+index_inty) +
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1476,8 +1477,9 @@ int array_integrate_all_spline(
 
     h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
 
+    // the second line ended with an incorrect + sign until v3.2 included (Credits: C. Radermacher)
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1504,8 +1506,9 @@ int array_integrate_all_spline_table_line_to_line(
 
     h = (x_array[i+1]-x_array[i]);
 
+    // the second line ended with an incorrect + sign until v3.2 included (Credits: C. Radermacher)
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1551,8 +1554,9 @@ int array_integrate_all_trapzd_or_spline(
 
     h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
 
+    // the second line ended with an incorrect + sign until v3.2 included (Credits: C. Radermacher)
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -3574,5 +3578,36 @@ int array_hunt_ascending(
   return _FAILURE_;
   */
 
+  return _SUCCESS_;
+}
+
+
+int array_smooth_Gaussian(double * x,
+                          double * y,
+                          double * ysmooth,
+                          int length,
+                          double sigma,
+                          ErrorMsg errmsg){
+  int i,j;
+  double weight, total;
+  double nsig = 3.;
+
+  class_test(sigma<=0.,errmsg,"Cannot smooth with sigma<0 (sigma=%e)",sigma);
+
+  for ( i=0;i<length;++i){
+    total = 0.;
+    if(abs(x[i]-x[0]) < nsig*sigma || abs(x[i]-x[length-1]) < nsig*sigma){
+      ysmooth[i] = y[i];
+    }
+    else{
+      ysmooth[i] = 0.;
+      for( j=0;j<length;++j){
+        weight = exp(-(x[i]-x[j])*(x[i]-x[j])/(2.*sigma*sigma));
+        ysmooth[i] += y[j]*weight;
+        total +=weight;
+      }
+      ysmooth[i]/=total;
+    }
+  }
   return _SUCCESS_;
 }

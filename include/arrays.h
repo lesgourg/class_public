@@ -501,6 +501,13 @@ int array_integrate_all_trapzd_or_spline(
                            int * index,
                            ErrorMsg errmsg);
 
+  int array_smooth_Gaussian(double * x,
+                            double * y,
+                            double * ysmooth,
+                            int length,
+                            double sigma,
+                            ErrorMsg errmsg);
+
 #ifdef __cplusplus
 }
 #endif

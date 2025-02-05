@@ -53,6 +53,8 @@ LDFLAG = -g -fPIC
 HYREC = external/HyRec2020
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
+HALOFIT = external/Halofit
+HMCODE = external/HMcode
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -90,6 +92,16 @@ INCLUDES += -I../$(HYREC)
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injection.o
 HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
+
+vpath %.c $(HALOFIT)
+INCLUDES += -I../$(HALOFIT)
+EXTERNAL += halofit.o
+HEADERFILES += $(wildcard ./$(HALOFIT)/*.h)
+
+vpath %.c $(HMCODE)
+INCLUDES += -I../$(HMCODE)
+EXTERNAL += hmcode.opp
+HEADERFILES += $(wildcard ./$(HMCODE)/*.h)
 
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
