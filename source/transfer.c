@@ -2010,7 +2010,7 @@ int transfer_compute_for_each_q(
                 neglect = _TRUE_;
               }
               /* This would maybe go into transfer_can_be_neglected later: */
-              if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptr->index_q_flat_approximation) && (use_full_limber == _FALSE_)) {
+              if ((ptw->sgnK != 0) && (index_q < ptr->index_q_flat_approximation) && (index_l>=ptw->HIS.l_size) && (use_full_limber == _FALSE_)) {
                 neglect = _TRUE_;
               }
               if (neglect == _TRUE_) {
