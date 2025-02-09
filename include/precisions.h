@@ -18,7 +18,7 @@ class_precision_parameter(background_Nloga,int,40000)
  */
 
 /* BEGIN MODIFICATION UG    (the original was ndf15)*/
-class_type_parameter(background_evolver,int,enum evolver_type,rk)
+class_type_parameter(background_evolver,int,enum evolver_type,ndf15)
 /* END MODIFICATION UG */
 
 /**
