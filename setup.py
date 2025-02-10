@@ -5,6 +5,30 @@ import numpy as np
 import os
 import subprocess as sbp
 import sys
+from pip._internal.commands.install import decide_user_install
+
+def binaries_directory():
+    import site
+    """Return the installation directory, or None"""
+    user_install = decide_user_install(use_user_site = True if ('--user' in sys.argv) else None, prefix_path = any(['--prefix' in x for x in sys.argv]), target_dir=any(['--target' in x for x in sys.argv]), root_path = None, isolated_mode = True if ('--no-build-isolation' in sys.argv) else None)
+
+    if user_install:
+        paths = (site.getusersitepackages(),)
+    else:
+        py_version = '%s.%s' % (sys.version_info[0], sys.version_info[1])
+        paths = (s % (py_version) for s in (
+            sys.prefix + '/lib/python%s/dist-packages',
+            sys.prefix + '/lib/python%s/site-packages',
+            sys.prefix + '/local/lib/python%s/dist-packages',
+            sys.prefix + '/local/lib/python%s/site-packages',
+            '/Library/Python/%s/site-packages',
+        ))
+
+    for path in paths:
+        if os.path.exists(path):
+            return path
+    print('no installation path found', file=sys.stderr)
+    return None
 
 
 # Get the root folder of the CLASS installation -- this setup.py should be in that folder
@@ -54,13 +78,7 @@ classy_ext.cython_directives = {'language_level': "3" if sys.version_info.major>
 # We need to put the actual files somewhere (e.g. the BBN file -- the easiest is just to copy the full class folder (although in the future we could imagine just copying the necessary files)
 
 # 1. Check where to install class to
-import site
-path_install = site.getusersitepackages()
-if os.path.exists(path_install):
-  pass
-else:
-  path_install = site.getsitepackages()[0]
-path_install = os.path.join(path_install,"class")
+path_install = os.path.join(binaries_directory(),"class")
 print("Selected installation path : ", path_install)
 
 
