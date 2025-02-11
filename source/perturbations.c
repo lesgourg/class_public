@@ -8134,6 +8134,8 @@ int perturbations_print_variables(double tau,
   double delta_p_ncdm = 0.0;
   double factor = 0.0;
   double q,q2,epsilon;
+  double p_prime_over_rho_ncdm = 0.0;
+  double delta_ncdm_syn = 0.0;
   /** - ncdm sector ends */
   double phi=0.,psi=0.,alpha=0.;
   double delta_temp=0., delta_chi=0.;
@@ -8417,7 +8419,7 @@ int perturbations_print_variables(double tau,
     }
 
     /* converting synchronous variables to newtonian ones */
-    if (ppt->gauge == synchronous) {
+    if ((ppt->gauge == synchronous) && (ppt->get_perturbations_in_current_gauge == _FALSE_)) {
 
       /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
 
@@ -8455,7 +8457,24 @@ int perturbations_print_variables(double tau,
 
       if (pba->has_ncdm == _TRUE_) {
         for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          /** - --> TODO: gauge transformation of delta, deltaP/rho (?) and theta using -= 3aH(1+w_ncdm) alpha for delta. */
+          rho_ncdm_bg = pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+          p_ncdm_bg = pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+          w_ncdm = p_ncdm_bg/rho_ncdm_bg;
+
+          pseudo_p_ncdm = pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm];
+          /* The following equation for p'/rho can be infered from the
+             energy conservation equation combined with eq. (3.3) of
+             arxiv[1104.2935] */
+          p_prime_over_rho_ncdm = -a*H*w_ncdm*(5.-pseudo_p_ncdm/p_ncdm_bg);
+
+          /* store delta[Syn] before doing the gauge transformation */
+          delta_ncdm_syn = delta_ncdm[n_ncdm];
+
+          /* gauge transformation for delta, theta and delta_p_over_delta_rho (shear is invariant) */
+          delta_ncdm[n_ncdm] -= 3.*a*H*(1+w_ncdm)*alpha;
+          theta_ncdm[n_ncdm] += k*k*alpha;
+          delta_p_over_delta_rho_ncdm[n_ncdm] = (delta_p_over_delta_rho_ncdm[n_ncdm]*delta_ncdm_syn + p_prime_over_rho_ncdm*alpha)
+            /(delta_ncdm_syn - 3*a*H*(1.+w_ncdm)*alpha);
         }
       }
 

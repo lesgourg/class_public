@@ -2095,6 +2095,9 @@ int input_read_parameters_general(struct file_content * pfc,
   /** 4.c) Do we want matter and baryon+CDM sources in current gauge, instead of automatic conversion to gauge-invariant variables? */
   class_read_flag("matter_source_in_current_gauge",ppt->has_matter_source_in_current_gauge);
 
+  /** 4.d) Do we want output perturbations in current gauge, instead of automatic conversion to Newtonian variables? */
+  class_read_flag("get_perturbations_in_current_gauge",ppt->get_perturbations_in_current_gauge);
+
   /** 5) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
   /* Read */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
@@ -5739,6 +5742,8 @@ int input_default_params(struct background *pba,
   ppt->has_Nbody_gauge_transfers = _FALSE_;
   /** 4.c) keep delta_m, theta_m, delta_cb, theta_cb in current gauge */
   ppt->has_matter_source_in_current_gauge = _FALSE_;
+  /** 4.d) keep output perturbations in current gauge */
+  ppt->get_perturbations_in_current_gauge = _FALSE_;
 
   /** 5) Hubble parameter */
   pba->h = 0.67810;
