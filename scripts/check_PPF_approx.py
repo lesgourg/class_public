@@ -110,7 +110,7 @@ omega_b = 0.022
 h = {'PPF1':0.64,'PPF2':0.74,'FLD1':0.64}
 
 fig, axes = plt.subplots(1,2,figsize=(16,5))
-for Omega_K in [-0.1, 0.0, 0.15]:
+for Omega_K in [-0.1, 0.0, 0.1]:
     for gauge in ['Synchronous','Newtonian']:
         cosmo = {}
         for M in models:
@@ -179,7 +179,7 @@ h = {'PPF1':0.64,'PPF2':0.74,'FLD1':0.64}
 
 fig, axes = plt.subplots(1,2,figsize=(18,8))
 
-for Omega_K in [-0.1, 0.0, 0.15]:
+for Omega_K in [-0.1, 0.0, 0.1]:
     for ppfgauge in ['Synchronous','Newtonian']:
         cosmo = {}
         for M in models:

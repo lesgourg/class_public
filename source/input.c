@@ -1733,6 +1733,7 @@ int input_read_parameters(struct file_content * pfc,
  * @param pba     Input: pointer to background structure
  * @param pth     Input: pointer to thermodynamics structure
  * @param ppt     Input: pointer to perturbation structure
+ * @param pfo     Input: pointer to fourier structure
  * @param psd     Input: pointer to distorsion structure
  * @param errmsg  Input: Error message
  * @return the error status

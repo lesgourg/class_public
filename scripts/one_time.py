@@ -7,6 +7,8 @@
 # import necessary modules
 from classy import Class
 from math import pi
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 # In[ ]:
@@ -174,24 +176,6 @@ M.set(common_settings)
 M.set({'temperature contributions':'dop'})
 M.compute()
 cl_Doppler = M.raw_cl(5000)
-
-
-# In[ ]:
-
-
-# modules and esthetic definitions for the plots
-#
-# uncomment to get plots displayed in notebook
-#get_ipython().run_line_magic('matplotlib', 'inline')
-#
-import matplotlib
-import matplotlib.pyplot as plt
-#
-font = {'size'   : 16, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-plt.rcParams["figure.figsize"] = [8.0,6.0]
 
 
 # In[ ]:

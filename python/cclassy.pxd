@@ -132,6 +132,7 @@ cdef extern from "class.h":
         double tau_d
         double ds_d
         double rs_d
+        double conf_time_reio
         double YHe
         double n_e
         double a_idm_dr

@@ -2791,6 +2791,8 @@ cdef class Class:
                 value = self.th.rs_d
             elif name == 'rs_d_h':
                 value = self.th.rs_d*self.ba.h
+            elif name == 'conf_time_reio':
+                value = self.th.conf_time_reio
             elif name == '100*theta_s':
                 value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
             elif name == '100*theta_star':

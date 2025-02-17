@@ -7,7 +7,8 @@
 # import necessary modules
 from classy import Class
 from math import pi
-
+import matplotlib
+import matplotlib.pyplot as plt
 
 # In[ ]:
 
@@ -81,24 +82,6 @@ M.set({'output':'tCl,pCl,lCl','modes':'s,t','lensing':'yes','n_s':0.9660499,'r':
 M.compute()
 cl_tot = M.raw_cl(l_max_scalars)
 cl_lensed = M.lensed_cl(l_max_scalars)
-
-
-# In[ ]:
-
-
-# modules and esthetic definitions for the plots
-#
-# uncomment to get plots displayed in notebook
-#get_ipython().run_line_magic('matplotlib', 'inline')
-#
-import matplotlib
-import matplotlib.pyplot as plt
-#
-font = {'size'   : 16, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-plt.rcParams["figure.figsize"] = [8.0,6.0]
 
 
 # In[ ]:

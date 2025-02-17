@@ -2047,6 +2047,7 @@ int fourier_indices(
  * extrapolation is required only by HMcode)
  *
  * @param ppr Input: pointer to precision structure
+ * @param ppm Input: pointer to primordial structure
  * @param ppt Input: pointer to perturbation structure
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
