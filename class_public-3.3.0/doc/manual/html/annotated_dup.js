@@ -1,0 +1,27 @@
+var annotated_dup =
+[
+    [ "For CLASS developpers:", "md_mod.html#autotoc_md31", null ],
+    [ "background", "structbackground.html", "structbackground" ],
+    [ "background_parameters_and_workspace", "structbackground__parameters__and__workspace.html", null ],
+    [ "background_parameters_for_distributions", "structbackground__parameters__for__distributions.html", null ],
+    [ "distortions", "distortions_8h.html#structdistortions", "distortions_8h_structdistortions" ],
+    [ "fourier", "fourier_8h.html#structfourier", "fourier_8h_structfourier" ],
+    [ "fzerofun_workspace", "input_8h.html#structfzerofun__workspace", null ],
+    [ "harmonic", "harmonic_8h.html#structharmonic", "harmonic_8h_structharmonic" ],
+    [ "lensing", "lensing_8h.html#structlensing", "lensing_8h_structlensing" ],
+    [ "output", "output_8h.html#structoutput", "output_8h_structoutput" ],
+    [ "perturbations", "perturbations_8h.html#structperturbations", "perturbations_8h_structperturbations" ],
+    [ "perturbations_parameters_and_workspace", "perturbations_8h.html#structperturbations__parameters__and__workspace", "perturbations_8h_structperturbations__parameters__and__workspace" ],
+    [ "perturbations_vector", "perturbations_8h.html#structperturbations__vector", "perturbations_8h_structperturbations__vector" ],
+    [ "perturbations_workspace", "perturbations_8h.html#structperturbations__workspace", "perturbations_8h_structperturbations__workspace" ],
+    [ "precision", "common_8h.html#structprecision", "common_8h_structprecision" ],
+    [ "primordial", "primordial_8h.html#structprimordial", "primordial_8h_structprimordial" ],
+    [ "thermo_diffeq_workspace", "thermodynamics_8h.html#structthermo__diffeq__workspace", "thermodynamics_8h_structthermo__diffeq__workspace" ],
+    [ "thermo_reionization_parameters", "thermodynamics_8h.html#structthermo__reionization__parameters", "thermodynamics_8h_structthermo__reionization__parameters" ],
+    [ "thermo_vector", "thermodynamics_8h.html#structthermo__vector", "thermodynamics_8h_structthermo__vector" ],
+    [ "thermo_workspace", "thermodynamics_8h.html#structthermo__workspace", "thermodynamics_8h_structthermo__workspace" ],
+    [ "thermodynamics", "thermodynamics_8h.html#structthermodynamics", "thermodynamics_8h_structthermodynamics" ],
+    [ "thermodynamics_parameters_and_workspace", "thermodynamics_8h.html#structthermodynamics__parameters__and__workspace", null ],
+    [ "transfer", "transfer_8h.html#structtransfer", "transfer_8h_structtransfer" ],
+    [ "transfer_workspace", "transfer_8h.html#structtransfer__workspace", "transfer_8h_structtransfer__workspace" ]
+];

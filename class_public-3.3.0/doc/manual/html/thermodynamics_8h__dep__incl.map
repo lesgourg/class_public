@@ -1,0 +1,24 @@
+<map id="thermodynamics.h" name="thermodynamics.h">
+<area shape="rect" id="node1" title=" " alt="" coords="705,5,834,32"/>
+<area shape="rect" id="node2" href="$class_8h_source.html" title=" " alt="" coords="722,605,785,632"/>
+<area shape="rect" id="node4" href="$distortions_8h.html" title=" " alt="" coords="879,230,972,257"/>
+<area shape="rect" id="node6" href="$input_8c.html" title=" " alt="" coords="178,605,238,632"/>
+<area shape="rect" id="node9" href="$perturbations_8h.html" title=" " alt="" coords="716,80,823,107"/>
+<area shape="rect" id="node22" href="$thermodynamics_8c.html" title=" " alt="" coords="948,80,1076,107"/>
+<area shape="rect" id="node3" href="$class_8c.html" title=" " alt="" coords="722,680,785,707"/>
+<area shape="rect" id="node5" href="$output_8h.html" title=" " alt="" coords="495,530,564,557"/>
+<area shape="rect" id="node8" href="$distortions_8c.html" title=" " alt="" coords="879,305,972,332"/>
+<area shape="rect" id="node7" href="$output_8c.html" title=" " alt="" coords="495,605,564,632"/>
+<area shape="rect" id="node10" href="$primordial_8h.html" title=" " alt="" coords="604,155,692,182"/>
+<area shape="rect" id="node21" href="$perturbations_8c.html" title=" " alt="" coords="716,155,823,182"/>
+<area shape="rect" id="node11" href="$fourier_8h.html" title=" " alt="" coords="364,230,431,257"/>
+<area shape="rect" id="node19" href="$primordial_8c.html" title=" " alt="" coords="591,230,679,257"/>
+<area shape="rect" id="node20" href="$noninjection_8c.html" title=" " alt="" coords="703,230,804,257"/>
+<area shape="rect" id="node12" href="$transfer_8h.html" title=" " alt="" coords="360,305,435,332"/>
+<area shape="rect" id="node18" href="$fourier_8c.html" title=" " alt="" coords="194,305,262,332"/>
+<area shape="rect" id="node13" href="$harmonic_8h.html" title=" " alt="" coords="427,380,512,407"/>
+<area shape="rect" id="node17" href="$transfer_8c.html" title=" " alt="" coords="328,380,403,407"/>
+<area shape="rect" id="node14" href="$lensing_8h.html" title=" " alt="" coords="478,455,551,482"/>
+<area shape="rect" id="node16" href="$harmonic_8c.html" title=" " alt="" coords="368,455,453,482"/>
+<area shape="rect" id="node15" href="$lensing_8c.html" title=" " alt="" coords="398,530,471,557"/>
+</map>

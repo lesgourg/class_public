@@ -1,0 +1,23 @@
+var searchData=
+[
+  ['b_5fidr_1683',['b_idr',['../thermodynamics_8h.html#a7dbf16e1b2008745b0a88513ffc03d2c',1,'thermodynamics']]],
+  ['background_5ftable_1684',['background_table',['../structbackground.html#a391c87f4269c591bfe3b7c1a7abce3bc',1,'background']]],
+  ['background_5fverbose_1685',['background_verbose',['../structbackground.html#a76e7e8bb2e0a7e4910de61772b459fdc',1,'background']]],
+  ['bbn_5falpha_5fsensitivity_1686',['bbn_alpha_sensitivity',['../thermodynamics_8h.html#a8cdf3dd0bc29a7fefab95a1d12d298c0',1,'thermodynamics']]],
+  ['behavior_1687',['behavior',['../primordial_8h.html#ab464fedeeee3046d56ab92e193e9d5fb',1,'primordial']]],
+  ['beta_5fidr_1688',['beta_idr',['../perturbations_8h.html#ad7a28ea3f857c8b412eca52a878f13d9',1,'perturbations']]],
+  ['beta_5fs_1689',['beta_s',['../primordial_8h.html#ac78506262298c09f9f3caa8921dae17f',1,'primordial']]],
+  ['bg_5fsize_1690',['bg_size',['../structbackground.html#a130359e1d60e308dae630ebee2332b81',1,'background']]],
+  ['bg_5fsize_5fnormal_1691',['bg_size_normal',['../structbackground.html#a651b3fd365f5cceb9af3bd39d9c85e11',1,'background']]],
+  ['bg_5fsize_5fshort_1692',['bg_size_short',['../structbackground.html#a5cbff7da365e1362a7d20f11d6c7043d',1,'background']]],
+  ['bi_5fb_5fsize_1693',['bi_B_size',['../structbackground.html#abd6b3cff248235abb658f0ab90b6c712',1,'background']]],
+  ['bi_5fsize_1694',['bi_size',['../structbackground.html#a738e597f277f45470000979f9cb360f4',1,'background']]],
+  ['binned_5freio_5fnum_1695',['binned_reio_num',['../thermodynamics_8h.html#a08dfba5b64f6d840e5eb995f17df3482',1,'thermodynamics']]],
+  ['binned_5freio_5fstep_5fsharpness_1696',['binned_reio_step_sharpness',['../thermodynamics_8h.html#a211bd860597306adbc9a52f15842f34e',1,'thermodynamics']]],
+  ['binned_5freio_5fxe_1697',['binned_reio_xe',['../thermodynamics_8h.html#aad19202a1aec576d4ae589b55174f0e9',1,'thermodynamics']]],
+  ['binned_5freio_5fz_1698',['binned_reio_z',['../thermodynamics_8h.html#a9528eaf8c942827d7a96650bda6b3cf8',1,'thermodynamics']]],
+  ['br_5fexact_5fnz_1699',['br_exact_Nz',['../distortions_8h.html#a42e07d3a04d92704631aa25dda17edbc',1,'distortions']]],
+  ['br_5fexact_5fz_1700',['br_exact_z',['../distortions_8h.html#a33634294150ef4214e3090a18ba61196',1,'distortions']]],
+  ['br_5ftable_1701',['br_table',['../distortions_8h.html#a7a02d7c0c990f465f0642ff767fafd69',1,'distortions']]],
+  ['bt_5fsize_1702',['bt_size',['../structbackground.html#aa44b240483b9a5d173cfcde81340c733',1,'background']]]
+];

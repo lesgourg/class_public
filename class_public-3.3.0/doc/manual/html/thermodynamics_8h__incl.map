@@ -1,0 +1,25 @@
+<map id="thermodynamics.h" name="thermodynamics.h">
+<area shape="rect" id="node1" title=" " alt="" coords="562,5,691,32"/>
+<area shape="rect" id="node2" href="$background_8h.html" title=" " alt="" coords="248,80,347,107"/>
+<area shape="rect" id="node18" href="$evolver__ndf15_8h_source.html" title=" " alt="" coords="505,80,618,107"/>
+<area shape="rect" id="node20" href="$evolver__rkck_8h_source.html" title=" " alt="" coords="375,80,481,107"/>
+<area shape="rect" id="node21" title=" " alt="" coords="642,80,742,107"/>
+<area shape="rect" id="node22" href="$wrap__recfast_8h_source.html" title=" " alt="" coords="766,80,874,107"/>
+<area shape="rect" id="node23" href="$injection_8h_source.html" title=" " alt="" coords="897,80,977,107"/>
+<area shape="rect" id="node3" href="$common_8h.html" title=" " alt="" coords="447,230,529,257"/>
+<area shape="rect" id="node13" href="$quadrature_8h_source.html" title=" " alt="" coords="31,155,124,182"/>
+<area shape="rect" id="node14" title=" " alt="" coords="148,155,239,182"/>
+<area shape="rect" id="node15" href="$arrays_8h_source.html" title=" " alt="" coords="263,155,331,182"/>
+<area shape="rect" id="node16" href="$dei__rkck_8h_source.html" title=" " alt="" coords="447,155,529,182"/>
+<area shape="rect" id="node17" href="$parser_8h_source.html" title=" " alt="" coords="356,155,423,182"/>
+<area shape="rect" id="node4" title=" " alt="" coords="156,305,217,332"/>
+<area shape="rect" id="node5" title=" " alt="" coords="240,305,304,332"/>
+<area shape="rect" id="node6" title=" " alt="" coords="328,305,389,332"/>
+<area shape="rect" id="node7" title=" " alt="" coords="413,305,477,332"/>
+<area shape="rect" id="node8" title=" " alt="" coords="502,305,559,332"/>
+<area shape="rect" id="node9" href="$svnversion_8h_source.html" title=" " alt="" coords="583,305,678,332"/>
+<area shape="rect" id="node10" title=" " alt="" coords="702,305,770,332"/>
+<area shape="rect" id="node11" href="$precisions_8h_source.html" title=" " alt="" coords="794,305,886,332"/>
+<area shape="rect" id="node12" href="$macros__precision_8h_source.html" title=" " alt="" coords="773,380,907,407"/>
+<area shape="rect" id="node19" href="$sparse_8h_source.html" title=" " alt="" coords="604,155,676,182"/>
+</map>
