@@ -27,8 +27,9 @@ int hyperspherical_HIS_create(int K,
       then relative to ppHIS.
   */
   double deltax, beta2, lambda, x, xfwd;
-  double *sqrtK, *one_over_sqrtK;
+  double *sqrtK, *one_over_sqrtK,*PhiL;
   int j, k, l, nx, lmax, l_recurrence_max;
+  int current_chunk, index_x;
 
   beta2 = beta*beta;
   lmax = lvec[nl-1];
@@ -129,114 +130,73 @@ int hyperspherical_HIS_create(int K,
   }
 
   int xfwdidx = (xfwd-xmin)/deltax;
+
+  //Only work in parallel if K==0
+  class_setup_parallel_optional(K == 0);
+
   //Calculate and assign Phi and dPhi values:
+  for (j=0; j<MIN(nx,xfwdidx); j++){
+    class_run_parallel_mutable(=,
+    class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
+    if ((K == 1) && ((int)(beta+0.2) == (lmax+1))) {
+      PhiL[lmax+1] = 0.0;
+      lmax--;
+    }
+    //Use backwards method:
+    hyperspherical_backwards_recurrence(K,
+                                        MIN(l_recurrence_max,lmax)+1,
+                                        beta,
+                                        pHIS->x[j],
+                                        pHIS->sinK[j],
+                                        pHIS->cotK[j],
+                                        sqrtK,
+                                        one_over_sqrtK,
+                                        PhiL);
+    //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
+    for (k=0; k<=index_recurrence_max; k++){
+      l = lvec[k];
+      pHIS->phi[k*nx+j] = PhiL[l];
+      pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
+    }
+    free(PhiL);
+    return _SUCCESS_;
+    );
+  }
 
-  int TNUM_i;
-  int TNUM_TOTAL;
-  class_setup_parallel();
-
-  /* Increase beyond threads of system to increase parallelization
-   *  This will require more memory space to allocate the PhiL,
-   *  but memory space is cheaper than computation time, usually.
-   * Default increase factor: 6 */
-  TNUM_TOTAL = task_system.get_num_threads() * 6;
-  for(TNUM_i=0;TNUM_i<TNUM_TOTAL;++TNUM_i){
-    class_run_parallel(=,
-      int declare_list_of_variables_inside_parallel_region(j,k,l,index_x,current_chunk);
-      double * PhiL;
-      int lmax_local;
-      lmax_local = lmax;
-      class_alloc(PhiL,(lmax_local+2)*sizeof(double)*_HYPER_CHUNK_,error_message);
-
-      if ((K == 1) && ((int)(beta+0.2) == (lmax_local+1))) {
-        /** Take care of special case lmax_local = beta-1.
-            The routine below will try to compute
-            Phi_{lmax_local+1} which is not allowed. However,
-            the purpose is to calculate the derivative
-            Phi'_{lmax_local}, and the formula is correct if we set Phi_{lmax_local+1} = 0.
-        */
-        for(j=0; j<(lmax_local+2)*_HYPER_CHUNK_; j++){
-          PhiL[j] = 0.0;
-        }
-
-        lmax_local--;
+  for (j=xfwdidx; j<nx; j+=_HYPER_CHUNK_){
+    class_run_parallel_mutable(=,
+    //Use forwards method:
+    current_chunk = MIN(_HYPER_CHUNK_,nx-j);
+    class_alloc(PhiL,(lmax+2)*sizeof(double)*current_chunk,error_message);
+    if ((K == 1) && ((int)(beta+0.2) == (lmax+1))) {
+      for(k=0; k<(lmax+2)*current_chunk; k++){
+        PhiL[k] = 0.0;
       }
+      lmax--;
+    }
+    hyperspherical_forwards_recurrence_chunk(K,
+                                              MIN(l_recurrence_max,lmax)+1,
+                                              beta,
+                                              pHIS->x+j,
+                                              pHIS->sinK+j,
+                                              pHIS->cotK+j,
+                                              current_chunk,
+                                              sqrtK,
+                                              one_over_sqrtK,
+                                              PhiL);
 
-      for (j=0; j<MIN(nx,xfwdidx); j++){
-        if((j%TNUM_TOTAL)!=TNUM_i){continue;} //Only do the work assigned to TNUM_i
-        //Use backwards method:
-        hyperspherical_backwards_recurrence(K,
-                                            MIN(l_recurrence_max,lmax_local)+1,
-                                            beta,
-                                            pHIS->x[j],
-                                            pHIS->sinK[j],
-                                            pHIS->cotK[j],
-                                            sqrtK,
-                                            one_over_sqrtK,
-                                            PhiL);
-        //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
-        for (k=0; k<=index_recurrence_max; k++){
-          l = lvec[k];
-          pHIS->phi[k*nx+j] = PhiL[l];
-          pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
-        }
+    //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
+    for (k=0; k<=index_recurrence_max; k++){
+      l = lvec[k];
+      for (index_x=0; index_x<current_chunk; index_x++){
+        pHIS->phi[k*nx+j+index_x] = PhiL[l*current_chunk+index_x];
+        pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
+          PhiL[l*current_chunk+index_x]-
+          sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
       }
-      /**
-      for (j=0; j<MIN(nx,xfwdidx); j+= _HYPER_CHUNK_){
-        current_chunk = MIN(_HYPER_CHUNK_,MIN(nx,xfwdidx)-j);
-        //Use backwards method:
-        hyperspherical_backwards_recurrence_chunk(K,
-                                                  MIN(l_recurrence_max,lmax_local)+1,
-                                                  beta,
-                                                  pHIS->x+j,
-                                                  pHIS->sinK+j,
-                                                  pHIS->cotK+j,
-                                                  current_chunk,
-                                                  sqrtK,
-                                                  one_over_sqrtK,
-                                                  PhiL);
-        //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
-        for (k=0; k<=index_recurrence_max; k++){
-          l = lvec[k];
-          for (index_x=0; index_x<current_chunk; index_x++){
-            pHIS->phi[k*nx+j+index_x] = PhiL[l*current_chunk+index_x];
-            pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
-              PhiL[l*current_chunk+index_x]-
-              sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
-          }
-        }
-      }
-
-      */
-
-      for (j=xfwdidx; j<nx; j+=_HYPER_CHUNK_){
-        if((((j-xfwdidx)/_HYPER_CHUNK_)%TNUM_TOTAL)!=TNUM_i){continue;} //Only do the work assigned to TNUM_i
-        //Use forwards method:
-        current_chunk = MIN(_HYPER_CHUNK_,nx-j);
-        hyperspherical_forwards_recurrence_chunk(K,
-                                                 MIN(l_recurrence_max,lmax_local)+1,
-                                                 beta,
-                                                 pHIS->x+j,
-                                                 pHIS->sinK+j,
-                                                 pHIS->cotK+j,
-                                                 current_chunk,
-                                                 sqrtK,
-                                                 one_over_sqrtK,
-                                                 PhiL);
-
-        //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
-        for (k=0; k<=index_recurrence_max; k++){
-          l = lvec[k];
-          for (index_x=0; index_x<current_chunk; index_x++){
-            pHIS->phi[k*nx+j+index_x] = PhiL[l*current_chunk+index_x];
-            pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
-              PhiL[l*current_chunk+index_x]-
-              sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
-          }
-        }
-      }
-      free(PhiL);
-      return _SUCCESS_;
+    }
+    free(PhiL);
+    return _SUCCESS_;
     );
   }
   class_finish_parallel();

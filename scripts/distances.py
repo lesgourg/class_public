@@ -16,15 +16,6 @@ from classy import Class
 # In[ ]:
 
 
-font = {'size'   : 20, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-
-
-# In[ ]:
-
-
 #Lambda CDM
 LCDM = Class()
 LCDM.set({'Omega_cdm':0.25,'Omega_b':0.05})

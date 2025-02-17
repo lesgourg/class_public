@@ -1508,6 +1508,11 @@ int thermodynamics_set_parameters_reionization(
     break;
   }
 
+  /* infer conf_time_reio from z_reio */
+  class_call(background_tau_of_z(pba,pth->z_reio,&(pth->conf_time_reio)),
+             pba->error_message,
+             pth->error_message);
+
   return _SUCCESS_;
 
 }
@@ -1829,10 +1834,7 @@ int thermodynamics_output_summary(
       printf(" -> reionization with optical depth = %f\n",pth->tau_reio);
       break;
     }
-    class_call(background_tau_of_z(pba,pth->z_reio,&tau_reio),
-               pba->error_message,
-               pth->error_message);
-    printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
+    printf("    corresponding to conformal time = %f Mpc\n",pth->conf_time_reio);
     break;
 
   case reio_bins_tanh:

@@ -61,8 +61,7 @@ common_settings = {# fixed LambdaCDM parameters
                    # output and precision parameters
                    'output':'tCl,pCl,lCl,mPk',
                    'lensing':'yes',
-                   'P_k_max_1/Mpc':3.0,
-                   'l_switch_limber':9}
+                   'P_k_max_1/Mpc':3.0}
 #
 ##############################################
 #
@@ -87,17 +86,6 @@ for i, N_ur in enumerate(var_array):
     M[i].set({'omega_cdm':omega_cdm})
     M[i].set({'h':h})
     M[i].compute()
-
-
-# In[ ]:
-
-
-# esthetic definitions for the plots
-font = {'size'   : 24, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-plt.rcParams["figure.figsize"] = [8.0,6.0]
 
 
 # In[ ]:

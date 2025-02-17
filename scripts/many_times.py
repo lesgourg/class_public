@@ -19,17 +19,6 @@ import math
 # In[ ]:
 
 
-# esthetic definitions for the plots
-font = {'size'   : 16, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-plt.rcParams["figure.figsize"] = [8.0,6.0]
-
-
-# In[ ]:
-
-
 #############################################
 #
 # User settings controlling the figure aspect
@@ -66,7 +55,8 @@ common_settings = {# which output? transfer functions only
                    'perturbations_sampling_stepsize':'0.05',
                    'P_k_max_1/Mpc':P_k_max_inv_Mpc,
                    'compute damping scale':'yes', # needed to output and plot Silk damping scale
-                   'gauge':'newtonian'}
+                   'gauge':'newtonian',
+                   'matter_source_in_current_gauge':'yes'}
 
 ###############
 #

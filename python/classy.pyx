@@ -107,6 +107,8 @@ cdef class Class:
     cdef object _pars # Dictionary of the parameters
     cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
+    _levellist = ["input","background","thermodynamics","perturbations", "primordial", "fourier", "transfer", "harmonic", "lensing", "distortions"]
+
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
     # access other quantities. Alternatively, you can also define a method, and
@@ -249,34 +251,18 @@ cdef class Class:
             ['lensing']
 
         """
-        if "distortions" in level:
-            if "lensing" not in level:
-                level.append("lensing")
-        if "lensing" in level:
-            if "harmonic" not in level:
-                level.append("harmonic")
-        if "harmonic" in level:
-            if "transfer" not in level:
-                level.append("transfer")
-        if "transfer" in level:
-            if "fourier" not in level:
-                level.append("fourier")
-        if "fourier" in level:
-            if "primordial" not in level:
-                level.append("primordial")
-        if "primordial" in level:
-            if "perturb" not in level:
-                level.append("perturb")
-        if "perturb" in level:
-            if "thermodynamics" not in level:
-                level.append("thermodynamics")
-        if "thermodynamics" in level:
-            if "background" not in level:
-                level.append("background")
-        if len(level)!=0 :
-            if "input" not in level:
-                level.append("input")
-        return level
+        # If it's a string only, treat as a list
+        if isinstance(level, str):
+          level=[level]
+        # For each item in the list
+        levelset = set()
+        for item in level:
+          # If the item is not in the list of allowed levels, make error message
+          if item not in self._levellist:
+            raise CosmoSevereError("Unknown computation level: '{}'".format(item))
+          # Otherwise, add to list of levels up to and including the specified level
+          levelset.update(self._levellist[:self._levellist.index(item)+1])
+        return levelset
 
     def _pars_check(self, key, value, contains=False, add=""):
         val = ""
@@ -393,12 +379,12 @@ cdef class Class:
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
 
-        if "perturb" in level:
+        if "perturbations" in level:
             if perturbations_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
-            self.ncp.add("perturb")
+            self.ncp.add("perturbations")
 
         if "primordial" in level:
             if primordial_init(&(self.pr), &(self.pt),
@@ -508,6 +494,38 @@ cdef class Class:
         else:
           raise CosmoSevereError("Unrecognized baseline case '{}'".format(baseline_name))
 
+    @property
+    def density_factor(self):
+        """
+        The density factor required to convert from the class-units of density to kg/m^3 (SI units)
+        """
+        return 3*_c_*_c_/(8*np.pi*_G_)/(_Mpc_over_m_*_Mpc_over_m_)
+
+    @property
+    def Mpc_to_m(self):
+        return _Mpc_over_m_
+
+    @property
+    def kg_to_eV(self):
+        return _c_*_c_/_eV_
+
+    @property
+    def kgm3_to_eVMpc3(self):
+        """
+        Convert from kg/m^3 to eV/Mpc^3
+        """
+        return self.kg_to_eV*self.Mpc_to_m**3
+
+    @property
+    def kg_to_Msol(self):
+        return 1/(2.0e30)
+
+    @property
+    def kgm3_to_MsolMpc3(self):
+        """
+        Convert from kg/m^3 to Msol/Mpc^3
+        """
+        return self.kg_to_Msol*self.Mpc_to_m**3
 
     def raw_cl(self, lmax=-1, nofail=False):
         """
@@ -976,6 +994,52 @@ cdef class Class:
             raise CosmoSevereError(self.fo.error_message)
 
         return pk_cb_lin
+
+    # Gives the total matter pk for a given (k,z)
+    def pk_numerical_nw(self,double k,double z):
+        """
+        Gives the nowiggle (smoothed) linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
+
+        .. note::
+
+            there is an additional check that `numerical_nowiggle` was set to `yes`,
+            because otherwise a segfault will occur
+
+        """
+        self.compute(["fourier"])
+
+        cdef double pk_numerical_nw
+
+        if (self.fo.has_pk_numerical_nowiggle == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must set `numerical_nowiggle` to `yes` in input")
+
+        if fourier_pk_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_numerical_nowiggle,k,z,0,&pk_numerical_nw,NULL)==_FAILURE_:
+            raise CosmoSevereError(self.fo.error_message)
+
+        return pk_numerical_nw
+
+    # Gives the approximate analytic nowiggle power spectrum for a given k at z=0
+    def pk_analytic_nw(self,double k):
+        """
+        Gives the linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
+
+        .. note::
+
+            there is an additional check that `analytic_nowiggle` was set to `yes`,
+            because otherwise a segfault will occur
+
+        """
+        self.compute(["fourier"])
+
+        cdef double pk_analytic_nw
+
+        if (self.fo.has_pk_analytic_nowiggle == _FALSE_):
+            raise CosmoSevereError("No analytic nowiggle spectrum computed. You must set `analytic_nowiggle` to `yes` in input")
+
+        if fourier_pk_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_analytic_nowiggle,k,0.,self.fo.index_pk_m,&pk_analytic_nw,NULL)==_FAILURE_:
+            raise CosmoSevereError(self.fo.error_message)
+
+        return pk_analytic_nw
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
@@ -1507,22 +1571,6 @@ cdef class Class:
 
         return pk_tilt
 
-    #calculates the hmcode window_function of the Navarrow Frenk White Profile
-    def fourier_hmcode_window_nfw(self,double k,double rv,double c):
-        """
-        Gives window_nfw for a given wavevector k, virial radius rv and concentration c
-
-        """
-        self.compute(["fourier"])
-
-        cdef double window_nfw
-
-
-        if fourier_hmcode_window_nfw(&self.fo,k,rv,c,&window_nfw)==_FAILURE_:
-                 raise CosmoSevereError(self.hr.error_message)
-
-        return window_nfw
-
     def age(self):
         self.compute(["background"])
         return self.ba.age
@@ -1855,6 +1903,81 @@ cdef class Class:
             Pk = self.pk_lin(k,z)
             for iz, zval in enumerate(z_array):
                 Pk_array[iz] = self.pk_lin(k,zval)
+
+        # Compute derivative (d ln P / d ln z)
+        dPkdz = UnivariateSpline(z_array,Pk_array,s=0).derivative()(z)
+
+        # Compute growth factor f
+        f = -0.5*(1+z)*dPkdz/Pk
+
+        return f
+
+    #################################
+    def scale_dependent_growth_factor_f_cb(self, k, z, h_units=False, nonlinear=False, Nz=20):
+        """
+        scale_dependent_growth_factor_f_cb(k,z)
+
+        Return the scale dependent growth factor calculated from CDM+baryon power spectrum P_cb(k,z)
+        f(z)= 1/2 * [d ln P_cb(k,a) / d ln a]
+            = - 0.5 * (1+z) * [d ln P_cb(k,z) / d z]
+
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        k : float
+                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+        """
+
+        # build array of z values at wich P_cb(k,z) was pre-computed by class (for numerical derivative)
+        # check that P_cb(k,z) was stored at different zs
+        if self.fo.ln_tau_size > 1:
+            # check that input z is in stored range
+            z_max = self.z_of_tau(np.exp(self.fo.ln_tau[0]))
+            if (z<0) or (z>z_max):
+                raise CosmoSevereError("You asked for f_cb(k,z) at a redshift %e outside of the computed range [0,%e]"%(z,z_max))
+            # create array of zs in growing z order (decreasing tau order)
+            z_array = np.empty(self.fo.ln_tau_size)
+            # first redshift is exactly zero
+            z_array[0]=0.
+            # next values can be inferred from ln_tau table
+            if (self.fo.ln_tau_size>1):
+                for i in range(1,self.fo.ln_tau_size):
+                    z_array[i] = self.z_of_tau(np.exp(self.fo.ln_tau[self.fo.ln_tau_size-1-i]))
+        else:
+            raise CosmoSevereError("You asked for the scale-dependent growth factor: this requires numerical derivation of P(k,z) w.r.t z, and thus passing a non-zero input parameter z_max_pk")
+
+        # if needed, convert k to units of 1/Mpc
+        if h_units:
+            k = k*self.ba.h
+
+        # Allocate an array of P(k,z[...]) values
+        Pk_array = np.empty_like(z_array)
+
+        # Choose whether to use .pk() or .pk_lin()
+        # The linear pk is in .pk_lin if nonlinear corrections have been computed, in .pk otherwise
+        # The non-linear pk is in .pk if nonlinear corrections have been computed
+        if nonlinear == False:
+            if self.fo.method == nl_none:
+                use_pk_lin = False
+            else:
+                use_pk_lin = True
+        else:
+            if self.fo.method == nl_none:
+                raise CosmoSevereError("You asked for the scale-dependent growth factor of non-linear matter fluctuations, but you did not ask for non-linear calculations at all")
+            else:
+                use_pk_lin = False
+
+        # Get P(k,z) and array P(k,z[...])
+        if use_pk_lin == False:
+            Pk = self.pk(k,z)
+            for iz, zval in enumerate(z_array):
+                Pk_array[iz] = self.pk_cb(k,zval)
+        else:
+            Pk = self.pk_lin(k,z)
+            for iz, zval in enumerate(z_array):
+                Pk_array[iz] = self.pk_cb_lin(k,zval)
 
         # Compute derivative (d ln P / d ln z)
         dPkdz = UnivariateSpline(z_array,Pk_array,s=0).derivative()(z)
@@ -2402,7 +2525,7 @@ cdef class Class:
         free(data)
         return primordial
 
-    def get_perturbations(self):
+    def get_perturbations(self, return_copy=True):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested
         k-values.
@@ -2411,6 +2534,11 @@ cdef class Class:
 
             you need to specify both 'k_output_values', and have some
             perturbations computed, for instance by setting 'output' to 'tCl'.
+
+            Do not enable 'return_copy=False' unless you know exactly what you are doing.
+            This will mean that you get access to the direct C pointers inside CLASS.
+            That also means that if class is deallocated,
+            your perturbations array will become invalid. Beware!
 
         Returns
         -------
@@ -2465,7 +2593,7 @@ cdef class Class:
                     tmpdict={}
                     data_mv = <double[:timesteps,:number_of_titles]> thedata[j]
                     for i in range(number_of_titles):
-                        tmpdict[names[i]] = np.asarray(data_mv[:,i])
+                        tmpdict[names[i]] = (np.asarray(data_mv[:,i]).copy() if return_copy else np.asarray(data_mv[:,i]))
                     tmparray.append(tmpdict)
             perturbations[mode] = tmparray
 
@@ -2663,6 +2791,8 @@ cdef class Class:
                 value = self.th.rs_d
             elif name == 'rs_d_h':
                 value = self.th.rs_d*self.ba.h
+            elif name == 'conf_time_reio':
+                value = self.th.conf_time_reio
             elif name == '100*theta_s':
                 value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
             elif name == '100*theta_star':
@@ -2828,200 +2958,6 @@ make        nonlinear_scale_cb(z, z_size)
                 raise CosmoSevereError(self.fo.error_message)
 
         return k_nl_cb
-
-    def fourier_hmcode_sigma8(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigma8(z, z_size)
-
-        Return sigma_8 for all the redshift specified in z, of size
-
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigma8_at_z(&self.ba,&self.fo,z[index_z],&sigma_8[index_z],&sigma_8_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_8
-
-    def fourier_hmcode_sigma8_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigma8(z, z_size)
-
-        Return sigma_8 for all the redshift specified in z, of size
-
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigma8_at_z(&self.ba,&self.fo,z[index_z],&sigma_8[index_z],&sigma_8_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_8_cb
-
-    def fourier_hmcode_sigmadisp(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigmadisp(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigmadisp_at_z(&self.ba,&self.fo,z[index_z],&sigma_disp[index_z],&sigma_disp_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_disp
-
-    def fourier_hmcode_sigmadisp_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigmadisp(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigmadisp_at_z(&self.ba,&self.fo,z[index_z],&sigma_disp[index_z],&sigma_disp_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_disp_cb
-
-    def fourier_hmcode_sigmadisp100(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigmadisp100(z, z_size)
-
-        Return sigma_disp_100 for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigmadisp100_at_z(&self.ba,&self.fo,z[index_z],&sigma_disp_100[index_z],&sigma_disp_100_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_disp_100
-
-    def fourier_hmcode_sigmadisp100_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigmadisp100(z, z_size)
-
-        Return sigma_disp_100 for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigmadisp100_at_z(&self.ba,&self.fo,z[index_z],&sigma_disp_100[index_z],&sigma_disp_100_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_disp_100_cb
-
-    def fourier_hmcode_sigmaprime(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigmaprime(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigmaprime_at_z(&self.ba,&self.fo,z[index_z],&sigma_prime[index_z],&sigma_prime_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_prime
-
-    def fourier_hmcode_sigmaprime_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        fourier_hmcode_sigmaprime(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        #self.compute(["fourier"])
-
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if fourier_hmcode_sigmaprime_at_z(&self.ba,&self.fo,z[index_z],&sigma_prime[index_z],&sigma_prime_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.fo.error_message)
-
-        return sigma_prime_cb
 
     def __call__(self, ctx):
         """
@@ -3290,4 +3226,3 @@ make        nonlinear_scale_cb(z, z_size)
             sources[name] = np.asarray(tmparray)
 
         return (sources, np.asarray(k_array), np.asarray(tau_array))
-

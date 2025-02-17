@@ -20,10 +20,19 @@
 // of the C++ preprocessor macros. See examples e.g.
 // in source/perturbations.c, source/lensing.c, or tools/hypershperical.c
 #define class_run_parallel(arg1, arg2) future_output.push_back(task_system.AsyncTask([arg1] () {arg2}));
+// The mutable version allows one to change variables outside the scope of the parallel region
+// Be careful, this is very dangerous, and you should be sure that you don't access any
+// variables you edit during the parallel region outside of it, as that value will be random
+#define class_run_parallel_mutable(arg1, arg2) future_output.push_back(task_system.AsyncTask([arg1] () mutable {arg2}));
 
 // To be called ONLY ONCE without arguments before the intended parallel loop(s).
 #define class_setup_parallel()                    \
 Tools::TaskSystem task_system;                    \
+std::vector<std::future<int>> future_output;
+
+// To be called ONLY ONCE without arguments before the intended parallel loop(s).
+#define class_setup_parallel_optional(is_multi_threaded) \
+Tools::TaskSystem task_system{ (is_multi_threaded) ? Tools::TaskSystem::GetNumThreads() : 1 }; \
 std::vector<std::future<int>> future_output;
 
 // To be called without arguments AFTER ANY parallel loop in order to actually execute the jobs.

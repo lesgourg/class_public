@@ -49,9 +49,13 @@ it can be interfaced with other codes, etc.
 
 - `external/` contains auxiliary or external algorithms used by `CLASS`, in particular:
 
-- `external/hyrec/` contains the recombination code HyRec (Lee and Ali-Haimoud 2020) that solves the recombinaiton equations by default.
+- `external/HyRec2020/` contains the recombination code HyRec (Lee and Ali-Haimoud 2020) that solves the recombinaiton equations by default.
 
 - `external/RecfastCLASS/` contains an modified version of the recombinaiton code RECFAST v1.5. It can be used as an alternative to solve the recombinaiton equations (with `recombination=recfast').
+
+- `external/Halofit/` contains the Halofit algorithm (including Takahashi-Bird updates)
+
+- `external/HMcode/` contains the HMcode algorithm (including the 2020 updates)
 
 - `external/heating/` contains additional peices of code and interpolation tables for the calculation of energy injection (relevant for CMB anisotropies and spectral distorsions).
 

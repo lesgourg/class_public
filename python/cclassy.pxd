@@ -42,6 +42,8 @@ cdef extern from "class.h":
     cdef enum pk_outputs:
         pk_linear
         pk_nonlinear
+        pk_numerical_nowiggle
+        pk_analytic_nowiggle
 
     cdef enum out_sigmas:
         out_sigma
@@ -130,6 +132,7 @@ cdef extern from "class.h":
         double tau_d
         double ds_d
         double rs_d
+        double conf_time_reio
         double YHe
         double n_e
         double a_idm_dr
@@ -405,6 +408,8 @@ cdef extern from "class.h":
     cdef struct fourier:
         short is_allocated
         short has_pk_matter
+        short has_pk_numerical_nowiggle
+        short has_pk_analytic_nowiggle
         int method
         int ic_size
         int ic_ic_size
@@ -448,6 +453,11 @@ cdef extern from "class.h":
     cdef int _FAILURE_
     cdef int _FALSE_
     cdef int _TRUE_
+
+    cdef double _Mpc_over_m_
+    cdef double _c_
+    cdef double _G_
+    cdef double _eV_
 
     int input_read_from_file(void*, void*, void*, void*, void*, void*, void*, void*, void*,
         void*, void*, void*, char*)
@@ -574,12 +584,6 @@ cdef extern from "class.h":
         int zvec_size,
         double * out_pk,
         double * out_pk_cb)
-
-    int fourier_hmcode_sigma8_at_z(void* pba, void* pfo, double z, double* sigma_8, double* sigma_8_cb)
-    int fourier_hmcode_sigmadisp_at_z(void* pba, void* pfo, double z, double* sigma_disp, double* sigma_disp_cb)
-    int fourier_hmcode_sigmadisp100_at_z(void* pba, void* pfo, double z, double* sigma_disp_100, double* sigma_disp_100_cb)
-    int fourier_hmcode_sigmaprime_at_z(void* pba, void* pfo, double z, double* sigma_prime, double* sigma_prime_cb)
-    int fourier_hmcode_window_nfw(void* pfo, double k, double rv, double c, double* window_nfw)
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 

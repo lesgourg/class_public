@@ -17,16 +17,6 @@ from scipy.optimize import fsolve
 # In[ ]:
 
 
-# esthetic definitions for the plots
-font = {'size'   : 16, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-
-
-# In[ ]:
-
-
 # a function returning the three masses given the Delta m^2, the total mass, and the hierarchy (e.g. 'IN' or 'IH')
 # taken from a piece of MontePython written by Thejs Brinckmann
 def get_masses(delta_m_squared_atm, delta_m_squared_sol, sum_masses, hierarchy):

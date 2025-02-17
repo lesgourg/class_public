@@ -264,6 +264,9 @@ struct thermodynamics
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
 
+  double conf_time_reio; /**< conformal time at reionization,
+                              not to be confused with optical depth tau_reio */
+
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
 
   double angular_rescaling;      /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */

@@ -19,17 +19,6 @@ import math
 # In[ ]:
 
 
-# esthetic definitions for the plots
-font = {'size'   : 16, 'family':'STIXGeneral'}
-axislabelfontsize='large'
-matplotlib.rc('font', **font)
-matplotlib.mathtext.rcParams['legend.fontsize']='medium'
-plt.rcParams["figure.figsize"] = [8.0,6.0]
-
-
-# In[ ]:
-
-
 #############################################
 #
 # value of k that we want to follow in [1/Mpc]
