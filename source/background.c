@@ -2635,6 +2635,9 @@ int background_derivs(
   if (pba->has_idm == _TRUE_){
     rho_M += pvecback[pba->index_bg_rho_idm];
   }
+    // SAlviAug2021: Added the dcdm density to the growth factor in the case of DCDM
+  if (pba->has_dcdm)
+    rho_M += pvecback[pba->index_bg_rho_dcdm];
 
   dy[pba->index_bi_D] = y[pba->index_bi_D_prime]/a/H;
   dy[pba->index_bi_D_prime] = -y[pba->index_bi_D_prime] + 1.5*a*rho_M*y[pba->index_bi_D]/H;
