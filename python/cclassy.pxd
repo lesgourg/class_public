@@ -113,6 +113,8 @@ cdef extern from "class.h":
         double count;  #to print count number of results in the terminal 
         short has_UG;
         double count_terminal;
+
+        double model;
 # END modification */        
 
         
