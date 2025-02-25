@@ -472,7 +472,10 @@ if(pba->has_UG == _TRUE_){
   double Model= pba->model;
 
 /* for a ---(a_rad, a_start-delta/2) */
+  if (Model==1){
   if(a<= a_start-delta/2 ){
+  
+    
   // Baryonic density
   pvecback[pba->index_bg_rho_b]= (rho_b0 + (rho_b0/(rho_b0+rho_dm0))*Delta_rho*(pow(a_start,3)+a_start*pow(delta,2)/4))/pow(a,3) ;
   // Dark matter density 
@@ -502,7 +505,15 @@ if(pba->has_UG == _TRUE_){
   pvecback[pba->index_bg_rho_lambda]= rho_lambda;
   
   }
-    
+  }
+
+if (model==2){
+  
+pvecback[pba->index_bg_rho_b]=                    ;
+pvecback[pba->index_bg_rho_cdm]=                  ;
+pvecback[pba->index_bg_rho_lambda]= rho_lambda+ ((Delta_rho)/_PI_)*atan((a-a_start)/delta);
+}
+  
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_cdm];
