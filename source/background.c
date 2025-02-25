@@ -444,14 +444,14 @@ int background_functions(
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_cdm];   
   
-  /* TERMINAL */
+  /* TERMINAL 
 if(pba->count<=pba->count_terminal){ 
   printf("count %f\n ", pba->count);
   printf("a= %f\n ", a);
   printf("RHO_m %f\n ", rho_m);
   printf("RHO_r %f\n ", rho_r);
   pba->count=pba->count+  1;
-  } 
+  } */
   
   }   
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -469,6 +469,7 @@ if(pba->has_UG == _TRUE_){
   double Delta_rho =pba->Delta_rho_Lambda*pow(100,2)/pow((_c_/1000),2);
   double a_start = pba->a_start;
   double rho_lambda = pba->Omega0_lambda*pow(pba->H0,2.);
+  double Model= pba->model;
 
 /* for a ---(a_rad, a_start-delta/2) */
   if(a<= a_start-delta/2 ){
