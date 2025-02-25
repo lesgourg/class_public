@@ -6186,7 +6186,9 @@ int input_default_params(struct background *pba,
    if (pba->a_start == 0. || pba->delta == 0. || pba->Delta_rho_Lambda == 0. ){
      pba->delta=0.22;
      pba->a_start=0.8;
-     pba->Delta_rho_Lambda= -0.0003;}}
+     pba->Delta_rho_Lambda= -0.0003;
+     pba->model= 1;
+   }}
 
   /* END MODIFICATION UG */
 
