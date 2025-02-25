@@ -79,8 +79,10 @@ struct background
   double count;  /*to print count number of results in the terminal */
   
   short has_UG;
+  short model;
   
   double count_terminal;
+
 
   /* END MODIFICATION UG */
 /*-----------------------------------------------------------------------------*/
