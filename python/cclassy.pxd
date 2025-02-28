@@ -114,7 +114,7 @@ cdef extern from "class.h":
         short has_UG;
         double count_terminal;
 
-        double model;
+        short model;
 # END modification */        
 
         
