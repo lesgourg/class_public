@@ -510,9 +510,9 @@ if(pba->has_UG == _TRUE_){
 if (Model==2){
 
 F=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+a)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-a)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)))/pow(a,3);
-F_1=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+1)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-1)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)))
+F_1=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+1)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-1)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)));
 
-pvecback[pba->index_bg_rho_b]= (rho_b0-(rho_b0/(rho_b0+rho_dm0))*F_1)/pow(a,3)+(rho_b0/(rho_b0+rho_dm0))*F ;             ;
+pvecback[pba->index_bg_rho_b]= (rho_b0-(rho_b0/(rho_b0+rho_dm0))*F_1)/pow(a,3)+(rho_b0/(rho_b0+rho_dm0))*F ;            
 pvecback[pba->index_bg_rho_cdm]=(rho_dm0-(1-(rho_b0/(rho_b0+rho_dm0)))*F_1)/pow(a,3)+(rho_dm0/(rho_b0+rho_dm0))*F ;
 pvecback[pba->index_bg_rho_lambda]= rho_lambda+ ((Delta_rho)/_PI_)*atan((a-a_start)/delta);
 }
