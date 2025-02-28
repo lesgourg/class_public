@@ -507,7 +507,7 @@ if(pba->has_UG == _TRUE_){
   }
   }
 
-if (model==2){
+if (Model==2){
 
 F=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+a)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-a)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)))/pow(a,3);
 F_1=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+1)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-1)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)))
