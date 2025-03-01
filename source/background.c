@@ -462,6 +462,8 @@ if(pba->has_UG == _TRUE_){
   double rho_dm0 = pba->Omega0_cdm*pow(pba->H0,2.);
   double rho_b0 = pba->Omega0_b*pow(pba->H0,2.);
   double delta = pba->delta;
+  double F_1;
+  double F;
 
 /* densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
       \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
@@ -509,8 +511,8 @@ if(pba->has_UG == _TRUE_){
 
 if (Model==2){
 
-F=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+a)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-a)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)))/pow(a,3);
-F_1=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+1)/delta-2*(a_start/delta)(-3+pow(a_start/delta,2))*atan((a_start-1)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)));
+F=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+a)/delta-2*(a_start/delta)*(-3+pow(a_start/delta,2))*atan((a_start-a)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)))/pow(a,3);
+F_1=-(Delta_rho/(2*_PI_))*pow(delta,3)*(4*(a/delta)*(a_start+1)/delta-2*(a_start/delta)*(-3+pow(a_start/delta,2))*atan((a_start-1)/delta)+(-1+3*pow(a_start/delta,2))*log(1+pow((a_start-a)/delta,2)));
 
 pvecback[pba->index_bg_rho_b]= (rho_b0-(rho_b0/(rho_b0+rho_dm0))*F_1)/pow(a,3)+(rho_b0/(rho_b0+rho_dm0))*F ;            
 pvecback[pba->index_bg_rho_cdm]=(rho_dm0-(1-(rho_b0/(rho_b0+rho_dm0)))*F_1)/pow(a,3)+(rho_dm0/(rho_b0+rho_dm0))*F ;
