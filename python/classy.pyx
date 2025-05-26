@@ -1929,6 +1929,7 @@ cdef class Class:
         k : float
                 Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
         """
+        self.compute(["fourier"])
 
         # build array of z values at wich P_cb(k,z) was pre-computed by class (for numerical derivative)
         # check that P_cb(k,z) was stored at different zs
@@ -1971,11 +1972,11 @@ cdef class Class:
 
         # Get P(k,z) and array P(k,z[...])
         if use_pk_lin == False:
-            Pk = self.pk(k,z)
+            Pk = self.pk_cb(k,z)
             for iz, zval in enumerate(z_array):
                 Pk_array[iz] = self.pk_cb(k,zval)
         else:
-            Pk = self.pk_lin(k,z)
+            Pk = self.pk_cb_lin(k,z)
             for iz, zval in enumerate(z_array):
                 Pk_array[iz] = self.pk_cb_lin(k,zval)
 
@@ -1988,6 +1989,106 @@ cdef class Class:
         return f
 
     #################################
+
+    def scale_dependent_growth_factor_D(self, k, z, h_units=False, nonlinear=False, Nz=20):
+        """
+        scale_dependent_growth_factor_D(k,z)
+
+        Return the scale dependent growth factor
+        D(z)= sqrt[ P(k,a)/P(k,z_0) ]
+        where P(k,z) is the total matter power spectrum
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        k : float
+                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+        """
+        self.compute(["fourier"])
+
+        # if needed, convert k to units of 1/Mpc
+        if h_units:
+            k = k*self.ba.h
+
+        # Choose whether to use .pk() or .pk_lin()
+        # The linear pk is in .pk_lin if nonlinear corrections have been computed, in .pk otherwise
+        # The non-linear pk is in .pk if nonlinear corrections have been computed
+        if nonlinear == False:
+            if self.fo.method == nl_none:
+                use_pk_lin = False
+            else:
+                use_pk_lin = True
+        else:
+            if self.fo.method == nl_none:
+                raise CosmoSevereError("You asked for the scale-dependent growth factor of non-linear matter fluctuations, but you did not ask for non-linear calculations at all")
+            else:
+                use_pk_lin = False
+
+        # Get P(k,z) and P(k,0)
+        if use_pk_lin == False:
+            Pk = self.pk(k,z)
+            Pk0 = self.pk(k,0)
+        else:
+            Pk = self.pk_lin(k,z)
+            Pk0 = self.pk_lin(k,0)
+
+        # Compute growth factor f
+        D = np.sqrt(Pk/Pk0)
+
+        return D
+
+    #################################
+    def scale_dependent_growth_factor_D_cb(self, k, z, h_units=False, nonlinear=False, Nz=20):
+        """
+        scale_dependent_growth_factor_D_cb(k,z)
+
+        Return the scale dependent growth factor calculated from CDM+baryon power spectrum P_cb(k,z)
+        D_cb(z)= sqrt[P_cb(k,a) / P_cb(k,a_0)]
+        where P_cb(k,z) is the CDM+baryon power spectrum
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        k : float
+                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+        """
+        self.compute(["fourier"])
+
+        # if needed, convert k to units of 1/Mpc
+        if h_units:
+            k = k*self.ba.h
+
+        # Choose whether to use .pk() or .pk_lin()
+        # The linear pk is in .pk_lin if nonlinear corrections have been computed, in .pk otherwise
+        # The non-linear pk is in .pk if nonlinear corrections have been computed
+        if nonlinear == False:
+            if self.fo.method == nl_none:
+                use_pk_lin = False
+            else:
+                use_pk_lin = True
+        else:
+            if self.fo.method == nl_none:
+                raise CosmoSevereError("You asked for the scale-dependent growth factor of non-linear matter fluctuations, but you did not ask for non-linear calculations at all")
+            else:
+                use_pk_lin = False
+
+        # Get P_cb(k,z) and P_cb(k,0)
+        if use_pk_lin == False:
+            Pk_cb = self.pk_cb(k,z)
+            Pk0_cb = self.pk_cb(k,0)
+        else:
+            Pk_cb = self.pk_cb_lin(k,z)
+            Pk0_cb = self.pk_cb_lin(k,0)
+
+        # Compute growth factor f
+        D_cb = np.sqrt(Pk_cb/Pk0_cb)
+
+        return D_cb
+
+    #################################
+
     # gives f(z)*sigma8(z) where f(z) is the scale-independent growth factor
     def scale_independent_f_sigma8(self, z):
         """
