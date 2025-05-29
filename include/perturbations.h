@@ -187,6 +187,7 @@ struct perturbations
 
   short has_cmb; /**< do we need CMB-related sources (temperature, polarization) ? */
   short has_lss; /**< do we need LSS-related sources (lensing potential, ...) ? */
+  short has_gw; /**< 我们是否需要计算引力波扰动？do we need to compute gravitational wave perturbations? */
 
   short has_idm_dr; /**< do we have idm-dr interactions? */
   short has_idm_soundspeed; /**< do we need to consider the dark matter sound speed in interaction models? */
@@ -276,6 +277,11 @@ struct perturbations
   short has_source_H_T_Nb_prime; /**< do we need source for metric fluctuation H_T_Nb'? */
   short has_source_k2gamma_Nb; /**< do we need source for metric fluctuation gamma in Nbody gauge? */
 
+  short has_source_delta_gw;  /**< 我们是否需要引力波的密度扰动源项？do we need source for delta of gravitational waves? */
+  short has_source_theta_gw;  /**< 我们是否需要引力波的速度扰动源项？do we need source for theta of gravitational waves? */
+  short has_source_sigma_gw;  /**< 我们是否需要引力波的剪应力扰动源项？do we need source for sigma of gravitational waves? */
+  // short has_source_l3_gw;     /**< 我们是否需要引力波的l=3多极矩扰动源项？do we need source for l=3 of gravitational waves? */
+
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -327,6 +333,11 @@ struct perturbations
   int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
   int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
   int index_tp_k2gamma_Nb;   /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
+
+  int index_tp_delta_gw; /**< 引力波密度扰动的索引值 index value for delta of gravitational waves */
+  int index_tp_theta_gw; /**< 引力波速度扰动的索引值 index value for theta of gravitational waves */
+  int index_tp_sigma_gw; /**< 引力波剪应力的索引值 index value for sigma of gravitational waves */
+  // int index_tp_l3_gw;    /**< 引力波l=3多极矩的索引值 index value for l=3 of gravitational waves */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 

@@ -92,6 +92,9 @@ struct background
                                             T_ncdm1/T_gamma; and its default value */
   double * ksi_ncdm, ksi_ncdm_default;   /**< list of 2nd parameters in p-s-d of non-cold relics: relative chemical potential
                                             ksi_ncdm1/T_ncdm1; and its default value */
+  double R_gw;             /**< Ratio of gravitational wave energy density to photon energy density, R_gw = Omega_gw / Omega_gamma = rho_gw / rho_gamma. 引力波能量密度与光子能量密度的比例。 */
+  double Omega0_gw;        /**< current gravitational wave density fraction, Omega0_gw = rho_gw(today)/rho_crit(today); 当前引力波能量密度占比 */
+  short has_gw_background; /**< does gravitational waves contribute to background? 引力波是否对背景能量密度有贡献？ */
   double * deg_ncdm, deg_ncdm_default;    /**< vector of degeneracy parameters in factor of p-s-d: 1 for one family of neutrinos
                                              (= one neutrino plus its anti-neutrino, total g*=1+1=2, so deg = 0.5 g*); and its
                                              default value */
@@ -172,6 +175,7 @@ struct background
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_dr;        /**< dr density */
+  short index_bg_rho_gw;         /**< index for rho_gw (gravitational waves density); 引力波能量密度索引 */
 
   int index_bg_phi_scf;       /**< scalar field value */
   int index_bg_phi_prime_scf; /**< scalar field derivative wrt conformal time */
@@ -254,6 +258,7 @@ struct background
 
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
+  int index_bi_rho_gw;  /**< index for rho_gw in background integration workspace vector; 引力波能量密度在背景积分工作空间向量中的索引 */
   int index_bi_rho_fld; /**< {B} fluid density */
   int index_bi_phi_scf;       /**< {B} scalar field value */
   int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */

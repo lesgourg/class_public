@@ -1083,6 +1083,9 @@ int background_indices(
   /* - index for ultra-relativistic neutrinos/species */
   class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1);
 
+  /* - index for gravitational waves */
+  class_define_index(pba->index_bg_rho_gw,pba->has_gw_background,index_bg,1); /* gravitational wave density / 引力波能量密度 */
+
   /* - index for total density */
   class_define_index(pba->index_bg_rho_tot,_TRUE_,index_bg,1);
 
@@ -2197,7 +2200,28 @@ int background_initial_conditions(
                "Search for initial scale factor a such that all ncdm species are relativistic failed.");
   }
 
+  /* Calculate initial gravitational wave density based on R_gw and photon density / 根据R_gw和光子密度计算初始引力波能量密度 */
+  if (pba->R_gw > 0.) { /* Check if R_gw is set, implying GWs contribute to background / 检查R_gw是否设置，暗示引力波对背景有贡献 */
+    pba->Omega0_gw = pba->R_gw * pba->Omega0_g;
+    pba->has_gw_background = _TRUE_;
+  }
+  else {
+    pba->Omega0_gw = 0.;
+    pba->has_gw_background = _FALSE_;
+  }
+
   /* Set initial values of {B} variables: */
+
+  /* Calculate initial gravitational wave density based on R_gw and photon density / 根据R_gw和光子密度计算初始引力波能量密度 */
+  if (pba->R_gw > 0.) { /* Check if R_gw is set, implying GWs contribute to background / 检查R_gw是否设置，暗示引力波对背景有贡献 */
+    pba->Omega0_gw = pba->R_gw * pba->Omega0_g;
+    pba->has_gw_background = _TRUE_;
+  }
+  else {
+    pba->Omega0_gw = 0.;
+    pba->has_gw_background = _FALSE_;
+  }
+
   Omega_rad = pba->Omega0_g;
   if (pba->has_ur == _TRUE_) {
     Omega_rad += pba->Omega0_ur;
@@ -2209,6 +2233,9 @@ int background_initial_conditions(
   if (pba->has_ncdm == _TRUE_) {
     /** - We must add the relativistic contribution from NCDM species */
     rho_rad += rho_ncdm_rel_tot;
+  }
+  if (pba->has_gw_background == _TRUE_){ // Add GW to radiation budget if present / 如果存在引力波，则将其添加到辐射预算中
+    rho_rad += pba->Omega0_gw * pow(pba->H0,2) / pow(a,4);
   }
   if (pba->has_dcdm == _TRUE_) {
     /* Remember that the critical density today in CLASS conventions is H0^2 */
@@ -2296,6 +2323,23 @@ int background_initial_conditions(
   class_call(background_functions(pba, a, pvecback_integration, normal_info, pvecback),
              pba->error_message,
              pba->error_message);
+
+  /* Add GW to total budget if present, before checking radiation domination / 如果存在，在检查辐射主导之前将引力波添加到总预算中 */
+  if (pba->has_gw_background == _TRUE_) {
+    pvecback[pba->index_bg_rho_gw] = pba->Omega0_gw * pow(pba->H0,2) / pow(a,4); // Store initial GW density / 存储初始引力波密度
+    // Note: rho_tot in pvecback already includes rho_gw through background_functions if has_gw_background was true there.
+    // Here we are primarily ensuring Omega_r is correctly calculated for the test below.
+    // However, to be absolutely safe, let's ensure rho_r used for the test includes GW if applicable
+    // This might be slightly redundant if background_functions already did it, but ensures correctness for the test.
+    double current_rho_r = pvecback[pba->index_bg_rho_g];
+    if (pba->has_ur == _TRUE_) current_rho_r += pvecback[pba->index_bg_rho_ur];
+    if (pba->has_idr == _TRUE_) current_rho_r += pvecback[pba->index_bg_rho_idr];
+    if (pba->has_ncdm == _TRUE_) current_rho_r += rho_ncdm_rel_tot; // rho_ncdm_rel_tot is already 3*p for relativistic ncdm
+    if (pba->has_dr == _TRUE_) current_rho_r += pvecback[pba->index_bg_rho_dr];
+    if (pba->has_gw_background == _TRUE_) current_rho_r += pvecback[pba->index_bg_rho_gw];
+
+    pvecback[pba->index_bg_Omega_r] = current_rho_r / (pvecback[pba->index_bg_rho_tot] - pba->K/a/a);
+  }
 
   /* Just checking that our initial time indeed is deep enough in the radiation
      dominated regime */

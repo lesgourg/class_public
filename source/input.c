@@ -1961,6 +1961,12 @@ int input_read_parameters_general(struct file_content * pfc,
       class_test(class_none_of_three(ppt->has_scalars,ppt->has_vectors,ppt->has_tensors),
                  errmsg,
                  "You specified 'modes' as '%s'. It has to contain some of {'s','v','t'}.",string1);
+
+  /* Read has_gravitational_waves flag / 读取是否计算引力波的标志 */
+  class_read_flag("has_gravitational_waves", ppt->has_gw);
+  if (ppt->has_gw == _TRUE_){
+    ppt->has_perturbations = _TRUE_; /* If GWs are on, perturbations must be computed. 如果计算引力波，则必须计算微扰。*/
+  }
     }
     /* Test */
     if (ppt->has_vectors == _TRUE_){
@@ -3135,6 +3141,13 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /* ** ADDITIONAL SPECIES ** */
 
+  /** 7.X) Gravitational Waves background energy density / 引力波背景能量密度 */
+  /* Read R_gw = Omega_gw / Omega_r, where Omega_r is the total radiation density (photons + ur + idr).
+     读取 R_gw = Omega_gw / Omega_r, 其中 Omega_r 是总辐射密度 (光子 + 超相对论组分 + 相互作用暗辐射)。 */
+  if (ppt->has_gw == _TRUE_){ /* Only read R_gw if GWs are active / 仅当引力波扰动启用时才读取 R_gw */
+    class_read_double("R_gw", pba->R_gw);
+    class_test(pba->R_gw < 0, errmsg, "Gravitational wave energy ratio R_gw cannot be negative. 您输入的引力波能量密度比例 R_gw 不能为负。");
+  }
 
   /** 7.3) Final consistency checks for dark matter species */
 
@@ -5732,6 +5745,8 @@ int input_default_params(struct background *pba,
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
+  /* Default for gravitational wave perturbations / 引力波扰动默认值 */
+  ppt->has_gw = _FALSE_;
   /** 3.b) Initial conditions for tensors */
   ppt->tensor_method = tm_massless_approximation;
   ppt->evolve_tensor_ur = _FALSE_;
@@ -5862,6 +5877,10 @@ int input_default_params(struct background *pba,
   /** 7.2.2) Current fractional density of idr */
   pba->Omega0_idr = 0.0;
   pba->T_idr = 0.0;
+  /* Default R_gw: ratio of gravitational wave energy density to radiation energy density.
+     R_gw = Omega_gw / Omega_r, where Omega_r includes photons and UR species.
+     引力波能量密度与总辐射能量密度的比例的默认值。 Omega_r 包括光子和超相对论组分。*/
+  pba->R_gw = 0.;
   /** 7.2.2.c) Coupling idm_dr*/
   pth->a_idm_dr = 0.;
   /** 7.2.2.d) temperature scaling idm_dr */
