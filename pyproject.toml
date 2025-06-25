@@ -1,0 +1,18 @@
+[project]
+name = "classy"
+dynamic=["version"]
+description="Python interface to the Cosmological Boltzmann code CLASS"
+authors = [
+  {name = "Julien Lesgourgues"},
+  {name = "Thomas Tram"},
+  {name = "Nils Schöneberg"},
+  {name = "... and many more (see webpage)"}
+]
+
+[project.urls]
+Homepage = "http://www.class-code.net"
+# Documentation = https://readthdocs.org/classy # TBD
+
+[build-system]
+requires = ['setuptools','wheel','numpy','cython','pip']
+build-backend = "setuptools.build_meta"
