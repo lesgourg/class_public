@@ -2341,6 +2341,7 @@ int thermodynamics_reionization_evolve_with_tau(
     if (ptw->ptrp->reionization_parameters[ptw->ptrp->index_re_reio_start] < pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width) {
       ptw->ptrp->reionization_parameters[ptw->ptrp->index_re_reio_start] = pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
     }
+    break;
   case reio_half_tanh:
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_re_reio_start] = z_inf;
     break;
@@ -4741,14 +4742,14 @@ int thermodynamics_idm_initial_temperature(
 
   /* idm-idr steady state */
   if ((pth->has_idm_dr == _TRUE_) && (pth->n_index_idm_dr == 0)) {
-    epsilon = 2*4./3.*pvecback[pba->index_bg_rho_idr]/pvecback[pba->index_bg_rho_idm]*
-      pth->a_idm_dr*pow((1.+ z_ini)/1.e7,pth->n_index_idm_dr)*pba->Omega0_idm*pow(pba->h,2) / pvecback[pba->index_bg_H]*(1.+z_ini);
+    ptdw->dmu_idm_dr = pth->a_idm_dr*pow((1.+ z_ini)/1.e7,pth->n_index_idm_dr)*pba->Omega0_idm*pow(pba->h,2); // constant
+    ptdw->Sinv_idm_dr  = 4./3.*pvecback[pba->index_bg_rho_idr]/pvecback[pba->index_bg_rho_idm]; // propto (1+z_ini)
+    epsilon = 2*ptdw->Sinv_idm_dr*ptdw->dmu_idm_dr / pvecback[pba->index_bg_H]*(1.+z_ini); // constant
   }
   /* idm_g steady state */
   else if (pth->has_idm_g == _TRUE_ && pth->n_index_idm_g == -2) {
-    ptdw->dmu_idm_dr = pth->a_idm_dr*pow((1.+ z_ini)/1.e7,pth->n_index_idm_dr)*pba->Omega0_idm*pow(pba->h,2);
-    ptdw->Sinv_idm_dr  = 4./3.*pvecback[pba->index_bg_rho_idr]/pvecback[pba->index_bg_rho_idm];
-    alpha = 2.* ptdw->dmu_idm_dr * ptdw->Sinv_idm_dr;
+    ptdw->dmu_idm_g =  3./8./_PI_/_G_*pow(1.+z_ini, 2+pth->n_index_idm_g)*pba->Omega0_idm*pba->H0*pba->H0*pth->u_idm_g*pow(_c_,4)*_sigma_/1.e11/_eV_/_Mpc_over_m_; // constant
+    beta = 2.*4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_idm] * ptdw->dmu_idm_g / pvecback[pba->index_bg_H] * (1+z_ini); // constant
   }
   /* idm_b steady state */
   else if (pth->has_idm_b == _TRUE_ && pth->n_index_idm_b == -3) {
@@ -4759,7 +4760,7 @@ int thermodynamics_idm_initial_temperature(
     ptdw->R_idm_b = (pvecback[pba->index_bg_a]*pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b/(m_b+pth->m_idm))
       *pow(T_diff_idm_b,(pth->n_index_idm_b+1.0)/2.0)*FHe
       *(3.e-4*pow(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_));
-    alpha = 2.*pth->m_idm/(pth->m_idm + m_b)*ptdw->R_idm_b;
+    alpha = 2.*pth->m_idm/(pth->m_idm + m_b)*ptdw->R_idm_b; // approximately constant
   }
 
   /* This formula (assuming alpha,beta,epsilon=const) approximates the steady-state solution of the IDM temperature evolution equation */
