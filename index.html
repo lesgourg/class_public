@@ -153,7 +153,13 @@ System
 </div>
 </td>
 <td align="left" valign="top" width="50%">
-The purpose of CLASS is to simulate the evolution of linear perturbations in the universe and to compute CMB and large scale structure observables. Its name also comes from the fact that it is written in object-oriented style mimicking the notion of class. Classes are a wonderfull programming feature available e.g. in C++ and python, but these languages are known to be less vectorizable/parallelizable than plain C (or Fortran), and hence potentially slower. For CLASS we choose to use plain C for high performances, while organizing the code in a few modules that reproduce the architecture and philosophy of C++ classes, for optimal readability and modularity.
+  The purpose of CLASS is to simulate the evolution of linear perturbations in the universe and to compute CMB and large scale structure observables. CLASS also embeds several ways to compute non-linear corrections to linear perturbation theory. CLASS is written mainly in plain C, but with an original object-oriented style mimicking the notion of class. Since v3.2.3, some modules are actually compiled as C++, to handle the parallelisation of loops in the C++ way. The whole code is wrapped in the python module <tt>classy</tt>.
+  <p>
+  We hope that you will enjoy the use of CLASS,<br>
+  <p>
+  <p align="center"> Julien Lesgourgues, Nils Sch&ouml;neberg, Thomas Tram </p>
+
+  <!--Its name also comes from the fact that it is written in object-oriented style mimicking the notion of class. Classes are a wonderfull programming feature available e.g. in C++ and python, but these languages are known to be less vectorizable/parallelizable than plain C (or Fortran), and hence potentially slower. For CLASS we choose to use plain C for high performances, while organizing the code in a few modules that reproduce the architecture and philosophy of C++ classes, for optimal readability and modularity.-->
 <p>
 <h2><a name="download">Download</a></h2>
 <p>
@@ -282,8 +288,8 @@ target="_blank"> public contributing instructions</a>.
 
 The developement of CLASS benefits from various
 essential contributors credited below. In absence of specific credits,
-developements are written by the main CLASS authors, Julien
-Lesgourgues and Thomas Tram.  <p>
+developements are written by the main CLASS authors: Julien
+Lesgourgues, Thomas Tram, and since 2018, Nils Sch&ouml;neberg.  <p>
 
 In case you are interested in downloading an old version, go to the
 <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> page. Close to the branch name (by default <em>master</em>) you can click on <em>branches</em> or <em>tags</em>. Click <em>tags</em> and you&apos;ll get access to <tt>zip</tt> or <tt>tar.gz</tt> archives of each previous minor release <tt>vx.y.z</tt>.
@@ -315,8 +321,8 @@ In case you are interested in downloading an old version, go to the
           <li> This release also features minor typo and bug fixes, as well as a systematic correction of the indentation of the C files (credits: D. C. Hooper)
           <li> 10.10.2023 (<tt>v3.2.1</tt>): in the python wrapper classy, new function <tt>scale_dependent_growth_factor()</tt>, and fixes in <tt>get_pk_all()</tt>; in input, new parameter names <tt>ln10^10A_s, 100*theta_s, 100*theta_star, S8</tt>; increased default precision of background module; fixed compatibility issue with cython 3; minor bug fixes (credits: J. Ange, B. Bolliet, S. Guenther, L. Honorez-Lopez, M. Lucca, F. McCarty, C. Pitrou, J. Torrado - and as usual JL, NS, TT)
           <li> 3.02.2024 (<tt>v3.2.2</tt>): the calculation of the CMB lensing potential power spectrum has been made considerably more accurate and efficient at large l (and has also been improved at low l in the non-Limber range). One can now obtain very accurate lensed CMB Cl's at very large l values (e.g. 6000 or more) without any slow-down of the code. The Limber approximation is still used below <tt>l_switch_limber</tt>, set by default to 10. The new calculation, called <tt>full_limber</tt> inside the code, is toggled by an input flag <tt>want_lcmb_full_limber</tt> set by default to <tt>yes</tt>. Users interested in the details of this feature can read the comments in <tt>input/precision.h</tt> regarding the new precision parameters <tt>perturbations_sampling_boost_above_age_fraction</tt>, <tt>q_logstep_limber</tt>, <tt>k_max_limber_over_l_max_scalars</tt>, and the modified precision parameter <tt>k_max_tau0_over_l_max</tt>. Thanks to B. Bolliet for his precious help on these features. Also, in <tt>classy</tt>, enhanced interpolation features in <tt>get_pk_all()</tt>: the log of P(k) can be interpolated with either a linear or cubic (default) algorithm.
-          <li> 20.02.2024 (<tt>v3.2.3</tt>): improvement in compilation method. CLASS is now pip installable with <tt>pip install classy</tt>. For the C code compilation, OpenMP is no longer required. Even if the code is still written in plain C, the few modules using parallelisation will now get compiled with the C++ compiler found on your machine (for instance, GNU g++ or clang), which has some in-built parallelisation syntax. To allow for this, some macros have been adapted, and the few lines with OpenMP parallelisation syntax have been changed to match C++ parallelisation syntax.
-          <li> 30.09.2024 (<tt>v3.2.4</tt>): new classy function <tt>set_baseline</tt> to set up quickly some baseline parameters: e.g. <tt>.set_baseline('planck18_lens_bao')</tt>. Added <tt>Neff</tt> (not <tt>N_eff</tt>) as a new input parameter with shooting, representing the request for a given total effective neutrino number (rather than just an effective number of ultra-relativistic relics <tt>N_ur</tt>). Fixed numpy compilation issue and minor bugs.
+          <li> 20.02.2024 (<tt>v3.2.3</tt>): improvement in compilation method. CLASS is now pip installable with <tt>pip install classy</tt>. For the C code compilation, OpenMP is no longer required. Even if the code is still written in plain C, the few modules using parallelisation will now get compiled with the C++ compiler found on your machine (for instance, GNU g++ or clang), which has some in-built parallelisation syntax. To allow for this, some macros have been adapted, and the few lines with OpenMP parallelisation syntax have been changed to match C++ parallelisation syntax. (credits: N. Sch&ouml;neberg)
+          <li> 30.09.2024 (<tt>v3.2.4</tt>): new classy function <tt>set_baseline</tt> to set up quickly some baseline parameters: e.g. <tt>.set_baseline('planck18_lens_bao')</tt>. Added <tt>Neff</tt> (not <tt>N_eff</tt>) as a new input parameter with shooting, representing the request for a given total effective neutrino number (rather than just an effective number of ultra-relativistic relics <tt>N_ur</tt>). Fixed numpy compilation issue and minor bugs. (credits: N. Sch&ouml;neberg)
           <li> 4.10.2024 (<tt>v3.2.5</tt>): made RealSpaceInterface work again, see <tt>external/RealSpaceInterface/README</tt> for instructions (credits Timothy Morton and Mowen Zhao). Fixed bug introduced in 3.2.4 affecting shooting convergence.
         </ul>
       </td>
