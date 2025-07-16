@@ -702,6 +702,9 @@ int background_w_fld(
     // w_ede(a) taken from eq. (11) in 1706.00730
     *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
     break;
+    case JBP:
+      *w_fld = pba->w0_jbp + pba->w1_jbp * (1. -a)*a;
+      break;
   }
 
 
@@ -721,6 +724,9 @@ int background_w_fld(
       + dOmega_ede_over_da*dOmega_ede_over_da*a/3./(1.-Omega_ede)/(1.-Omega_ede)/Omega_ede
       + a_eq/3./(a+a_eq)/(a+a_eq);
     break;
+  case JBP:
+    *dw_over_da_fld = pba->w1_jbp * (1. - 2.*a);
+    break;
   }
 
   /** - finally, give the analytic solution of the following integral:
@@ -739,6 +745,9 @@ int background_w_fld(
     break;
   case EDE:
     class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    break;
+  case JBP:
+    *integral_fld = -3.0*(1+pba->w0_jbp)*log(a) + 1.5*pba->w1_jbp*pow((1-a),2);
     break;
   }
 

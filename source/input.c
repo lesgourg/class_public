@@ -3279,6 +3279,9 @@ int input_read_parameters_species(struct file_content * pfc,
       else if ((strstr(string1,"EDE") != NULL) || (strstr(string1,"ede") != NULL)) {
         pba->fluid_equation_of_state = EDE;
       }
+      else if ((strstr(string1,"JBP") != NULL) || (strstr(string1,"jbp") != NULL)) {
+        pba->fluid_equation_of_state = JBP;
+      }
       else {
         class_stop(errmsg,"incomprehensible input '%s' for the field 'fluid_equation_of_state'",string1);
       }
@@ -3296,6 +3299,13 @@ int input_read_parameters_species(struct file_content * pfc,
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("Omega_EDE",pba->Omega_EDE);
+      class_read_double("cs2_fld",pba->cs2_fld);
+    }
+    if (pba->fluid_equation_of_state == JBP) {
+      /** 8.a.2.4) Equation of state of the fluid in 'JBP' case */
+      /* Read */
+      class_read_double("w0_jbp",pba->w0_jbp);
+      class_read_double("w1_jbp",pba->w1_jbp);
       class_read_double("cs2_fld",pba->cs2_fld);
     }
   }
@@ -5754,7 +5764,7 @@ int input_default_params(struct background *pba,
   pth->YHe = _YHE_BBN_;
 
   /** 7) Recombination algorithm */
-  pth->recombination=hyrec;
+  pth->recombination=recfast;
   pth->recfast_photoion_mode=recfast_photoion_Tmat;
 
   /** 8) Parametrization of reionization */
@@ -5903,6 +5913,9 @@ int input_default_params(struct background *pba,
   pba->wa_fld = 0.;
   /** 9.a.2.2) 'EDE' case */
   pba->Omega_EDE = 0.;
+  /** 9.a.2.3) 'JBP' case */
+  pba->w0_jbp = -1.;
+  pba->w1_jbp = 0.;
   /** 9.b) Omega scalar field */
   /** 9.b.1) Potential parameters and initial conditions */
   pba->scf_parameters = NULL;
