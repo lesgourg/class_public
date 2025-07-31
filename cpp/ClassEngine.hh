@@ -131,7 +131,7 @@ public:
   double getTauReio() const {return th.tau_reio;}
 
   //may need that
-  inline int numCls() const {return sp.ct_size;};
+  inline int numCls() const {return hr.ct_size;};
   inline double Tcmb() const {return ba.T_cmb;}
 
   inline int l_max_scalars() const {return _lmax;}
@@ -140,16 +140,16 @@ public:
   void printFC();
 
 private:
-  //structures class en commun
+  //common CLASS structures
   struct file_content fc;
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
-  struct thermo th;           /* for thermodynamics */
-  struct perturbs pt;         /* for source functions */
-  struct transfers tr;        /* for transfer functions */
+  struct thermodynamics th;           /* for thermodynamics */
+  struct perturbations pt;         /* for source functions */
   struct primordial pm;       /* for primordial spectra */
-  struct spectra sp;          /* for output spectra */
-  struct nonlinear nl;        /* for non-linear spectra */
+  struct fourier fo;        /* for non-linear spectra */
+  struct transfer tr;        /* for transfer functions */
+  struct harmonic hr;          /* for output spectra */
   struct lensing le;          /* for lensed spectra */
   struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
@@ -165,19 +165,19 @@ private:
   int computeCls();
 
   int class_main(
-		 struct file_content *pfc,
-		 struct precision * ppr,
-		 struct background * pba,
-		 struct thermo * pth,
-		 struct perturbs * ppt,
-		 struct transfers * ptr,
-		 struct primordial * ppm,
-		 struct spectra * psp,
-		 struct nonlinear * pnl,
-		 struct lensing * ple,
-		 struct distortions * psd,
-		 struct output * pop,
-		 ErrorMsg errmsg);
+          struct file_content *pfc,
+          struct precision *ppr,
+          struct background *pba,
+          struct thermodynamics *pth,
+          struct perturbations *ppt,
+          struct primordial *ppm,
+          struct fourier *pfo,
+          struct transfer *ptr,
+          struct harmonic *phr,
+          struct lensing *ple,
+          struct distortions *psd,
+          struct output *pop,
+		  ErrorMsg errmsg);
   //parnames
   std::vector<std::string> parNames;
 
