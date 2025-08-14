@@ -2796,7 +2796,7 @@ int background_output_budget(
     printf(" ---------------------------- Budget equation ----------------------- \n");
 
     printf(" ---> Nonrelativistic Species \n");
-    class_print_species("Bayrons",b);
+    class_print_species("Baryons",b);
     budget_matter+=pba->Omega0_b;
     if (pba->has_cdm == _TRUE_) {
       class_print_species("Cold Dark Matter",cdm);
