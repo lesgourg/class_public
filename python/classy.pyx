@@ -35,6 +35,10 @@ def viewdictitems(d):
 ctypedef np.float64_t DTYPE_t
 ctypedef np.int32_t DTYPE_i
 
+# A little utility function to ensure backwards compatibility. This allows classy to define properties that you can also call at the same time
+class CallableFloat(float):
+  def __call__(self):
+    return self
 
 
 # Import the .pxd containing definitions
@@ -112,22 +116,216 @@ cdef class Class:
 
     _levellist = ["input","background","thermodynamics","perturbations", "primordial", "fourier", "transfer", "harmonic", "lensing", "distortions"]
 
-    # Defining two new properties to recover, respectively, the parameters used
-    # or the age (set after computation). Follow this syntax if you want to
-    # access other quantities. Alternatively, you can also define a method, and
-    # call it (see _T_cmb method, at the very bottom).
-    property pars:
-        def __get__(self):
-            return self._pars
-    property state:
-        def __get__(self):
-            return True
-    property Omega_nu:
-        def __get__(self):
-            return self.ba.Omega0_ncdm_tot
-    property nonlinear_method:
-        def __get__(self):
-            return self.fo.method
+    #############################################################################
+    # Below we define the list of all properties to be used in CLASS            #
+    # They can either be used as a property (e.g. cosmo.h)                      #
+    # or as a function (cosmo.h() ) in order to keep backwards compatibility    #
+    #############################################################################
+
+    # Energy density fractional properties
+    @property
+    def Omega_nu(self):
+      """Return the fractional massive neutrino/warm dark matter (non-cold dark matter) density today"""
+      return CallableFloat(self.ba.Omega0_ncdm_tot)
+    @property
+    def Omega_m(self):
+      """Return the fractional non-relativistic matter density today"""
+      return CallableFloat(self.ba.Omega0_m)
+    @property
+    def Omega_r(self):
+      """Return the fractional radiation density today"""
+      return CallableFloat(self.ba.Omega0_r)
+    @property
+    def Omega_Lambda(self):
+      """Return the effective fractional contribution of the cosmological constant to the density today"""
+      return CallableFloat(self.ba.Omega0_lambda)
+    @property
+    def Omega_g(self):
+      """Return the fractional photon density today"""
+      return CallableFloat(self.ba.Omega0_g)
+    @property
+    def Omega_b(self):
+      """Return the fractional baryon density today"""
+      return CallableFloat(self.ba.Omega0_b)
+    @property
+    def omega_b(self):
+      """Return the reduced fractional baryon density today"""
+      return CallableFloat(self.ba.Omega0_b*self.ba.h*self.ba.h)
+    @property
+    def Omega_k(self):
+      """Return the effective fractional contribution of curvature to the density today"""
+      return CallableFloat(self.ba.Omega0_k)
+    @property
+    def Omega_cdm(self):
+      """Return the fractional cold dark matter density today"""
+      return CallableFloat(self.ba.Omega0_cdm)
+    @property
+    def Omega_fld(self):
+      """Return the fractional fluid density today"""
+      return CallableFloat(self.ba.Omega0_fld)
+
+    # Other properties related to the background
+    @property
+    def H0(self):
+      """Return the Hubble constant today in units of km/s/Mpc"""
+      return CallableFloat(self.ba.H0)
+    @property
+    def h(self):
+      """Return the reduced Hubble constant today (=H0 in units of 100km/s/Mpc)"""
+      return CallableFloat(self.ba.h)
+    @property
+    def age(self):
+      """Return the age of the universe in Gigayears"""
+      self.compute(["background"])
+      return CallableFloat(self.ba.age)
+    @property
+    def z_eq(self):
+      """Return the redshift of the time of equality between radiation and matter (dimensionless)"""
+      self.compute(["background"])
+      return CallableFloat(1./self.ba.a_eq-1.)
+    @property
+    def k_eq(self):
+      """Return the wavenumber such that k=aH at the time of equality between radiation and matter (units of 1/Mpc)"""
+      self.compute(["background"])
+      return CallableFloat(self.ba.a_eq*self.ba.H_eq)
+    @property
+    def Neff(self):
+      """Return the effective neutrino number N_eff (dimensionless) which parametrizes the density of radiation in the early universe, before non-cold dark matter particles become non-relativistic. Should be 3.044 in the standard model."""
+      self.compute(["background"])
+      return CallableFloat(self.ba.Neff)
+    @property
+    def T_cmb(self):
+      """Return the photon temperature T_cmb (units of K) evaluated at z=0"""
+      return CallableFloat(self.ba.T_cmb)
+
+    # Other properties related to thermodynamical quantities
+    @property
+    def tau_reio(self):
+      """Return the optical depth of reionization, which is the
+         average number of re-scatterings any single CMB photon
+         is subject to during re-ionization."""
+      self.compute(["thermodynamics"])
+      return CallableFloat(self.th.tau_reio)
+    @property
+    def z_reio(self):
+      """Return the reionization redshift (dimensionless). This
+         redshift is a free parameter in the analytic form assummed for
+         the free electron fraction x_e(z). It is either passed by the
+         user, or adjusted by CLASS using a shooting method in order to
+         match a required value of the reionization optical depth."""
+      self.compute(["thermodynamics"])
+      return CallableFloat(self.th.z_reio)
+    @property
+    def rs_drag(self):
+      """Return the comoving sound horizon (units of Mpc) at baryon
+        drag time. CLASS defines this time as the time when the baryon
+        optical depth crosses 1. This baryon optical depth is obtained
+        by integrating the Thomson scattering rate of baryons, that
+        is, the Thomson scattering rate of photons rescaled by 1/R,
+        where R = 3 rho_b / 4 rho_gamma."""
+      self.compute(["thermodynamics"])
+      return CallableFloat(self.th.rs_d)
+    @property
+    def theta_s_100(self):
+      """Return the angular scale of the sound horizon at recombination
+        multiplied by 100 (in radians, that is, dimensionless). The
+        function uses theta_s = d_s(z_rec)/d_a(t_rec) =
+        r_s(z_rec)/r_a(z_rec), where the d are physical distances and
+        the r are comoving distances. CLASS defines recombination as
+        the time at which the photon visibility function reaches its maximum."""
+      self.compute(["thermodynamics"])
+      return CallableFloat(100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec))
+    @property
+    def theta_star_100(self):
+      """Return the angular scale of the sound horizon at photon
+        decoupling multiplied by 100 (in radian, that is,
+        dimensionless). The function uses theta_s =
+        d_s(z_star)/d_a(t_star) = r_s(z_star)/r_a(z_star), where the d
+        are physical distances and the r are comoving distances. CLASS
+        defines decoupling as the time at which the photon optical
+        depth crosses one."""
+      self.compute(["thermodynamics"])
+      return CallableFloat(100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star))
+
+    # Other properties related to the peruturbations
+    @property
+    def n_s(self):
+      """Return the scalar tilt n_s (dimensionless) of the primordial scalar spectrum"""
+      return CallableFloat(self.pm.n_s)
+    @property
+    def simga8(self):
+      """Return sigma8 (dimensionless), the root mean square (rms) of the relative density fluctuation of
+        total matter in spheres of radius R= 8 h/Mpc at z=0.
+        To compute this, one needs that the 'ouput' field contains at least 'mPk'."""
+      self.compute(["fourier"])
+      if (self.pt.has_pk_matter == _FALSE_):
+          raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
+      return CallableFloat(self.fo.sigma8[self.fo.index_pk_m])
+    @property
+    def simga8_cb(self):
+      """Return sigma8_cb (dimensionless), the root mean square (rms) of the relative density fluctuation of
+        CDM+baryons in spheres of radius R= 8 h/Mpc at z=0
+        To compute this, one needs that the 'ouput' field contains at least 'mPk'."""
+      self.compute(["fourier"])
+      if (self.pt.has_pk_matter == _FALSE_):
+          raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
+      return CallableFloat(self.fo.sigma8[self.fo.index_pk_cb])
+    @property
+    def S8(self):
+      """Return S8 = sigma8*(Omega_m/0.3)^0.5 (dimensionless), the root mean square (rms) of the relative density fluctuation of
+        total matter in spheres of radius R= 8 h/Mpc at z=0 multiplied by (Omega_m/0.3)^0.5"""
+      self.compute(["fourier"])
+      return CallableFloat(self.sigma8()*np.sqrt(self.Omega_m()/0.3))
+    @property
+    def nonlinear_method(self):
+      """Return which method is being used to compute non-linear corrections (as an integer, see the corresponding enum in the C code to check for the correspondence."""
+      return CallableFloat(self.fo.method)
+
+    # Unit convrsion proprtis
+    @property
+    def density_factor(self):
+        """Returns the factor to convert from the CLASS units of density, (8piG/3c^2 rho) in Mpc^-2,
+        to the actual density rho in kg/m^3 (SI units)"""
+        return 3*_c_*_c_/(8*np.pi*_G_)/(_Mpc_over_m_*_Mpc_over_m_)
+    @property
+    def Mpc_to_m(self):
+        """Returns the factor to convert from Megaparsecs (Mpc) to meters (m)
+        (factor defined internally in CLASS)"""
+        return _Mpc_over_m_
+    @property
+    def kg_to_eV(self):
+        """Returns the factor to convert from kilograms (kg) to electron-volts (eV) when using natural units (inferred from factors defined internally in CLASS)"""
+        return _c_*_c_/_eV_
+    @property
+    def c(self):
+        """Returns the speed of light in m/s (factor defined internally in CLASS)"""
+        return _c_
+    @property
+    def kgm3_to_eVMpc3(self):
+        """Returns the factor to convert from kilograms per meter cube (kg/m^3) to electron-volts per Megaparsec cube (eV/Mpc^3) when using natural units"""
+        return self.kg_to_eV*self.Mpc_to_m**3
+    @property
+    def kg_to_Msol(self):
+        """Returns the factor to convert from kilograms to solar masses"""
+        return 1/(2.0e30)
+    @property
+    def kgm3_to_MsolMpc3(self):
+        """Returns the factor to convert from kilograms per meter cube (kg/m^3) to solar mass per Megaparsec cube (Msol/Mpc^3)"""
+        return self.kg_to_Msol*self.Mpc_to_m**3
+
+
+
+    # Special properties
+    @property
+    def pars(self):
+      return self._pars
+    @property
+    def state(self):
+      return True
+
+    ###############################################################
+    # Now we can start with the actual code describing the classy #
+    ###############################################################
 
     def set_default(self):
         _pars = {
@@ -454,7 +652,41 @@ cdef class Class:
         return
 
     def set_baseline(self, baseline_name):
-        # Taken from montepython [https://github.com/brinckmann/montepython_public] (see also 1210.7183, 1804.07261)
+        """
+        Set all input parameters to predefined baseline settings
+
+        This function offers an opportunity to quickly set all input parameters in one single line.
+
+        Currently, the possible predefined setting names are:
+
+        1. 'p18lb', or alternatively, any name containing 'planck', '18', 'lens', and 'bao'
+           Sets all parameters for computing the lensed and unlensed CMB l's and the matter power spectrum P(k) at z=0
+           (linear and non-linear with Halofit corrections)
+           for the best-fit model of the case 'Planck TTTEEE+lens + BAO' of the Planck 2018 papers.
+
+        2. 'p18l', or alternatively, any name containing 'planck', '18', and 'lens'
+           Sets all parameters for computing the lensed and unlensed CMB l's and the matter power spectrum P(k) at z=0
+           (linear and non-linear with Halofit corrections)
+           for the best-fit model of the case 'Planck TTTEEE+lens' of the Planck 2018 papers.
+
+        3. 'p18', or alternatively, any name containing 'planck' and '18'
+           Sets all parameters for computing the lensed and unlensed CMB l's and the matter power spectrum P(k) at z=0
+           (linear and non-linear with Halofit corrections)
+           for the best-fit model of the case 'Planck TTTEEE' of the Planck 2018 papers.
+
+        This choice of parameter settings is the same as in the baseline input files (input/baseline*.param)
+        of montepython [https://github.com/brinckmann/montepython_public] (see also 1210.7183, 1804.07261)
+
+        Parameters
+        ----------
+        baseline_name : str
+            Predefined setting name
+
+        Returns
+        -------
+        None
+        """
+
         if ('planck' in baseline_name and '18' in baseline_name and 'lens' in baseline_name and 'bao' in baseline_name) or 'p18lb' in baseline_name.lower():
           self.set({'omega_b':2.255065e-02,
                     'omega_cdm':1.193524e-01,
@@ -512,64 +744,35 @@ cdef class Class:
         else:
           raise CosmoSevereError("Unrecognized baseline case '{}'".format(baseline_name))
 
-    @property
-    def density_factor(self):
-        """
-        The density factor required to convert from the class-units of density to kg/m^3 (SI units)
-        """
-        return 3*_c_*_c_/(8*np.pi*_G_)/(_Mpc_over_m_*_Mpc_over_m_)
-
-    @property
-    def Mpc_to_m(self):
-        return _Mpc_over_m_
-
-    @property
-    def kg_to_eV(self):
-        return _c_*_c_/_eV_
-
-    @property
-    def kgm3_to_eVMpc3(self):
-        """
-        Convert from kg/m^3 to eV/Mpc^3
-        """
-        return self.kg_to_eV*self.Mpc_to_m**3
-
-    @property
-    def kg_to_Msol(self):
-        return 1/(2.0e30)
-
-    @property
-    def kgm3_to_MsolMpc3(self):
-        """
-        Convert from kg/m^3 to Msol/Mpc^3
-        """
-        return self.kg_to_Msol*self.Mpc_to_m**3
-
     def raw_cl(self, lmax=-1, nofail=False):
         """
-        raw_cl(lmax=-1, nofail=False)
+        Unlensed CMB spectra
 
-        Return a dictionary of the primary C_l
+        Return a dictionary of the unlensed CMB spectra C_l for all modes requested in the 'output' field
+        (temperature, polarisation, lensing potential, cross-correlations...)
+        This function requires that the 'ouput' field contains at least on of 'tCl', 'pCl', 'lCl'.
+        The returned C_l's are all dimensionless.
+
+        If lmax is not passed (default), the spectra are returned up to the maximum multipole that was set through input parameters.
+        If lmax is passed, the code first checks whether it is smaller or equal to the maximum multipole that was set through input parameters.
+        If it is smaller or equal, the spectra are returned up to lmax.
+        If it is larger and nofail=False (default), the function raises an error.
+        If it is larger and nofail=True, the functiona asks CLASS to recompute the Cl's up to lmax, and return the result up to lmax.
 
         Parameters
         ----------
         lmax : int, optional
-                Define the maximum l for which the C_l will be returned
-                (inclusively). This number will be checked against the maximum l
-                at which they were actually computed by CLASS, and an error will
-                be raised if the desired lmax is bigger than what CLASS can
-                give.
+            Define the maximum l for which the C_l will be returned (inclusively).
+
         nofail: bool, optional
-                Check and enforce the computation of the harmonic module
-                beforehand, with the desired lmax.
+            Even if lmax is larger than expected from the user input, check and enforce the computation of the C_l in the harmonic module up to lmax.
 
         Returns
         -------
         cl : dict
-                Dictionary that contains the power spectrum for 'tt', 'te', etc... The
-                index associated with each is defined wrt. Class convention, and are non
-                important from the python point of view. It also returns now the
-                ell array.
+            Dictionary that contains the unlensed power spectrum for each auto-correlation and cross-correlation spectrum,
+            as well the corresponding mutipoles l. The keys of the dictionary are: 'ell' for the multipoles,
+            and 'tt', 'ee', 'te', 'bb', 'pp', 'tp' for each spectrum type.
         """
         self.compute(["harmonic"])
         cdef int lmaxR
@@ -651,25 +854,33 @@ cdef class Class:
 
     def lensed_cl(self, lmax=-1,nofail=False):
         """
-        lensed_cl(lmax=-1, nofail=False)
+        Lensed CMB spectra
 
-        Return a dictionary of the lensed C_l, computed by CLASS, without the
-        density C_ls. They must be asked separately with the function aptly
-        named density_cl
+        Return a dictionary of the lensed CMB spectra C_l for all modes requested in the 'output' field
+        (temperature, polarisation, lensing potential, cross-correlations...)
+        This function requires that the 'ouput' field contains at least one of 'tCl', 'pCl', 'lCl', and that 'lensing' is set to 'yes'.
+        The returned spectra are all dimensionless.
+
+        If lmax is not passed (default), the spectra are returned up to the maximum multipole that was set through input parameters.
+        If lmax is passed, the code first checks whether it is smaller or equal to the maximum multipole that was set through input parameters.
+        If it is smaller or equal, the spectra are returned up to lmax.
+        If it is larger and nofail=False (default), the function raises an error.
+        If it is larger and nofail=True, the functiona asks CLASS to recompute the Cl's up to lmax, and return the result up to lmax.
 
         Parameters
         ----------
         lmax : int, optional
-                Define the maximum l for which the C_l will be returned (inclusively)
+            Define the maximum l for which the C_l will be returned (inclusively).
+
         nofail: bool, optional
-                Check and enforce the computation of the lensing module beforehand
+            Even if lmax is larger than expected from the user input, check and enforce the computation of the C_l in the lensing module up to lmax.
 
         Returns
         -------
         cl : dict
-                Dictionary that contains the power spectrum for 'tt', 'te', etc... The
-                index associated with each is defined wrt. Class convention, and are non
-                important from the python point of view.
+            Dictionary that contains the lensed power spectrum for each auto-correlation and cross-correlation spectrum,
+            as well the corresponding mutipoles l. The keys of the dictionary are: 'ell' for the multipoles,
+            and 'tt', 'ee', 'te', 'bb', 'pp', 'tp' for each spectrum type.
         """
         self.compute(["lensing"])
         cdef int lmaxR
@@ -732,24 +943,38 @@ cdef class Class:
 
     def density_cl(self, lmax=-1, nofail=False):
         """
-        density_cl(lmax=-1, nofail=False)
+        C_l spectra of density and lensing
 
-        Return a dictionary of the primary C_l for the matter
+        Return a dictionary of the spectra C_l of large scale
+        structure observables, that is, density (e.g. from galaxy number count)
+        and lensing potential (related to cosmic shear), for all the
+        reshift bins defined by the user in input. If CMB temperature
+        was also requested, this function also returns the
+        density-temperature and lensing-temperature cross-correlation
+        spectra.
+        This function requires that the 'ouput' field contains at least one of 'dCl', 'sCl'.
+        The returned spectra are all dimensionless.
+
+        If lmax is not passed (default), the spectra are returned up to the maximum multipole that was set through input parameters.
+        If lmax is passed, the code first checks whether it is smaller or equal to the maximum multipole that was set through input parameters.
+        If it is smaller or equal, the spectra are returned up to lmax.
+        If it is larger and nofail=False (default), the function raises an error.
+        If it is larger and nofail=True, the functiona asks CLASS to recompute the Cl's up to lmax, and return the result up to lmax.
 
         Parameters
         ----------
         lmax : int, optional
-            Define the maximum l for which the C_l will be returned (inclusively)
+            Define the maximum l for which the C_l will be returned (inclusively).
+
         nofail: bool, optional
-            Check and enforce the computation of the lensing module beforehand
+            Even if lmax is larger than expected from the user input, check and enforce the computation of the C_l in the lensing module up to lmax.
 
         Returns
         -------
-        cl : numpy array of numpy.ndarrays
-            Array that contains the list (in this order) of self correlation of
-            1st bin, then successive correlations (set by non_diagonal) to the
-            following bins, then self correlation of 2nd bin, etc. The array
-            starts at index_ct_dd.
+        cl : dict
+            Dictionary that contains the power spectrum for each auto-correlation and cross-correlation spectrum,
+            as well the corresponding mutipoles l. The keys of the dictionary are: 'ell' for the multipoles,
+            and 'dens', 'td', 'll', 'dl', 'tl', where 'd' means density, 'l' means lensing, and 't' means temperature.
         """
         self.compute(["harmonic"])
         cdef int lmaxR
@@ -855,6 +1080,29 @@ cdef class Class:
         return cl
 
     def z_of_r (self, z):
+        """
+        Return the comoving radius r(z) and the derivative dz/dr.
+
+        Return the comoving radius r(z) (in units of Mpc) of an object
+        seen at redshift z (dimensionless), as well and the derivative
+        dz/dr (in units of 1/Mpc). The name of the function is
+        misleading, it should be r_of_z. This naming inconsistency
+        propagated until now and could be fixed at some point. The
+        function accepts single entries or arrays of z values.
+
+        Parameters
+        ----------
+        z : float array
+            Redshift
+
+        Returns
+        -------
+        float array
+            Comoving radius
+
+        real array
+            Derivative dz/dr
+        """
         self.compute(["background"])
         cdef int last_index=0 #junk
         cdef double * pvecback
@@ -886,7 +1134,20 @@ cdef class Class:
 
     def luminosity_distance(self, z):
         """
-        luminosity_distance(z)
+        Return the luminosity_distance d_L(z)
+
+        Return the luminosity distance d_L(z) in units of Mpc.
+        The function accepts single entries or arrays of z values.
+
+        Parameters
+        ----------
+        z : float array
+            Redshift
+
+        Returns
+        -------
+        float array
+            Luminosity distance
         """
         self.compute(["background"])
 
@@ -908,16 +1169,27 @@ cdef class Class:
 
         return (lum_distance[0] if np.isscalar(z) else lum_distance)
 
-    # Gives the total matter pk for a given (k,z)
     def pk(self,double k,double z):
         """
-        Gives the total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+        Return the total matter power spectrum P_m(k,z)
 
-        .. note::
+        Return the total matter power spectrum P_m(k,z) (in Mpc**3) for a given k (in
+        1/Mpc) and z. The function returns the linear power spectrum
+        if the user sets 'non_linear' to 'no', and the non-linear
+        power spectrum otherwise.
+        This function requires that the 'ouput' field contains at least 'mPk'.
 
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
 
+        Returns
+        -------
+        pk : float
+            Total matter power spectrum
         """
         self.compute(["fourier"])
 
@@ -935,16 +1207,27 @@ cdef class Class:
 
         return pk
 
-    # Gives the cdm+b pk for a given (k,z)
     def pk_cb(self,double k,double z):
         """
-        Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+        Return the CDM+baryon power spectrum P_cb(k,z)
 
-        .. note::
+        Return the CDM+baryon power spectrum P_cb(k,z) (in Mpc**3) for a given k (in
+        1/Mpc) and z. The function returns the linear power spectrum
+        if the user sets 'non_linear' to 'no', and the non-linear
+        power spectrum otherwise.
+        This function requires that the 'ouput' field contains at least 'mPk'.
 
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
 
+        Returns
+        -------
+        pk_cb : float
+            CDM+baryon power spectrum
         """
         self.compute(["fourier"])
 
@@ -964,16 +1247,26 @@ cdef class Class:
 
         return pk_cb
 
-    # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):
         """
-        Gives the linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
+        Return the linear total matter power spectrum P_m(k,z)
 
-        .. note::
+        Return the linear total matter power spectrum P_m(k,z) (in Mpc**3) for a given k (in
+        1/Mpc) and z. The function returns the linear power spectrum
+        in all cases, independently of what the user sets for 'non_linear'.
+        This function requires that the 'ouput' field contains at least 'mPk'.
 
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
 
+        Returns
+        -------
+        pk_lin : float
+            Linear total matter power spectrum
         """
         self.compute(["fourier"])
 
@@ -987,16 +1280,26 @@ cdef class Class:
 
         return pk_lin
 
-    # Gives the cdm+b pk for a given (k,z)
     def pk_cb_lin(self,double k,double z):
         """
-        Gives the linear cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z
+        Return the linear CDM+baryon power spectrum P_cb(k,z)
 
-        .. note::
+        Return the linear CDM+baryon power spectrum P_cb(k,z) (in Mpc**3) for a given k (in
+        1/Mpc) and z. The function returns the linear power spectrum
+        in all cases, independently of what the user sets for 'non_linear'.
+        This function requires that the 'ouput' field contains at least 'mPk'.
 
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
 
+        Returns
+        -------
+        pk_cb_lin : float
+            Linear CDM+baryon power spectrum
         """
         self.compute(["fourier"])
 
@@ -1013,16 +1316,25 @@ cdef class Class:
 
         return pk_cb_lin
 
-    # Gives the total matter pk for a given (k,z)
     def pk_numerical_nw(self,double k,double z):
         """
-        Gives the nowiggle (smoothed) linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
+        Return the no-wiggle (smoothed) linear matter power spectrum P_m(k,z)
 
-        .. note::
+        Return the no-wiggle (smoothed) linear matter power spectrum P_m(k,z) (in Mpc**3) for a given k (in
+        1/Mpc) and z. A smoothing algorithm infers this spectrum from the full linear matter power spectrum.
+        This function requires that the 'ouput' field contains at least 'mPk', and 'numerical_nowiggle' is set to 'yes'.
 
-            there is an additional check that `numerical_nowiggle` was set to `yes`,
-            because otherwise a segfault will occur
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
 
+        Returns
+        -------
+        pk_numerical_nw : float
+            No-wiggle linear matter power spectrum
         """
         self.compute(["fourier"])
 
@@ -1036,16 +1348,23 @@ cdef class Class:
 
         return pk_numerical_nw
 
-    # Gives the approximate analytic nowiggle power spectrum for a given k at z=0
     def pk_analytic_nw(self,double k):
         """
-        Gives the linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
+        Return an analytic approximation to the no-wiggle linear matter power spectrum P_m(k) at z=0
 
-        .. note::
+        Return an analytic approximation to the linear matter power spectrum P_m(k) (in Mpc**3) for a given k (in
+        1/Mpc) and at z=0, without BAO features. The calculation is based on the Eisenstein & Hu fitting formulas.
+        This function requires that the 'ouput' field contains at least 'mPk', and 'analytic_nowiggle' is set to 'yes'.
 
-            there is an additional check that `analytic_nowiggle` was set to `yes`,
-            because otherwise a segfault will occur
+        Parameters
+        ----------
+        k : float
+            Wavenumber
 
+        Returns
+        -------
+        pk_analytic_nw : float
+            Analytic approximation to no-wiggle linear matter power spectrum
         """
         self.compute(["fourier"])
 
@@ -1060,7 +1379,40 @@ cdef class Class:
         return pk_analytic_nw
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get the power spectrum on a k and z array """
+        """
+        Return the total matter power spectrum P_m(k,z) for a 3D array of k and a 1D array of z
+
+        Return the total matter power spectrum P_m(k,z) (in Mpc**3)
+        for a 3D array of k values (in 1/Mpc) and z values. The array
+        of k values must be indexed as k[index_k,index_z,index_mu],
+        the one of z values as z[index_z]. This function is useful in
+        the context of likelihoods describing spectroscopic galaxy
+        redshift, when there is a different k-list for each redhsift
+        and each value of the angle mu between the line-of-sight and
+        the measured two-point correlation function. The function
+        returns a grid of values for the linear power spectrum if the
+        user sets 'non_linear' to 'no', and for the non-linear power
+        spectrum otherwise.  This function requires that the 'ouput'
+        field contains at least 'mPk'.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array indexed as k[index_k,index_z,index_mu]
+        z : float array
+            Redshift array indexed as z[index_z]
+        k_size : int
+            Number of k values for each index_z and index_mu
+        z_size : int
+            Number of redshift values
+        mu_size : int
+            Number of k values for each index_k and index_z
+
+        Returns
+        -------
+        pk : float
+            Grid of total matter power spectrum indexed as pk[index_k,index_z,index_mu]
+        """
         self.compute(["fourier"])
 
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
@@ -1073,7 +1425,40 @@ cdef class Class:
         return pk
 
     def get_pk_cb(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get the power spectrum on a k and z array """
+        """
+        Return the CDM+baryon power spectrum P_cb(k,z) for a 3D array of k and a 1D array of z
+
+        Return the CDM+baryon power spectrum P_m(k,z) (in Mpc**3)
+        for a 3D array of k values (in 1/Mpc) and z values. The array
+        of k values must be indexed as k[index_k,index_z,index_mu],
+        the one of z values as z[index_z]. This function is useful in
+        the context of likelihoods describing spectroscopic galaxy
+        redshift, when there is a different k-list for each redhsift
+        and each value of the angle mu between the line-of-sight and
+        the measured two-point correlation function. The function
+        returns a grid of values for the linear power spectrum if the
+        user sets 'non_linear' to 'no', and for the non-linear power
+        spectrum otherwise.  This function requires that the 'ouput'
+        field contains at least 'mPk'.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array indexed as k[index_k,index_z,index_mu]
+        z : float array
+            Redshift array indexed as z[index_z]
+        k_size : int
+            Number of k values for each index_z and index_mu
+        z_size : int
+            Number of redshift values
+        mu_size : int
+            Number of k values for each index_k and index_z
+
+        Returns
+        -------
+        pk_cb : float
+            Grid of CDM+baryon power spectrum indexed as pk_cb[index_k,index_z,index_mu]
+        """
         self.compute(["fourier"])
 
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
@@ -1086,7 +1471,40 @@ cdef class Class:
         return pk_cb
 
     def get_pk_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get the linear power spectrum on a k and z array """
+        """
+        Return the linear total matter power spectrum P_m(k,z) for a 3D array of k and a 1D array of z
+
+        Return the linear total matter power spectrum P_m(k,z) (in
+        Mpc**3) for a 3D array of k values (in 1/Mpc) and z
+        values. The array of k values must be indexed as
+        k[index_k,index_z,index_mu], the one of z values as
+        z[index_z]. This function is useful in the context of
+        likelihoods describing spectroscopic galaxy redshift, when
+        there is a different k-list for each redhsift and each value
+        of the angle mu between the line-of-sight and the measured
+        two-point correlation function. The function always returns a
+        grid of values for the linear power spectrum, independently of
+        what the user sets for 'non_linear'.  This function requires
+        that the 'ouput' field contains at least 'mPk'.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array indexed as k[index_k,index_z,index_mu]
+        z : float array
+            Redshift array indexed as z[index_z]
+        k_size : int
+            Number of k values for each index_z and index_mu
+        z_size : int
+            Number of redshift values
+        mu_size : int
+            Number of k values for each index_k and index_z
+
+        Returns
+        -------
+        pk : float
+            Grid of linear total matter power spectrum indexed as pk[index_k,index_z,index_mu]
+        """
         self.compute(["fourier"])
 
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
@@ -1099,7 +1517,40 @@ cdef class Class:
         return pk
 
     def get_pk_cb_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get the linear power spectrum on a k and z array """
+        """
+        Return the linear CDM+baryon power spectrum P_cb(k,z) for a 3D array of k and a 1D array of z
+
+        Return the linear CDM+baryon matter power spectrum P_m(k,z) (in
+        Mpc**3) for a 3D array of k values (in 1/Mpc) and z
+        values. The array of k values must be indexed as
+        k[index_k,index_z,index_mu], the one of z values as
+        z[index_z]. This function is useful in the context of
+        likelihoods describing spectroscopic galaxy redshift, when
+        there is a different k-list for each redhsift and each value
+        of the angle mu between the line-of-sight and the measured
+        two-point correlation function. The function always returns a
+        grid of values for the linear power spectrum, independently of
+        what the user sets for 'non_linear'.  This function requires
+        that the 'ouput' field contains at least 'mPk'.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array indexed as k[index_k,index_z,index_mu]
+        z : float array
+            Redshift array indexed as z[index_z]
+        k_size : int
+            Number of k values for each index_z and index_mu
+        z_size : int
+            Number of redshift values
+        mu_size : int
+            Number of k values for each index_k and index_z
+
+        Returns
+        -------
+        pk_cb : float
+            Grid of linear CDM+baryon power spectrum indexed as pk_cb[index_k,index_z,index_mu]
+        """
         self.compute(["fourier"])
 
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
@@ -1112,11 +1563,38 @@ cdef class Class:
         return pk_cb
 
     def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0, interpolation_kind='cubic'):
-        """ General function to get the P(k,z) for ARBITRARY shapes of k,z
-            Additionally, it includes the functionality of selecting wether to use the non-linear parts or not,
-            and wether to use the cdm baryon power spectrum only
-            For Multi-Dimensional k-arrays, it assumes that one of the dimensions is the z-axis
-            This is handled by the z_axis_in_k_arr integer, as described in the source code """
+        """
+        Return different versions of the power spectrum P(k,z) for arrays of k and z with arbitrary shapes
+
+        Return different versions of the power spectrum P_m(k,z) (in Mpc**3)
+        for arrays of k values (in 1/Mpc) and z values with arbitrary shape.
+        The optional argument nonlinear can be set to True for non-linear (default) or False for non-linear.
+        The optional argument cdmbar can be set to False for total matter (default) or True for CDM+baryon. It makes a difference only in presence of massive neutrinos.
+        For multi-dimensional k-arrays, the function assumes that one of the dimensions is the z-axis.
+        The optional argument z_axis_in_k_arr specifies the integer position of the z_axis within the n-dimensional k array (default:0).
+        This function requires that the 'ouput' field contains at least 'mPk'.
+        The function returns a grid of values for the power spectrum, with the same shape as the input k grid.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array, arbitrary shape
+        z : float array
+            Redshift array, arbitrary shape
+        nonlinear: bool, optional
+            Whether to return the non-linear spectrum instead of the linear one
+        cdmbar : bool, optional
+            Whether to return the CDM+baryon spectrum instead of the total matter one
+        z_axis_in_k_arr : int, optional
+            Position of the z_axis within the k array
+        interpolation_kind : str, optional
+            Flag for the interpolation kind, to be understood by interp1d() function of scipy.interpolate module
+
+        Returns
+        -------
+        out_pk : float
+            Grid of power spectrum with the same shape as input k grid
+        """
         self.compute(["fourier"])
 
         # z_axis_in_k_arr specifies the integer position of the z_axis wihtin the n-dimensional k_arr
@@ -1210,27 +1688,35 @@ cdef class Class:
                 out_pk[index_z] = _interpolate_pk_at_z(k_arr,z_arr[index_z])
             return out_pk
 
-    #################################
-    # Gives a grid of values of matter and/or cb power spectrum, together with the vectors of corresponding k and z values
     def get_pk_and_k_and_z(self, nonlinear=True, only_clustering_species = False, h_units=False):
         """
-        Returns a grid of matter power spectrum values and the z and k
-        at which it has been fully computed. Useful for creating interpolators.
+        Return different versions of the power spectrum P(k,z), together with the corresponding list of k and z values
+
+        Return different versions of the power spectrum P(k,z) (in Mpc**3) together with the corresponding list
+        k values (in 1/Mpc) and z values. The values are those defined internally in CLASS before interpolation. This function is useful for building interpolators.
+        The optional argument nonlinear can be set to True for non-linear (default) or False for non-linear.
+        The optional argument only_clustering_species can be set to False for total matter (default) or True for CDM+baryon. It makes a difference only in presence of massive neutrinos.
+        The optional argument h_units, set to False by default, can be set to True to have P(k,z) in (Mpc/h)**3 and k in (h/Mpc).
+        This function requires that the 'ouput' field contains at least 'mPk'.
+        The function returns a 2D grid of values for the power spectrum.
 
         Parameters
         ----------
-        nonlinear : bool
-                Whether the returned power spectrum values are linear or non-linear (default)
-        only_clustering_species : bool
-                Whether the returned power spectrum is for galaxy clustering and excludes massive neutrinos, or always includes everything (default)
-        h_units : bool
-                Whether the units of k in output are h/Mpc or 1/Mpc (default)
+        nonlinear : bool, optional
+            Whether to return the non-linear spectrum instead of the linear one
+        only_clustering_species : bool, optional
+            Whether to return the CDM+baryon spectrum instead of the total matter one
+        h_units : bool, optional
+            Whether to use Mpc/h and h/Mpc units instead of Mpc and 1/Mpc
 
         Returns
         -------
-        pk : grid of power spectrum values, pk[index_k,index_z]
-        k : vector of k values, k[index_k] (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
-        z : vector of z values, z[index_z]
+        pk : float array
+            Grid of power spectrum indexed as pk[index_k, index_z]
+        k : float array
+            Vector of wavenumbers indexed as k[index_k]
+        z : float array
+            Vector of redshifts indexed as k[index_z]
         """
         self.compute(["fourier"])
 
@@ -1303,35 +1789,36 @@ cdef class Class:
 
         return pk, k, z
 
-    #################################
-    # Gives a grid of each transfer functions arranged in a dictionary, together with the vectors of corresponding k and z values
     def get_transfer_and_k_and_z(self, output_format='class', h_units=False):
         """
-        Returns a dictionary of grids of density and/or velocity transfer function values and the z and k at which it has been fully computed.
-        Useful for creating interpolators.
-        When setting CLASS input parameters, include at least one of 'dTk' (for density transfer functions) or 'vTk' (for velocity transfer functions).
-        Following the default output_format='class', all transfer functions will be normalised to 'curvature R=1' at initial time
-        (and not 'curvature R = -1/k^2' like in CAMB).
-        You may switch to output_format='camb' for the CAMB definition and normalisation of transfer functions.
-        (Then, 'dTk' must be in the input: the CAMB format only outputs density transfer functions).
+        Return a grid of transfer function of various perturbations T_i(k,z) arranged in a dictionary, together with the corresponding list of k and z values
+
+        Return a grid of transfer function of various density and/or velocity perturbations T_i(k,z) arranged in a dictionary, together with the corresponding list of k values (in 1/Mpc) and z values. The values are those defined internally in CLASS before interpolation. This function is useful for building interpolators.
+        The optional argument output_format can be set to 'class' (default) or 'camb'. With output_format='class', all transfer functions will be normalised to 'curvature R=1' at initial time and are dimensionless. With output_format='camb', they are normalised to 'curvature R = -1/k^2' like in CAMB, and they have units of Mpc**2. Then, 'dTk' must be in the input: the CAMB format only outputs density transfer functions.
         When sticking to output_format='class', you also get the newtonian metric fluctuations phi and psi.
         If you set the CLASS input parameter 'extra_metric_transfer_functions' to 'yes',
         you get additional metric fluctuations in the synchronous and N-body gauges.
+        The optional argument h_units, set to False by default, can be set to True to have k in (h/Mpc).
+        This function requires that the 'ouput' field contains at least one of 'dTk' (for density transfer functions) or 'vTk' (for velocity transfer functions). With output_format='camb', 'dTk' must be in the input: the CAMB format only outputs density transfer functions.
+        The function returns a dictionary with, for each species, a 2D grid of transfer functions.
 
         Parameters
         ----------
-        output_format  : ('class' or 'camb')
-                Format transfer functions according to CLASS (default) or CAMB
-        h_units : bool
-                Whether the units of k in output are h/Mpc or 1/Mpc (default)
+        output_format : str, optional
+            Format transfer functions according to 'class' or 'camb' convention
+        h_units : bool, optional
+            Whether to use h/Mpc units for k instead of 1/Mpc
 
         Returns
         -------
-        tk : dictionary containing all transfer functions.
-                For instance, the grid of values of 'd_c' (= delta_cdm) is available in tk['d_c']
-                All these grids have indices [index_k,index,z], for instance tk['d_c'][index_k,index,z]
-        k : vector of k values (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
-        z : vector of z values
+        tk : dict
+            Dictionary containing all transfer functions.
+            For instance, the grid of values of 'd_c' (= delta_cdm) is available in tk['d_c']
+            All these grids are indexed as [index_k,index,z], for instance tk['d_c'][index_k,index,z]
+        k : float array
+            Vector of wavenumbers indexed as k[index_k]
+        z : float array
+            Vector of redshifts indexed as k[index_z]
         """
         self.compute(["transfer"])
 
@@ -1421,27 +1908,33 @@ cdef class Class:
         free(data)
         return tk, k, z
 
-    #################################
-    # Gives a grid of values of the power spectrum of the quantity [k^2*(phi+psi)/2], where (phi+psi)/2 is the Weyl potential, together with the vectors of corresponding k and z values
     def get_Weyl_pk_and_k_and_z(self, nonlinear=False, h_units=False):
         """
-        Returns a grid of Weyl potential (phi+psi) power spectrum values and the z and k
-        at which it has been fully computed. Useful for creating interpolators.
-        Note that this function just calls get_pk_and_k_and_z and corrects the output
-        by the ratio of transfer functions [(phi+psi)/d_m]^2.
+        Return the power spectrum of the perturbation [k^2*(phi+psi)/2](k,z), together with the corresponding list of k and z values
+
+        Return the power spectrum of the perturbation [k^2*(phi+psi)/2](k,z), where (phi+psi)/2 is the Weyl potential transfer function, together with the corresponding list of k values (in 1/Mpc) and z values. The values are those defined internally in CLASS before interpolation. This function is useful for building interpolators.
+        Note that this function first gets P(k,z) and then corrects the output
+        by the ratio of transfer functions [k^2(phi+psi)/d_m]^2.
+        The optional argument nonlinear can be set to True for non-linear (default) or False for non-linear.
+        The optional argument h_units, set to False by default, can be set to True to have k in (h/Mpc).
+        This function requires that the 'ouput' field contains at least one of 'mTk' or 'vTk'.
+        The function returns a 2D grid of values for the Weyl potential.
 
         Parameters
         ----------
-        nonlinear : bool
-                Whether the returned power spectrum values are linear or non-linear (default)
-        h_units : bool
-                Whether the units of k in output are h/Mpc or 1/Mpc (default)
+        nonlinear : bool, optional
+            Whether to return the non-linear spectrum instead of the linear one
+        h_units : bool, optional
+            Whether to use Mpc/h and h/Mpc units instead of Mpc and 1/Mpc
 
         Returns
         -------
-        Weyl_pk : grid of Weyl potential (phi+psi) spectrum values, Weyl_pk[index_k,index_z]
-        k : vector of k values, k[index_k] (in units of 1/Mpc by default, or h/Mpc when setting h_units to True)
-        z : vector of z values, z[index_z]
+        Weyl_pk : float array
+            Grid of Weyl_pk indexed as Weyl_pk[index_k, index_z]
+        k : float array
+            Vector of wavenumbers indexed as k[index_k]
+        z : float array
+            Vector of redshifts indexed as k[index_z]
         """
         self.compute(["fourier"])
 
@@ -1479,21 +1972,35 @@ cdef class Class:
 
         return Weyl_pk, k, z
 
-    #################################
-    # Gives sigma(R,z) for a given (R,z)
     def sigma(self,R,z, h_units = False):
         """
-        Gives sigma (total matter) for a given R and z
-        (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z).
-         This is unless h_units is set to true, in which case R is the radius in units of Mpc/h,
-         and R=8 corresponds to sigma8(z))
+        Return sigma (total matter) for radius R and redhsift z
 
-        .. note::
+        Return sigma, the root mean square (rms) of the relative density fluctuation of
+        total matter (dimensionless) in spheres of radius R at redshift z. If R= 8 h/Mpc this will be the usual sigma8(z).
+        If the user passes a single value of R and z, the function returns sigma(R,z).
+        If the use rpasses an array of R and/or z values, the function sets the shape of the returned grid of sigma(R,z) accordingly.
 
-            there is an additional check to verify whether output contains `mPk`,
-            and whether k_max > ...
-            because otherwise a segfault will occur
+        If h_units = False (default), R is in unit of Mpc and sigma8 is obtained for R = 8/h.
+        If h_units = True, R is in unit of Mpc/h and sigma8 is obtained for R = 8.
 
+        This function requires that the 'ouput' field contains at
+        least 'mPk' and that 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc' are
+        such that k_max is bigger or equal to 1 h/Mpc.
+
+        Parameters
+        ----------
+        R : float
+            Radius of the spheres in which the rms is computed (single value or array)
+        z : float
+            Redshift (single value or array)
+        h_units : bool, optional
+            Whether to use Mpc/h instead of Mpc for R
+
+        Returns
+        -------
+        sigma : float
+            Rms of density fluctuation of total matter (single value or grid of values)
         """
         self.compute(["fourier"])
 
@@ -1520,20 +2027,35 @@ cdef class Class:
 
         return (sigmas[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigmas.reshape(len(zarr),len(Rarr))))
 
-    # Gives sigma_cb(R,z) for a given (R,z)
     def sigma_cb(self,double R,double z, h_units = False):
         """
-        Gives sigma (cdm+b) for a given R and z
-        (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
-         This is unless h_units is set to true, in which case R is the radius in units of Mpc/h,
-         and R=8 corresponds to sigma8(z))
+        Return sigma_cb (CDM+baryon) for radius R and redhsift z
 
-        .. note::
+        Return sigma_cb, the root mean square (rms) of the relative density fluctuation of
+        CDM+baryon (dimensionless) in spheres of radius R at redshift z. If R= 8 h/Mpc this will be the usual sigma8_cb(z).
+        If the user passes a single value of R and z, the function returns sigma_cb(R,z).
+        If the user passes an array of R and/or z values, the function sets the shape of the returned grid of sigma_cb(R,z) accordingly.
 
-            there is an additional check to verify whether output contains `mPk`,
-            and whether k_max > ...
-            because otherwise a segfault will occur
+        If h_units = False (default), R is in unit of Mpc and sigma8_cb is obtained for R = 8/h.
+        If h_units = True, R is in unit of Mpc/h and sigma8_cb is obtained for R = 8.
 
+        This function requires that the 'ouput' field contains at
+        least 'mPk' and that 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc' are
+        such that k_max is bigger or equal to 1 h/Mpc.
+
+        Parameters
+        ----------
+        R : float
+            Radius of the spheres in which the rms is computed (single value or array)
+        z : float
+            Redshift (single value or array)
+        h_units : bool, optional
+            Whether to use Mpc/h instead of Mpc for R
+
+        Returns
+        -------
+        sigma_cb : float
+            Rms of density fluctuation of CDM+baryon (single value or grid of values)
         """
         self.compute(["fourier"])
 
@@ -1563,16 +2085,28 @@ cdef class Class:
 
         return (sigmas_cb[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigmas_cb.reshape(len(zarr),len(Rarr))))
 
-    # Gives effective logarithmic slope of P_L(k,z) (total matter) for a given (k,z)
     def pk_tilt(self,double k,double z):
         """
-        Gives effective logarithmic slope of P_L(k,z) (total matter) for a given k and z
-        (k is the wavenumber in units of 1/Mpc, z is the redshift, the output is dimensionless)
+        Return the logarithmic slope of the linear matter power spectrum at k and z
 
-        .. note::
+        Return the logarithmic slope of the linear matter power
+        spectrum, d ln P / d ln k (dimensionless), at a given
+        wavenumber k (units of 1/Mpc) and redshift z.
 
-            there is an additional check to verify whether output contains `mPk` and whether k is in the right range
+        This function requires that the 'ouput' field contains at
+        least 'mPk'.
 
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
+
+        Returns
+        -------
+        pk_tilt : float
+            Logarithmic slope
         """
         self.compute(["fourier"])
 
@@ -1589,96 +2123,23 @@ cdef class Class:
 
         return pk_tilt
 
-    def age(self):
-        self.compute(["background"])
-        return self.ba.age
-
-    def h(self):
-        return self.ba.h
-
-    def n_s(self):
-        return self.pm.n_s
-
-    def tau_reio(self):
-        self.compute(["thermodynamics"])
-        return self.th.tau_reio
-
-    def Omega_m(self):
-        return self.ba.Omega0_m
-
-    def Omega_r(self):
-        return self.ba.Omega0_r
-
-    def theta_s_100(self):
-        self.compute(["thermodynamics"])
-        return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
-
-    def theta_star_100(self):
-        self.compute(["thermodynamics"])
-        return 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
-
-    def Omega_Lambda(self):
-        return self.ba.Omega0_lambda
-
-    def Omega_g(self):
-        return self.ba.Omega0_g
-
-    def Omega_b(self):
-        return self.ba.Omega0_b
-
-    def omega_b(self):
-        return self.ba.Omega0_b * self.ba.h * self.ba.h
-
-    def Neff(self):
-        self.compute(["background"])
-        return self.ba.Neff
-
-    def k_eq(self):
-        self.compute(["background"])
-        return self.ba.a_eq*self.ba.H_eq
-
-    def z_eq(self):
-        self.compute(["background"])
-        return 1./self.ba.a_eq-1.
-
-    def sigma8(self):
-        self.compute(["fourier"])
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
-        return self.fo.sigma8[self.fo.index_pk_m]
-
-    def S8(self):
-        return self.sigma8()*np.sqrt(self.Omega_m()/0.3)
-
-    #def neff(self):
-    #    self.compute(["harmonic"])
-    #    return self.hr.neff
-
-    def sigma8_cb(self):
-        self.compute(["fourier"])
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
-        return self.fo.sigma8[self.fo.index_pk_cb]
-
-    def rs_drag(self):
-        self.compute(["thermodynamics"])
-        return self.th.rs_d
-
-    def z_reio(self):
-        self.compute(["thermodynamics"])
-        return self.th.z_reio
-
     def angular_distance(self, z):
         """
-        angular_distance(z)
+        Return the angular diameter distance at z
 
-        Return the angular diameter distance (exactly, the quantity defined by Class
-        as index_bg_ang_distance in the background module)
+        Return the angular diameter distance (units of Mpc) at redshift z.
+        If the user passes a single value of z, the function returns angular_distance(z).
+        If the user passes an array of z values, the function sets the shape of angular_distance(z) accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        angular_distance : float
+            Angular distance (single value or array)
         """
         self.compute(["background"])
 
@@ -1701,26 +2162,26 @@ cdef class Class:
 
         return (D_A[0] if np.isscalar(z) else D_A)
 
-    #################################
-    # Get angular diameter distance of object at z2 as seen by observer at z1,
     def angular_distance_from_to(self, z1, z2):
         """
-        angular_distance_from_to(z)
+        Return the angular diameter distance of object at z2 as seen by observer at z1
 
-        Return the angular diameter distance of object at z2 as seen by observer at z1,
-        that is, sin_K((chi2-chi1)*np.sqrt(|k|))/np.sqrt(|k|)/(1+z2).
-        If z1>z2 returns zero.
+        Return the angular diameter distance (units of Mpc) of object
+        at z2 as seen by observer at z1, that is,
+        sin_K((chi2-chi1)*np.sqrt(|k|))/np.sqrt(|k|)/(1+z2).  If
+        z1>z2, returns zero.
 
         Parameters
         ----------
         z1 : float
-                Observer redshift
+            Observer redshift
         z2 : float
-                Source redshift
+            Source redshift
 
         Returns
         -------
-        d_A(z1,z2) in Mpc
+        angular_distance_from_to : float
+            Angular distance
         """
         self.compute(["background"])
 
@@ -1758,14 +2219,21 @@ cdef class Class:
 
     def comoving_distance(self, z):
         """
-        comoving_distance(z)
+        Return the comoving distance at z
 
-        Return the comoving distance
+        Return the comoving distance (units of Mpc) at redshift z.
+        If the user passes a single value of z, the function returns comoving_distance(z).
+        If the user passes an array of z values, the function sets the shape of comoving_distance(z) accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        r : float
+            Comoving distance (single value or array)
         """
         self.compute(["background"])
 
@@ -1790,15 +2258,28 @@ cdef class Class:
 
     def scale_independent_growth_factor(self, z):
         """
-        scale_independent_growth_factor(z)
+        Return the scale-independent growth factor at z
 
-        Return the scale invariant growth factor D(a) for CDM perturbations
-        (exactly, the quantity defined by Class as index_bg_D in the background module)
+        Return the scale-independent growth factor D(z) for CDM
+        perturbations (dimensionless).  CLASS finds this quantity by
+        solving the background equation D'' + a H D' + 3/2 a^2 \rho_M
+        D = 0, where ' stands for a derivative w.r.t conformal time. D
+        is normalized to 1 today. By default, in this equation, rho_M
+        is obtained by summing over baryons and cold dark matter
+        (possibly including interacting CDM), but not over
+        rho_ncdm. This means that in models with massive neutrinos D
+        is a approximation for the growth factor in the small-scale
+        (large-k) limit (the limit in which neutrinos free stream).
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Desired redshift
+
+        Returns
+        -------
+        D : float
+            Scale-independent growth factor D(z)
         """
         self.compute(["background"])
 
@@ -1823,15 +2304,28 @@ cdef class Class:
 
     def scale_independent_growth_factor_f(self, z):
         """
-        scale_independent_growth_factor_f(z)
+        Return the scale-independent growth rate at z
 
-        Return the scale independent growth factor f(z)=d ln D / d ln a for CDM perturbations
-        (exactly, the quantity defined by Class as index_bg_f in the background module)
+        Return the scale-independent growth rate f(z) = (d ln D / d ln
+        a) for CDM perturbations (dimensionless). CLASS finds D by
+        solving the background equation D'' + a H D' + 3/2 a^2 \rho_M
+        D = 0, where ' stands for a derivative w.r.t conformal
+        time. By default, in this equation, rho_M is obtained by
+        summing over baryons and cold dark matter (possibly including
+        interacting CDM), but not over rho_ncdm. This means that in
+        models with massive neutrinos f is a approximation for the
+        growth rate in the small-scale (large-k) limit (the limit in
+        which neutrinos free stream).
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Desired redshift
+
+        Returns
+        -------
+        f : float
+            Scale-independent growth rate f(z)
         """
         self.compute(["background"])
 
@@ -1854,22 +2348,49 @@ cdef class Class:
 
         return (f[0] if np.isscalar(z) else f)
 
-    #################################
-    def scale_dependent_growth_factor_f(self, k, z, h_units=False, nonlinear=False, Nz=20):
+    def scale_dependent_growth_factor_f(self, k, z, h_units=False, nonlinear=False):
         """
-        scale_dependent_growth_factor_f(k,z)
+        Return the scale-dependent growth rate of total matter at z
 
-        Return the scale dependent growth factor
-        f(z)= 1/2 * [d ln P(k,a) / d ln a]
-            = - 0.5 * (1+z) * [d ln P(k,z) / d z]
-        where P(k,z) is the total matter power spectrum
+        Return the scale-dependent growth rate for total matter perturbations (dimensionless):
+
+        f(k,z) = (d ln delta_m / d ln a)
+
+        The growth rate is actually inferred from the matter power
+        spectrum rather than from the delta_m perturbation, as:
+
+        f(k,z)= 1/2 * [d ln P_m(k,a) / d ln a] = - 0.5 * (1+z) * [d ln P_m(k,z) / d z]
+
+        where P_m(k,z) is the total matter power spectrum. This is
+        evaluated using a numerical derivative computed with the
+        function UnivariateSpline of the module scipy.interpolate
+        (with option s=0 in UnivariateSpline).
+
+        If h_units = False (default), k is in unit of 1/Mpc.
+        If h_units = True, k is in unit of h/Mpc.
+
+        If nonlinear=False (default), estimate f from the linear power spectrum.
+        If nonlinear=True, estimate f from the non-linear power spectrum.
+
+        This function requires that the 'ouput' field contains at
+        least 'mPk'. It also requires that the user asks for P(k,z) at redshifts
+        larger than 0, or sets 'z_max_pk' to a non-zero value.
 
         Parameters
         ----------
-        z : float
-                Desired redshift
         k : float
-                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+            Wavenumber
+        z : float
+            Redshift
+        h_units : bool, optional
+            Whether to pass k in units of h/Mpc instead of 1/Mpc
+        nonlinear : bool, optional
+            Whether to compute f from the non-linear power spectrum instead of the linear one
+
+        Returns
+        -------
+        f : float
+            Scale-dependent growth rate f(k,z)
         """
         self.compute(["fourier"])
 
@@ -1930,22 +2451,49 @@ cdef class Class:
 
         return f
 
-    #################################
-    def scale_dependent_growth_factor_f_cb(self, k, z, h_units=False, nonlinear=False, Nz=20):
+    def scale_dependent_growth_factor_f_cb(self, k, z, h_units=False, nonlinear=False):
         """
-        scale_dependent_growth_factor_f_cb(k,z)
+        Return the scale-dependent growth rate of CDM+baryon at z
 
-        Return the scale dependent growth factor calculated from CDM+baryon power spectrum P_cb(k,z)
-        f(z)= 1/2 * [d ln P_cb(k,a) / d ln a]
-            = - 0.5 * (1+z) * [d ln P_cb(k,z) / d z]
+        Return the scale-dependent growth rate for CDM+baryon perturbations (dimensionless):
 
+        f(k,z) = (d ln delta_cb / d ln a)
+
+        The growth rate is actually inferred from the matter power
+        spectrum rather than from the delta_cb perturbation, as:
+
+        f(k,z)= 1/2 * [d ln P_cb(k,a) / d ln a] = - 0.5 * (1+z) * [d ln P_cb(k,z) / d z]
+
+        where P_cb(k,z) is the CDM+baryon power spectrum. This is
+        evaluated using a numerical derivative computed with the
+        function UnivariateSpline of the module scipy.interpolate
+        (with option s=0 in UnivariateSpline).
+
+        If h_units = False (default), k is in unit of 1/Mpc.
+        If h_units = True, k is in unit of h/Mpc.
+
+        If nonlinear=False (default), estimate f from the linear power spectrum.
+        If nonlinear=True, estimate f from the non-linear power spectrum.
+
+        This function requires that the 'ouput' field contains at
+        least 'mPk'. It also requires that the user asks for P(k,z) at redshifts
+        larger than 0, or sets 'z_max_pk' to a non-zero value.
 
         Parameters
         ----------
-        z : float
-                Desired redshift
         k : float
-                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+            Wavenumber
+        z : float
+            Redshift
+        h_units : bool, optional
+            Whether to pass k in units of h/Mpc instead of 1/Mpc
+        nonlinear : bool, optional
+            Whether to compute f from the non-linear power spectrum instead of the linear one
+
+        Returns
+        -------
+        f : float
+            Scale-dependent growth rate f_cb(k,z)
         """
         self.compute(["fourier"])
 
@@ -2006,22 +2554,42 @@ cdef class Class:
 
         return f
 
-    #################################
-
-    def scale_dependent_growth_factor_D(self, k, z, h_units=False, nonlinear=False, Nz=20):
+    def scale_dependent_growth_factor_D(self, k, z, h_units=False, nonlinear=False):
         """
-        scale_dependent_growth_factor_D(k,z)
+        Return the scale-dependent growth factor of total matter at z
 
-        Return the scale dependent growth factor
-        D(z)= sqrt[ P(k,a)/P(k,z_0) ]
-        where P(k,z) is the total matter power spectrum
+        Return the scale-dependent growth factor D for total matter perturbations (dimensionless).
+
+        The growth factor is actually inferred from the matter power
+        spectrum rather than from the delta_m perturbation, as:
+
+        D(k,z) = sqrt[ P_m(k,z)/P_m(k,0) ]
+
+        where P_m(k,z) is the total matter power spectrum.
+
+        If h_units = False (default), k is in unit of 1/Mpc.
+        If h_units = True, k is in unit of h/Mpc.
+
+        If nonlinear=False (default), estimate f from the linear power spectrum.
+        If nonlinear=True, estimate f from the non-linear power spectrum.
+
+        This function requires that the 'ouput' field contains at least 'mPk'.
 
         Parameters
         ----------
-        z : float
-                Desired redshift
         k : float
-                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+            Wavenumber
+        z : float
+            Redshift
+        h_units : bool, optional
+            Whether to pass k in units of h/Mpc instead of 1/Mpc
+        nonlinear : bool, optional
+            Whether to compute f from the non-linear power spectrum instead of the linear one
+
+        Returns
+        -------
+        D : float
+            Scale-dependent growth factor D(k,z)
         """
         self.compute(["fourier"])
 
@@ -2056,21 +2624,42 @@ cdef class Class:
 
         return D
 
-    #################################
-    def scale_dependent_growth_factor_D_cb(self, k, z, h_units=False, nonlinear=False, Nz=20):
+    def scale_dependent_growth_factor_D_cb(self, k, z, h_units=False, nonlinear=False):
         """
-        scale_dependent_growth_factor_D_cb(k,z)
+        Return the scale-dependent growth factor of CDM+baryon at z
 
-        Return the scale dependent growth factor calculated from CDM+baryon power spectrum P_cb(k,z)
-        D_cb(z)= sqrt[P_cb(k,a) / P_cb(k,a_0)]
-        where P_cb(k,z) is the CDM+baryon power spectrum
+        Return the scale-dependent growth factor D_cb for CDM+baryon perturbations (dimensionless).
+
+        The growth factor is actually inferred from the matter power
+        spectrum rather than from the delta_m perturbation, as:
+
+        D_cb(k,z) = sqrt[ P_cb(k,z)/P_cb(k,0) ]
+
+        where P_cb(k,z) is the total matter power spectrum.
+
+        If h_units = False (default), k is in unit of 1/Mpc.
+        If h_units = True, k is in unit of h/Mpc.
+
+        If nonlinear=False (default), estimate f from the linear power spectrum.
+        If nonlinear=True, estimate f from the non-linear power spectrum.
+
+        This function requires that the 'ouput' field contains at least 'mPk'.
 
         Parameters
         ----------
-        z : float
-                Desired redshift
         k : float
-                Desired wavenumber in 1/Mpc (if h_units=False) or h/Mpc (if h_units=True)
+            Wavenumber
+        z : float
+            Redshift
+        h_units : bool, optional
+            Whether to pass k in units of h/Mpc instead of 1/Mpc
+        nonlinear : bool, optional
+            Whether to compute f from the non-linear power spectrum instead of the linear one
+
+        Returns
+        -------
+        D_cb : float
+            Scale-dependent growth factor D_cb(k,z)
         """
         self.compute(["fourier"])
 
@@ -2105,45 +2694,59 @@ cdef class Class:
 
         return D_cb
 
-    #################################
-
-    # gives f(z)*sigma8(z) where f(z) is the scale-independent growth factor
     def scale_independent_f_sigma8(self, z):
         """
-        scale_independent_f_sigma8(z)
+        Return sigma8 * f(z)
 
-        Return the scale independent growth factor f(z) multiplied by sigma8(z)
+        Return the scale-independent growth rate f(z) multiplied by
+        sigma8(z) (dimensionless). The scale-independent growth rate
+        f(z) is inferred from the scale-independent growth factor
+        D(z), itself obtained by solving a background equation.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
 
         Returns
         -------
-        f(z)*sigma8(z) (dimensionless)
+        scale_independent_f_sigma8 : float
+            f(z)*sigma8(z) (single value or array)
         """
         return self.scale_independent_growth_factor_f(z)*self.sigma(8,z,h_units=True)
 
-    #################################
-    # gives an estimation of f(z)*sigma8(z) at the scale of 8 h/Mpc, computed as (d sigma8/d ln a)
     def effective_f_sigma8(self, z, z_step=0.1):
         """
-        effective_f_sigma8(z)
+        Return sigma8(z) * f(k,z) estimated near k = 8 h/Mpc
 
-        Returns the time derivative of sigma8(z) computed as (d sigma8/d ln a)
+        Return the growth rate f(k,z) estimated near k = 8 h/Mpc and multiplied by
+        sigma8(z) (dimensionless). The product is actually directly inferred from sigma(R,z) as:
+
+        sigma8(z) * f(k=8h/Mpc,z) = d sigma8 / d ln a = - (d sigma8 / dz)*(1+z)
+
+        In the general case the quantity (d sigma8 / dz) is inferred
+        from the two-sided finite difference between z+z_step and
+        z-z_step. For z < z_step the step is reduced progressively
+        down to z_step/10 while sticking to a double-sided
+        derivative. For z< z_step/10 a single-sided derivative is used
+        instead. (default: z_step=0.1)
+
+        The input z can be a single value or an array of values. The
+        output has the same shape.
 
         Parameters
         ----------
         z : float
-                Desired redshift
-        z_step : float
-                Default step used for the numerical two-sided derivative. For z < z_step the step is reduced progressively down to z_step/10 while sticking to a double-sided derivative. For z< z_step/10 a single-sided derivative is used instead.
+            Redshift (single value or array)
+        z_step : float, optional
+            Step in redshift space for the finite difference method
 
         Returns
         -------
-        (d ln sigma8/d ln a)(z) (dimensionless)
+        effective_f_sigma8 : float
+            sigma8(z) * f(k=8 h/Mpc,z) (single value or array)
         """
+        self.compute(["fourier"])
 
         # we need d sigma8/d ln a = - (d sigma8/dz)*(1+z)
         if hasattr(z, "__len__"):
@@ -2165,24 +2768,33 @@ cdef class Class:
                 z_step /=10
                 return (self.sigma(8,z,h_units=True)-self.sigma(8,z+z_step,h_units=True))/z_step*(1+z)
 
-    #################################
-    # gives an estimation of f(z)*sigma8(z) at the scale of 8 h/Mpc, computed as (d sigma8/d ln a)
     def effective_f_sigma8_spline(self, z, Nz=20):
         """
-        effective_f_sigma8_spline(z)
+        Return sigma8(z) * f(k,z) estimated near k = 8 h/Mpc
 
-        Returns the time derivative of sigma8(z) computed as (d sigma8/d ln a)
+        Return the growth rate f(k,z) estimated near k = 8 h/Mpc and multiplied by
+        sigma8(z) (dimensionless). The product is actually directly inferred from sigma(R,z) as:
+
+        sigma8(z) * f(k=8h/Mpc,z) = d sigma8 / d ln a = - (d sigma8 / dz)*(1+z)
+
+        The derivative is inferred from a cubic spline method with Nz
+        points, using the CubicSpline().derivative() method of the
+        scipy.interpolate module (Nz=20 by default).
+
+        The input z can be a single value or an array of values. The
+        output has the same shape.
 
         Parameters
         ----------
         z : float
-                Desired redshift
-        Nz : integer
-                Number of values used to spline sigma8(z) in the range [z-0.1,z+0.1]
+            Redshift (single value or array)
+        Nz : float, optional
+            Number of samples for the spline method
 
         Returns
         -------
-        (d ln sigma8/d ln a)(z) (dimensionless)
+        effective_f_sigma8 : float
+            sigma8(z) * f(k=8 h/Mpc,z) (single value or array)
         """
         self.compute(["fourier"])
 
@@ -2211,15 +2823,22 @@ cdef class Class:
         sig8_array = self.sigma(8,z_array,h_units=True)
         return -CubicSpline(z_array,sig8_array).derivative()(z)*(1+z)
 
-   #################################
     def z_of_tau(self, tau):
         """
-        Redshift corresponding to a given conformal time.
+        Return the redshift corresponding to a given conformal time.
+
+        Return the redshift z (units of Mpc) corresponding to a given conformal time tau (units of Mpc).
+        The user can pass a single tau or an array of tau. The shape of the output z is set accordingly.
 
         Parameters
         ----------
         tau : float
-                Conformal time
+            Conformal time (single value or array)
+
+        Returns
+        -------
+        z : float
+            Redshift (single value or array)
         """
         self.compute(["background"])
 
@@ -2244,15 +2863,20 @@ cdef class Class:
 
     def Hubble(self, z):
         """
-        Hubble(z)
+        Return Hubble(z)
 
-        Return the Hubble rate (exactly, the quantity defined by Class as index_bg_H
-        in the background module)
+        Return the Hubble rate H(z) - more precisely, the inverse Hubble radius H(z)/c (units 1/Mpc).
+        The user can pass a single z or an array of z. The shape of the output z is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift single value or array)
+
+        Returns
+        -------
+        H : float
+            Hubble rate (single value or array)
         """
         self.compute(["background"])
 
@@ -2277,15 +2901,20 @@ cdef class Class:
 
     def Om_m(self, z):
         """
-        Omega_m(z)
+        Return the fractional density Omega of matter at z
 
-        Return the matter density fraction (exactly, the quantity defined by Class as index_bg_Omega_m
-        in the background module)
+        Return the fractional density Omega(z) of total matter at redshift z (dimensionless).
+        The user can pass a single z or an array of z. The shape of the output is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift single value or array)
+
+        Returns
+        -------
+        Om_m : float
+            Omega_m(z) (single value or array)
         """
         self.compute(["background"])
 
@@ -2310,15 +2939,20 @@ cdef class Class:
 
     def Om_b(self, z):
         """
-        Omega_b(z)
+        Return the fractional density Omega of baryons at z
 
-        Return the baryon density fraction (exactly, the ratio of quantities defined by Class as
-        index_bg_rho_b and index_bg_rho_crit in the background module)
+        Return the fractional density Omega(z) of baryons at redshift z (dimensionless).
+        The user can pass a single z or an array of z. The shape of the output is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        Om_b : float
+            Omega_b(z) (single value or array)
         """
         self.compute(["background"])
 
@@ -2343,15 +2977,20 @@ cdef class Class:
 
     def Om_cdm(self, z):
         """
-        Omega_cdm(z)
+        Return the fractional density Omega of CDM at z
 
-        Return the cdm density fraction (exactly, the ratio of quantities defined by Class as
-        index_bg_rho_cdm and index_bg_rho_crit in the background module)
+        Return the fractional density Omega(z) of CDM at redshift z (dimensionless).
+        The user can pass a single z or an array of z. The shape of the output is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        Om_cdm : float
+            Omega_cdm(z) (single value or array)
         """
         self.compute(["background"])
 
@@ -2379,15 +3018,20 @@ cdef class Class:
 
     def Om_ncdm(self, z):
         """
-        Omega_ncdm(z)
+        Return the fractional density Omega of non-cold dark matter at z
 
-        Return the ncdm density fraction (exactly, the ratio of quantities defined by Class as
-        Sum_m [ index_bg_rho_ncdm1 + n ], with n=0...N_ncdm-1, and index_bg_rho_crit in the background module)
+        Return the fractional density Omega(z) of non-cold dark matter at redshift z (dimensionless).
+        The user can pass a single z or an array of z. The shape of the output is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        Om_ncdm : float
+            Omega_ncdm(z) (single value or array)
         """
         self.compute(["background"])
 
@@ -2418,14 +3062,23 @@ cdef class Class:
 
     def ionization_fraction(self, z):
         """
-        ionization_fraction(z)
+        Return the electron ionization fraction x_e(z)
 
-        Return the ionization fraction for a given redshift z
+        Return the electron ionization fraction x_e (dimensionless)
+        for a given redshift z. CLASS sticks to the standard
+        definition x_e = n_free_electrons / n_H, such that x_e can be
+        bigger than one due to Helium.
+        The user can pass a single z or an array of z. The shape of the output is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        xe : float
+            Electron ionization fraction (single value or array)
         """
         self.compute(["thermodynamics"])
 
@@ -2459,14 +3112,20 @@ cdef class Class:
 
     def baryon_temperature(self, z):
         """
-        baryon_temperature(z)
+        Return the baryon temperature T_b(z)
 
-        Give the baryon temperature for a given redshift z
+        Return the baryon temperature T_b (units of K) for a given redshift z.
+        The user can pass a single z or an array of z. The shape of the output is set accordingly.
 
         Parameters
         ----------
         z : float
-                Desired redshift
+            Redshift (single value or array)
+
+        Returns
+        -------
+        Tb : float
+            Baryon temperature (single value or array)
         """
         self.compute(["thermodynamics"])
 
@@ -2498,30 +3157,31 @@ cdef class Class:
 
         return (Tb[0] if np.isscalar(z) else Tb)
 
-    def T_cmb(self):
-        """
-        Return the CMB temperature
-        """
-        return self.ba.T_cmb
-
-    # redundent with a previous Omega_m() funciton,
-    # but we leave it not to break compatibility
-    def Omega0_m(self):
-        """
-        Return the sum of Omega0 for all non-relativistic components
-        """
-        return self.ba.Omega0_m
-
     def get_background(self):
         """
-        Return an array of the background quantities at all times.
+        Return all background quantities
+
+        Return a dictionary of background quantities at all times.
+        The name and list of quantities in the returned dictionary are
+        defined in CLASS, in background_output_titles() and
+        background_output_data(). The keys of the dictionary refer to
+        redshift 'z', proper time 'proper time [Gyr]', conformal time
+        'conf. time [Mpc]', and many quantities such as the Hubble
+        rate, distances, densities, pressures, or growth factors. For
+        each key, the dictionary contains an array of values
+        corresponding to each sampled value of time.
+
+        This function works for whatever request in the 'output'
+        field, and even if 'output' was not passed or left blank.
 
         Parameters
         ----------
+        None
 
         Returns
         -------
-        background : dictionary containing background.
+        background : dict
+            Dictionary of all background quantities at each time
         """
         self.compute(["background"])
 
@@ -2559,11 +3219,30 @@ cdef class Class:
 
     def get_thermodynamics(self):
         """
-        Return the thermodynamics quantities.
+        Return all thermodynamics quantities
+
+        Return a dictionary of thermodynbamics quantities at all
+        times.  The name and list of quantities in the returned
+        dictionary are defined in CLASS, in
+        thermodynamics_output_titles() and
+        thermodynamics_output_data(). The keys of the dictionary
+        refer to the scale factor 'scale factor a', redshift 'z',
+        conformal time 'conf. time [Mpc]', and many quantities such as
+        the electron ionization fraction, scattering rates,
+        temperatures, etc. For each key, the dictionary contains an
+        array of values corresponding to each sampled value of time.
+
+        This function works for whatever request in the 'output'
+        field, and even if 'output' was not passed or left blank.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
-        thermodynamics : dictionary containing thermodynamics.
+        thermodynamics : dict
+            Dictionary of all thermodynamics quantities at each time
         """
         self.compute(["thermodynamics"])
 
@@ -2602,12 +3281,27 @@ cdef class Class:
 
     def get_primordial(self):
         """
-        Return the primordial scalar and/or tensor spectrum depending on 'modes'.
-        'output' must be set to something, e.g. 'tCl'.
+        Return primordial spectra
+
+        Return the primordial scalar spectrum, and possibly the
+        primordial tensor spectrum if 'modes' includes 't'.  The name
+        and list of quantities in the returned dictionary are defined
+        in CLASS, in primordial_output_titles() and
+        primordial_output_data().  The keys are 'k [1/Mpc]',
+        'P_scalar(k)' and possibly 'P_tensor(k)'. For each key, the
+        dictionary contains an array of values corresponding to each
+        sampled wavenumber.
+
+        This function requires that 'output' is set to something, e.g. 'tCl' or 'mPk'.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
-        primordial : dictionary containing k-vector and primordial scalar and tensor P(k).
+        primordial : dict
+            Dictionary of primordial spectra at each wavenumber
         """
         self.compute(["primordial"])
 
@@ -2646,25 +3340,43 @@ cdef class Class:
 
     def get_perturbations(self, return_copy=True):
         """
-        Return scalar, vector and/or tensor perturbations as arrays for requested
-        k-values.
+        Return transfer function evolution for selected wavenumbers
 
-        .. note::
+        Return an array of dictionaries of transfer functions at all
+        times (dimensionless). There is one dictionary for each
+        requested mode in the list 'scalars', 'vectors', tensors', and
+        for each wavenumbers requested by the user with the input
+        parameter 'k_output_values' (units of 1/Mpc). For instance,
+        perturbations['scalars'][0] could be one of the dictionaries.
 
-            you need to specify both 'k_output_values', and have some
-            perturbations computed, for instance by setting 'output' to 'tCl'.
+        For each requested mode and wavenumber, the name and list of
+        quantities in the returned dictionary are defined in CLASS, in
+        perturbations_output_titles() and perturbations_output_data(),
+        sticking to the 'class' format. The keys of the dictionary
+        refer to wavnumbers 'k (h/Mpc)', density fluctuations 'd_g',
+        etc., velocity perturbations 't_g', etc., and metric
+        perturbations. For each key, the dictionary contains an array
+        of values corresponding to each sampled value of time. An
+        example of such array would be:
 
-            Do not enable 'return_copy=False' unless you know exactly what you are doing.
-            This will mean that you get access to the direct C pointers inside CLASS.
-            That also means that if class is deallocated,
-            your perturbations array will become invalid. Beware!
+        perturbations['scalars'][0]['d_g'].
+
+        Do not enable 'return_copy=False' unless you know exactly what
+        you are doing.  This will mean that you get access to the
+        direct C pointers inside CLASS.  That also means that if CLASS
+        is deallocated, your perturbations array will become invalid.
+
+        This function requires setting 'output' to somethings, for instance 'tCl' or 'mPk'.
+
+        Parameters
+        ----------
+        return_copy : bool, optional
+            Whether to return an exact copy of a memory area defined by C pointers inside CLASS
 
         Returns
         -------
-        perturbations : dict of array of dicts
-                perturbations['scalar'] is an array of length 'k_output_values' of
-                dictionary containing scalar perturbations.
-                Similar for perturbations['vector'] and perturbations['tensor'].
+        perturbations : dict
+            Array of dictionaries of all transfer functions at each time
         """
         self.compute(["perturbations"])
 
@@ -2720,20 +3432,40 @@ cdef class Class:
 
     def get_transfer(self, z=0., output_format='class'):
         """
-        Return the density and/or velocity transfer functions for all initial
-        conditions today. You must include 'mTk' and/or 'vCTk' in the list of
-        'output'. The transfer functions can also be computed at higher redshift z
-        provided that 'z_pk' has been set and that 0<z<z_pk.
+        Return all scalar transfer functions at z
+
+        Return a dictionary of transfer functions at all wavenumbers
+        for scalar perturbations and at redshift z.  The name and list
+        of quantities in the returned dictionary are defined in CLASS,
+        in perturbations_output_titles() and
+        perturbations_output_data(), using either the 'class' format
+        (default) or 'camb' format. The keys of the dictionary refer
+        to wavenumbers 'k (h/Mpc)', and in 'class' format, to density
+        fluctuations 'd_g', etc., velocity perturbations 't_g', etc.,
+        and metric perturbations. In 'camb' format, besides
+        wavenumbers 'k (h/Mpc)', the returned transfer functions are
+        '-T_g/k2', etc.  For each key, the dictionary contains an
+        array of values corresponding to each sampled value of
+        wavenumber.
+
+        This function works if 'output' contains at least 'mTk' for
+        density transfer function and/or 'vTk' for velocity transfer
+        functions. To get the transfer functions at some z>0, the user
+        must set 'z_pk' or 'z_max_pk' to a value equal or bigger to
+        the requested one.
 
         Parameters
         ----------
-        z  : redshift (default = 0)
-        output_format  : ('class' or 'camb') Format transfer functions according to
-                         CLASS convention (default) or CAMB convention.
+        z : float, optional
+            Redshift (0 by default)
+
+        output_format : str, optional
+            Output format, one of 'class' (defualt) or 'camb'
 
         Returns
         -------
-        tk : dictionary containing transfer functions.
+        transfers : dict
+            Dictionary of all transfer functions at each wavenumber
         """
         self.compute(["transfer"])
 
@@ -2799,29 +3531,21 @@ cdef class Class:
 
     def get_current_derived_parameters(self, names):
         """
-        get_current_derived_parameters(names)
+        Return a dictionary of numbers computed internally by CLASS
 
-        Return a dictionary containing an entry for all the names defined in the
-        input list.
+        Return a dictionary containing an entry for each of the names defined in the input list 'names'. These names have to match the list defined inside this function, that is, belong to the list: 'h', 'H0' (units of km/s/Mpc), 'Omega0_lambda', 'Omega_Lambda', 'Omega0_fld', 'age' (units of Gyr), 'conformal_age' (units of Mpc), 'm_ncdm_in_eV' (units of eV), 'm_ncdm_tot' (units of eV), 'Neff', 'Omega_m', 'omega_m', 'xi_idr', 'N_dg', 'Gamma_0_nadm', 'a_dark', 'tau_reio', 'z_reio', 'z_rec', 'tau_rec' (units of Mpc), 'rs_rec' (units of Mpc), 'rs_rec_h' (units of Mpc/h), 'ds_rec' (units of Mpc), 'ds_rec_h' (units of Mpc/h), 'ra_rec' (units of Mpc), 'ra_rec_h' (units of Mpc/h), 'da_rec'(units of Mpc), 'da_rec_h' (units of Mpc/h), 'z_star', 'tau_star' (units of Mpc), 'rs_star' (units of Mpc), 'ds_star' (units of Mpc), 'ra_star' (units of Mpc), 'da_star' (units of Mpc), 'rd_star' (units of Mpc), 'z_d', 'tau_d' (units of Mpc), 'ds_d' (units of Mpc), 'ds_d_h' (units of Mpc/h), 'rs_d' (units of Mpc), 'rs_d_h' (units of Mpc/h), 'conf_time_reio' (units of Mpc), '100*theta_s', '100*theta_star', 'theta_s_100', 'theta_star_100', 'YHe', 'n_e', 'A_s', 'ln10^{10}A_s', 'ln_A_s_1e10', 'n_s', 'alpha_s', 'beta_s', 'r', 'r_0002', 'n_t', 'alpha_t', 'V_0', 'V_1', 'V_2', 'V_3', 'V_4', 'epsilon_V', 'eta_V', 'ksi_V^2', 'exp_m_2_tau_As', 'phi_min', 'phi_max', 'sigma8', 'sigma8_cb', 'k_eq' (units of 1/Mpc), 'a_eq', 'z_eq', 'H_eq' (units of 1/Mpc), 'tau_eq' (units of Mpc), 'g_sd', 'y_sd', 'mu_sd'.
+
+        For instance, to get the age of the universe in Gyr and the Hubble parameter in km/s/Mpc, the user may call .get_current_derived_parameters(['age','H0']), store the result in a dictionary 'derived', and retrieve these values as age=derived['age'] and H0=derived['H0'].
 
         Parameters
         ----------
-        names : list
-                Derived parameters that can be asked from Monte Python, or
-                elsewhere.
+        names : str list
+            Names defined inside this function, associated to quantities computed internally by CLASS
 
         Returns
         -------
         derived : dict
-
-        .. warning::
-
-            This method used to take as an argument directly the data class from
-            Monte Python. To maintain compatibility with this old feature, a
-            check is performed to verify that names is indeed a list. If not, it
-            returns a TypeError. The old version of this function, when asked
-            with the new argument, will raise an AttributeError.
-
+            Dictionary whose keys are the input names, and whose values are numbers extracted from the CLASS structures
         """
         if type(names) != type([]):
             raise TypeError("Deprecated")
@@ -3020,17 +3744,24 @@ cdef class Class:
 
     def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
-        nonlinear_scale(z, z_size)
+        Return the wavenumber associated to the nonlinearity scale for an array of redshifts
 
-        Return the nonlinear scale for all the redshift specified in z, of size
-        z_size
+        Return the wavenumber k_nl(z) associated to the nonlinearity
+        scale for an array of z_size redshifts. The nonlinearity
+        scale is defined and computed within the Halofit or HMcode
+        external modules.
 
         Parameters
         ----------
-        z : numpy array
-                Array of requested redshifts
+        z : float array
+            Array of requested redshifts
         z_size : int
-                Size of the redshift array
+            Size of the redshift array
+
+        Returns
+        -------
+        k_nl : float array
+            Array of k_nl (z)
         """
         self.compute(["fourier"])
 
@@ -3047,19 +3778,25 @@ cdef class Class:
 
     def nonlinear_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
+        Return the wavenumber associated to the nonlinearity scale (computed using the CDM+baryon spectrum) for an array of redshifts
 
-make        nonlinear_scale_cb(z, z_size)
-
-        Return the nonlinear scale for all the redshift specified in z, of size
-
-        z_size
+        Return the wavenumber k_nl_cb(z) associated to the
+        nonlinearity scale (computed using the CDM+baryon spectrum)
+        for an array of z_size redshifts. The nonlinearity scale is
+        defined and computed within the Halofit or HMcode external
+        modules.
 
         Parameters
         ----------
-        z : numpy array
-                Array of requested redshifts
+        z : float array
+            Array of requested redshifts
         z_size : int
-                Size of the redshift array
+            Size of the redshift array
+
+        Returns
+        -------
+        k_nl_cb  : float array
+            Array of k_nl_cb(z)
         """
         self.compute(["fourier"])
 
@@ -3113,12 +3850,46 @@ make        nonlinear_scale_cb(z, z_size)
         ctx.add('cosmo', self)
 
     def get_pk_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
-        """ Fast function to get the power spectrum on a k and z array """
+        """
+        Return the total matter power spectrum P_m(k,z) computed with a fast method on a k and z array
+
+        Return the total matter power spectrum P_m(k,z) (in Mpc**3)
+        for an array of k values (in 1/Mpc) and z values, computed
+        using a faster algorithm that with .get_pk(). The output is a
+        flattened array index as pk[index_z*k_size+index_k].
+
+        This function requires that the 'ouput' field contains at
+        least 'mPk'.
+
+        If 'non linear' is set to a non-linear method in CLASS, this
+        function returns either the linear or non-linear power
+        spectrum, depending on the argument 'nonlinear'. If 'non
+        linear' is not set in CLASS, the argument 'nonlinear' should
+        be set to 'False'.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array (one-dimensional, size k_size)
+        z : float array
+            Redshift array (one-dimensional, size z_size)
+        k_size : int
+            Number of k values
+        z_size : int
+            Number of redshift values
+        nonlinear : bool
+            Whether to return the nonlinear or linear power spectrum
+
+        Returns
+        -------
+        pk : float array
+            Flattened array of total matter power spectrum indexed as pk[index_z*k_size+index_k]
+        """
         self.compute(["fourier"])
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
 
-        if nonlinear == 0:
+        if nonlinear == False:
             fourier_pks_at_kvec_and_zvec(&self.ba, &self.fo, pk_linear, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data)
 
         else:
@@ -3127,12 +3898,46 @@ make        nonlinear_scale_cb(z, z_size)
         return pk
 
     def get_pk_cb_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
-        """ Fast function to get the power spectrum on a k and z array """
+        """
+        Return the CDM+baryon power spectrum P_cb(k,z) computed with a fast method on a k and z array
+
+        Return the CDM+baryon power spectrum P_cb(k,z) (in Mpc**3)
+        for an array of k values (in 1/Mpc) and z values, computed
+        using a faster algorithm that with .get_pk_cb(). The output is a
+        flattened array index as pk_cb[index_z*k_size+index_k].
+
+        This function requires that the 'ouput' field contains at
+        least 'mPk'.
+
+        If 'non linear' is set to a non-linear method in CLASS, this
+        function returns either the linear or non-linear power
+        spectrum, depending on the argument 'nonlinear'. If 'non
+        linear' is not set in CLASS, the argument 'nonlinear' should
+        be set to 'False'.
+
+        Parameters
+        ----------
+        k : float array
+            Wavenumber array (one-dimensional, size k_size)
+        z : float array
+            Redshift array (one-dimensional, size z_size)
+        k_size : int
+            Number of k values
+        z_size : int
+            Number of redshift values
+        nonlinear : bool
+            Whether to return the nonlinear or linear power spectrum
+
+        Returns
+        -------
+        pk_cb : float array
+            Flattened array of CDM+baryon power spectrum indexed as pk_cb[index_z*k_size+index_k]
+        """
         self.compute(["fourier"])
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
 
-        if nonlinear == 0:
+        if nonlinear == False:
             fourier_pks_at_kvec_and_zvec(&self.ba, &self.fo, pk_linear, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data)
 
         else:
@@ -3140,14 +3945,26 @@ make        nonlinear_scale_cb(z, z_size)
 
         return pk_cb
 
-    def Omega0_k(self):
-        """ Curvature contribution """
-        return self.ba.Omega0_k
-
-    def Omega0_cdm(self):
-        return self.ba.Omega0_cdm
-
     def spectral_distortion_amplitudes(self):
+        """
+        Return the spectral distortion amplitudes g, mu, y, etc.
+
+        Return the spectral distortion amplitude for each distorsion
+        type g, mu, y, and residuals. The number of outputs beyond (g,
+        mu, y) is the number of PCA components requested by the user
+        using the input parameteer 'sd_PCA_size'
+
+        This function requires that the 'ouput' field contains at least 'Sd'.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        sd_type_amps : float array
+            Spectral distortion amplitudes
+        """
         self.compute(["distortions"])
         if self.sd.type_size == 0:
           raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
@@ -3157,6 +3974,27 @@ make        nonlinear_scale_cb(z, z_size)
         return sd_type_amps
 
     def spectral_distortion(self):
+        """
+        Return the shape of the total spectral distortion as a function of frequency
+
+        Return the shape of the total spectral distortion (units of
+        10^26 W m^-2 Hz^-1 sr^-1) as a function of frequency (units of
+        GHz).
+
+        This function requires that the 'ouput' field contains at least 'Sd'.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        sd_nu : float array
+            Array of frequencies nu/[1 GHz] (units of GHz)
+
+        sd_amp : float array
+            Array of total spectral distortion at these frequencies (units of 10^26 W m^-2 Hz^-1 sr^-1)
+        """
         self.compute(["distortions"])
         if self.sd.x_size == 0:
           raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
@@ -3167,16 +4005,142 @@ make        nonlinear_scale_cb(z, z_size)
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
 
-
-    def get_sources(self):
+    # Depracated functionalities
+    def Omega0_m(self):
         """
-        Return the source functions for all k, tau in the grid.
+        Return the Omega of total matter
+
+        Return the fractional density Omega (dimensionless) of total
+        non-relativistic matter (baryons, dark matter, massive
+        neutrinos...) evaluated today. Strictly identical to the
+        previously defined property Omega_m, but we leave it not to
+        break compatibility.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
-        sources : dictionary containing source functions.
-        k_array : numpy array containing k values.
-        tau_array: numpy array containing tau values.
+        Omega0_m : float
+            Omega of total matter
+        """
+        return self.ba.Omega0_m
+
+
+    def Omega0_k(self):
+        """
+        Return the Omega of curvature
+
+        Return the effective fractional density Omega (dimensionless) of curvature evaluated today.
+        Strictly identical to the previously defined
+        property Omega_k, but we leave it not to break
+        compatibility.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Omega0_k : float
+            Omega of curvature
+        """
+        return self.ba.Omega0_k
+
+    def Omega0_cdm(self):
+        """
+        Return the Omega of cdm
+
+        Return the fractional density Omega (dimensionless) of CDM
+        evaluated today. Strictly identical to the previously defined
+        property Omega_cdm, but we leave it not to break
+        compatibility.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Omega0_cdm : float
+            Omega of CDM
+        """
+        return self.ba.Omega0_cdm
+
+    # Source functions
+    def get_sources(self):
+        """
+        Return the source functions stored in the perturbation module at all sampled (k, tau)
+
+        After integrating all perturbations (more precisely, all
+        transfer functions) over time, the CLASS perturbation module
+        stores a list of the most important combinations of them on a
+        grid of (k,tau) values. This includes the combinations used
+        later to compute the CMB and LSS observables. This function
+        retrieves these source functions directly from the CLASS
+        structure 'perturbations', and returns them together with the
+        values of k and tau at which they are sampled.
+
+        The output is a dictionary whose keys belong to the list:
+        -'p' for the CMB polarization source
+        -'phi' for the metric fluctuation phi of the Newtonian gauge
+        -'phi_plus_psi' for the metric fluctuation phi+psi of the Newtonian gauge
+        -'phi_prime' for the metric fluctuation phi' of the Newtonian gauge
+        -'psi' for the metric fluctuation psi of the Newtonian gauge
+        -'H_T_Nb_prime' for the metric fluctuation H_T' of the Nboisson gauge
+        -'k2gamma_Nb' for the k^2 gamma of the Nboisson gauge
+        -'h' for the metric fluctuation h of the synchronouys gauge
+        -'h_prime'  for the metric fluctuation h' of the synchronouys gauge
+        -'eta' for the metric fluctuation eta of the synchronouys gauge
+        -'eta_prime'  for the metric fluctuation eta' of the synchronouys gauge
+        -'delta_tot'  for the total density fluctuation
+        -'delta_m' for the non-relativistic density fluctuation
+        -'delta_cb' for the CDM+baryon density fluctuation
+        -'delta_g' for the photon density fluctuation
+        -'delta_b' for the baryon density fluctuation
+        -'delta_cdm' for the CDM density fluctuation
+        -'delta_idm' for the interacting DM density fluctuation
+        -'delta_dcdm' for the decaying DM density fluctuation
+        -'delta_fld' for the fluid density fluctuation
+        -'delta_scf' for the scalar field density fluctuation
+        -'delta_dr' for the decay radiation density fluctuation
+        -'delta_ur' for the ultra-relativistic density fluctuation
+        -'delta_idr' for the interacting dark radiation density fluctuation
+        -'delta_ncdm[i]' for the ncdm[i] density fluctuation
+        -'theta_tot' for the total velocity divergence
+        -'theta_m' for the non-relativistic velocity divergence
+        -'theta_cb' for the CDM+baryon velocity divergence
+        -'theta_g' for the photon velocity divergence
+        -'theta_b' for the baryon velocity divergence
+        -'theta_cdm' for the CDM velocity divergence
+        -'theta_idm' for the interacting DM velocity divergence
+        -'theta_dcdm' for the decaying DM velocity divergence
+        -'theta_fld' for the fluid velocity divergence
+        -'theta_scf' for the scalar field velocity divergence
+        -'theta_dr' for the decayt radiation velocity divergence
+        -'theta_ur' for the ultra-relativistic velocity divergence
+        -'theta_ncdm[i]' for the ncdm[i] velocity divergence
+
+        The list of actual keys in the returned dictionary depends on
+        what the user requested in the 'output' field.
+
+        For each key, the returned dictionary contains an array of sources, indexed as:
+
+        sources['key'][index_k][index_tau]
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        sources : dict
+            Dictionary containing the source functions sources['key'][index_k][index_tau] (dimensionless)
+        numpy array : k_array
+            Array of k values (units of 1/Mpc)
+        numpy array : tau_array
+            Array of tau values (units of Mpc)
         """
         self.compute(["fourier"])
         sources = {}

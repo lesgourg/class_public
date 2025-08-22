@@ -931,6 +931,12 @@ int input_find_root(double *xzero,
 
   (*fevals)++;
   dx = 1.5*f1*dxdy;
+  if(dx < x1*_EPSILON_){
+    /* In this special case, we are very close to the correct location already
+       (or are even at the exact correct location) */
+    *xzero = x1;
+    return _SUCCESS_;
+  }
 
   /** Then we do a linear hunt for the boundaries */
   /* Try fifteen times to go above and below the root (i.e. where shooting succeeds) */

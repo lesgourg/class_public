@@ -82,7 +82,7 @@ struct distortions
   double x_delta;                            /**< dimentionless frequency intervals */
 
   /* Will always be specified */
-  int x_size;                                /**< Lenght of dimentionless frequency array */
+  int x_size;                                /**< Lenght of dimensionless frequency array */
   double * x;                                /**< Dimensionless frequency x[index_x] = list of values */
   double * x_weights;                        /**< Weights for integration over x */
 

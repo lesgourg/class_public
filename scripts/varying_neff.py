@@ -1,43 +1,45 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# The goal of this script is to show the impact of the effective neutrino number N_eff
+# on the various observables: CMB spectrum of temperature (C_l^TT) and polarisation (C_l^EE),
+# matter power spectrum P(k,z), and CMB lensing spectrum C_l^phiphi.
+#
+# We choose to vary at the same time (Neff, h, omega_cdm) in order to illustrate the partial
+# degeneracy bwteeen these parameters: we vary them in such way to keep the ratio of
+# radiation-to-matter and matter-to-Lambda energy fixed (that is, fixed z_eq and z_Lambda).
 
 
 # import necessary modules
 # uncomment to get plots displayed in notebook
 #get_ipython().run_line_magic('matplotlib', 'inline')
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from classy import Class
 from scipy.optimize import fsolve
-import math
-
-
-# In[ ]:
 
 
 ############################################
 #
 # Varying parameter (others fixed to default)
 #
-var_name = 'N_ur'
+var_name = 'Neff'
 var_array = np.linspace(3.044,5.044,5)
 var_num = len(var_array)
 var_legend = r'$N_\mathrm{eff}$'
 var_figname = 'neff'
 #
-# Constraints to be matched
+# Constraints to be matched in order to illustrate the partial degeneracy between N
 #
 # As explained in the "Neutrino cosmology" book, CUP, Lesgourgues et al., section 5.3, the goal is to vary
 # - omega_cdm by a factor alpha = (1 + coeff*Neff)/(1 + coeff*3.046)
 # - h by a factor sqrt*(alpha)
 # in order to keep a fixed z_equality(R/M) and z_equality(M/Lambda)
 #
-omega_b = 0.0223828
-omega_cdm_standard = 0.1201075
-h_standard = 0.67810
+# LambdaCDM parameters (Planck 18 + lensing + BAO bestfit)
+omega_b = 2.255065e-02
+omega_cdm_standard = 1.193524e-01
+h_standard = 0.6776953
 #
 # coefficient such that omega_r = omega_gamma (1 + coeff*Neff),
 # i.e. such that omega_ur = omega_gamma * coeff * Neff:
@@ -53,7 +55,7 @@ print ("coeff=",coeff)
 #
 # Fixed settings
 #
-common_settings = {# fixed LambdaCDM parameters
+common_settings = {# fixed LambdaCDM parameters (Planck 18 + lensing + BAO bestfit)
                    'omega_b':omega_b,
                    'A_s':2.100549e-09,
                    'n_s':0.9660499,
@@ -69,26 +71,23 @@ common_settings = {# fixed LambdaCDM parameters
 #
 M = {}
 #
-for i, N_ur in enumerate(var_array):
+for i, Neff in enumerate(var_array):
     #
     # rescale omega_cdm and h
     #
-    alpha = (1.+coeff*N_ur)/(1.+coeff*3.044)
+    alpha = (1.+coeff*Neff)/(1.+coeff*3.044)
     omega_cdm = (omega_b + omega_cdm_standard)*alpha - omega_b
-    h = h_standard*math.sqrt(alpha)
-    print (' * Compute with %s=%e, %s=%e, %s=%e'%('N_ur',N_ur,'omega_cdm',omega_cdm,'h',h))
+    h = h_standard*np.sqrt(alpha)
+    print (' * Compute with %s=%e, %s=%e, %s=%e'%('Neff',Neff,'omega_cdm',omega_cdm,'h',h))
     #
-    # call CLASS
-    #
+    # create and instance of CLASS
     M[i] = Class()
+    # set input parameters
     M[i].set(common_settings)
-    M[i].set({'N_ur':N_ur})
+    #M[i].set(better_precision_settings) # you could put also better precision settings if you wanted
+    M[i].set({'Neff':Neff})
     M[i].set({'omega_cdm':omega_cdm})
     M[i].set({'h':h})
-    M[i].compute()
-
-
-# In[ ]:
 
 
 #############################################
@@ -96,8 +95,10 @@ for i, N_ur in enumerate(var_array):
 # extract spectra and plot them
 #
 #############################################
-kvec = np.logspace(-4,np.log10(3),1000) # array of kvec in h/Mpc
-twopi = 2.*math.pi
+#
+# create array of kvec in h/Mpc
+kvec = np.logspace(-4,np.log10(3),1000)
+twopi = 2.*np.pi
 #
 # Create figures
 #
@@ -112,10 +113,12 @@ clTT = {}
 pkM = {}
 legarray = []
 
-for i, N_ur in enumerate(var_array):
+for i, Neff in enumerate(var_array):
     #
-    alpha = (1.+coeff*N_ur)/(1.+coeff*3.044)
-    h = 0.67810*math.sqrt(alpha) # this is h
+    # compute rescaling factor
+    alpha = (1.+coeff*Neff)/(1.+coeff*3.044)
+    # compute rescaled h for unit conversion
+    h = 0.67810*np.sqrt(alpha)
     #
     # deal with colors and legends
     #
@@ -125,19 +128,18 @@ for i, N_ur in enumerate(var_array):
     else:
         var_color = plt.cm.Reds(0.8*i/(var_num-1))
     #
-    # get Cls
+    # get lensed Cls
     #
     clM[i] = M[i].lensed_cl(2500)
+    # extract multipole values
     ll[i] = clM[i]['ell'][2:]
+    # extract C_l^TT values
     clTT[i] = clM[i]['tt'][2:]
     #
-    # store P(k) for common k values
+    # get P(k), converted to units of (Mpc/h)^3
+    # (note that kvec*h is the array of k values in 1/Mpc)
     #
-    pkM[i] = []
-    # The function .pk(k,z) wants k in 1/Mpc so we must convert kvec for each case with the right h
-    khvec = kvec*h # This is k in 1/Mpc
-    for kh in khvec:
-        pkM[i].append(M[i].pk(kh,0.)*h**3)
+    pkM[i] = M[i].get_pk_all(kvec*h,0.)*h**3
     #
     # plot P(k)
     #
@@ -149,7 +151,7 @@ for i, N_ur in enumerate(var_array):
         ax_Pk.semilogx(kvec,np.array(pkM[i])/np.array(pkM[0]),
                        color=var_color,#alpha=var_alpha,
                        linestyle='-',
-                      label=r'$\Delta N_\mathrm{eff}=%g$'%(N_ur-3.044))
+                       label=r'$\Delta N_\mathrm{eff}=%g$'%(Neff-3.044))
     #
     # plot C_l^TT
     #
@@ -159,7 +161,7 @@ for i, N_ur in enumerate(var_array):
     else:
         ax_TT.semilogx(ll[i],clTT[i]/clTT[0],
                        color=var_color,alpha=var_alpha,linestyle='-',
-                      label=r'$\Delta N_\mathrm{eff}=%g$'%(N_ur-3.044))
+                       label=r'$\Delta N_\mathrm{eff}=%g$'%(Neff-3.044))
 #
 # output of P(k) figure
 #

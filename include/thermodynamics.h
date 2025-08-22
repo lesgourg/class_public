@@ -183,7 +183,7 @@ struct thermodynamics
 
   int index_th_xe;            /**< ionization fraction \f$ x_e \f$ */
   int index_th_dkappa;        /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
-  int index_th_tau_d;         /**< Baryon drag optical depth */
+  int index_th_kappa_b;       /**< baryon optical depth (obtained by integrating over dkappa/R) */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
   int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
   int index_th_exp_m_kappa;   /**< \f$ exp^{-\kappa} \f$ */
@@ -252,7 +252,7 @@ struct thermodynamics
   double rd_rec;  /**< comoving photon damping scale at recombination */
 
   double z_star;  /**< redshift at which photon optical depth crosses one */
-  double tau_star;/**< confirmal time at which photon optical depth crosses one */
+  double tau_star;/**< conformal time at which photon optical depth crosses one */
   double rs_star; /**< comoving sound horizon at z_star */
   double ds_star; /**< physical sound horizon at z_star */
   double ra_star;  /**< conformal angular diameter distance to z_star */
@@ -260,7 +260,7 @@ struct thermodynamics
   double rd_star;  /**< comoving photon damping scale at z_star */
 
   double z_d;     /**< baryon drag redshift */
-  double tau_d;   /**< baryon drag time */
+  double tau_d;   /**< conformal baryon drag time */
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
 
@@ -610,9 +610,9 @@ extern "C" {
   int thermodynamics_vector_free(struct thermo_vector * tv);
 
 
-  int thermodynamics_calculate_conformal_drag_time(struct background* pba,
-                                                   struct thermodynamics* pth,
-                                                   double* pvecback);
+  int thermodynamics_calculate_baryon_optical_depth(struct background* pba,
+                                                    struct thermodynamics* pth,
+                                                    double* pvecback);
 
   int thermodynamics_calculate_damping_scale(struct background* pba,
                                              struct thermodynamics* pth,
