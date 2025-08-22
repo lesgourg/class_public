@@ -13,6 +13,7 @@ extract cosmological parameters.
 """
 from math import exp,log
 import numpy as np
+from os.path import abspath, dirname
 cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
@@ -107,6 +108,8 @@ cdef class Class:
     cdef object _pars # Dictionary of the parameters
     cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
+    cdef char path_to_this[1000]
+
     _levellist = ["input","background","thermodynamics","perturbations", "primordial", "fourier", "transfer", "harmonic", "lensing", "distortions"]
 
     # Defining two new properties to recover, respectively, the parameters used
@@ -143,6 +146,14 @@ cdef class Class:
         sprintf(self.fc.filename,"%s",dumc)
         self.ncp = set()
         if default: self.set_default()
+        try:
+          import importlib.resources
+          resource_path = abspath(importlib.resources.files('classy'))
+        except ImportError as ie:
+          resource_path = dirname(abspath(__file__))
+        path_to_this_as_bytes = resource_path.encode()
+        dumc = path_to_this_as_bytes
+        sprintf(self.path_to_this,"%s",dumc)
 
     def __dealloc__(self):
         if self.allocated:
@@ -182,14 +193,15 @@ cdef class Class:
             free(self.fc.name)
             free(self.fc.value)
             free(self.fc.read)
-        self.fc.size = len(self._pars)
-        self.fc.name = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
+
+        self.fc.size = len(self._pars)+1 if 'base_path' not in self._pars else len(self._pars)
+        self.fc.name = <FileArg*> malloc(sizeof(FileArg)*self.fc.size)
         assert(self.fc.name!=NULL)
 
-        self.fc.value = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
+        self.fc.value = <FileArg*> malloc(sizeof(FileArg)*self.fc.size)
         assert(self.fc.value!=NULL)
 
-        self.fc.read = <short*> malloc(sizeof(short)*len(self._pars))
+        self.fc.read = <short*> malloc(sizeof(short)*self.fc.size)
         assert(self.fc.read!=NULL)
 
         # fill parameter file
@@ -204,6 +216,12 @@ cdef class Class:
             sprintf(self.fc.value[i],"%s",dumc)
             self.fc.read[i] = _FALSE_
             i+=1
+        if not 'base_path' in self._pars:
+            dumcp = str('base_path').encode()
+            dumc = dumcp
+            sprintf(self.fc.name[i],"%s", dumc)
+            dumc = self.path_to_this
+            sprintf(self.fc.value[i], "%s", dumc)
 
     # Called at the end of a run, to free memory
     def struct_cleanup(self):

@@ -164,8 +164,10 @@ int distortions_constants(struct precision * ppr,
     pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
     pow(pba->T_cmb/2.726,1./5.);
 
-  class_sprintf(psd->sd_PCA_file_generator,"%s/%s",ppr->sd_external_path,"generate_PCA_files.py");
-  class_sprintf(psd->sd_detector_list_file,"%s/%s",ppr->sd_external_path,"detectors_list.dat");
+  class_sprintf(psd->external_path,"%s%s",ppr->base_path,ppr->sd_external_path);
+
+  class_sprintf(psd->sd_PCA_file_generator,"%s/%s",psd->external_path,"generate_PCA_files.py");
+  class_sprintf(psd->sd_detector_list_file,"%s/%s",psd->external_path,"detectors_list.dat");
 
   return _SUCCESS_;
 }
@@ -204,7 +206,7 @@ int distortions_set_detector(struct precision * ppr,
   FILE* det_list_file;
   char line[_LINE_LENGTH_MAX_];
   DetectorName detector_name;
-  DetectorFileName detector_noise_file_name;
+  DetectorName detector_noise_file_name;
   double nu_min,nu_max,nu_delta,delta_Ic;
   int has_detector_noise_file;
   int N_bins;
@@ -376,7 +378,7 @@ int distortions_generate_detector(struct precision * ppr,
 
   /** Define local variables*/
   int is_success;
-  char temporary_string[2*_FILENAMESIZE_+2*_MAX_DETECTOR_NAME_LENGTH_+1024];
+  char temporary_string[4*_FILENAMESIZE_+_BASEPATHSIZE_+2*_MAX_DETECTOR_NAME_LENGTH_+1024];
 
 
   /* Test first whether or not python exists*/
@@ -397,7 +399,7 @@ int distortions_generate_detector(struct precision * ppr,
     class_sprintf(temporary_string,"python %s %s %s %s %.10e %.10e %i %i %.10e %.10e %.10e",
             psd->sd_PCA_file_generator,
             psd->sd_detector_name,
-            ppr->sd_external_path,
+            psd->external_path,
             psd->sd_detector_file_name,
             ppr->sd_z_min,
             ppr->sd_z_max,
@@ -455,7 +457,7 @@ int distortions_read_detector_noisefile(struct precision * ppr,
   int numcols;
 
   /** Open file */
-  class_sprintf(psd->sd_detector_noise_file,"%s/%s",ppr->sd_external_path,psd->sd_detector_file_name);
+  class_sprintf(psd->sd_detector_noise_file,"%s/%s",psd->external_path,psd->sd_detector_file_name);
   class_open(infile, psd->sd_detector_noise_file, "r", psd->error_message);
 
   /** Read header */
@@ -1421,7 +1423,7 @@ int distortions_read_br_data(struct precision * ppr,
   int headlines = 0;
 
   /** Open file */
-  class_sprintf(br_file,"%s/%s_branching_ratios.dat", ppr->sd_external_path, psd->sd_detector_name);
+  class_sprintf(br_file,"%s/%s_branching_ratios.dat", psd->external_path, psd->sd_detector_name);
   class_open(infile, br_file, "r", psd->error_message);
 
   /** Read header */
@@ -1654,7 +1656,7 @@ int distortions_read_sd_data(struct precision * ppr,
   int index_x,index_k;
 
   /** Open file */
-  class_sprintf(sd_file,"%s/%s_distortions_shapes.dat",ppr->sd_external_path, psd->sd_detector_name);
+  class_sprintf(sd_file,"%s/%s_distortions_shapes.dat",psd->external_path, psd->sd_detector_name);
   class_open(infile, sd_file, "r", psd->error_message);
 
   /** Read header */

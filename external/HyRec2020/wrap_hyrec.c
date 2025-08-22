@@ -38,8 +38,10 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
     printf("    Starting HyRec at z = %.10e until z = %.10e\n",phy->zstart, phy->zend);
   }
 
+  /** - pass the path to the hyrec files */
+  class_sprintf(phy->path_to_hyrec,"%s%s",ppr->base_path,ppr->hyrec_path);
+  phy->data->path_to_hyrec = phy->path_to_hyrec; // Just a pointer assignment
   /** - allocate hyrec internally */
-  phy->data->path_to_hyrec = ppr->hyrec_path;
   hyrec_allocate(phy->data, phy->zstart, phy->zend);
   /* Error during allocation */
   if(phy->data->error != 0){

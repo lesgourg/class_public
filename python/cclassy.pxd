@@ -15,7 +15,7 @@ cdef extern from "class.h":
 
     ctypedef char* ErrorMsg
 
-    ctypedef char FileName[256]
+    ctypedef char FileName[1256]
 
     cdef enum interpolation_method:
         inter_normal
@@ -52,6 +52,7 @@ cdef extern from "class.h":
 
     cdef struct precision:
         double nonlinear_min_k_max
+        char base_path[1000]
         ErrorMsg error_message
 
     cdef struct background:

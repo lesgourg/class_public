@@ -20,6 +20,8 @@ struct thermohyrec{
 
   double xHeII_limit;
 
+  FileName path_to_hyrec;
+
   ErrorMsg error_message;
 
   int thermohyrec_verbose;

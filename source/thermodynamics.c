@@ -590,7 +590,9 @@ int thermodynamics_helium_from_bbn(
      .....
   */
 
-  class_open(fA,ppr->sBBN_file, "r",pth->error_message);
+  FileName bbn_path;
+  class_sprintf(bbn_path,"%s%s",ppr->base_path,ppr->sBBN_file);
+  class_open(fA,bbn_path, "r",pth->error_message);
 
   /* go through each line */
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {

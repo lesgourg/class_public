@@ -1147,7 +1147,10 @@ int injection_read_feff_from_file(struct precision* ppr,
    *    - The number of lines of the file
    *    - The columns ( z, f(z) ) where f(z) represents the "effective" fraction of energy deposited
    *      into the medium  at redshift z, in presence of halo formation. */
-  class_open(fA, f_eff_file, "r", pin->error_message);
+  FileName full_path;
+  class_sprintf(full_path,"%s%s",ppr->base_path,f_eff_file);
+
+  class_open(fA, full_path, "r", pin->error_message);
 
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
     headlines++;
@@ -1235,8 +1238,10 @@ int injection_read_chi_z_from_file(struct precision* ppr,
    *    - The number of lines of the file
    *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
    *      branching ratio at redshift z into different injection/ionization channels i */
+  FileName full_path;
+  class_sprintf(full_path,"%s%s",ppr->base_path,chi_z_file);
 
-  class_open(fA, chi_z_file, "r", pin->error_message);
+  class_open(fA, full_path, "r", pin->error_message);
 
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
     headlines++;
@@ -1330,7 +1335,10 @@ int injection_read_chi_x_from_file(struct precision* ppr,
    *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
    *      branching ratio at redshift z into different injection/ionization channels i */
 
-  class_open(fA, chi_x_file, "r", pin->error_message);
+  FileName full_path;
+  class_sprintf(full_path,"%s%s",ppr->base_path,chi_x_file);
+
+  class_open(fA, full_path, "r", pin->error_message);
 
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
     headlines++;
