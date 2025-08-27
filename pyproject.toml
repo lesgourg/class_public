@@ -14,5 +14,5 @@ Homepage = "http://www.class-code.net"
 # Documentation = https://readthdocs.org/classy # TBD
 
 [build-system]
-requires = ['setuptools','wheel','numpy','cython','pip']
+requires = ['setuptools','wheel','numpy','cython']
 build-backend = "setuptools.build_meta"

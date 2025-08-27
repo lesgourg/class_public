@@ -931,6 +931,12 @@ int input_find_root(double *xzero,
 
   (*fevals)++;
   dx = 1.5*f1*dxdy;
+  if(dx < x1*_EPSILON_){
+    /* In this special case, we are very close to the correct location already
+       (or are even at the exact correct location) */
+    *xzero = x1;
+    return _SUCCESS_;
+  }
 
   /** Then we do a linear hunt for the boundaries */
   /* Try fifteen times to go above and below the root (i.e. where shooting succeeds) */
@@ -1590,12 +1596,20 @@ int input_read_precisions(struct file_content * pfc,
 #include "precisions.h"
 #undef __ASSIGN_DEFAULT_PRECISION__
 
+  /** The base path is a special precision parameter
+       and is assigned here manually to its default value
+      It is the path relative to which CLASS will look for all files */
+  strcpy(ppr->base_path,__CLASSDIR__);
+
   /** Read all precision parameters from input (these very concise
       lines parse all precision parameters thanks to the macros
       defined in macros_precision.h) */
 #define __PARSE_PRECISION_PARAMETER__
 #include "precisions.h"
 #undef __PARSE_PRECISION_PARAMETER__
+
+  /** Now read the relative base path, overwriting possibly the default */
+  class_read_string("base_path",ppr->base_path);
 
   return _SUCCESS_;
 

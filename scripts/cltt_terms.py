@@ -1,34 +1,43 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# The goal of this script is to plot the total CMB temperature spectrum C_l^TT,
+# as well as its decomposition in different contributions:
+# - T + SW: intrinsic temperature plus Sachs-Wolfe correction
+# - early-ISW: early integrated Sachs-Wolfe
+# - late-ISW: late integrated Sachs-Wolfe
+# - Doppler contribution
+# - total unlensed spectrum
+# - total lensed spectrum
 
 
 # import necessary modules
 from classy import Class
 from math import pi
+#get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib
 import matplotlib.pyplot as plt
 
 
-# In[ ]:
-
-
-#############################################
+####################################################
 #
 # Cosmological parameters and other CLASS parameters
 #
-common_settings = {# LambdaCDM parameters
-                   'h':0.67810,
-                   'omega_b':0.02238280,
-                   'omega_cdm':0.1201075,
-                   'A_s':2.100549e-09,
-                   'n_s':0.9660499,
-                   'tau_reio':0.05430842 ,
+####################################################
+common_settings = {# LambdaCDM parameters (Planck 18 + lensing + BAO bestfit)
+                   'omega_b':2.255065e-02,
+                   'omega_cdm':1.193524e-01,
+                   'H0':6.776953e+01,
+                   'A_s':2.123257e-09,
+                   'n_s':9.686025e-01,
+                   'z_reio':8.227371e+00,
                    # output and precision parameters
                    'output':'tCl,pCl,lCl',
                    'lensing':'yes',
                    'l_max_scalars':5000}
+###############
+#
+# Initiate a CLASS instance
 #
 M = Class()
 #
@@ -38,38 +47,34 @@ M = Class()
 #
 ###############
 #
+# total contribution
 M.set(common_settings)
-M.compute()
-cl_tot = M.raw_cl(3000)
-cl_lensed = M.lensed_cl(3000)
-M.empty()           # reset input
+cl_tot = M.raw_cl(3000)   # raw_cl gives the unlensed spectrum
+cl_lensed = M.lensed_cl(3000) # lensed_cl gives the lensed spectrum
 #
+# T+ISW contribution (unlensed)
+M.empty() # reset input
 M.set(common_settings) # new input
 M.set({'temperature contributions':'tsw'})
-M.compute()
 cl_tsw = M.raw_cl(3000)
-M.empty()
 #
+# early-ISW contribution (unlensed)
+M.empty()
 M.set(common_settings)
 M.set({'temperature contributions':'eisw'})
-M.compute()
 cl_eisw = M.raw_cl(3000)
-M.empty()
 #
+# late-ISW contribution (unlensed)
+M.empty()
 M.set(common_settings)
 M.set({'temperature contributions':'lisw'})
-M.compute()
 cl_lisw = M.raw_cl(3000)
-M.empty()
 #
+# Doppler contribution (unlensed)
+M.empty()
 M.set(common_settings)
 M.set({'temperature contributions':'dop'})
-M.compute()
 cl_dop = M.raw_cl(3000)
-M.empty()
-
-
-# In[ ]:
 
 
 #################
@@ -93,9 +98,4 @@ plt.semilogx(ell,factor*cl_tot['tt'],'r-',label=r'$\mathrm{total}$')
 plt.semilogx(ell,factor*cl_lensed['tt'],'k-',label=r'$\mathrm{lensed}$')
 #
 plt.legend(loc='right',bbox_to_anchor=(1.4, 0.5))
-
-
-# In[ ]:
-
-
 plt.savefig('cltt_terms.pdf',bbox_inches='tight')

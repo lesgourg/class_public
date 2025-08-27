@@ -1,60 +1,41 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# The goal of this script is to plot the evolution of the free electron fraction as a function of
+# conformal time, to show how to extract thermodynamical quantities from a CLASS run
 
 
 # import necessary modules
-# uncomment to get plots displayed in notebook
-#get_ipython().run_line_magic('matplotlib', 'inline')
-import matplotlib
+# uncomment to get plots displayed in notebook#%matplotlib inline
 import matplotlib.pyplot as plt
 import numpy as np
 from classy import Class
-from scipy.optimize import fsolve
-from scipy.interpolate import interp1d
-import math
 
 
-# In[ ]:
-
-
-common_settings = {'output' : 'tCl',
-                   # LambdaCDM parameters
-                   'h':0.6781,
-                   'omega_b':0.02238280,
-                   'omega_cdm':0.1201075,
-                   'A_s':2.100549e-09,
-                   'n_s':0.9660499,
-                   'tau_reio':0.05430842,
-                   'thermodynamics_verbose':1
-                   }
-##############
-#
-# call CLASS
-#
-###############
+# Create a CLASS instance
 M = Class()
-M.set(common_settings)
-M.compute()
+
+# We could customize our input parameters but here we choose to stick to the default LambdaCDM parameters
+# No need to pass the 'output' field since we only need CLASS to compute the background and thermodynamics evolution 
+
+# get derived parameters computed by CLASS for this cosmology: here we get
+# the conformal time at recombination (tau_rec), today (conformal_age), and at reionization (conf_time_reio) 
 derived = M.get_current_derived_parameters(['tau_rec','conformal_age','conf_time_reio'])
+
+# extract all thermodynamics quantities at each redshift, sorted by growing redhsift, and print the list of available keys
 thermo = M.get_thermodynamics()
 print (thermo.keys())
 
-
-# In[ ]:
-
-
+# within the thermo dictionary, extract the array of conformal time tau
 tau = thermo['conf. time [Mpc]']
+# within the thermo dictionary, extract the array of visibility function g
 g = thermo['g [Mpc^-1]']
-# to make the reionisation peak visible, rescale g by 100 for late times
+# to make the reionisation peak visible, rescale g by 100 only for late times 
+# (here we do it for the first 500 values of redshift, corresponding to the 500 largest values of tau)
 g[:500] *= 100
-#################
-#
-# start plotting
-#
-#################
-#
+
+
+# plot g(tau)    
 plt.xlim([1.e2,derived['conformal_age']])
 plt.xlabel(r'$\tau \,\,\, \mathrm{[Mpc]}$')
 plt.ylabel(r'$\mathrm{visibility} \,\,\, g \,\,\, [\mathrm{Mpc}^{-1}]$')
@@ -63,3 +44,4 @@ plt.axvline(x=derived['conf_time_reio'],color='k')
 #
 plt.semilogx(tau,g,'r',label=r'$\psi$')
 plt.savefig('thermo.pdf',bbox_inches='tight')
+

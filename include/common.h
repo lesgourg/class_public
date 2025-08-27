@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v3.3.1"
+#define _VERSION_ "v3.3.2"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -29,7 +29,8 @@
 typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is such a field in each structure) */
 
 #define _FILENAMESIZE_ 256 /**< size of the string read in each line of the file (extra characters not taken into account) */
-typedef char FileName[_FILENAMESIZE_];
+#define _BASEPATHSIZE_ 1000 /**< allowed size of the base path */
+typedef char FileName[_FILENAMESIZE_+_BASEPATHSIZE_];
 
 #define _SUFFIXNAMESIZE_ 4 /**< maximum size of the short string appended to file names to account for initial conditions, etc. */
 
@@ -419,6 +420,8 @@ struct precision
   //@{
 
   double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
+
+  char base_path[_BASEPATHSIZE_]; /**< the base path from which CLASS searches for all the files */
 
   //@}
 

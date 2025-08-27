@@ -5,31 +5,22 @@ import numpy as np
 import os
 import subprocess as sbp
 import sys
-from pip._internal.commands.install import decide_user_install
 
 def binaries_directory():
-    import site
-    """Return the installation directory, or None"""
-    user_install = decide_user_install(use_user_site = True if ('--user' in sys.argv) else None, prefix_path = any(['--prefix' in x for x in sys.argv]), target_dir=any(['--target' in x for x in sys.argv]), root_path = None, isolated_mode = True if ('--no-build-isolation' in sys.argv) else None)
+    path = "."
 
-    if user_install:
-        paths = (site.getusersitepackages(),)
-    else:
-        py_version = '%s.%s' % (sys.version_info[0], sys.version_info[1])
-        paths = (s % (py_version) for s in (
-            sys.prefix + '/lib/python%s/dist-packages',
-            sys.prefix + '/lib/python%s/site-packages',
-            sys.prefix + '/local/lib/python%s/dist-packages',
-            sys.prefix + '/local/lib/python%s/site-packages',
-            '/Library/Python/%s/site-packages',
-        ))
+    if '--target' in sys.argv:
+      path = os.path.abspath(sys.argv[sys.argv.index('--target')+1])
 
-    for path in paths:
-        if os.path.exists(path):
-            return path
-    print('no installation path found', file=sys.stderr)
-    return None
+    if 'editable_wheel' in sys.argv:
+      path = os.path.dirname(os.path.abspath(__file__))
 
+    if path == ".":
+      print('no installation path found', file=sys.stderr)
+    return path
+
+bin_dir = binaries_directory()
+print("BIN_DIR",bin_dir)
 
 # Get the root folder of the CLASS installation -- this setup.py should be in that folder
 root_folder = os.path.dirname(os.path.abspath(__file__))
@@ -63,7 +54,7 @@ with open(os.path.join(include_folder, 'common.h'), 'r') as v_file:
             break
 
 # Define cython extension and fix Python version
-classy_ext = Extension("classy", [os.path.join("python", "classy.pyx")],
+classy_ext = Extension("classy._classy", [os.path.join("python", "classy.pyx")],
                        include_dirs=[np.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
                        libraries=liblist,
                        library_dirs=[root_folder, GCCPATH],
@@ -75,11 +66,6 @@ classy_ext = Extension("classy", [os.path.join("python", "classy.pyx")],
 classy_ext.cython_directives = {'language_level': "3" if sys.version_info.major>=3 else "2"}
 
 
-# We need to put the actual files somewhere (e.g. the BBN file -- the easiest is just to copy the full class folder (although in the future we could imagine just copying the necessary files)
-
-# 1. Check where to install class to
-path_install = os.path.join(binaries_directory(),"class")
-print("Selected installation path : ", path_install)
 
 
 # 2. Check what files to include
@@ -111,6 +97,13 @@ class classy_builder(build_ext):
       if not 'PYTHON' in env:
         env['PYTHON'] = sys.executable
 
+      # We need to put the actual files somewhere (e.g. the BBN file -- the easiest is just to copy the full class folder (although in the future we could imagine just copying the necessary files)
+
+      # 1. Check where to install class to
+      print("Running installation with arguments = ",sys.argv)
+      path_install = binaries_directory()
+      print("Selected corresponding installation path : ", path_install)
+
       env['CLASSDIR'] = path_install
 
       # Compile the C code only
@@ -127,8 +120,9 @@ setup(
     url='http://www.class-code.net',
     cmdclass={'build_ext': classy_builder},
     ext_modules=[classy_ext],
-    packages = ["class"],
-    package_dir={"class":""},
-    package_data={'class': pck_files},
-    include_package_data=True
+    packages = ["classy"],
+    package_dir={"classy":"."},
+    package_data={'classy': pck_files},
+    include_package_data=True,
+    zip_safe=False
 )

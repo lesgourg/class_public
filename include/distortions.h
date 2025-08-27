@@ -15,7 +15,7 @@
 
 #define _MAX_DETECTOR_NAME_LENGTH_ 100
 typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
-typedef char DetectorFileName[_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+256];
+typedef char DetectorFileName[_FILENAMESIZE_+_BASEPATHSIZE_+_MAX_DETECTOR_NAME_LENGTH_+256];
 
 /** List of possible branching ratio approximations */
 
@@ -44,7 +44,7 @@ struct distortions
 
   int sd_PCA_size;                              /**< Number of PCA components for the calculation of residual distortions */
 
-  DetectorFileName sd_detector_file_name;       /**< Name of detector list file */
+  DetectorName sd_detector_file_name;           /**< Name of detector list file */
 
   DetectorName sd_detector_name;                /**< Name of detector */
   double sd_detector_nu_min;                    /**< Minimum frequency of chosen detector */
@@ -82,7 +82,7 @@ struct distortions
   double x_delta;                            /**< dimentionless frequency intervals */
 
   /* Will always be specified */
-  int x_size;                                /**< Lenght of dimentionless frequency array */
+  int x_size;                                /**< Lenght of dimensionless frequency array */
   double * x;                                /**< Dimensionless frequency x[index_x] = list of values */
   double * x_weights;                        /**< Weights for integration over x */
 
@@ -91,10 +91,11 @@ struct distortions
   double DI_units;                           /**< Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
 
   /* File names for the PCA */
-  char sd_detector_noise_file[2*_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+256];              /**< Full path of detector noise file */
+  char sd_detector_noise_file[2*_FILENAMESIZE_+_BASEPATHSIZE_+_MAX_DETECTOR_NAME_LENGTH_+512];              /**< Full path of detector noise file */
   DetectorFileName sd_PCA_file_generator;               /**< Full path of PCA generator file */
   DetectorFileName sd_detector_list_file;               /**< Full path of detector list file */
 
+  FileName external_path; /** Path to external files within CLASS */
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
   double ** br_table;              /**< Branching ratios br_table[index_type][index_z] */
