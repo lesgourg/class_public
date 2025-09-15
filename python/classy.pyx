@@ -253,19 +253,19 @@ cdef class Class:
       """Return the scalar tilt n_s (dimensionless) of the primordial scalar spectrum"""
       return CallableFloat(self.pm.n_s)
     @property
-    def simga8(self):
+    def sigma8(self):
       """Return sigma8 (dimensionless), the root mean square (rms) of the relative density fluctuation of
         total matter in spheres of radius R= 8 h/Mpc at z=0.
-        To compute this, one needs that the 'ouput' field contains at least 'mPk'."""
+        To compute this, one needs that the 'output' field contains at least 'mPk'."""
       self.compute(["fourier"])
       if (self.pt.has_pk_matter == _FALSE_):
           raise CosmoSevereError("No power spectrum computed. In order to get sigma8, you must add mPk to the list of outputs.")
       return CallableFloat(self.fo.sigma8[self.fo.index_pk_m])
     @property
-    def simga8_cb(self):
+    def sigma8_cb(self):
       """Return sigma8_cb (dimensionless), the root mean square (rms) of the relative density fluctuation of
         CDM+baryons in spheres of radius R= 8 h/Mpc at z=0
-        To compute this, one needs that the 'ouput' field contains at least 'mPk'."""
+        To compute this, one needs that the 'output' field contains at least 'mPk'."""
       self.compute(["fourier"])
       if (self.pt.has_pk_matter == _FALSE_):
           raise CosmoSevereError("No power spectrum computed. In order to get sigma8_cb, you must add mPk to the list of outputs.")
