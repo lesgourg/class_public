@@ -60,6 +60,14 @@ int input_init(int argc,
                struct output *pop,
                ErrorMsg errmsg){
 
+  /* ===== Hyperspherical Cosmology (HS) defaults ===== */
+  pba->hs_model = _FALSE_;     /* master off by default */
+  pba->hs_eps = 0.0;           /* curvature/time-vector parameter ε */
+  pba->hs_R0 = 0.0;            /* 3-sphere radius [Mpc]; 0 => unused */
+  pba->hs_match_z = 2000.0;    /* match to standard background above this z */
+  pba->hs_interp_width = 0.5;  /* smooth-step width in ln(a) */
+  /* ================================================== */
+
   /** Summary: */
 
   /** Define local variables */
@@ -1731,6 +1739,13 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
+  /* HS safety: forbid non-zero curvature when HS geometry is active */
+  if (pba->hs_model == _TRUE_) {
+    class_test(pba->Omega0_k != 0.0,
+               errmsg,
+               "When hs_model=yes, set Omega_k=0. Hyperspherical geometry controls distances.");
+  }
+
   return _SUCCESS_;
 
 }
@@ -1774,6 +1789,11 @@ int input_read_parameters_general(struct file_content * pfc,
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
   char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
+
+  /* HS locals */
+  int    hs_flag;
+  double hs_param;
+  char   hs_string[_ARGUMENT_LENGTH_MAX_];
 
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
@@ -2076,6 +2096,41 @@ int input_read_parameters_general(struct file_content * pfc,
         }
       }
     }
+
+  /* ================= Hyperspherical Cosmology (HS) parsing ================= */
+  /* hs_model: yes/no or 1/0 */
+  class_call(parser_read_string(pfc,"hs_model",&hs_string,&hs_flag,errmsg),
+             errmsg,errmsg);
+  if (hs_flag == _TRUE_) {
+    if ((strstr(hs_string,"yes")!=NULL) || (strstr(hs_string,"YES")!=NULL) || (atoi(hs_string)==1)) {
+      pba->hs_model = _TRUE_;
+    }
+    else {
+      pba->hs_model = _FALSE_;
+    }
+  }
+
+  /* hs_eps */
+  class_call(parser_read_double(pfc,"hs_eps",&hs_param,&hs_flag,errmsg),
+             errmsg,errmsg);
+  if (hs_flag == _TRUE_) pba->hs_eps = hs_param;
+
+  /* hs_R0 */
+  class_call(parser_read_double(pfc,"hs_R0",&hs_param,&hs_flag,errmsg),
+             errmsg,errmsg);
+  if (hs_flag == _TRUE_) pba->hs_R0 = hs_param;
+
+  /* hs_match_z */
+  class_call(parser_read_double(pfc,"hs_match_z",&hs_param,&hs_flag,errmsg),
+             errmsg,errmsg);
+  if (hs_flag == _TRUE_) pba->hs_match_z = hs_param;
+
+  /* hs_interp_width */
+  class_call(parser_read_double(pfc,"hs_interp_width",&hs_param,&hs_flag,errmsg),
+             errmsg,errmsg);
+  if (hs_flag == _TRUE_) pba->hs_interp_width = hs_param;
+  /* ======================================================================== */
+
   }
 
 
@@ -5704,6 +5759,14 @@ int input_default_params(struct background *pba,
   ppm->is_allocated = _FALSE_;
   ple->is_allocated = _FALSE_;
   psd->is_allocated = _FALSE_;
+
+  /* ---- Hyperspherical Cosmology (HS) defaults ---- */
+  pba->hs_model         = _FALSE_;  /* master off by default */
+  pba->hs_eps           = 0.0;      /* curvature/time-vector parameter ε */
+  pba->hs_R0            = 0.0;      /* present-day 3-sphere radius [Mpc] */
+  pba->hs_match_z       = 2000.0;   /* match to standard background above this z */
+  pba->hs_interp_width  = 0.5;      /* smooth-step width in ln(a) */
+  /* ------------------------------------------------- */
 
   /**
    * Default to input_read_parameters_general
