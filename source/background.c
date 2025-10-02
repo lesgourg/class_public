@@ -129,6 +129,34 @@
  * @return the error status
  */
 
+/* ======================== HS INTERNAL HELPERS (STUBS) ======================== */
+/* Smooth 0->1 transition centered at x0 with width w (in x-units). */
+static int hs_smoothstep(double x, double x0, double w, double *b){
+  if (w <= 0.0){ *b = (x > x0) ? 1.0 : 0.0; return _SUCCESS_; }
+  double t = 0.5 + (x - x0)/(2.0*w);
+  if (t < 0.0) t = 0.0;
+  if (t > 1.0) t = 1.0;
+  *b = t*t*(3.0 - 2.0*t);
+  return _SUCCESS_;
+}
+
+/* Placeholder for the effective background H(a) under HS geometry. 
+   For now it returns 1.0 and is NOT used by CLASS until we wire it in. */
+static int hs_H_eff_of_a(struct background *pba, double a, double *H_eff){
+  (void)pba; (void)a;
+  *H_eff = 1.0; /* STUB: will blend H_std and H_hs later */
+  return _SUCCESS_;
+}
+
+/* Central angle integral: Theta(z) = ∫ c dz / (H_eff(z) R0).
+   STUB: returns 0.0 until we implement the real integrator. */
+static int hs_theta_of_z(struct background *pba, double z, double *Theta){
+  (void)pba; (void)z;
+  *Theta = 0.0; /* STUB */
+  return _SUCCESS_;
+}
+/* ============================================================================ */
+
 int background_at_z(
                     struct background *pba,
                     double z,
@@ -2999,3 +3027,33 @@ double ddV_scf(
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
 }
+
+/* =================== PUBLIC HS DISTANCE WRAPPERS (TEMP) =================== */
+int background_D_M_of_z(struct background *pba, double z, double *D_M){
+  class_test(D_M == NULL, pba->error_message, "D_M pointer is NULL");
+  if (pba->hs_model == _TRUE_) {
+    double Theta;
+    class_call(hs_theta_of_z(pba, z, &Theta), pba->error_message, pba->error_message);
+    *D_M = pba->hs_R0 * sin(Theta);
+    return _SUCCESS_;
+  }
+  /* Standard path (temporary no-op; we will hook to CLASS distances later) */
+  *D_M = 0.0;
+  return _SUCCESS_;
+}
+
+int background_D_A_of_z(struct background *pba, double z, double *D_A){
+  double D_M;
+  class_call(background_D_M_of_z(pba, z, &D_M), pba->error_message, pba->error_message);
+  *D_A = D_M/(1.0+z);
+  return _SUCCESS_;
+}
+
+int background_D_L_of_z(struct background *pba, double z, double *D_L){
+  double D_A;
+  class_call(background_D_A_of_z(pba, z, &D_A), pba->error_message, pba->error_message);
+  *D_L = (1.0+z)*(1.0+z)*D_A;
+  return _SUCCESS_;
+}
+/* ========================================================================== */
+
