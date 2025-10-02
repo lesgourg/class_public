@@ -577,6 +577,12 @@ extern "C" {
                double phi_prime
                );
 
+  /* ===== Hyperspherical geometry distance wrappers (implemented in background.c) ===== */
+  int background_D_M_of_z(struct background *pba, double z, double *D_M);
+  int background_D_A_of_z(struct background *pba, double z, double *D_A);
+  int background_D_L_of_z(struct background *pba, double z, double *D_L);
+  /* =================================================================================== */
+
 #ifdef __cplusplus
 }
 #endif
