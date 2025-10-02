@@ -326,6 +326,14 @@ struct background
 
   short is_allocated; /**< flag is set to true if allocated */
   //@}
+
+  /* ---- Hyperspherical Cosmology (HS) parameters ---- */
+  short hs_model;         /* 0 = off (default), 1 = on */
+  double hs_eps;          /* curvature/time-vector parameter ε */
+  double hs_R0;           /* present-day 3-sphere radius [Mpc] */
+  double hs_match_z;      /* redshift where HS background blends to standard */
+  double hs_interp_width; /* smooth-step width in ln(a) for blending */
+  /* --------------------------------------------------- */
 };
 
 
