@@ -1,3 +1,4 @@
+#include <math.h>
 /** @file class.c
  * Julien Lesgourgues, 17.04.2011
  */
@@ -110,6 +111,27 @@ int main(int argc, char **argv) {
     printf("\n\nError in perturbations_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
+
+  /* ===== HS summary (stdout) ===== */
+
+  if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
+    double zstar = th.z_rec;     /* recombination redshift from thermo */
+    double rs    = th.rs_rec;    /* comoving sound horizon at recombination */
+    double DM    = 0.0;
+
+    if (zstar <= 0.0) zstar = 1100.0;
+
+    if (rs > 0.0 && background_D_M_of_z(&ba, zstar, &DM) == _SUCCESS_ && DM > 0.0) {
+      double theta_star = rs / DM;                /* radians */
+      if (theta_star > 0.0) {
+        double ell_star = acos(-1.0) / theta_star;/* π/θ* without M_PI */
+        printf("\n[HS] z* = %.3f, rs = %.6f Mpc, D_M(z*) = %.6f Mpc, "
+               "theta* = %.9e rad, ell* ≈ %.2f\n",
+               zstar, rs, DM, theta_star, ell_star);
+      }
+    }
+  }
+  /* =============================== */
 
   if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
