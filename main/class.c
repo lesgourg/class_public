@@ -133,6 +133,45 @@ int main(int argc, char **argv) {
   }
   /* =============================== */
 
+    /* ===== HS R0 calibrator (stdout) ===== */
+  if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
+    /* Choose your target l_* (Planck ~ 301). You can tweak this number. */
+    const double lstar_target = 301.0;
+
+    /* Ingredients: sound horizon and recombination redshift */
+    double zstar = th.z_rec;
+    double rs    = th.rs_rec;
+
+    if (zstar > 0.0 && rs > 0.0) {
+      /* Compute chi = tau0 - tau(z*) in Mpc using CLASS background */
+      double tau0 = 0.0, tauz = 0.0, chi = 0.0;
+      if (background_tau_of_z(&ba, 0.0, &tau0) == _SUCCESS_ &&
+          background_tau_of_z(&ba, zstar, &tauz) == _SUCCESS_) {
+
+        chi = tau0 - tauz;
+
+        /* Target D_M to hit l_*: D_M = (l_* / pi) * r_s */
+        double DM_target = (lstar_target / acos(-1.0)) * rs;
+
+        /* Solve R0 * sin(chi/R0) = DM_target for R0 via simple bisection */
+        double Rlo = chi + 1.0;   /* just above chi to avoid sin(pi) issues */
+        double Rhi = 1.0e7;       /* big upper bound ~ flat limit */
+        double R0  = ba.hs_R0;
+        for (int it = 0; it < 80; ++it) {
+          double mid = 0.5*(Rlo + Rhi);
+          double lhs = mid * sin(chi / mid);
+          if (lhs < DM_target) Rlo = mid; else Rhi = mid;
+          R0 = mid;
+        }
+
+        printf("[HS] calibrate: l*_target=%.2f, rs=%.6f Mpc, chi=%.6f Mpc -> "
+               "D_M^target=%.6f Mpc, suggested hs_R0 ≈ %.3f Mpc\n",
+               lstar_target, rs, chi, DM_target, R0);
+      }
+    }
+  }
+  /* ===================================== */
+
   if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
