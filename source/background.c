@@ -148,13 +148,31 @@ static int hs_H_eff_of_a(struct background *pba, double a, double *H_eff){
   return _SUCCESS_;
 }
 
-/* Central angle integral: Theta(z) = ∫ c dz / (H_eff(z) R0).
-   STUB: returns 0.0 until we implement the real integrator. */
+/* Central angle: Theta(z) = chi(z)/R0 with chi = tau0 - tau(z) (units: Mpc) */
 static int hs_theta_of_z(struct background *pba, double z, double *Theta){
-  (void)pba; (void)z;
-  *Theta = 0.0; /* STUB */
+  double tau0, tauz, chi;
+
+  /* Require a positive 3-sphere radius */
+  class_test(pba->hs_R0 <= 0.0,
+             pba->error_message,
+             "HS requires hs_R0 > 0 [Mpc]. Please set hs_R0 in your .ini.");
+
+  /* Use CLASS background to get conformal times (safe & fast) */
+  class_call(background_tau_of_z(pba, 0.0, &tau0),
+             pba->error_message, pba->error_message);
+  class_call(background_tau_of_z(pba, z, &tauz),
+             pba->error_message, pba->error_message);
+
+  chi = tau0 - tauz;          /* comoving radial distance [Mpc] */
+  *Theta = chi / pba->hs_R0;  /* central angle (dimensionless) */
+
+  /* Numerical safety: clamp to [0, pi] */
+  if (*Theta < 0.0) *Theta = 0.0;
+  if (*Theta > M_PI) *Theta = M_PI;
+
   return _SUCCESS_;
 }
+
 /* ============================================================================ */
 
 int background_at_z(
@@ -3034,11 +3052,11 @@ int background_D_M_of_z(struct background *pba, double z, double *D_M){
   if (pba->hs_model == _TRUE_) {
     double Theta;
     class_call(hs_theta_of_z(pba, z, &Theta), pba->error_message, pba->error_message);
+    if (Theta >= M_PI) Theta = M_PI - 1e-12; /* avoid tiny negative due to roundoff */
     *D_M = pba->hs_R0 * sin(Theta);
     return _SUCCESS_;
   }
-  /* Standard path (temporary no-op; we will hook to CLASS distances later) */
-  *D_M = 0.0;
+  *D_M = 0.0; /* standard path not wired yet */
   return _SUCCESS_;
 }
 
