@@ -172,7 +172,66 @@ int main(int argc, char **argv) {
   }
   /* ===================================== */
 
-  if (thermodynamics_free(&th) == _FAILURE_) {
+  /* ===== HS drag-epoch summary (stdout) ===== */
+  if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
+    double zd  = th.z_d;   /* baryon drag redshift */
+    double rsd = th.rs_d;  /* comoving sound horizon at drag */
+    if (zd > 0.0 && rsd > 0.0) {
+      double DMd = 0.0;
+      if (background_D_M_of_z(&ba, zd, &DMd) == _SUCCESS_ && DMd > 0.0) {
+        double theta_d = rsd / DMd;
+        if (theta_d > 0.0) {
+          double ell_d = acos(-1.0) / theta_d;
+          printf("[HS] z_d = %.3f, r_d = %.6f Mpc, D_M(z_d) = %.6f Mpc, "
+                 "theta_d = %.9e rad, ell_d ≈ %.2f\n",
+                 zd, rsd, DMd, theta_d, ell_d);
+        }
+      }
+    }
+  }
+  /* ========================================= */  
+
+  /* ===== HS CMB summary -> hs_cmb_summary.tsv (stdout-compatible) ===== */
+  if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
+    /* Recompute the numbers so this block stands alone */
+    double zstar = th.z_rec;       /* recombination */
+    double rs    = th.rs_rec;
+    double zd    = th.z_d;         /* drag epoch */
+    double rsd   = th.rs_d;
+
+    double DMstar = 0.0, DMd = 0.0;
+    double theta_star = 0.0, ell_star = 0.0;
+    double theta_d    = 0.0, ell_d    = 0.0;
+
+    /* Guard reasonable fallbacks */
+    if (zstar <= 0.0) zstar = 1100.0;
+
+    if (background_D_M_of_z(&ba, zstar, &DMstar) == _SUCCESS_ && DMstar > 0.0 && rs > 0.0) {
+      theta_star = rs / DMstar;
+      if (theta_star > 0.0) ell_star = acos(-1.0) / theta_star; /* π/θ* */
+    }
+    if (zd > 0.0 && rsd > 0.0 &&
+        background_D_M_of_z(&ba, zd, &DMd) == _SUCCESS_ && DMd > 0.0) {
+      theta_d = rsd / DMd;
+      if (theta_d > 0.0) ell_d = acos(-1.0) / theta_d;
+    }
+
+    /* Write a simple TSV next to the executable (working directory) */
+    FILE *f = fopen("hs_cmb_summary.tsv", "w");
+    if (f != NULL) {
+      fprintf(f, "z_star\trs_rec_Mpc\tD_M_zstar_Mpc\ttheta_star_rad\tell_star\t");
+      fprintf(f, "z_d\tr_d_Mpc\tD_M_zd_Mpc\ttheta_d_rad\tell_d\n");
+      fprintf(f, "%.6f\t%.9f\t%.9f\t%.12e\t%.6f\t", zstar, rs, DMstar, theta_star, ell_star);
+      fprintf(f, "%.6f\t%.9f\t%.9f\t%.12e\t%.6f\n", zd, rsd, DMd, theta_d, ell_d);
+      fclose(f);
+      printf("[HS] wrote hs_cmb_summary.tsv\n");
+    } else {
+      printf("[HS] warning: could not open hs_cmb_summary.tsv for writing\n");
+    }
+  }
+  /* ===================================================================== */
+
+if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
