@@ -140,11 +140,10 @@ static int hs_smoothstep(double x, double x0, double w, double *b){
   return _SUCCESS_;
 }
 
-/* Placeholder for the effective background H(a) under HS geometry. 
-   For now it returns 1.0 and is NOT used by CLASS until we wire it in. */
+/* Effective background H(a): placeholder (not used yet). */
 static int hs_H_eff_of_a(struct background *pba, double a, double *H_eff){
   (void)pba; (void)a;
-  *H_eff = 1.0; /* STUB: will blend H_std and H_hs later */
+  *H_eff = 1.0; /* stub: will be replaced when we integrate H into Theta and distances */
   return _SUCCESS_;
 }
 
