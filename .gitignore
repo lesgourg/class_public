@@ -14,3 +14,5 @@ RealSpaceInterface/cache/
 .DS_Store
 doc/manual/html
 doc/manual/latex
+
+!hs_parse_test.ini
