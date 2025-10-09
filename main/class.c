@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
     /* ===== HS R0 calibrator (stdout) ===== */
   if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
     /* Choose your target l_* (Planck ~ 301). You can tweak this number. */
-    const double lstar_target = 301.0;
+    const double lstar_target = ba.hs_lstar_target;
 
     /* Ingredients: sound horizon and recombination redshift */
     double zstar = th.z_rec;
@@ -239,11 +239,19 @@ int main(int argc, char **argv) {
 
     FILE *fbao = fopen("hs_bao_summary.tsv","w");
     if (fbao != NULL) {
-      fprintf(fbao, "z\tD_M_Mpc\tD_A_Mpc\tH_1perMpc\tD_V_Mpc\n");
+      fprintf(fbao, "z\tD_M_Mpc\tD_A_Mpc\tH_1perMpc\tD_V_Mpc\tD_M_over_r_d\tD_V_over_r_d\n");
 
       for (int i=0; i<NZ; ++i) {
         double z = zlist[i];
         double DM = 0.0, DA = 0.0, H = 0.0, DV = 0.0;
+
+        /* BAO ratios using drag-epoch sound horizon r_d */
+        double rd = th.rs_d;
+        double DM_over_rd = 0.0, DV_over_rd = 0.0;
+        if (rd > 0.0) {
+          DM_over_rd = DM / rd;
+          DV_over_rd = DV / rd;
+        }
 
         /* Our S^3 transverse comoving distance */
         if (background_D_M_of_z(&ba, z, &DM) != _SUCCESS_ || DM <= 0.0) {
@@ -268,7 +276,9 @@ int main(int argc, char **argv) {
         double tmp = (1.0+z)*(1.0+z)*DA*DA * (z/H);
         if (tmp > 0.0) DV = pow(tmp, 1.0/3.0);
 
-        fprintf(fbao, "%.6f\t%.9f\t%.9f\t%.12e\t%.9f\n", z, DM, DA, H, DV);
+        fprintf(fbao, "%.6f\t%.9f\t%.9f\t%.12e\t%.9f\t%.9f\t%.9f\n",
+        z, DM, DA, H, DV, DM_over_rd, DV_over_rd);
+
       }
       fclose(fbao);
       printf("[HS] wrote hs_bao_summary.tsv\n");
