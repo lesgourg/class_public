@@ -278,6 +278,44 @@ int main(int argc, char **argv) {
   }
   /* ================================================= */
 
+  /* ===== HS distance grid -> hs_distances.tsv ===== */
+  if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
+    const double zmin = 0.0, zmax = 3.0, dz = 0.01;
+    FILE *fdg = fopen("hs_distances.tsv","w");
+    if (fdg != NULL) {
+      fprintf(fdg, "z\tchi_Mpc\tD_M_Mpc\tD_A_Mpc\tH_1perMpc\n");
+      for (double z = zmin; z <= zmax + 1e-12; z += dz) {
+        double tau0=0.0, tauz=0.0, chi=0.0;
+        double DM=0.0, DA=0.0, H=0.0;
+
+        /* comoving radial distance chi = tau0 - tau(z) */
+        if (background_tau_of_z(&ba, 0.0, &tau0) != _SUCCESS_) continue;
+        if (background_tau_of_z(&ba, z,   &tauz) != _SUCCESS_) continue;
+        chi = tau0 - tauz;
+
+        /* S^3 transverse comoving distance and D_A */
+        if (background_D_M_of_z(&ba, z, &DM) != _SUCCESS_ || DM <= 0.0) continue;
+        DA = DM / (1.0 + z);
+
+        /* H(z) via finite difference on tau(z): H = -1 / [(1+z) dτ/dz] */
+        double dzH = 1e-3, t1=0.0, t2=0.0;
+        if (background_tau_of_z(&ba, z,     &t1) != _SUCCESS_) continue;
+        if (background_tau_of_z(&ba, z+dzH, &t2) != _SUCCESS_) continue;
+        double dtau_dz = (t2 - t1)/dzH;
+        if (dtau_dz == 0.0) continue;
+        H = -1.0 / ((1.0 + z) * dtau_dz);
+        if (H <= 0.0) continue;
+
+        fprintf(fdg, "%.4f\t%.9f\t%.9f\t%.9f\t%.12e\n", z, chi, DM, DA, H);
+      }
+      fclose(fdg);
+      printf("[HS] wrote hs_distances.tsv\n");
+    } else {
+      printf("[HS] warning: could not open hs_distances.tsv for writing\n");
+    }
+  }
+  /* ================================================ */
+
 if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
