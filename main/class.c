@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
 
     FILE *fbao = fopen("hs_bao_summary.tsv","w");
     if (fbao != NULL) {
-      fprintf(fbao, "z\tD_M_Mpc\tD_A_Mpc\tH_1perMpc\tD_V_Mpc\tD_H_Mpc\tF_AP\tD_M_over_r_d\tD_V_over_r_d\n");
+      fprintf(fbao, "z\tD_M_Mpc\tD_A_Mpc\tH_1perMpc\tD_V_Mpc\tD_H_Mpc\tF_AP\tD_M_over_r_d\tD_V_over_r_d\tD_A_over_r_d\tD_H_over_r_d\n");
 
       /* Drag-epoch sound horizon for ratios (constant across z) */
       const double rd = th.rs_d;
@@ -296,12 +296,15 @@ int main(int argc, char **argv) {
           F_AP = DM * H;     /* dimensionless */
         }
 
+        double D_A_over_rd = (rd > 0.0) ? DA / rd : 0.0;
+        double D_H_over_rd = (rd > 0.0 && D_H > 0.0) ? D_H / rd : 0.0;
+
         /* Ratios */
         double DM_over_rd = (rd > 0.0) ? DM / rd : 0.0;
         double DV_over_rd = (rd > 0.0) ? DV / rd : 0.0;
 
-        fprintf(fbao, "%.6f\t%.9f\t%.9f\t%.12e\t%.9f\t%.9f\t%.9f\t%.9f\t%.9f\n",
-        z, DM, DA, H, DV, D_H, F_AP, DM_over_rd, DV_over_rd);
+        fprintf(fbao, "%.6f\t%.9f\t%.9f\t%.12e\t%.9f\t%.9f\t%.9f\t%.9f\t%.9f\t%.9f\t%.9f\n",
+        z, DM, DA, H, DV, D_H, F_AP, DM_over_rd, DV_over_rd, D_A_over_rd, D_H_over_rd);
       }
 
       fclose(fbao);
