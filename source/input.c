@@ -66,6 +66,7 @@ int input_init(int argc,
   pba->hs_R0 = 0.0;            /* 3-sphere radius [Mpc]; 0 => unused */
   pba->hs_match_z = 2000.0;    /* match to standard background above this z */
   pba->hs_interp_width = 0.5;  /* smooth-step width in ln(a) */
+  pba->hs_lstar_target = 301.0;
   /* ================================================== */
 
   /** Summary: */
@@ -2133,6 +2134,12 @@ int input_read_parameters_general(struct file_content * pfc,
 
   }
 
+  {
+    double tmp; int flag;
+    if (parser_read_double(pfc,"hs_lstar_target",&tmp,&flag,pba->error_message) == _SUCCESS_ && flag == _TRUE_) {
+      pba->hs_lstar_target = tmp;
+    }
+  }
 
   /** 4) Gauge */
   /** 4.a) Set gauge */

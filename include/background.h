@@ -333,6 +333,7 @@ struct background
   double hs_R0;           /* present-day 3-sphere radius [Mpc] */
   double hs_match_z;      /* redshift where HS background blends to standard */
   double hs_interp_width; /* smooth-step width in ln(a) for blending */
+  double hs_lstar_target; /* target acoustic scale for calibrator (default 301.0) */
   /* --------------------------------------------------- */
 };
 
