@@ -231,6 +231,53 @@ int main(int argc, char **argv) {
   }
   /* ===================================================================== */
 
+  /* ===== HS BAO summary -> hs_bao_summary.tsv ===== */
+  if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
+    /* Choose BAO z grid (edit as you like) */
+    const double zlist[] = {0.106, 0.15, 0.32, 0.35, 0.57, 0.61, 0.8, 1.0, 1.5, 2.34};
+    const int NZ = (int)(sizeof(zlist)/sizeof(zlist[0]));
+
+    FILE *fbao = fopen("hs_bao_summary.tsv","w");
+    if (fbao != NULL) {
+      fprintf(fbao, "z\tD_M_Mpc\tD_A_Mpc\tH_1perMpc\tD_V_Mpc\n");
+
+      for (int i=0; i<NZ; ++i) {
+        double z = zlist[i];
+        double DM = 0.0, DA = 0.0, H = 0.0, DV = 0.0;
+
+        /* Our S^3 transverse comoving distance */
+        if (background_D_M_of_z(&ba, z, &DM) != _SUCCESS_ || DM <= 0.0) {
+          continue;
+        }
+        DA = DM / (1.0 + z);
+
+        /* H(z) via conformal-time derivative: H = -1 / [(1+z) dτ/dz] */
+        double dz = 1e-3;
+        double tau1 = 0.0, tau2 = 0.0;
+        if (background_tau_of_z(&ba, z,     &tau1) != _SUCCESS_ ||
+            background_tau_of_z(&ba, z+dz,  &tau2) != _SUCCESS_) {
+          continue;
+        }
+        double dtau_dz = (tau2 - tau1) / dz;
+        if (dtau_dz == 0.0) continue;
+        H = -1.0 / ((1.0 + z) * dtau_dz);
+        if (H <= 0.0) continue;
+
+
+        /* Eisenstein+Hu DV definition (CLASS units: c=1, so cz/H -> z/H) */
+        double tmp = (1.0+z)*(1.0+z)*DA*DA * (z/H);
+        if (tmp > 0.0) DV = pow(tmp, 1.0/3.0);
+
+        fprintf(fbao, "%.6f\t%.9f\t%.9f\t%.12e\t%.9f\n", z, DM, DA, H, DV);
+      }
+      fclose(fbao);
+      printf("[HS] wrote hs_bao_summary.tsv\n");
+    } else {
+      printf("[HS] warning: could not open hs_bao_summary.tsv for writing\n");
+    }
+  }
+  /* ================================================= */
+
 if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
