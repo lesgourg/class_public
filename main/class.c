@@ -191,42 +191,63 @@ int main(int argc, char **argv) {
   }
   /* ========================================= */  
 
-  /* ===== HS CMB summary -> hs_cmb_summary.tsv (stdout-compatible) ===== */
+    /* ===== HS CMB summary -> hs_cmb_summary.tsv (stdout-compatible) ===== */
   if (ba.hs_model == _TRUE_ && ba.hs_R0 > 0.0) {
-    /* Recompute the numbers so this block stands alone */
-    double zstar = th.z_rec;       /* recombination */
-    double rs    = th.rs_rec;
-    double zd    = th.z_d;         /* drag epoch */
-    double rsd   = th.rs_d;
-
-    double DMstar = 0.0, DMd = 0.0;
-    double theta_star = 0.0, ell_star = 0.0;
-    double theta_d    = 0.0, ell_d    = 0.0;
-
-    /* Guard reasonable fallbacks */
+    /* Recombination (z*, r_s) */
+    double zstar = th.z_rec;             /* recombination redshift */
+    double rs    = th.rs_rec;            /* comoving sound horizon at recombination */
+    double DMstar = 0.0;                 /* D_M(z*) from S^3 wrapper */
     if (zstar <= 0.0) zstar = 1100.0;
 
     if (background_D_M_of_z(&ba, zstar, &DMstar) == _SUCCESS_ && DMstar > 0.0 && rs > 0.0) {
-      theta_star = rs / DMstar;
-      if (theta_star > 0.0) ell_star = acos(-1.0) / theta_star; /* π/θ* */
-    }
-    if (zd > 0.0 && rsd > 0.0 &&
-        background_D_M_of_z(&ba, zd, &DMd) == _SUCCESS_ && DMd > 0.0) {
-      theta_d = rsd / DMd;
-      if (theta_d > 0.0) ell_d = acos(-1.0) / theta_d;
-    }
+      const double PI = acos(-1.0);
+      double theta_star = rs / DMstar;   /* radians */
+      if (theta_star > 0.0) {
+        double ell_star = PI / theta_star;
 
-    /* Write a simple TSV next to the executable (working directory) */
-    FILE *f = fopen("hs_cmb_summary.tsv", "w");
-    if (f != NULL) {
-      fprintf(f, "z_star\trs_rec_Mpc\tD_M_zstar_Mpc\ttheta_star_rad\tell_star\t");
-      fprintf(f, "z_d\tr_d_Mpc\tD_M_zd_Mpc\ttheta_d_rad\tell_d\n");
-      fprintf(f, "%.6f\t%.9f\t%.9f\t%.12e\t%.6f\t", zstar, rs, DMstar, theta_star, ell_star);
-      fprintf(f, "%.6f\t%.9f\t%.9f\t%.12e\t%.6f\n", zd, rsd, DMd, theta_d, ell_d);
-      fclose(f);
-      printf("[HS] wrote hs_cmb_summary.tsv\n");
-    } else {
-      printf("[HS] warning: could not open hs_cmb_summary.tsv for writing\n");
+        /* Convenience conversions */
+        double theta_star_deg     = theta_star * (180.0/PI);
+        double theta_star_arcmin  = theta_star_deg * 60.0;
+        double one_hundred_theta_star = 100.0 * theta_star;
+
+        /* Drag epoch (z_d, r_d) */
+        double zd   = th.z_d;
+        double rsd  = th.rs_d;
+        double DMd  = 0.0;
+        double theta_d = 0.0, ell_d = 0.0, theta_d_deg = 0.0, theta_d_arcmin = 0.0;
+
+        if (zd > 0.0 && rsd > 0.0 &&
+            background_D_M_of_z(&ba, zd, &DMd) == _SUCCESS_ && DMd > 0.0) {
+          theta_d = rsd / DMd;           /* radians */
+          if (theta_d > 0.0) {
+            ell_d = PI / theta_d;
+            theta_d_deg    = theta_d * (180.0/PI);
+            theta_d_arcmin = theta_d_deg * 60.0;
+          }
+        }
+
+        /* Write TSV */
+        FILE *f = fopen("hs_cmb_summary.tsv","w");
+        if (f != NULL) {
+          fprintf(f, "z_star\trs_rec_Mpc\tD_M_zstar_Mpc\ttheta_star_rad\tell_star\t");
+          fprintf(f, "theta_star_deg\ttheta_star_arcmin\t100theta_star\t");
+          fprintf(f, "z_d\tr_d_Mpc\tD_M_zd_Mpc\ttheta_d_rad\tell_d\t");
+          fprintf(f, "theta_d_deg\ttheta_d_arcmin\n");
+
+          fprintf(f,
+            "%.6f\t%.9f\t%.9f\t%.12e\t%.6f\t%.6f\t%.6f\t%.6f\t"
+            "%.6f\t%.9f\t%.9f\t%.12e\t%.6f\t%.6f\t%.6f\n",
+            zstar, rs, DMstar, theta_star, ell_star,
+            theta_star_deg, theta_star_arcmin, one_hundred_theta_star,
+            zd, rsd, DMd, theta_d, ell_d, theta_d_deg, theta_d_arcmin
+          );
+
+          fclose(f);
+          printf("[HS] wrote hs_cmb_summary.tsv\n");
+        } else {
+          printf("[HS] warning: could not open hs_cmb_summary.tsv for writing\n");
+        }
+      }
     }
   }
   /* ===================================================================== */
