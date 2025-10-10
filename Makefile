@@ -252,3 +252,14 @@ hs-run-all: class
 	$(MAKE) hs-summary
 	@echo "Artifacts:"
 	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv || true
+.PHONY: hs-bundle
+hs-bundle:
+	@rm -f hs_artifacts.zip
+	@zip -9 hs_artifacts.zip hs_*.tsv hs_summary.csv hs_all.log >/dev/null
+	@echo "Built hs_artifacts.zip"
+hs-run-all: class
+	./class hs_parse_test.ini | tee hs_all.log
+	$(MAKE) hs-summary
+	$(MAKE) hs-bundle
+	@echo "Artifacts:"
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv hs_artifacts.zip || true
