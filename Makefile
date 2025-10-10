@@ -221,3 +221,10 @@ clean: .base
 	rm -f libclass.a
 	rm -f $(MDIR)/python/classy.c
 	rm -rf $(MDIR)/python/build
+.PHONY: hs-run hs-clean
+hs-run: class
+	./class hs_parse_test.ini | tee hs_all.log
+	@echo "Artifacts:"
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv || true
+hs-clean:
+	rm -f hs_*.log hs_*.tsv hs_summary.csv
