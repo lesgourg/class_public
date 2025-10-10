@@ -228,3 +228,27 @@ hs-run: class
 	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv || true
 hs-clean:
 	rm -f hs_*.log hs_*.tsv hs_summary.csv
+.PHONY: hs-summary hs-run-all
+hs-summary:
+	@set -e; \
+	if [ -f hs_cmb_summary.tsv ] && [ -f hs_bao_summary.tsv ]; then \
+	  { \
+	    head -n 1 hs_cmb_summary.tsv; \
+	    echo ',,,,'; \
+	    head -n 1 hs_bao_summary.tsv; \
+	  } | paste -d, - - - > hs_summary.csv; \
+	  { \
+	    sed -n '2p' hs_cmb_summary.tsv; \
+	    echo ',,,,'; \
+	    sed -n '2p' hs_bao_summary.tsv | head -n 1; \
+	  } | paste -d, - - - >> hs_summary.csv; \
+	else \
+	  echo "hs-summary: missing hs_cmb_summary.tsv or hs_bao_summary.tsv; run \`make hs-run\` first" >&2; \
+	  exit 1; \
+	fi
+	@echo "Built hs_summary.csv"
+hs-run-all: class
+	./class hs_parse_test.ini | tee hs_all.log
+	$(MAKE) hs-summary
+	@echo "Artifacts:"
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv || true
