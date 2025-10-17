@@ -1306,7 +1306,10 @@ int numjac(
                error_message,error_message);
 
     *nfe+=1;
-    for(i=1;i<=neq;i++) nj_ws->ydel_Fdel[i][j] = nj_ws->ffdel[i];
+    for(i=1;i<=neq;i++){
+      class_test(nj_ws->ffdel[i] != nj_ws->ffdel[i], error_message, "A derivative passed to numjac was NaN.");
+      nj_ws->ydel_Fdel[i][j] = nj_ws->ffdel[i];
+    }
   }
 
 
@@ -1405,6 +1408,7 @@ int numjac(
           Fdiff_absrm = 0.0;
           for(i=1;i<=neq;i++){
             Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
+            class_test(nj_ws->ffdel[i] != nj_ws->ffdel[i], error_message, "A derivative passed to numjac was NaN."); 
             Fdiff_new = nj_ws->ffdel[i]-fval[i];
             nj_ws->tmp[i] = Fdiff_new/del2;
             if(fabs(Fdiff_new)>=Fdiff_absrm){
