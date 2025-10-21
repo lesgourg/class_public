@@ -226,7 +226,7 @@ clean: .base
 hs-run: class
 	./class hs_parse_test.ini | tee hs_all.log
 	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_meta.txt || true
 hs-clean:
 	rm -f hs_*.log hs_*.tsv hs_summary.csv
 .PHONY: hs-summary hs-run-all
@@ -251,22 +251,24 @@ hs-summary:
 hs-run-all: class
 	./class hs_parse_test.ini | tee hs_all.log
 	$(MAKE) hs-summary
+	$$(MAKE) hs-meta
 	(MAKE) hs-dist-plus
 	$(MAKE) hs-dist-plus
 	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_meta.txt || true
 .PHONY: hs-bundle
 hs-bundle:
 	@rm -f hs_artifacts.zip
-	@zip -9 hs_artifacts.zip hs_*.tsv hs_summary.csv hs_all.log >/dev/null
+	@zip -9 hs_artifacts.zip hs_*.tsv hs_summary.csv hs_all.log hs_meta.txt hs_meta.txt hs_meta.txt >/dev/null
 	@echo "Built hs_artifacts.zip"
 hs-run-all: class
-	./class hs_parse_test.ini | tee hs_all.log
+	./class hs_parse_test.ini | tee hs_all.log hs_meta.txt
 	$(MAKE) hs-summary
+	$$(MAKE) hs-meta
 	$(MAKE) hs-dist-plus
 	$(MAKE) hs-bundle
 	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_artifacts.zip || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_artifacts.zip hs_meta.txt || true
 .PHONY: hs-cls hs-cls-tsv hs-cls-all
 hs-cls: class
 	./class hs_cls.ini | tee hs_cls.log
@@ -310,3 +312,6 @@ hs-dist-plus:
 .PHONY: hs-dist-plus
 hs-dist-plus:
 	./scripts/hs_dist_plus.sh
+.PHONY: hs-meta
+hs-meta:
+\tprintf "rev: %s\ndate: %s\ncc: %s\npython: %s\n" "$$(git rev-parse --short HEAD)" "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$$(${CC:-cc} --version 2>/dev/null | head -n1)" "$$(${PYTHON:-python3} --version 2>&1)" > hs_meta.txt
