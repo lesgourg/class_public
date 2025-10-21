@@ -250,6 +250,7 @@ hs-summary:
 hs-run-all: class
 	./class hs_parse_test.ini | tee hs_all.log
 	$(MAKE) hs-summary
+	(MAKE) hs-dist-plus
 	$(MAKE) hs-dist-plus
 	@echo "Artifacts:"
 	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv || true
@@ -302,5 +303,9 @@ hs-cls-bundle: hs-cls-tsv hs-cls-dl-tsv
 	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
 	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
 hs-dist-plus:
-	@awk 'NR==1{print $0"\tD_L_Mpc\tE_z\tmu_mag";next} NR==2{H0=$5} NR>1{Dl=(1+$1)^2*$3; Ez=$5/H0; mu=5*log(Dl)/log(10)+25; printf "%s\t%.9f\t%.9f\t%.6f\n",$0,Dl,Ez,mu}' hs_distances.tsv hs_distances_plus.tsv > hs_distances_plus.tsv
+	@awk 'NR==1{print $$0"\tD_L_Mpc\tE_z\tmu_mag";next} NR==2{H0=$$5} NR>1{Dl=(1+$$1)^2*$$3; Ez=$$5/H0; mu=5*log(Dl)/log(10)+25; printf "%s\t%.9f\t%.9f\t%.6f\n",$$0,Dl,Ez,mu}' hs_distances.tsv hs_distances_plus.tsv > hs_distances_plus.tsv
 	@echo "Built hs_distances_plus.tsv"
+
+.PHONY: hs-dist-plus
+hs-dist-plus:
+	./scripts/hs_dist_plus.sh
