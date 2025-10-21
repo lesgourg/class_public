@@ -251,44 +251,22 @@ hs-summary:
 hs-run-all: class
 	./class hs_parse_test.ini | tee hs_all.log
 	$(MAKE) hs-summary
-	$$(MAKE) hs-meta
-	(MAKE) hs-dist-plus
-	$(MAKE) hs-dist-plus
-	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_meta.txt || true
-.PHONY: hs-bundle
-hs-bundle:
-	@rm -f hs_artifacts.zip
-	@zip -9 hs_artifacts.zip hs_*.tsv hs_summary.csv hs_all.log hs_meta.txt hs_meta.txt hs_meta.txt >/dev/null
-	@echo "Built hs_artifacts.zip"
-hs-run-all: class
-	./class hs_parse_test.ini | tee hs_all.log hs_meta.txt
-	$(MAKE) hs-summary
-	$$(MAKE) hs-meta
+	$(MAKE) hs-meta
 	$(MAKE) hs-dist-plus
 	$(MAKE) hs-bundle
 	@echo "Artifacts:"
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_meta.txt || true
 	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_artifacts.zip hs_meta.txt || true
 .PHONY: hs-cls hs-cls-tsv hs-cls-all
 hs-cls: class
 	./class hs_cls.ini | tee hs_cls.log
 	@echo "CLASS wrote:" && ls -lh output/*_cl*.dat || true
-hs-cls-tsv:
-	@set -e; \
-	outdir=output; \
-	tt="$$(ls $$outdir/*_cl*TT.dat 2>/dev/null | head -n1)"; \
-	te="$$(ls $$outdir/*_cl*TE.dat 2>/dev/null | head -n1)"; \
-	ee="$$(ls $$outdir/*_cl*EE.dat 2>/dev/null | head -n1)"; \
-	pp="$$(ls $$outdir/*_cl*pp.dat 2>/dev/null | head -n1)"; \
-	if [ -z "$$tt" ]; then echo "No TT file found in $$outdir; run 'make hs-cls' first"; exit 1; fi; \
-	awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$tt" > hs_cls_TT.tsv; \
-	[ -n "$$te" ] && awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$te" > hs_cls_TE.tsv || true; \
-	[ -n "$$ee" ] && awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$ee" > hs_cls_EE.tsv || true; \
-	[ -n "$$pp" ] && awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$pp" > hs_cls_PP.tsv || true; \
-	echo "Wrote:" && ls -lh hs_cls_*.tsv
 hs-cls-all: hs-cls hs-cls-tsv hs-cls-dl-tsv
 	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
 	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_meta.txt || true
 hs-cls-tsv:
 	./scripts/hs_cls_tsv.sh
 .PHONY: hs-cls-dl-tsv hs-cls-bundle
@@ -305,13 +283,38 @@ hs-cls-dl-tsv:
 hs-cls-bundle: hs-cls-tsv hs-cls-dl-tsv
 	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
 	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
-hs-dist-plus:
-	@awk 'NR==1{print $$0"\tD_L_Mpc\tE_z\tmu_mag";next} NR==2{H0=$$5} NR>1{Dl=(1+$$1)^2*$$3; Ez=$$5/H0; mu=5*log(Dl)/log(10)+25; printf "%s\t%.9f\t%.9f\t%.6f\n",$$0,Dl,Ez,mu}' hs_distances.tsv hs_distances_plus.tsv > hs_distances_plus.tsv
-	@echo "Built hs_distances_plus.tsv"
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_meta.txt || true
 
+.PHONY: hs-sha
+hs-sha: hs-release
+	@f=$$(ls -1t hs_release_*.zip | head -n1); shasum -a 256 "$$f" hs_artifacts.zip hs_cls_artifacts.zip > SHA256SUMS.txt; echo "Wrote SHA256SUMS.txt"
 .PHONY: hs-dist-plus
 hs-dist-plus:
 	./scripts/hs_dist_plus.sh
+.PHONY: hs-release
+hs-release: hs-run-all hs-cls-all
+	@rev=$$(git rev-parse --short HEAD); \
+	zip -9 "hs_release_$${rev}.zip" hs_artifacts.zip hs_cls_artifacts.zip hs_meta.txt README-HS.md >/dev/null || true; \
+	echo "Built hs_release_$${rev}.zip"
+.PHONY: hs-verify
+hs-verify:
+	@set -e; for f in hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_all.log hs_meta.txt; do \
+		[ -s $$f ] || { echo "Missing $$f"; exit 1; }; \
+	done
+	@grep -Eri "nan|inf" -- hs_*.tsv || echo "No NaNs/Infs ✅"
+.PHONY: hs-publish
+hs-publish: hs-run-all hs-cls-all hs-verify
+	@tag=$$(git rev-parse --short HEAD); ts=$$(date -u +%Y%m%dT%H%M%SZ); \
+	name="hs_artifacts_$${tag}_$${ts}.zip"; \
+	rm -f "$$name"; \
+	zip -9 "$$name" hs_artifacts.zip hs_cls_artifacts.zip hs_meta.txt README-HS.md >/dev/null || true; \
+	echo "Wrote $$name"
 .PHONY: hs-meta
 hs-meta:
-\tprintf "rev: %s\ndate: %s\ncc: %s\npython: %s\n" "$$(git rev-parse --short HEAD)" "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$$(${CC:-cc} --version 2>/dev/null | head -n1)" "$$(${PYTHON:-python3} --version 2>&1)" > hs_meta.txt
+	@./scripts/hs_meta.sh
+.PHONY: hs-bundle
+hs-bundle:
+	@rm -f hs_artifacts.zip
+	@zip -9 hs_artifacts.zip hs_*.tsv hs_summary.csv hs_all.log hs_meta.txt >/dev/null || true
+	@echo "Built hs_artifacts.zip"
