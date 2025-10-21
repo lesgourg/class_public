@@ -225,7 +225,7 @@ clean: .base
 hs-run: class
 	./class hs_parse_test.ini | tee hs_all.log
 	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv || true
 hs-clean:
 	rm -f hs_*.log hs_*.tsv hs_summary.csv
 .PHONY: hs-summary hs-run-all
@@ -250,8 +250,9 @@ hs-summary:
 hs-run-all: class
 	./class hs_parse_test.ini | tee hs_all.log
 	$(MAKE) hs-summary
+	$(MAKE) hs-dist-plus
 	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv || true
 .PHONY: hs-bundle
 hs-bundle:
 	@rm -f hs_artifacts.zip
@@ -260,6 +261,46 @@ hs-bundle:
 hs-run-all: class
 	./class hs_parse_test.ini | tee hs_all.log
 	$(MAKE) hs-summary
+	$(MAKE) hs-dist-plus
 	$(MAKE) hs-bundle
 	@echo "Artifacts:"
-	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_summary.csv hs_artifacts.zip || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_artifacts.zip || true
+.PHONY: hs-cls hs-cls-tsv hs-cls-all
+hs-cls: class
+	./class hs_cls.ini | tee hs_cls.log
+	@echo "CLASS wrote:" && ls -lh output/*_cl*.dat || true
+hs-cls-tsv:
+	@set -e; \
+	outdir=output; \
+	tt="$$(ls $$outdir/*_cl*TT.dat 2>/dev/null | head -n1)"; \
+	te="$$(ls $$outdir/*_cl*TE.dat 2>/dev/null | head -n1)"; \
+	ee="$$(ls $$outdir/*_cl*EE.dat 2>/dev/null | head -n1)"; \
+	pp="$$(ls $$outdir/*_cl*pp.dat 2>/dev/null | head -n1)"; \
+	if [ -z "$$tt" ]; then echo "No TT file found in $$outdir; run 'make hs-cls' first"; exit 1; fi; \
+	awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$tt" > hs_cls_TT.tsv; \
+	[ -n "$$te" ] && awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$te" > hs_cls_TE.tsv || true; \
+	[ -n "$$ee" ] && awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$ee" > hs_cls_EE.tsv || true; \
+	[ -n "$$pp" ] && awk 'BEGIN{print "ell\tC_ell"} NR>=1 {print $$1"\t"$$2}' "$$pp" > hs_cls_PP.tsv || true; \
+	echo "Wrote:" && ls -lh hs_cls_*.tsv
+hs-cls-all: hs-cls hs-cls-tsv hs-cls-dl-tsv
+	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
+	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
+hs-cls-tsv:
+	./scripts/hs_cls_tsv.sh
+.PHONY: hs-cls-dl-tsv hs-cls-bundle
+hs-cls-dl-tsv:
+	@rm -f hs_cls__Dl.tsv
+	@set -e; \
+	for b in TT EE TE PP; do \
+	  in="hs_cls_$${b}.tsv"; out="hs_cls_$${b}_Dl.tsv"; \
+	  if [ -f "$$in" ]; then \
+	    awk 'BEGIN{pi=4*atan2(1,1); print "ell\tD_ell"} NR>1{ell=$$1; Cl=$$2; print ell"\t"(ell*(ell+1)*Cl/(2*pi))}' "$$in" > "$$out"; \
+	  fi; \
+	done; \
+	echo "Wrote:" && ls -lh hs_cls_*_Dl.tsv 2>/dev/null || true
+hs-cls-bundle: hs-cls-tsv hs-cls-dl-tsv
+	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
+	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
+hs-dist-plus:
+	@awk 'NR==1{print $0"\tD_L_Mpc\tE_z\tmu_mag";next} NR==2{H0=$5} NR>1{Dl=(1+$1)^2*$3; Ez=$5/H0; mu=5*log(Dl)/log(10)+25; printf "%s\t%.9f\t%.9f\t%.6f\n",$0,Dl,Ez,mu}' hs_distances.tsv hs_distances_plus.tsv > hs_distances_plus.tsv
+	@echo "Built hs_distances_plus.tsv"
