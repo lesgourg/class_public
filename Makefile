@@ -1,3 +1,4 @@
+PYTHON ?= python3
 #Some Makefile for CLASS.
 #Julien Lesgourgues, 28.11.2011
 #Nils Schöneberg, Matteo Lucca, 27.02.2019
