@@ -69,6 +69,12 @@ enum inflation_module_behavior {
                                 analytical
 };
 
+/** enum specifying potential derivative dV/dphi sign */
+
+enum potential_derivative_sign {
+                                positive,
+                                negative
+};
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
@@ -180,6 +186,9 @@ struct primordial {
   double phi_end;	/**< value of inflaton at the end of inflation */
   enum phi_pivot_methods phi_pivot_method; /**< flag for method used to define and find the pivot scale */
   double phi_pivot_target; /**< For each of the above methods, critical value to be reached between pivot and end of inflation (N_star, [aH]ratio, etc.) */
+
+  /* parameter describing potential derivative dV/dphi sign */
+  enum potential_derivative_sign potential_derivative;
 
   /* behavior of the inflation module */
   enum inflation_module_behavior behavior; /**< Specifies if the inflation module computes the primordial spectrum numerically (default) or analytically*/

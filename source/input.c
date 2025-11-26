@@ -4312,6 +4312,24 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
   else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H)) {
 
+    
+    /* Sign of derivative of potential, dV/dphi */
+    class_call(parser_read_string(pfc,"potential_derivative",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_) {
+      if (strcmp(string1,"positive") == 0){
+        ppm->potential_derivative = positive;
+      }
+      else if (strcmp(string1,"negative") == 0){
+        ppm->potential_derivative = negative;
+      }
+      else{
+        class_stop(errmsg,"You specified 'potential_derivative' as '%s'. It has to be one of {'positive','negative'}.",string1);
+      }
+    }
+
     /** 1.c) For type 'inflation_V' */
     if (ppm->primordial_spec_type == inflation_V) {
 
@@ -4459,6 +4477,22 @@ int input_read_parameters_primordial(struct file_content * pfc,
       }
       else{
         class_stop(errmsg,"You specified 'full_potential' as '%s'. It has to be one of {'polynomial','higgs_inflation'}.",string1);
+      }
+    }
+     /* Sign of derivative of potential, dV/dphi */
+    class_call(parser_read_string(pfc,"potential_derivative",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_) {
+      if (strcmp(string1,"positive") == 0){
+        ppm->potential_derivative = positive;
+      }
+      else if (strcmp(string1,"negative") == 0){
+        ppm->potential = negative;
+      }
+      else{
+        class_stop(errmsg,"You specified 'potential_derivative' as '%s'. It has to be one of {'positive','negative'}.",string1);
       }
     }
 
@@ -6085,6 +6119,8 @@ int input_default_params(struct background *pba,
   ppm->phi_end=0.;
   /** 1.e.2) Shape of the potential */
   ppm->potential=polynomial;
+   /* Sign of derivative of potential, dV/dphi */
+  ppm->potential_derivative=negative;
   /** 1.e.4) Increase of scale factor or (aH) between Hubble crossing at pivot
       scale and end of inflation */
   ppm->phi_pivot_method = N_star;
