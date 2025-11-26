@@ -326,6 +326,15 @@ struct background
 
   short is_allocated; /**< flag is set to true if allocated */
   //@}
+
+  /* ---- Hyperspherical Cosmology (HS) parameters ---- */
+  short hs_model;         /* 0 = off (default), 1 = on */
+  double hs_eps;          /* curvature/time-vector parameter ε */
+  double hs_R0;           /* present-day 3-sphere radius [Mpc] */
+  double hs_match_z;      /* redshift where HS background blends to standard */
+  double hs_interp_width; /* smooth-step width in ln(a) for blending */
+  double hs_lstar_target; /* target acoustic scale for calibrator (default 301.0) */
+  /* --------------------------------------------------- */
 };
 
 
@@ -568,6 +577,12 @@ extern "C" {
                double phi,
                double phi_prime
                );
+
+  /* ===== Hyperspherical geometry distance wrappers (implemented in background.c) ===== */
+  int background_D_M_of_z(struct background *pba, double z, double *D_M);
+  int background_D_A_of_z(struct background *pba, double z, double *D_A);
+  int background_D_L_of_z(struct background *pba, double z, double *D_L);
+  /* =================================================================================== */
 
 #ifdef __cplusplus
 }

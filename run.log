@@ -1,0 +1,33 @@
+Reading input parameters
+ -> matched budget equations by adjusting Omega_Lambda = 0.690026
+Running CLASS version v3.3.3
+Computing background
+ -> age = 13.770598 Gyr
+ -> conformal age = 14151.897989 Mpc
+ -> N_eff = 3.044 (summed over all species that are non-relativistic at early times) 
+ -> radiation/matter equality at z = 3405.751108
+    corresponding to conformal time = 112.722902 Mpc
+Computing thermodynamics using HyRec 2020
+ -> with primordial helium mass fraction Y_He = 0.2453
+ -> recombination (maximum of visibility function) at z = 1088.772285
+    corresponding to conformal time = 280.650572 Mpc
+    with comoving sound horizon = 144.510391 Mpc
+    angular diameter distance = 12.728574 Mpc
+    sound horizon angle 100*theta_s = 1.041798
+    Thomson optical depth crosses one at z_* = 1085.125761
+    giving an angle 100*theta_* = 1.044146
+ -> baryon drag stops at z = 1059.919242
+    corresponding to conformal time = 286.316632 Mpc
+    with comoving sound horizon rs = 147.071614 Mpc
+ -> reionization with optical depth = 0.054311
+    corresponding to conformal time = 5127.540389 Mpc
+Computing sources
+Computing primordial spectra (analytic spectrum)
+Computing linear Fourier spectra.
+ -> sigma8=0.825009 for total matter (computed till k = 5.30492 h/Mpc)
+No non-linear spectra requested. Nonlinear calculations skipped.
+Computing transfers
+Computing unlensed harmonic spectra
+Computing lensed spectra (fast mode)
+No distortions requested. Distortions module skipped.
+Writing output files in output/explanatory01_... 

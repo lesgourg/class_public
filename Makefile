@@ -1,3 +1,4 @@
+PYTHON ?= python3
 #Some Makefile for CLASS.
 #Julien Lesgourgues, 28.11.2011
 #Nils Schöneberg, Matteo Lucca, 27.02.2019
@@ -221,3 +222,99 @@ clean: .base
 	rm -f libclass.a
 	rm -f $(MDIR)/python/classy.c
 	rm -rf $(MDIR)/python/build
+.PHONY: hs-run hs-clean
+hs-run: class
+	./class hs_parse_test.ini | tee hs_all.log
+	@echo "Artifacts:"
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_meta.txt || true
+hs-clean:
+	rm -f hs_*.log hs_*.tsv hs_summary.csv
+.PHONY: hs-summary hs-run-all
+hs-summary:
+	@set -e; \
+	if [ -f hs_cmb_summary.tsv ] && [ -f hs_bao_summary.tsv ]; then \
+	  { \
+	    head -n 1 hs_cmb_summary.tsv; \
+	    echo ',,,,'; \
+	    head -n 1 hs_bao_summary.tsv; \
+	  } | paste -d, - - - > hs_summary.csv; \
+	  { \
+	    sed -n '2p' hs_cmb_summary.tsv; \
+	    echo ',,,,'; \
+	    sed -n '2p' hs_bao_summary.tsv | head -n 1; \
+	  } | paste -d, - - - >> hs_summary.csv; \
+	else \
+	  echo "hs-summary: missing hs_cmb_summary.tsv or hs_bao_summary.tsv; run \`make hs-run\` first" >&2; \
+	  exit 1; \
+	fi
+	@echo "Built hs_summary.csv"
+hs-run-all: class
+	./class hs_parse_test.ini | tee hs_all.log
+	$(MAKE) hs-summary
+	$(MAKE) hs-meta
+	$(MAKE) hs-dist-plus
+	$(MAKE) hs-bundle
+	@echo "Artifacts:"
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_artifacts.zip hs_meta.txt || true
+.PHONY: hs-cls hs-cls-tsv hs-cls-all
+hs-cls: class
+	./class hs_cls.ini | tee hs_cls.log
+	@echo "CLASS wrote:" && ls -lh output/*_cl*.dat || true
+hs-cls-all: hs-cls hs-cls-tsv hs-cls-dl-tsv
+	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
+	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_meta.txt || true
+hs-cls-tsv:
+	./scripts/hs_cls_tsv.sh
+.PHONY: hs-cls-dl-tsv hs-cls-bundle
+hs-cls-dl-tsv:
+	@rm -f hs_cls__Dl.tsv
+	@set -e; \
+	for b in TT EE TE PP; do \
+	  in="hs_cls_$${b}.tsv"; out="hs_cls_$${b}_Dl.tsv"; \
+	  if [ -f "$$in" ]; then \
+	    awk 'BEGIN{pi=4*atan2(1,1); print "ell\tD_ell"} NR>1{ell=$$1; Cl=$$2; print ell"\t"(ell*(ell+1)*Cl/(2*pi))}' "$$in" > "$$out"; \
+	  fi; \
+	done; \
+	echo "Wrote:" && ls -lh hs_cls_*_Dl.tsv 2>/dev/null || true
+hs-cls-bundle: hs-cls-tsv hs-cls-dl-tsv
+	@zip -9 hs_cls_artifacts.zip hs_cls.ini hs_cls.log hs_cls_*.tsv >/dev/null || true
+	@echo "Artifacts:" && ls -lh hs_cls_*.tsv hs_cls_artifacts.zip || true
+	@ls -lh hs_meta.txt || true
+	@ls -lh hs_meta.txt || true
+
+.PHONY: hs-sha
+hs-sha: hs-release
+	@f=$$(ls -1t hs_release_*.zip | head -n1); shasum -a 256 "$$f" hs_artifacts.zip hs_cls_artifacts.zip > SHA256SUMS.txt; echo "Wrote SHA256SUMS.txt"
+.PHONY: hs-dist-plus
+hs-dist-plus:
+	./scripts/hs_dist_plus.sh
+.PHONY: hs-release
+hs-release: hs-run-all hs-cls-all
+	@rev=$$(git rev-parse --short HEAD); \
+	zip -9 "hs_release_$${rev}.zip" hs_artifacts.zip hs_cls_artifacts.zip hs_meta.txt README-HS.md >/dev/null || true; \
+	echo "Built hs_release_$${rev}.zip"
+.PHONY: hs-verify
+hs-verify:
+	@set -e; for f in hs_cmb_summary.tsv hs_bao_summary.tsv hs_distances.tsv hs_distances_plus.tsv hs_summary.csv hs_all.log hs_meta.txt; do \
+		[ -s $$f ] || { echo "Missing $$f"; exit 1; }; \
+	done
+	@grep -Eri "nan|inf" -- hs_*.tsv || echo "No NaNs/Infs ✅"
+.PHONY: hs-publish
+hs-publish: hs-run-all hs-cls-all hs-verify
+	@tag=$$(git rev-parse --short HEAD); ts=$$(date -u +%Y%m%dT%H%M%SZ); \
+	name="hs_artifacts_$${tag}_$${ts}.zip"; \
+	rm -f "$$name"; \
+	zip -9 "$$name" hs_artifacts.zip hs_cls_artifacts.zip hs_meta.txt README-HS.md >/dev/null || true; \
+	echo "Wrote $$name"
+.PHONY: hs-meta
+hs-meta:
+	@./scripts/hs_meta.sh
+.PHONY: hs-bundle
+hs-bundle:
+	@rm -f hs_artifacts.zip
+	@zip -9 hs_artifacts.zip hs_*.tsv hs_summary.csv hs_all.log hs_meta.txt >/dev/null || true
+	@echo "Built hs_artifacts.zip"

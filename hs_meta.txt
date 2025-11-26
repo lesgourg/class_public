@@ -1,0 +1,7 @@
+
+[HS] z* = 1088.772, rs = 144.510390 Mpc, D_M(z*) = 13845.724846 Mpc, theta* = 1.043718490e-02 rad, ell* ≈ 301.00
+[HS] calibrate: l*_target=301.00, rs=144.510390 Mpc, chi=13871.247418 Mpc -> D_M^target=13845.724846 Mpc, suggested hs_R0 ≈ 131982.240 Mpc
+[HS] z_d = 1059.919, r_d = 147.071616 Mpc, D_M(z_d) = 13840.090032 Mpc, theta_d = 1.062649271e-02 rad, ell_d ≈ 295.64
+[HS] wrote hs_cmb_summary.tsv
+[HS] wrote hs_bao_summary.tsv
+[HS] wrote hs_distances.tsv

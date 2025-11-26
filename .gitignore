@@ -14,3 +14,10 @@ RealSpaceInterface/cache/
 .DS_Store
 doc/manual/html
 doc/manual/latex
+
+!hs_parse_test.ini
+hs_*.tsv
+hs_*.zip
+hs_all.log
+hs_meta.txt
+output/*.dat

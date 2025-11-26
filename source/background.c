@@ -129,6 +129,51 @@
  * @return the error status
  */
 
+/* ======================== HS INTERNAL HELPERS (STUBS) ======================== */
+/* Smooth 0->1 transition centered at x0 with width w (in x-units). */
+static int hs_smoothstep(double x, double x0, double w, double *b){
+  if (w <= 0.0){ *b = (x > x0) ? 1.0 : 0.0; return _SUCCESS_; }
+  double t = 0.5 + (x - x0)/(2.0*w);
+  if (t < 0.0) t = 0.0;
+  if (t > 1.0) t = 1.0;
+  *b = t*t*(3.0 - 2.0*t);
+  return _SUCCESS_;
+}
+
+/* Effective background H(a): placeholder (not used yet). */
+static int hs_H_eff_of_a(struct background *pba, double a, double *H_eff){
+  (void)pba; (void)a;
+  *H_eff = 1.0; /* stub: will be replaced when we integrate H into Theta and distances */
+  return _SUCCESS_;
+}
+
+/* Central angle: Theta(z) = chi(z)/R0 with chi = tau0 - tau(z) (units: Mpc) */
+static int hs_theta_of_z(struct background *pba, double z, double *Theta){
+  double tau0, tauz, chi;
+
+  /* Require a positive 3-sphere radius */
+  class_test(pba->hs_R0 <= 0.0,
+             pba->error_message,
+             "HS requires hs_R0 > 0 [Mpc]. Please set hs_R0 in your .ini.");
+
+  /* Use CLASS background to get conformal times (safe & fast) */
+  class_call(background_tau_of_z(pba, 0.0, &tau0),
+             pba->error_message, pba->error_message);
+  class_call(background_tau_of_z(pba, z, &tauz),
+             pba->error_message, pba->error_message);
+
+  chi = tau0 - tauz;          /* comoving radial distance [Mpc] */
+  *Theta = chi / pba->hs_R0;  /* central angle (dimensionless) */
+
+  /* Numerical safety: clamp to [0, pi] */
+  if (*Theta < 0.0) *Theta = 0.0;
+  if (*Theta > M_PI) *Theta = M_PI;
+
+  return _SUCCESS_;
+}
+
+/* ============================================================================ */
+
 int background_at_z(
                     struct background *pba,
                     double z,
@@ -3005,3 +3050,33 @@ double ddV_scf(
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
 }
+
+/* =================== PUBLIC HS DISTANCE WRAPPERS (TEMP) =================== */
+int background_D_M_of_z(struct background *pba, double z, double *D_M){
+  class_test(D_M == NULL, pba->error_message, "D_M pointer is NULL");
+  if (pba->hs_model == _TRUE_) {
+    double Theta;
+    class_call(hs_theta_of_z(pba, z, &Theta), pba->error_message, pba->error_message);
+    if (Theta >= M_PI) Theta = M_PI - 1e-12; /* avoid tiny negative due to roundoff */
+    *D_M = pba->hs_R0 * sin(Theta);
+    return _SUCCESS_;
+  }
+  *D_M = 0.0; /* standard path not wired yet */
+  return _SUCCESS_;
+}
+
+int background_D_A_of_z(struct background *pba, double z, double *D_A){
+  double D_M;
+  class_call(background_D_M_of_z(pba, z, &D_M), pba->error_message, pba->error_message);
+  *D_A = D_M/(1.0+z);
+  return _SUCCESS_;
+}
+
+int background_D_L_of_z(struct background *pba, double z, double *D_L){
+  double D_A;
+  class_call(background_D_A_of_z(pba, z, &D_A), pba->error_message, pba->error_message);
+  *D_L = (1.0+z)*(1.0+z)*D_A;
+  return _SUCCESS_;
+}
+/* ========================================================================== */
+
