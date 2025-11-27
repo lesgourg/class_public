@@ -2535,6 +2535,12 @@ int input_read_parameters_species(struct file_content * pfc,
     Omega_m_remaining-= pba->Omega0_b;
   }
 
+
+  /** 4.1) Echo Axiom parameter */
+  class_read_double("alpha_echo", pba->alpha_echo);
+
+  /** 4.1) Echo Axiom parameter */
+  class_read_double("alpha_echo", pba->alpha_echo);
   /** 5) Non-cold relics (ncdm) */
   /** 5.a) Number of non-cold relics */
   /* Read */

@@ -151,13 +151,9 @@ int background_at_z(
   /** - check that log(a) = log(1/(1+z)) = -log(1+z) is in the pre-computed range */
   loga = -log(1+z);
 
-  class_test(loga < pba->loga_table[0],
-             pba->error_message,
-             "out of range: a/a_0 = %e < a_min/a_0 = %e, you should decrease the precision parameter a_ini_over_a_today_default\n",1./(1.+z),exp(pba->loga_table[0]));
+  class_test(loga < pba->loga_table[0], pba->error_message, "out of range: a/a_0 = %e < a_min/a_0 = %e, you should decrease the precision parameter a_ini_over_a_today_default\n",1./(1.+z),exp(pba->loga_table[0]));
 
-  class_test(loga > pba->loga_table[pba->bt_size-1],
-             pba->error_message,
-             "out of range: a/a_0 = %e > a_max/a_0 = %e\n",1./(1.+z),exp(pba->loga_table[pba->bt_size-1]));
+  class_test(loga > pba->loga_table[pba->bt_size-1], pba->error_message, "out of range: a/a_0 = %e > a_max/a_0 = %e\n",1./(1.+z),exp(pba->loga_table[pba->bt_size-1]));
 
   /** - deduce length of returned vector from format mode */
 
@@ -279,13 +275,9 @@ int background_tau_of_z(
   int last_index;
 
   /** - check that \f$ z \f$ is in the pre-computed range */
-  class_test(z < pba->z_table[pba->bt_size-1],
-             pba->error_message,
-             "out of range: z=%e < z_min=%e\n",z,pba->z_table[pba->bt_size-1]);
+  class_test(z < pba->z_table[pba->bt_size-1], pba->error_message, "out of range: z=%e < z_min=%e\n",z,pba->z_table[pba->bt_size-1]);
 
-  class_test(z > pba->z_table[0],
-             pba->error_message,
-             "out of range: z=%e > z_max=%e\n",z,pba->z_table[0]);
+  class_test(z > pba->z_table[0], pba->error_message, "out of range: z=%e > z_max=%e\n",z,pba->z_table[0]);
 
   /** - interpolate from pre-computed table with array_interpolate() */
   class_call(array_interpolate_spline(
@@ -329,13 +321,9 @@ int background_z_of_tau(
   int last_index;
 
   /** - check that \f$ tau \f$ is in the pre-computed range */
-  class_test(tau < pba->tau_table[0],
-             pba->error_message,
-             "out of range: tau=%e < tau_min=%e\n",tau,pba->tau_table[0]);
+  class_test(tau < pba->tau_table[0], pba->error_message, "out of range: tau=%e < tau_min=%e\n",tau,pba->tau_table[0]);
 
-  class_test(tau > pba->tau_table[pba->bt_size-1],
-             pba->error_message,
-             "out of range: tau=%e > tau_max=%e\n",tau,pba->tau_table[pba->bt_size-1]);
+  class_test(tau > pba->tau_table[pba->bt_size-1], pba->error_message, "out of range: tau=%e > tau_max=%e\n",tau,pba->tau_table[pba->bt_size-1]);
 
   /** - interpolate from pre-computed table with array_interpolate() */
   class_call(array_interpolate_spline(
@@ -571,6 +559,11 @@ int background_functions(
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_idr];
     rho_r += pvecback[pba->index_bg_rho_idr];
   }
+
+  /* Echo Axiom */
+  double sigma_echo = pba->alpha_echo * rho_tot * (1.0 - exp(-pvecback_B[pba->index_bi_tau]));
+  rho_tot += sigma_echo;
+  p_tot += -sigma_echo;
 
   /** - compute expansion rate H from Friedmann equation: this is the
       only place where the Friedmann equation is assumed. Remember
