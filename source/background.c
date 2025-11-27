@@ -2464,6 +2464,9 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)p_tot",_TRUE_);
   class_store_columntitle(titles,"(.)p_tot_prime",_TRUE_);
 
+  class_store_columntitle(titles,"Omega_r(z)",_TRUE_);
+  class_store_columntitle(titles,"Omega_m(z)",_TRUE_);
+
   class_store_columntitle(titles,"gr.fac. D",_TRUE_);
   class_store_columntitle(titles,"gr.fac. f",_TRUE_);
 
@@ -2536,6 +2539,9 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_tot],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_tot],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_tot_prime],_TRUE_,storeidx);
+
+    class_store_double(dataptr,pvecback[pba->index_bg_Omega_r],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_Omega_m],_TRUE_,storeidx);
 
     class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
