@@ -88,8 +88,8 @@ ClassEngine::ClassEngine(const ClassParams& pars, bool verbose): cl(0),dofree(tr
   if( verbose ) cout << __FILE__ << " : using lmax=" << _lmax <<endl;
   // assert(_lmax>0); // this collides with transfer function calculations
 
-    //input
-  if (input_read_from_file(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,_errmsg) == _FAILURE_)
+  //input
+  if (input_read_from_file(&fc,&pr,&ba,&th,&pt,&tr,&pm,&hr,&fo,&le,&sd,&op,_errmsg) == _FAILURE_)
     throw invalid_argument(_errmsg);
 
   //proetction parametres mal defini
@@ -100,9 +100,9 @@ ClassEngine::ClassEngine(const ClassParams& pars, bool verbose): cl(0),dofree(tr
   //calcul class
   computeCls();
 
-  //cout <<"creating " << sp.ct_size << " arrays" <<endl;
+  //cout <<"creating " << hr.ct_size << " arrays" <<endl;
   if( pt.has_cl_cmb_temperature || pt.has_cl_cmb_polarization || pt.has_cl_lensing_potential ){
-    cl=new double[sp.ct_size];
+    cl=new double[hr.ct_size];
   }
 
   //printFC();
@@ -147,7 +147,7 @@ ClassEngine::ClassEngine(const ClassParams& pars,const string & precision_file, 
   parser_free(&fc_precision);
 
   //input
-  if (input_read_from_file(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,_errmsg) == _FAILURE_)
+  if (input_read_from_file(&fc,&pr,&ba,&th,&pt,&tr,&pm,&hr,&fo,&le,&sd,&op,_errmsg) == _FAILURE_)
     throw invalid_argument(_errmsg);
 
   //proetction parametres mal defini
@@ -158,9 +158,9 @@ ClassEngine::ClassEngine(const ClassParams& pars,const string & precision_file, 
   //calcul class
   computeCls();
 
-  //cout <<"creating " << sp.ct_size << " arrays" <<endl;
+  //cout <<"creating " << hr.ct_size << " arrays" <<endl;
   if( pt.has_cl_cmb_temperature || pt.has_cl_cmb_polarization || pt.has_cl_lensing_potential ){
-    cl=new double[sp.ct_size];
+    cl=new double[hr.ct_size];
   }
   //printFC();
 
@@ -213,22 +213,21 @@ void ClassEngine::printFC() {
 
 }
 int ClassEngine::class_main(
-			    struct file_content *pfc,
-			    struct precision * ppr,
-			    struct background * pba,
-			    struct thermo * pth,
-			    struct perturbs * ppt,
-			    struct transfers * ptr,
-			    struct primordial * ppm,
-			    struct spectra * psp,
-			    struct nonlinear * pnl,
-			    struct lensing * ple,
-			    struct distortions * psd,
-			    struct output * pop,
-			    ErrorMsg errmsg) {
+                struct file_content *pfc,
+                struct precision *ppr,
+                struct background *pba,
+                struct thermodynamics *pth,
+                struct perturbations *ppt,
+                struct primordial *ppm,
+                struct fourier *pfo,
+                struct transfer *ptr,
+                struct harmonic *phr,
+                struct lensing *ple,
+                struct distortions *psd,
+                struct output *pop,
+                ErrorMsg errmsg) {
 
-
-  if (input_read_from_file(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,errmsg) == _FAILURE_) {
+  if (input_read_from_file(pfc,ppr,pba,pth,ppt,ptr,ppm,phr,pfo,ple,psd,pop,errmsg) == _FAILURE_) {
     printf("\n\nError running input_read_from_file \n=>%s\n",errmsg);
     dofree=false;
     return _FAILURE_;
@@ -247,8 +246,8 @@ int ClassEngine::class_main(
     return _FAILURE_;
   }
 
-  if (perturb_init(ppr,pba,pth,ppt) == _FAILURE_) {
-    printf("\n\nError in perturb_init \n=>%s\n",ppt->error_message);
+  if (perturbations_init(ppr,pba,pth,ppt) == _FAILURE_) {
+    printf("\n\nError in perturbations_init \n=>%s\n",ppt->error_message);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
@@ -257,53 +256,53 @@ int ClassEngine::class_main(
 
   if (primordial_init(ppr,ppt,ppm) == _FAILURE_) {
     printf("\n\nError in primordial_init \n=>%s\n",ppm->error_message);
-    perturb_free(&pt);
+    perturbations_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
     return _FAILURE_;
   }
 
-  if (nonlinear_init(ppr,pba,pth,ppt,ppm,pnl) == _FAILURE_)  {
-    printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
+  if (fourier_init(ppr,pba,pth,ppt,ppm,pfo) == _FAILURE_)  {
+    printf("\n\nError in fourier_init \n=>%s\n",pfo->error_message);
     primordial_free(&pm);
-    perturb_free(&pt);
+    perturbations_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
     return _FAILURE_;
   }
 
-  if (transfer_init(ppr,pba,pth,ppt,pnl,ptr) == _FAILURE_) {
+  if (transfer_init(ppr,pba,pth,ppt,pfo,ptr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
-    nonlinear_free(&nl);
+    fourier_free(&fo);
     primordial_free(&pm);
-    perturb_free(&pt);
+    perturbations_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
     return _FAILURE_;
   }
 
-  if (spectra_init(ppr,pba,ppt,ppm,pnl,ptr,psp) == _FAILURE_) {
-    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
+  if (harmonic_init(ppr,pba,ppt,ppm,pfo,ptr,phr) == _FAILURE_) {
+    printf("\n\nError in harmonic_init \n=>%s\n",phr->error_message);
     transfer_free(&tr);
-    nonlinear_free(&nl);
+    fourier_free(&fo);
     primordial_free(&pm);
-    perturb_free(&pt);
+    perturbations_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
     return _FAILURE_;
   }
 
-  if (lensing_init(ppr,ppt,psp,pnl,ple) == _FAILURE_) {
+  if (lensing_init(ppr,ppt,phr,pfo,ple) == _FAILURE_) {
     printf("\n\nError in lensing_init \n=>%s\n",ple->error_message);
-    spectra_free(&sp);
+    harmonic_free(&hr);
     transfer_free(&tr);
-    nonlinear_free(&nl);
+    fourier_free(&fo);
     primordial_free(&pm);
-    perturb_free(&pt);
+    perturbations_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
@@ -313,11 +312,11 @@ int ClassEngine::class_main(
   if (distortions_init(ppr,pba,pth,ppt,ppm,psd) == _FAILURE_) {
     printf("\n\nError in distortions_init \n=>%s\n",psd->error_message);
     lensing_free(&le);
-    spectra_free(&sp);
+    harmonic_free(&hr);
     transfer_free(&tr);
-    nonlinear_free(&nl);
+    fourier_free(&fo);
     primordial_free(&pm);
-    perturb_free(&pt);
+    perturbations_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
@@ -336,7 +335,7 @@ int ClassEngine::computeCls(){
   //printFC();
 #endif
 
-  int status=this->class_main(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,_errmsg);
+  int status=this->class_main(&fc,&pr,&ba,&th,&pt,&pm,&fo,&tr,&hr,&le,&sd,&op,_errmsg);
 #ifdef DBUG
   cout <<"status=" << status << endl;
 #endif
@@ -354,17 +353,17 @@ ClassEngine::freeStructs(){
   }
 
   if (lensing_free(&le) == _FAILURE_) {
-    printf("\n\nError in spectra_free \n=>%s\n",le.error_message);
+    printf("\n\nError in lensing_free \n=>%s\n",le.error_message);
     return _FAILURE_;
   }
 
-  if (nonlinear_free(&nl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_free \n=>%s\n",nl.error_message);
+  if (fourier_free(&fo) == _FAILURE_) {
+    printf("\n\nError in fourier_free \n=>%s\n",fo.error_message);
     return _FAILURE_;
   }
 
-  if (spectra_free(&sp) == _FAILURE_) {
-    printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
+  if (harmonic_free(&hr) == _FAILURE_) {
+    printf("\n\nError in harmonic_free \n=>%s\n",hr.error_message);
     return _FAILURE_;
   }
 
@@ -378,8 +377,8 @@ ClassEngine::freeStructs(){
     return _FAILURE_;
   }
 
-  if (perturb_free(&pt) == _FAILURE_) {
-    printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
+  if (perturbations_free(&pt) == _FAILURE_) {
+    printf("\n\nError in perturbations_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
 
@@ -403,7 +402,7 @@ void ClassEngine::call_perturb_sources_at_tau(
                            double tau,
                            double * psource
                            ) {
-  if( perturb_sources_at_tau( &pt, index_md, index_ic, index_tp, tau, psource ) == _FAILURE_){
+  if( perturbations_sources_at_tau( &pt, index_md, index_ic, index_tp, tau, psource ) == _FAILURE_){
     cerr << ">>>fail getting Tk type=" << (int)index_tp <<endl;
     throw out_of_range(pt.error_message);
   }
@@ -456,11 +455,13 @@ ClassEngine::getTk( double z,
 
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_cdm, tau, &d_cdm[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_b, tau, &d_b[0]);
-  call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_ncdm1, tau, &d_ncdm[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_tot, tau, &d_tot[0]);
   call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_b, tau, &t_b[0]);
-  call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_ncdm1, tau, &t_ncdm[0]);
-  call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_tot, tau, &d_tot[0]);
+  call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_tot, tau, &t_tot[0]);
+  if (ba.N_ncdm > 0) {
+      call_perturb_sources_at_tau(index_md, 0, pt.index_tp_delta_ncdm1, tau, &d_ncdm[0]);
+      call_perturb_sources_at_tau(index_md, 0, pt.index_tp_theta_ncdm1, tau, &t_ncdm[0]);
+  }
 
   //
   std::vector<double> h_prime(pt.k_size[index_md],0.0), eta_prime(pt.k_size[index_md],0.0);
@@ -481,8 +482,9 @@ ClassEngine::getTk( double z,
 
     t_cdm[index_k]  = (-alphak2) / fHa;
     t_b[index_k]    = (-alphak2 + t_b[index_k]) / fHa;
-    t_ncdm[index_k] = (-alphak2 + t_ncdm[index_k]) / fHa;
     t_tot[index_k]  = (-alphak2 + t_tot[index_k]) / fHa;
+    if (ba.N_ncdm > 0)
+      t_ncdm[index_k] = (-alphak2 + t_ncdm[index_k]) / fHa;
   }
 }
 
@@ -491,9 +493,9 @@ ClassEngine::getCl(Engine::cltype t,const long &l){
 
   if (!dofree) throw out_of_range("no Cl available because CLASS failed");
 
-  if (output_total_cl_at_l(&sp,&le,&op,static_cast<double>(l),cl) == _FAILURE_){
+  if (output_total_cl_at_l(&hr,&le,&op,static_cast<double>(l),cl) == _FAILURE_){
     cerr << ">>>fail getting Cl type=" << (int)t << " @l=" << l <<endl;
-    throw out_of_range(sp.error_message);
+    throw out_of_range(hr.error_message);
   }
 
   double zecl=-1;
@@ -504,25 +506,25 @@ ClassEngine::getCl(Engine::cltype t,const long &l){
   switch(t)
     {
     case TT:
-      (sp.has_tt==_TRUE_) ? zecl=tomuk2*cl[sp.index_ct_tt] : throw invalid_argument("no ClTT available");
+      (hr.has_tt==_TRUE_) ? zecl=tomuk2*cl[hr.index_ct_tt] : throw invalid_argument("no ClTT available");
       break;
     case TE:
-      (sp.has_te==_TRUE_) ? zecl=tomuk2*cl[sp.index_ct_te] : throw invalid_argument("no ClTE available");
+      (hr.has_te==_TRUE_) ? zecl=tomuk2*cl[hr.index_ct_te] : throw invalid_argument("no ClTE available");
       break;
     case EE:
-      (sp.has_ee==_TRUE_) ? zecl=tomuk2*cl[sp.index_ct_ee] : throw invalid_argument("no ClEE available");
+      (hr.has_ee==_TRUE_) ? zecl=tomuk2*cl[hr.index_ct_ee] : throw invalid_argument("no ClEE available");
       break;
     case BB:
-      (sp.has_bb==_TRUE_) ? zecl=tomuk2*cl[sp.index_ct_bb] : throw invalid_argument("no ClBB available");
+      (hr.has_bb==_TRUE_) ? zecl=tomuk2*cl[hr.index_ct_bb] : throw invalid_argument("no ClBB available");
       break;
     case PP:
-      (sp.has_pp==_TRUE_) ? zecl=cl[sp.index_ct_pp] : throw invalid_argument("no ClPhi-Phi available");
+      (hr.has_pp==_TRUE_) ? zecl=cl[hr.index_ct_pp] : throw invalid_argument("no ClPhi-Phi available");
       break;
     case TP:
-      (sp.has_tp==_TRUE_) ? zecl=tomuk*cl[sp.index_ct_tp] : throw invalid_argument("no ClT-Phi available");
+      (hr.has_tp==_TRUE_) ? zecl=tomuk*cl[hr.index_ct_tp] : throw invalid_argument("no ClT-Phi available");
       break;
     case EP:
-      (sp.has_ep==_TRUE_) ? zecl=tomuk*cl[sp.index_ct_ep] : throw invalid_argument("no ClE-Phi available");
+      (hr.has_ep==_TRUE_) ? zecl=tomuk*cl[hr.index_ct_ep] : throw invalid_argument("no ClE-Phi available");
       break;
     }
 
@@ -605,7 +607,6 @@ double ClassEngine::get_f(double z)
   return f_z;
 }
 
-
 double ClassEngine::get_sigma8(double z)
 {
   double tau;
@@ -621,7 +622,7 @@ double ClassEngine::get_sigma8(double z)
   //call to fill pvecback
   background_at_tau(&ba,tau,long_info,inter_normal, &index, pvecback);
   //background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback);
-  spectra_sigma(&ba,&pm,&sp,8./ba.h,z,&sigma8);
+  harmonic_sigma(&ba,&pm,&hr,8./ba.h,z,&sigma8);
 
 #ifdef DBUG
   cout << "sigma_8= "<< sigma8 <<endl;
