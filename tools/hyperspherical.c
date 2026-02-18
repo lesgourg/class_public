@@ -1029,7 +1029,7 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
   int left_index, right_index, index_l, j;
   int nl = pHIS->l_size;
   int nx = pHIS->x_size;
-  int REFINE=10;
+  const int REFINE=10;
   double x[REFINE];
   double Phi[REFINE];
   double *phivec = pHIS->phi;
