@@ -119,9 +119,9 @@ int evolver_ndf15(
 
   buffer_size=
     15*neqp*sizeof(double)
-    +neqp*sizeof(int)
     +neqp*sizeof(double*)
-    +(7*neq+1)*sizeof(double);
+    +(7*neq+1)*sizeof(double)
+    +neqp*sizeof(int); /* the double and double* (pointer) are 8-bit. For odd neqp, it happens that the int (4-bit) misaligns the memory */
 
   class_alloc(buffer,
           buffer_size,
@@ -143,10 +143,12 @@ int evolver_ndf15(
   tempvec1 =yppinterp+neqp;
   tempvec2 =tempvec1+neqp;
 
-  interpidx=(int*)(tempvec2+neqp);
+  /*interpidx=(int*)(tempvec2+neqp);
 
-  dif      =(double**)(interpidx+neqp);
+  dif      =(double**)(interpidx+neqp);*/
+  dif = (double **)(tempvec2 + neqp);  
   dif[1]   =(double*)(dif+neqp);
+  interpidx=(int *)(dif[1] + 7 * neq + 1); /* put int array last for memory alignment */  
   for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; /* Set row pointers... */
   dif[0] = NULL;
   /* for (ii=0;ii<(7*neq+1);ii++) dif[1][ii]=0.; */

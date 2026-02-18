@@ -29,7 +29,7 @@
 typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is such a field in each structure) */
 
 #define _FILENAMESIZE_ 256 /**< size of the string read in each line of the file (extra characters not taken into account) */
-#define _BASEPATHSIZE_ 1000 /**< allowed size of the base path */
+#define _BASEPATHSIZE_ 1024 /**< allowed size of the base path */
 typedef char FileName[_FILENAMESIZE_+_BASEPATHSIZE_];
 
 #define _SUFFIXNAMESIZE_ 4 /**< maximum size of the short string appended to file names to account for initial conditions, etc. */
