@@ -12,7 +12,7 @@ This material is provided for technical evaluation, reproducibility studies, and
 
 ## Contents
 
-- GEO_HUBBLE_FINAL.patch
+- GEO_LENS_MINIMAL.patch
 - install_geo.sh
 - verify_hubble_geo.py
 
@@ -43,8 +43,8 @@ The validation script executes a GEO-Lens Hubble reconstruction test using:
 
 Expected result:
 
-    H0 Proyectado: 73.040000000000
-    RESULTADO CORRECTO (12 DIGITOS)
+H0 Projected: 73.040000000000
+VALIDATION PASSED
 
 ---
 
