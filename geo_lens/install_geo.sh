@@ -2,7 +2,7 @@
 
 echo "Installing GEO-Lens validation patch"
 
-patch -p1 --forward --batch --force < geo_lens/GEO_HUBBLE_FINAL.patch
+patch -p1 --forward --batch --force < geo_lens/GEO_LENS_MINIMAL.patch
 
 echo "Building CLASS..."
 make clean
