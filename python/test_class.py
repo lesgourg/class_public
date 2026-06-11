@@ -141,6 +141,12 @@ CLASS_INPUT['Lensing'] = (
     [{'lensing': 'yes'}],
     'power')
 
+#Testing the possibility of switching to the Total angular momentum hierarchy instead of the optimal hierarchy                                                                                 
+CLASS_INPUT['Hierarchies'] = (
+    [{'hierarchy': 'optimal'},
+     {'hierarchy': 'tam'}],
+    'normal')
+
 if TEST_LEVEL > 0:
     CLASS_INPUT['Mnu'] = (
         [{'N_ur': 0.0, 'N_ncdm': 1, 'm_ncdm': 0.06, 'deg_ncdm': 3.0},

@@ -310,8 +310,10 @@ class_precision_parameter(l_max_dr,int,17)   /**< number of momenta in Boltzmann
 class_precision_parameter(l_max_ur,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
 class_precision_parameter(l_max_idr,int,17)   /**< number of momenta in Boltzmann hierarchy for interacting dark radiation */
 class_precision_parameter(l_max_ncdm,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
-class_precision_parameter(l_max_g_ten,int,5)     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
-class_precision_parameter(l_max_pol_g_ten,int,5) /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
+
+class_precision_parameter(l_max_g_ten,int,5)     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 (incremented by 2 inside the code when using tam hierarchy instead of optimal) */
+class_precision_parameter(l_max_pol_g_ten,int,5) /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 (incremented by 2 inside the code when using tam hierarchy instead of optimal) */
+class_precision_parameter(l_max_ur_ten,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (tensor), at least 4 (incremented by 2 inside the code when using tam hierarchy instead of optimal) */
 
 class_precision_parameter(curvature_ini,double,1.0)     /**< initial condition for curvature for adiabatic */
 class_precision_parameter(entropy_ini,double,1.0) /**< initial condition for entropy perturbation for isocurvature */

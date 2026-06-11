@@ -62,6 +62,28 @@ enum possible_gauges {
 
 //@}
 
+/**
+ * Which version of the Boltzmann hierarchy for photons should be
+ * used: 'optimal' like in Ma & Bertschinger (astro-ph/9506072, flat
+ * case) and Tram & Lesgourgues (1305.3261, 1312.2697, curved case)
+ * with just two hierarchies F_l, G_l; or 'tam' for total angular
+ * momentum method by Hu, Seljak, White, Zaldarriaga with three
+ * hierarchies Theta_l, E_l, B_l (astro-ph/9702170, astro-ph/9709066,
+ * 1909.13687, 2005.12119). The two hierarchies are also implemented
+ * for neutrino tensor modes (for neutrino scalar modes they are
+ * exactly equivalent). Their use is nearly indifferent: 'optimal' gives an
+ * almost negligible speed up and almost negligible accuracy
+ * degradation in the curved case (biggest relative error is ~
+ * 0.5*|Omega_k| on the large-l tensor polarisation spectrum, see
+ * 2005.12119). Credits C. Pitrou and T. Pereira.
+ */
+
+//@{
+
+enum hierarchies {optimal, tam};
+
+//@}
+
 //@{
 
 /**
@@ -201,6 +223,14 @@ struct perturbations
   short has_matter_source_in_current_gauge; /**< whether to keep matter and baryon+CDM sources in current gauge, instead of automatic conversion to gauge-invariant variables */
 
   short get_perturbations_in_current_gauge; /**< whether to keep the output table of perturbations (controlled by 'store_perturbations' and 'k_output_values') in current gauge, instead of automatic conversion to Newtonian gauge */
+
+  //@}
+
+  /** @name - version of the Boltzmann equation */
+
+  //@{
+
+  enum hierarchies hierarchy; /**< which version of the polarization Boltzmann hierarchy */
 
   //@}
 
@@ -459,16 +489,33 @@ struct perturbations
 
 struct perturbations_vector
 {
-  int index_pt_delta_g;   /**< photon density */
-  int index_pt_theta_g;   /**< photon velocity */
-  int index_pt_shear_g;   /**< photon shear */
-  int index_pt_l3_g;      /**< photon l=3 */
-  int l_max_g;            /**< max momentum in Boltzmann hierarchy (at least 3) */
-  int index_pt_pol0_g;    /**< photon polarization, l=0 */
-  int index_pt_pol1_g;    /**< photon polarization, l=1 */
-  int index_pt_pol2_g;    /**< photon polarization, l=2 */
-  int index_pt_pol3_g;    /**< photon polarization, l=3 */
-  int l_max_pol_g;        /**< max momentum in Boltzmann hierarchy (at least 3) */
+  /* Boltzmann hierarchy for photons. The first three temperature
+     multipoles have a special definition for scalar modes: the code
+     uses (delta_g, theta_g, shear_g), connected to the
+     energy-momentum tensor components in the Ma & Bertschinger
+     notations. Otherwise the mutipoles are: for the optimal
+     hierarchy, F_l^(m), G_l^(m) of 1305.3261, that generalize Ma &
+     Bertschinger; for the TAM hierarchy, Theta_l^(m), E_l^(m),
+     B_l^(m) of astro-ph/9709066 (with m=0 for scalars, 1 for vectors,
+     2 for tensors) */
+
+  int index_pt_delta_g;   /**< for scalar modes, photon density parameter: F_0^(0) (optimal) or 4 Theta_0^(0) (tam) */
+  int index_pt_theta_g;   /**< for scalar modes, photon velocity parameter: 3k/4 F_1^(0) (optimal) or k Theta_1^(0) (tam) */
+  int index_pt_shear_g;   /**< for scalar modes, photon shear parameter: 1/(2s_2) F_2^(0) (optimal), or  2/(5s_2) Theta_2^(0) (tam) */
+  int index_pt_l0_g;      /**< (optimal hierarchy) photon temperature mutipole F_0^(m) for m=1,2 */
+  int index_pt_l1_g;      /**< (tam hierarchy) photon temperature mutipole Theta_1^(m) for m=1 */
+  int index_pt_l2_g;      /**< (tam hierarchy) photon temperature mutipole Theta_2^(m) for m=2 */
+  int index_pt_l3_g;      /**< F_3^(0) (optimal) or Theta_3^(0) (tam) */
+  int l_max_g;            /**< highest multipole in photon Boltzmann temperature hierarchy (at least 3) */
+
+  int index_pt_pol0_g;    /**< (optimal hierarchy) photon polarization, G_0 */
+  int index_pt_pol1_g;    /**< (optimal hierarchy) photon polarization, G_1 */
+  int index_pt_pol2_g;    /**< (optimal hierarchy) photon polarization, G_2 */
+  int index_pt_pol3_g;    /**< (optimal hierarchy) photon polarization, G_3 */
+  int index_pt_E2;        /**< (tam hierarchy) photon polarization, E_2 for m=1,2*/
+  int index_pt_B2;        /**< (tam hierarchy) photon polarization, B_2 for m=1,2 */
+  int l_max_pol_g;        /**< highest multipole in photon Boltzmann polarisation hierarchy (at least 3) */
+
   int index_pt_delta_b;   /**< baryon density */
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
@@ -482,11 +529,25 @@ struct perturbations_vector
   int index_pt_Gamma_fld;  /**< unique dark energy dynamical variable in PPF case */
   int index_pt_phi_scf;  /**< scalar field density */
   int index_pt_phi_prime_scf;  /**< scalar field velocity */
-  int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
-  int index_pt_theta_ur; /**< velocity of ultra-relativistic neutrinos/relics */
-  int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
-  int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
-  int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
+
+  /* Boltzmann hierarchy for ultra-relativistic species. For scalar
+     modes the code uses (delta_ur, theta_ur, shear_ur), connected to
+     the energy-momentum tensor components in the Ma & Bertschinger
+     notations, and F_l^(0) for l>3. For tensor modes the multipoles
+     are: for the optimal hierarchy, F_l^(m) of 1305.3261, that
+     generalize Ma & Bertschinger; for the TAM hierarchy, Theta_l^(m)
+     of astro-ph/9709066 (with m=0 for scalars, 1 for vectors, 2 for
+     tensors) */
+
+  int index_pt_delta_ur; /**< for scalar modes, ur density parameter: F_0^(0) (optimal) or 4 Theta_0^(0) (tam) */
+  int index_pt_theta_ur; /**< for scalar modes, ur velocity parameter: 3k/4 F_1^(0) (optimal) or k Theta_1^(0) (tam) */
+  int index_pt_shear_ur; /**< for scalar modes, ur shear parameter: 1/(2s_2) F_2^(0) (optimal) or 2/(5s_2) Theta_2^(0) (tam) */
+  int index_pt_l0_ur;    /**< (optimal hierarchy) for tensor modes, ur multipole F_0^(2) */
+  int index_pt_l1_ur;    /**< (tam hierarchy) for vector modes, ur multipole Theta_1^(1) */
+  int index_pt_l2_ur;    /**< (tam hierarchy) for tensor modes, ur multipole Theta_2^(2) */
+  int index_pt_l3_ur;    /**< ur multipole F_3^(0) (optimal) or Theta_3^(0) (tam) */
+  int l_max_ur;          /**< highest multipole in ur Boltzmann hierarchy (at least 3) */
+
   int index_pt_delta_idr; /**< density of interacting dark radiation */
   int index_pt_theta_idr; /**< velocity of interacting dark radiation */
   int index_pt_shear_idr; /**< shear of interacting dark radiation */
@@ -641,12 +702,15 @@ struct perturbations_workspace
 
   //@}
 
-  /** @name - approximations used at a given time */
+  /** @name - miscellaneous */
 
   //@{
 
   int max_l_max;    /**< maximum l_max for any multipole */
-  double * s_l;     /**< array of freestreaming coefficients \f$ s_l = \sqrt{1-K*(l^2-1)/k^2} \f$*/
+  double * s_l;     /**< array of freestreaming coefficients \f$ s_l = \sqrt{1-K*(l^2-1)/k^2} \f$. They are dimensionless. */
+  double * twokappam; /**< array of freestreaming coefficients \f$ {{}_s}\kappa^m_l = \sqrt{(l^2-m^2)(l^2-s^2)/l^2 * (q^2-K*l^2)} \f$ for s=2. They have dimension of k.*/
+  double * zerokappam; /**< array of freestreaming coefficients \f$ {{}_0}\kappa^m_l = \sqrt{(l^2-m^2) * (q^2-K*l^2)} \f$. They have dimension of k.*/
+  double q_m; /**< Current value of q such that \f$ q^2 = k^2 + (1+m) K\f$ */
 
   //@}
 
@@ -848,6 +912,14 @@ extern "C" {
                                                 double * interval_limit,
                                                 int ** interval_approx
                                                 );
+
+  int perturbations_update_streaming_coefficients(
+                                                  struct background * pba,
+                                                  struct perturbations * ppt,
+                                                  int index_md,
+                                                  double k,
+                                                  struct perturbations_workspace * ppw
+                                                  );
 
   int perturbations_vector_init(
                                 struct precision * ppr,
