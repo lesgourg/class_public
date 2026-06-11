@@ -5064,6 +5064,31 @@ int input_read_parameters_lensing(struct file_content * pfc,
   if ((flag1 == _TRUE_) && (string_begins_with(string1,'y') || string_begins_with(string1,'Y'))){
     if ((ppt->has_scalars == _TRUE_) && ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)){
       ple->has_lensed_cls = _TRUE_;
+
+      /* New in v3.4: if the precision parameter ppr->delta_l_max has
+         been passed explicitely by the user and assigned in
+         input_read_precisions(), the input value will be
+         kept. Otherwise, ppr->delta_l_max is still pointing to a
+         negative value (-1), and is meant to be set automatically
+         according to the following rules: */
+      if (ppr->delta_l_max < 0) {
+        /* - in the non-accurate lensing scheme, we just set by default ppr->delta_l_max to ppt->l_scalar_max/3 */
+        if (ppr->accurate_lensing == _FALSE_) {
+          ppr->delta_l_max = 0.33*ppt->l_scalar_max;
+        }
+        /* - in the accurate lensing scheme, we further increase ppr->delta_l_max to ppt->l_scalar_max/2 */
+        else if (ppr->accurate_lensing == _TRUE_) {
+          ppr->delta_l_max = 0.5*ppt->l_scalar_max;
+        }
+        else {
+          class_stop(errmsg,
+                     "The precision parameter accurate lensing is set to %d, wich is neither _TRUE_=%d nor _FALSE_=%d",
+                     ppr->accurate_lensing,
+                     _TRUE_,
+                     _FALSE_);
+        }
+      }
+
       /* Slightly increase precision by delta_l_max for more precise lensed Cl's*/
       ppt->l_scalar_max += ppr->delta_l_max;
     }
