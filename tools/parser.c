@@ -161,6 +161,25 @@ int parser_read_line(char * line,
 
 }
 
+int parser_invalid_integer(const char* s){
+  if(s == NULL || *s == '\0')
+    return _TRUE_;
+
+  char c = s[0];
+
+  // Check for the two specific symbols first (insanely fast)
+  if (c == '+' || c == '-') {
+      return _FALSE_;
+  }
+
+  // Check for digits '0' through '9' (also very fast, but requires integer comparison)
+  if (c >= '0' && c <= '9') {
+      return _FALSE_;
+  }
+
+  return _TRUE_;
+}
+
 int parser_read_int(struct file_content * pfc,
                     char * name,
                     int * value,
@@ -185,7 +204,9 @@ int parser_read_int(struct file_content * pfc,
     return _SUCCESS_;
 
   /* read parameter value. If this fails, return an error */
-
+  class_test(parser_invalid_integer(pfc->value[index]),
+             errmsg,
+             "could not read value of parameter '%s=%s' in file '%s' -- invalid number \n",name,pfc->value[index], pfc->filename);
   class_test(sscanf(pfc->value[index],"%d",value) != 1,
              errmsg,
              "could not read value of parameter '%s' in file '%s'\n",name,pfc->filename);
@@ -211,6 +232,25 @@ int parser_read_int(struct file_content * pfc,
 
 }
 
+int parser_invalid_double(const char* s){
+  if(s == NULL || *s == '\0')
+    return _TRUE_;
+
+  char c = s[0];
+
+  // Check for the three specific symbols first (insanely fast)
+  if (c == '.' || c == '+' || c == '-') {
+      return _FALSE_;
+  }
+
+  // Check for digits '0' through '9' (also very fast, but requires integer comparison)
+  if (c >= '0' && c <= '9') {
+      return _FALSE_;
+  }
+
+  return _TRUE_;
+}
+
 int parser_read_double(struct file_content * pfc,
                        char * name,
                        double * value,
@@ -234,8 +274,11 @@ int parser_read_double(struct file_content * pfc,
   if (index == pfc->size)
     return _SUCCESS_;
 
+  /* First, check that parameter value would be an actual numerical input, not e.g. NaN or LoL */
+  class_test(parser_invalid_double(pfc->value[index]),
+             errmsg,
+             "could not read value of parameter '%s=%s' in file '%s' -- invalid number \n",name,pfc->value[index], pfc->filename);
   /* read parameter value. If this fails, return an error */
-
   class_test(sscanf(pfc->value[index],"%lg",value) != 1,
              errmsg,
              "could not read value of parameter '%s' in file '%s'\n",name,pfc->filename);
@@ -286,7 +329,9 @@ int parser_read_double_and_position(struct file_content * pfc,
     return _SUCCESS_;
 
   /* read parameter value. If this fails, return an error */
-
+  class_test(parser_invalid_double(pfc->value[index]),
+             errmsg,
+             "could not read value of parameter '%s=%s' in file '%s' -- invalid number \n",name,pfc->value[index], pfc->filename);
   class_test(sscanf(pfc->value[index],"%lg",value) != 1,
              errmsg,
              "could not read value of parameter '%s' in file '%s'\n",name,pfc->filename);
@@ -374,6 +419,7 @@ int parser_read_list_of_doubles(struct file_content * pfc,
   char * string;
   char * substring;
   FileArg string_with_one_value;
+  char * start_string;
 
   double * list;
 
@@ -420,7 +466,14 @@ int parser_read_list_of_doubles(struct file_content * pfc,
       strncpy(string_with_one_value,string,(substring-string));
       string_with_one_value[substring-string]='\0';
     }
-    class_test(sscanf(string_with_one_value,"%lg",&(list[i-1])) != 1,
+    /* skip to actual start of string -- ignoring whitespace (!) */
+    start_string = string_with_one_value;
+    while(start_string[0]==' ')
+      start_string++;
+    class_test(parser_invalid_double(start_string),
+               errmsg,
+               "could not read value of parameter '%s=%s' in file '%s' -- invalid number \n",name,start_string, pfc->filename);
+    class_test(sscanf(start_string,"%lg",&(list[i-1])) != 1,
                errmsg,
                "could not read %dth value of list of parameters '%s' in file '%s'\n",
                i,name,pfc->filename);
@@ -460,6 +513,7 @@ int parser_read_list_of_integers(struct file_content * pfc,
   char * string;
   char * substring;
   FileArg string_with_one_value;
+  char * start_string;
 
   int * list;
 
@@ -506,7 +560,13 @@ int parser_read_list_of_integers(struct file_content * pfc,
       strncpy(string_with_one_value,string,(substring-string));
       string_with_one_value[substring-string]='\0';
     }
-    class_test(sscanf(string_with_one_value,"%d",&(list[i-1])) != 1,
+    /* skip to actual start of string -- ignoring whitespace (!) */
+    start_string = string_with_one_value;
+    while(start_string[0]==' '){start_string++;}
+    class_test(parser_invalid_integer(start_string),
+               errmsg,
+               "could not read value of parameter '%s=%s' in file '%s' -- invalid number \n",name,start_string, pfc->filename);
+    class_test(sscanf(start_string,"%d",&(list[i-1])) != 1,
                errmsg,
                "could not read %dth value of list of parameters '%s' in file '%s'\n",
                i,name,pfc->filename);

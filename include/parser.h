@@ -113,6 +113,9 @@ extern "C" {
                            struct file_content * pfc_destination,
                            ErrorMsg errmsg);
 
+  int parser_invalid_double(const char* string);
+  int parser_invalid_integer(const char* string);
+
 #ifdef __cplusplus
 }
 #endif
