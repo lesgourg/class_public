@@ -143,12 +143,11 @@ int evolver_ndf15(
   tempvec1 =yppinterp+neqp;
   tempvec2 =tempvec1+neqp;
 
-  interpidx=(int*)(tempvec2+neqp);
-
-  dif      =(double**)(interpidx+neqp);
+  dif      =(double**)(tempvec2+neqp);
   dif[1]   =(double*)(dif+neqp);
   for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; /* Set row pointers... */
   dif[0] = NULL;
+  interpidx=(int*)(dif[1]+(7*neq+1));
   /* for (ii=0;ii<(7*neq+1);ii++) dif[1][ii]=0.; */
   for (j=1; j<=neq; j++) {
     for (ii=1;ii<=7;ii++) {
