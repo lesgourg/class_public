@@ -400,6 +400,30 @@ class TestClass(unittest.TestCase):
                 if elem == 'mPk':
                     pk = self.cosmo.pk(0.1, 0)
                     self.assertIsNotNone(pk, "pk returned nothing")
+                    # Compare the derivatives returned by the wrapper with
+                    # finite differences of the corresponding quantities
+                    R = 8./self.cosmo.h()
+                    dR = 1e-3*R
+                    sigma_prime_fd = (self.cosmo.sigma(R+dR, 0)-self.cosmo.sigma(R-dR, 0))/(2.*dR)
+                    self.assertAlmostEqual(
+                        self.cosmo.sigma_prime(R, 0)/sigma_prime_fd, 1., delta=1e-4,
+                        msg="sigma_prime does not match the finite difference of sigma")
+                    if 'N_ncdm' in self.scenario:
+                        sigma_cb_prime_fd = (self.cosmo.sigma_cb(R+dR, 0)-self.cosmo.sigma_cb(R-dR, 0))/(2.*dR)
+                        self.assertAlmostEqual(
+                            self.cosmo.sigma_cb_prime(R, 0)/sigma_cb_prime_fd, 1., delta=1e-4,
+                            msg="sigma_cb_prime does not match the finite difference of sigma_cb")
+                    else:
+                        self.assertRaises(CosmoSevereError, self.cosmo.sigma_cb_prime, R, 0)
+                    if 'non_linear' in self.scenario:
+                        k = 1.
+                        dlnk = 1e-2
+                        tilt_fd = (np.log(self.cosmo.pk(k*np.exp(dlnk), 0))-np.log(self.cosmo.pk(k*np.exp(-dlnk), 0)))/(2.*dlnk)
+                        self.assertAlmostEqual(
+                            self.cosmo.pk_nonlinear_tilt(k, 0)/tilt_fd, 1., delta=2e-2,
+                            msg="pk_nonlinear_tilt does not match the finite difference of pk")
+                    else:
+                        self.assertRaises(CosmoSevereError, self.cosmo.pk_nonlinear_tilt, 1., 0)
             # Negative tests of output functions
             if not any([elem in cl_dict for elem in output.split()]):
                 # testing absence of any Cl
@@ -407,6 +431,8 @@ class TestClass(unittest.TestCase):
             if 'mPk' not in output.split():
                 # testing absence of mPk
                 self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
+                self.assertRaises(CosmoSevereError, self.cosmo.sigma_prime, 8., 0)
+                self.assertRaises(CosmoSevereError, self.cosmo.pk_nonlinear_tilt, 1., 0)
 
         if COMPARE_OUTPUT_REF or COMPARE_OUTPUT_GAUGE:
             # Now compute same scenario in Newtonian gauge
