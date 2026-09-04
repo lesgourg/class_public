@@ -123,7 +123,7 @@ int output_init(
 
   /** - check that we really want to output at least one file */
 
-  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_thermodynamics == _FALSE_) && (pop->write_primordial == _FALSE_)) {
+  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_thermodynamics == _FALSE_) && (pop->write_primordial == _FALSE_) && (ppt->has_vector_velocity_transfers == _FALSE_)) {
     if (pop->output_verbose > 0)
       printf("No output files requested. Output module skipped.\n");
     return _SUCCESS_;
@@ -173,11 +173,21 @@ int output_init(
     }
   }
 
-  /** - deal with density and matter power spectra */
+  /** - deal with scalar density and velocity transfer functions */
 
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
-    class_call(output_tk(pba,ppt,pop),
+    class_call(output_tk(pba,ppt,pop,ppt->index_md_scalars),
+               pop->error_message,
+               pop->error_message);
+
+  }
+
+  /** - deal with vector velocity transfer functions */
+
+  if (ppt->has_vector_velocity_transfers == _TRUE_) {
+
+    class_call(output_tk(pba,ppt,pop,ppt->index_md_vectors),
                pop->error_message,
                pop->error_message);
 
@@ -366,6 +376,13 @@ int output_cl(
 
       }
 
+      if (_vectors_) {
+
+        class_sprintf(file_name,"%s%s",pop->root,"clv.dat");
+        strcpy(first_line,"[l(l+1)/2pi] C_l's for vector mode");
+
+      }
+
       if (_tensors_) {
 
         class_sprintf(file_name,"%s%s",pop->root,"clt.dat");
@@ -503,6 +520,31 @@ int output_cl(
 
               class_sprintf(file_name,"%s%s",pop->root,"cls_nid_niv.dat");
               strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross NIDxNIV mode");
+            }
+
+          }
+
+          if (_vectors_) {
+
+            if ((ppt->has_iso_v == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_iso_v) && (index_ic2 == ppt->index_ic_iso_v)) {
+
+              class_sprintf(file_name,"%s%s",pop->root,"clv_iso.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for vector isocurvature (ISO_V) mode");
+            }
+
+            if ((ppt->has_oct_v == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_oct_v) && (index_ic2 == ppt->index_ic_oct_v)) {
+
+              class_sprintf(file_name,"%s%s",pop->root,"clv_oct.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for vector octupole (OCT_V) mode");
+            }
+
+            if ((ppt->has_iso_v == _TRUE_) && (ppt->has_oct_v == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_iso_v) && (index_ic2 == ppt->index_ic_oct_v)) {
+
+              class_sprintf(file_name,"%s%s",pop->root,"clv_iso_oct.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for vector cross ISO_VxOCT_V mode");
             }
 
           }
@@ -1019,12 +1061,14 @@ int output_pk(
  * @param pba Input: pointer to background structure (needed for calling harmonic_pk_at_z())
  * @param ppt Input: pointer perturbation structure
  * @param pop Input: pointer to output structure
+ * @param index_md: for which mode (scalar/vector/tensor) shall we output the transfer function?
  */
 
 int output_tk(
               struct background * pba,
               struct perturbations * ppt,
-              struct output * pop
+              struct output * pop,
+              int index_md
               ) {
 
   /** Summary: */
@@ -1036,7 +1080,6 @@ int output_tk(
 
   FILE * tkfile;
 
-  int index_md;
   int index_ic;
   int index_z;
 
@@ -1048,10 +1091,7 @@ int output_tk(
   char ic_suffix[_SUFFIXNAMESIZE_];   // 4 is enough to write "ad", "bi", "cdi", "nid", "niv", ...
 
 
-  index_md=ppt->index_md_scalars;
-
-  if (pop->output_format == camb_format) {
-
+  if ((pop->output_format == camb_format) && (_scalars_)) {
     class_test(pba->N_ncdm>1,
                pop->error_message,
                "you wish to output the transfer functions in CMBFAST/CAMB format but you have more than one non-cold dark matter (ncdm) species. The two are not compatible (since CMBFAST/CAMB only have one ncdm species): switch to CLASS output format or keep only on ncdm species");
@@ -1062,7 +1102,7 @@ int output_tk(
   }
 
 
-  class_call(perturbations_output_titles(pba,ppt,pop->output_format,titles),
+  class_call(perturbations_output_titles(pba,ppt,pop->output_format,index_md,titles),
              pba->error_message,
              pop->error_message);
   number_of_titles = get_number_of_titles(titles);
@@ -1090,6 +1130,7 @@ int output_tk(
     class_call(perturbations_output_data_at_z(pba,
                                               ppt,
                                               pop->output_format,
+                                              index_md,
                                               pop->z_pk[index_z],
                                               number_of_titles,
                                               data
@@ -1099,44 +1140,62 @@ int output_tk(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      class_call(perturbations_output_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
+      class_call(perturbations_output_firstline_and_ic_suffix(ppt, index_md, index_ic, first_line, ic_suffix),
                  ppt->error_message, pop->error_message);
 
-      if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
-        class_sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
-      else
-        class_sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_",ic_suffix,".dat");
+      if (_scalars_) {
+        if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
+          sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
+        else
+          sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_",ic_suffix,".dat");
 
-      class_open(tkfile, file_name, "w", pop->error_message);
+        class_open(tkfile, file_name, "w", pop->error_message);
 
-      if (pop->write_header == _TRUE_) {
-        if (pop->output_format == class_format) {
-          fprintf(tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z);
-          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",ppt->k[index_md][0]/pba->h,ppt->k[index_md][ppt->k_size[index_md]-1]/pba->h);
-          fprintf(tkfile,"# number of wavenumbers equal to %d\n",ppt->k_size[index_md]);
-          if (ppt->has_density_transfers == _TRUE_) {
-            fprintf(tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
-            fprintf(tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
-            fprintf(tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
-            fprintf(tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
+        if (pop->write_header == _TRUE_) {
+          if (pop->output_format == class_format) {
+            fprintf(tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z);
+            fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",ppt->k[index_md][0]/pba->h,ppt->k[index_md][ppt->k_size[index_md]-1]/pba->h);
+            fprintf(tkfile,"# number of wavenumbers equal to %d\n",ppt->k_size[index_md]);
+            if (ppt->has_density_transfers == _TRUE_) {
+              fprintf(tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+              fprintf(tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
+              fprintf(tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
+              fprintf(tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
+            }
+            if (ppt->has_velocity_transfers == _TRUE_) {
+              fprintf(tkfile,"# t_i   stands for theta_i(k,z) with above normalization \n");
+              fprintf(tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
+            }
+            fprintf(tkfile,"#\n");
           }
-          if (ppt->has_velocity_transfers == _TRUE_) {
-            fprintf(tkfile,"# t_i   stands for theta_i(k,z) with above normalization \n");
-            fprintf(tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
+          else if (pop->output_format == camb_format) {
+            fprintf(tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
+            fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",ppt->k[index_md][0]/pba->h,ppt->k[index_md][ppt->k_size[index_md]-1]/pba->h);
+            fprintf(tkfile,"# number of wavenumbers equal to %d\n",ppt->k_size[index_md]);
+            fprintf(tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+            fprintf(tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
+            fprintf(tkfile,"#\n");
+            fprintf(tkfile,"#");
+            fprintf(tkfile,"\n");
           }
-          fprintf(tkfile,"#\n");
         }
-        else if (pop->output_format == camb_format) {
+      }
 
-          fprintf(tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
+      if (_vectors_) {
+        if (ppt->ic_size[index_md] == 1)
+          sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_v.dat");
+        else
+          sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_v_",ic_suffix,".dat");
+
+        class_open(tkfile, file_name, "w", pop->error_message);
+
+        if (pop->write_header == _TRUE_) {
+          fprintf(tkfile,"# Transfer functions T_i(k) %sat redshift z=%g for vector modes \n",first_line,z);
           fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",ppt->k[index_md][0]/pba->h,ppt->k[index_md][ppt->k_size[index_md]-1]/pba->h);
           fprintf(tkfile,"# number of wavenumbers equal to %d\n",ppt->k_size[index_md]);
-          fprintf(tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
-          fprintf(tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
+          if (ppt->has_vector_velocity_transfers == _TRUE_)
+            fprintf(tkfile,"# t_i   stands for v^(1)_i(k,z) and is dimensionless \n");
           fprintf(tkfile,"#\n");
-          fprintf(tkfile,"#");
-          fprintf(tkfile,"\n");
-
         }
       }
 

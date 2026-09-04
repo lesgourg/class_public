@@ -14,6 +14,7 @@
 #define _HYPER_CHUNK_ 16
 #define _TWO_OVER_THREE_ 0.666666666666666666666666666667e0
 #define _HIS_BYTE_ALIGNMENT_ 16
+#define _REFINE_ 10
 
 typedef struct HypersphericalInterpolationStructure{
   int K;                 //Sign of the curvature, (0,-1,1)

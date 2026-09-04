@@ -42,6 +42,10 @@ typedef char FileName[_FILENAMESIZE_+_BASEPATHSIZE_];
 
 #define _SQRT2_ 1.41421356237309504880168872421e0 /** < square root of 2. */
 
+#define _SQRT3_ 1.73205080756887729352744634151e0 /** < square root of 3. */
+
+#define _SQRT5_ 2.23606797749978969640917366873e0 /** < square root of 5. */
+
 #define _SQRT6_ 2.4494897427831780981972840747059e0 /**< square root of 6. */
 
 #define _SQRT_PI_ 1.77245385090551602729816748334e0 /**< square root of pi. */

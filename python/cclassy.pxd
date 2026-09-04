@@ -155,6 +155,7 @@ cdef extern from "class.h":
 
         short has_density_transfers
         short has_velocity_transfers
+        short has_vector_velocity_transfers
 
         int has_pk_matter
         int l_lss_max
@@ -223,9 +224,13 @@ cdef extern from "class.h":
         short has_source_eta_prime
         short has_source_H_T_Nb_prime
         short has_source_k2gamma_Nb
+        short has_source_vector_theta_g
+        short has_source_vector_theta_b
+        short has_source_vector_theta_ur
 
         int index_tp_t0
         int index_tp_t1
+        int index_tp_vector_t1
         int index_tp_t2
         int index_tp_p
         int index_tp_delta_m
@@ -268,7 +273,10 @@ cdef extern from "class.h":
         int index_tp_eta_prime
         int index_tp_H_T_Nb_prime
         int index_tp_k2gamma_Nb
-
+        int index_tp_vector_theta_g
+        int index_tp_vector_theta_b
+        int index_tp_vector_theta_ur
+        int index_tp_V
 
         double *** sources
         double * tau_sampling
@@ -298,6 +306,9 @@ cdef extern from "class.h":
         double r
         double n_t
         double alpha_t
+        double r_v
+        double n_v
+        double alpha_v
         double V0
         double V1
         double V2
@@ -483,12 +494,11 @@ cdef extern from "class.h":
     int thermodynamics_output_titles(void * pba, void *pth, char titles[8000])
     int thermodynamics_output_data(void *pba, void *pth, int number_of_titles, double *data)
 
-    int perturbations_output_data_at_z(void *pba,void *ppt, file_format output_format, double z, int number_of_titles, double *data)
-    int perturbations_output_data_at_index_tau(void *pba,void *ppt, file_format output_format, int ondex_tau, int number_of_titles, double *data)
-    int perturbations_output_data(void *pba,void *ppt, file_format output_format, double * tkfull, int number_of_titles, double *data)
-    int perturbations_output_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[1024], FileName ic_suffix)
-    int perturbations_output_titles(void *pba, void *ppt,  file_format output_format, char titles[8000])
-
+    int perturbations_output_data_at_z(void *pba,void *ppt, file_format output_format, int index_md, double z, int number_of_titles, double *data)
+    int perturbations_output_data_at_index_tau(void *pba,void *ppt, file_format output_format, int index_md, int index_tau, int number_of_titles, double *data)
+    int perturbations_output_data(void *pba,void *ppt, file_format output_format, int index_md, double * tkfull, int number_of_titles, double *data)
+    int perturbations_output_firstline_and_ic_suffix(void *ppt, int index_md, int index_ic, char first_line[1024], FileName ic_suffix)
+    int perturbations_output_titles(void *pba, void *ppt,  file_format output_format, int index_md, char titles[8000])
     int primordial_output_titles(void * ppt, void *ppm, char titles[8000])
     int primordial_output_data(void *ppt, void *ppm, int number_of_titles, double *data)
 

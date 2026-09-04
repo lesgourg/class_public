@@ -267,6 +267,8 @@ class_precision_parameter(start_small_k_at_tau_c_over_tau_h,double,0.0015) /**< 
 
 class_precision_parameter(start_large_k_at_tau_h_over_tau_k,double,0.07)  /**< largest wavelengths start being sampled when mode is sufficiently outside Hubble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ which is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
+class_precision_parameter(start_vectors_at_omega_tau,double,0.01) /**< value of omega*tau which gives an upper value for the starting tau when integrating vector modes. Decrease to start earlier in time*/
+
 /**
  * when to switch off tight-coupling approximation: first condition:
  * \f$ \tau_c/\tau_H \f$ > tight_coupling_trigger_tau_c_over_tau_h.
@@ -310,6 +312,10 @@ class_precision_parameter(l_max_dr,int,17)   /**< number of momenta in Boltzmann
 class_precision_parameter(l_max_ur,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
 class_precision_parameter(l_max_idr,int,17)   /**< number of momenta in Boltzmann hierarchy for interacting dark radiation */
 class_precision_parameter(l_max_ncdm,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+
+class_precision_parameter(l_max_g_vec,int,5)     /**< number of momenta in Boltzmann hierarchy for photon temperature (vector), at least 4 (incremented by 1 inside the code when using tam hierarchy instead of optimal) */
+class_precision_parameter(l_max_pol_g_vec,int,5) /**< number of momenta in Boltzmann hierarchy for photon polarization (vector), at least 4 (incremented by 1 inside the code when using tam hierarchy instead of optimal) */
+class_precision_parameter(l_max_ur_vec,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (vector), at least 4 (incremented by 1 inside the code when using tam hierarchy instead of optimal) */
 
 class_precision_parameter(l_max_g_ten,int,5)     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 (incremented by 2 inside the code when using tam hierarchy instead of optimal) */
 class_precision_parameter(l_max_pol_g_ten,int,5) /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 (incremented by 2 inside the code when using tam hierarchy instead of optimal) */

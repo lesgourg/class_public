@@ -625,6 +625,17 @@ int harmonic_indices(
           phr->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
 
     }
+
+    if (ppt->has_vectors == _TRUE_) {
+
+      /* spectra computed up to l_vector_max */
+
+      if (phr->has_tt == _TRUE_) phr->l_max_ct[ppt->index_md_vectors][phr->index_ct_tt] = ppt->l_vector_max;
+      if (phr->has_ee == _TRUE_) phr->l_max_ct[ppt->index_md_vectors][phr->index_ct_ee] = ppt->l_vector_max;
+      if (phr->has_te == _TRUE_) phr->l_max_ct[ppt->index_md_vectors][phr->index_ct_te] = ppt->l_vector_max;
+      if (phr->has_bb == _TRUE_) phr->l_max_ct[ppt->index_md_vectors][phr->index_ct_bb] = ppt->l_vector_max;
+    }
+
     if (ppt->has_tensors == _TRUE_) {
 
       /* spectra computed up to l_tensor_max */
@@ -966,8 +977,8 @@ int harmonic_compute_cl(
 
       if (_vectors_) {
 
-        transfer_ic1_temp = transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
-        transfer_ic2_temp = transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
+        transfer_ic1_temp = transfer_ic1[ptr->index_tt_vector_t1] + transfer_ic1[ptr->index_tt_t2];
+        transfer_ic2_temp = transfer_ic2[ptr->index_tt_vector_t1] + transfer_ic2[ptr->index_tt_t2];
 
       }
 
@@ -1091,6 +1102,13 @@ int harmonic_compute_cl(
         primordial_pk[index_ic1_ic2]
         * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_e] +
                transfer_ic1[ptr->index_tt_e] * transfer_ic2_temp)
+        * factor;
+
+    if (_vectors_ && (phr->has_bb == _TRUE_))
+      cl_integrand[index_q*cl_integrand_num_columns+1+phr->index_ct_bb]=
+        primordial_pk[index_ic1_ic2]
+        * transfer_ic1[ptr->index_tt_vector_b]
+        * transfer_ic2[ptr->index_tt_vector_b]
         * factor;
 
     if (_tensors_ && (phr->has_bb == _TRUE_))
@@ -1246,7 +1264,10 @@ int harmonic_compute_cl(
 
   for (index_ct=0; index_ct<phr->ct_size; index_ct++) {
 
-    /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors, etc. */
+    /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors,
+       etc. The current version neglects the tiny contribution of
+       vector and tensor modes to lensing and galaxy density/number
+       count */
 
     if ((_scalars_ && (phr->has_bb == _TRUE_) && (index_ct == phr->index_ct_bb)) ||
         (_tensors_ && (phr->has_pp == _TRUE_) && (index_ct == phr->index_ct_pp)) ||
@@ -1257,8 +1278,17 @@ int harmonic_compute_cl(
         (_tensors_ && (phr->has_pd == _TRUE_) && (index_ct == phr->index_ct_pd)) ||
         (_tensors_ && (phr->has_ll == _TRUE_) && (index_ct == phr->index_ct_ll)) ||
         (_tensors_ && (phr->has_tl == _TRUE_) && (index_ct == phr->index_ct_tl)) ||
-        (_tensors_ && (phr->has_dl == _TRUE_) && (index_ct == phr->index_ct_dl))
-        ) {
+        (_tensors_ && (phr->has_dl == _TRUE_) && (index_ct == phr->index_ct_dl)) ||
+        (_vectors_ && (phr->has_pp == _TRUE_) && (index_ct == phr->index_ct_pp)) ||
+        (_vectors_ && (phr->has_tp == _TRUE_) && (index_ct == phr->index_ct_tp)) ||
+        (_vectors_ && (phr->has_ep == _TRUE_) && (index_ct == phr->index_ct_ep)) ||
+        (_vectors_ && (phr->has_dd == _TRUE_) && (index_ct == phr->index_ct_dd)) ||
+        (_vectors_ && (phr->has_td == _TRUE_) && (index_ct == phr->index_ct_td)) ||
+        (_vectors_ && (phr->has_pd == _TRUE_) && (index_ct == phr->index_ct_pd)) ||
+        (_vectors_ && (phr->has_ll == _TRUE_) && (index_ct == phr->index_ct_ll)) ||
+        (_vectors_ && (phr->has_tl == _TRUE_) && (index_ct == phr->index_ct_tl)) ||
+        (_vectors_ && (phr->has_dl == _TRUE_) && (index_ct == phr->index_ct_dl))
+	) {
 
       phr->cl[index_md]
         [(index_l * phr->ic_ic_size[index_md] + index_ic1_ic2) * phr->ct_size + index_ct] = 0.;

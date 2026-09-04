@@ -1029,9 +1029,8 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
   int left_index, right_index, index_l, j;
   int nl = pHIS->l_size;
   int nx = pHIS->x_size;
-  int REFINE=10;
-  double x[REFINE];
-  double Phi[REFINE];
+  double x[_REFINE_];
+  double Phi[_REFINE_];
   double *phivec = pHIS->phi;
   double *xvec = pHIS->x;
   double xleft, xright;
@@ -1058,11 +1057,11 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
     while ((xright-xleft)>xtol){
       //Create interpolation vector
       //printf("Refining\n");
-      for (j=0; j<REFINE; j++)
-        x[j] = xleft+j*(xright-xleft)/(REFINE-1.0);
-      hyperspherical_Hermite_interpolation_vector(pHIS,REFINE,
+      for (j=0; j<_REFINE_; j++)
+        x[j] = xleft+j*(xright-xleft)/(_REFINE_-1.0);
+      hyperspherical_Hermite_interpolation_vector(pHIS,_REFINE_,
                                                   index_l, x, Phi, NULL,NULL);
-      for (right_index = 1; right_index<REFINE; right_index++){
+      for (right_index = 1; right_index<_REFINE_; right_index++){
         if (fabs(Phi[right_index])>phiminabs)
           break;
       }
@@ -1735,4 +1734,3 @@ int hyperspherical_Hermite6_interpolation_vector_PhidPhid2Phi(HyperInterpStruct 
 #include "hermite6_interpolation_csource.h"
   return _SUCCESS_;
 }
-
