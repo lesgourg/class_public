@@ -157,8 +157,11 @@ int distortions_constants(struct precision * ppr,
   psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;                    // [GHz]
   psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);  // [W/(m^2 Hz sr)]
 
-  /** Define transition redshifts z_muy and z_th */
-  psd->z_muy = 5.e4;
+  /** Define transition redshifts z_muy and z_th . Equations 5.53 and 5.55 from J. Chluba PhD thesis*/
+  psd->z_muy = 5.1e4 *
+    pow((1.-pth->YHe/2.)/0.8767,-1./2.)*
+    pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-1./2.)*
+    pow(pba->T_cmb/2.726,1./2.);
   psd->z_th = 1.98e6*
     pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
     pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
