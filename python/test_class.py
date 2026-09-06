@@ -531,6 +531,10 @@ class TestClass(unittest.TestCase):
             if 'non_linear' in self.scenario and self.scenario['non_linear'].find('hmcode') != -1:
                 should_fail = True
 
+        # If we have specified a hierarchy, we must have some form of perturbations output.
+        if 'hierarchy' in self.scenario:
+            if 'output' not in self.scenario:
+                should_fail = True
 
         return should_fail
 

@@ -2335,14 +2335,14 @@ int perturbations_get_k_list(
       /* the following is a boost on k_per_decade_for_pk for the interacting idm-idr cases (relevant for large k and a_idm_dr) */
       if ((pth->has_idm_dr==_TRUE_)&&(pth->n_index_idm_dr>=2)){
         class_alloc(ppt->k[index_md],
-                    ((int)((k_max_cmb[index_md]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                    ((int)((k_max_cmb[index_md]-k_min)/ppr->k_step_super_reduction/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
                      (int)(MAX(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->n_index_idm_dr,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                     *sizeof(double),ppt->error_message);
       }
       else {
         /* generic scalar case */
         class_alloc(ppt->k[index_md],
-                    ((int)((k_max_cmb[index_md]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                    ((int)((k_max_cmb[index_md]-k_min)/ppr->k_step_super_reduction/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
                      (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                     *sizeof(double),ppt->error_message);
       }
@@ -2350,7 +2350,7 @@ int perturbations_get_k_list(
     else {
       /* generic vector/tensor case */
       class_alloc(ppt->k[index_md],
-                  ((int)((k_max_cmb[index_md]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                  ((int)((k_max_cmb[index_md]-k_min)/ppr->k_step_super_reduction/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
                   *sizeof(double),ppt->error_message);
     }
 
