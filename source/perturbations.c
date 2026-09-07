@@ -9502,7 +9502,7 @@ int perturbations_print_variables(double tau,
       }
 
       if (pba->has_scf == _TRUE_) {
-        delta_scf += alpha*(-3.0*H*(1.0+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf]));
+        delta_scf += alpha*(-3.0*a*H*(1.0+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf]));
         theta_scf += k*k*alpha;
       }
 
