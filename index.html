@@ -165,7 +165,7 @@ System
 <p>
 The use of CLASS is free provided that when you use it in a publication, you cite at least the paper <a href="http://arxiv.org/abs/1104.2933">CLASS II: Approximation schemes</a> (reference below). You are welcome to cite any other CLASS paper if relevant!
 <p>
-  There are three ways to get to use CLASS. If you only want to use it through its python wrapper <tt>classy</tt> and not modify it, just install it as a python module with <tt>pip install classy</tt>. If you want to see the code and/or modify it just for yourself, download a tar.gz archive of the latest released (master branch) version, v3.3.4, by clicking <a href="class_public-3.3.4.tar.gz" download="class_public-3.3.4.tar.gz">class_public-3.3.4.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
+  There are three ways to get to use CLASS. If you only want to use it through its python wrapper <tt>classy</tt> and not modify it, just install it as a python module with <tt>pip3 install classy</tt>. If you want to see the code and/or modify it just for yourself, download a tar.gz archive of the latest released (master branch) version, v3.4.0, by clicking <a href="class_public-3.4.0.tar.gz" download="class_public-3.4.0.tar.gz">class_public-3.4.0.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
 <br>
 <hr color=#d2b48c>
 <h2><a name="documentation">Documentation</a></h2>
@@ -179,7 +179,7 @@ target="_blank"> installation wiki page</a>. In a nutshell:
 <p>
 
 <li> If you are only interested in running CLASS through its python wrapper <tt>classy</tt>,
-install it with <tt>pip install .</tt> (since v3.3.0; before you had to execute <tt>make clean; make -j all</tt>).
+install it with <tt>pip3 install .</tt> (since v3.3.0; before you had to execute <tt>make clean; make -j all</tt>).
 To check that things work, you may run any of our demo python scripts located in <tt>scripts/</tt> (e.g. <tt>python scripts/warmup.py</tt>), or any of the equivalent jupyter notebooks located in <tt>notebooks/</tt>.
 
 <p>
@@ -296,6 +296,17 @@ In case you are interested in downloading an old version, go to the
 <p>
 
   <table>
+    <tr>
+      <td valign=top>v3.4&nbsp;(7.09.2026)</td>
+      <td>
+        <ul>
+          <li> Implementation of Bardeen vectors following the formalism of  <a href="https://arxiv.org/abs/2410.03612" target="_blank">2410.03612</a>. See input field <tt>'modes'</tt> in <tt>explanatory.ini</tt> for details (credits: C. Pitrou).
+          <li> Possibility to choose between two versions of the Boltzmann hierarchy for photon temperature and polarisation: the optimal hierarchy of <a href="https://arxiv.org/abs/1305.3261" target="_blank">1305.3261</a> (not exact, but still extremely accurate, used in all previous versions, and kept as the default), or the total angular momentum (TAM) hierarchy of <a href="https://arxiv.org/abs/astro-ph/9709066" target="_blank">astro-ph/9709066</a> (exact). A discussion and a comparison between the two versions can be found in <a href="https://arxiv.org/abs/2005.12119" target="_blank">2005.12119</a>. See input field <tt>'hierarchy'</tt> in <tt>explanatory.ini</tt> (credits: C. Pitrou).
+          <li> Redefinition of default values for the precision parameters related to CMB lensing. Already with <tt>accurate_lensing = 0</tt> the default calculations are more precise than before. However, we recommend using <tt>accurate_lensing = 1</tt> to get very accurate lensed Cls at l>2500. Also, implemented the higher-order CMB lensing calculations of <a href="https://arxiv.org/abs/astro-ph/0601594" target="_blank">astro-ph/0601594</a> as an option. Everything described in the paragraph <tt>Lensing precision parameters</tt> of <tt>source/precisions.c</tt> (credits: C. Pitrou).
+          <li> Several minor bug fixes.
+        </ul>
+      </td>
+    </tr>
     <tr>
       <td valign=top>v3.3&nbsp;(17.02.2025)</td>
       <td>
@@ -827,6 +838,6 @@ target="_blank">montepython_public</a> page.  <hr color=#d2b48c> </td>
 <td width=30> </td> </table>
 
 <h5>Webmaster Julien Lesgourgues; thanks to Diego Blas for aesthetic advices.</hr>
-<h5>Last update on the 27.08.2025</h5>
+<h5>Last update on the 7.09.2026</h5>
 </body>
 </html>
