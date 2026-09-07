@@ -46,6 +46,7 @@ enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};  /* for the idm-idr case */
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
+enum vector_methods {vm_massless_approximation,vm_exact};
 
 //@}
 
@@ -59,6 +60,28 @@ enum possible_gauges {
                       newtonian, /**< newtonian (or longitudinal) gauge */
                       synchronous /**< synchronous gauge with \f$ \theta_{cdm} = 0 \f$ by convention */
 };
+
+//@}
+
+/**
+ * Which version of the Boltzmann hierarchy for photons should be
+ * used: 'optimal' like in Ma & Bertschinger (astro-ph/9506072, flat
+ * case) and Tram & Lesgourgues (1305.3261, 1312.2697, curved case)
+ * with just two hierarchies F_l, G_l; or 'tam' for total angular
+ * momentum method by Hu, Seljak, White, Zaldarriaga with three
+ * hierarchies Theta_l, E_l, B_l (astro-ph/9702170, astro-ph/9709066,
+ * 1909.13687, 2005.12119). The two hierarchies are also implemented
+ * for neutrino tensor modes (for neutrino scalar modes they are
+ * exactly equivalent). Their use is nearly indifferent: 'optimal' gives an
+ * almost negligible speed up and almost negligible accuracy
+ * degradation in the curved case (biggest relative error is ~
+ * 0.5*|Omega_k| on the large-l tensor polarisation spectrum, see
+ * 2005.12119). Credits C. Pitrou and T. Pereira.
+ */
+
+//@{
+
+enum hierarchies {optimal, tam};
 
 //@}
 
@@ -117,14 +140,21 @@ struct perturbations
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
 
+  short has_iso_v;   /**< do we need isocurvature vector mode? */
+  short has_oct_v;   /**< do we need (neutrino) octupole vector mode? */
+
   /* perturbed recombination */
   /** Do we want to consider perturbed temperature and ionization fraction? */
   short has_perturbed_recombination;
   /** Neutrino contribution to tensors */
-  enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
+  enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations (neglect, approximate as massless, take exact equations) */
+  enum vector_methods vector_method;  /**< way to treat neutrinos in vector perturbations (approximate as massless, take exact equations) */
 
   short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
-  short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
+  short evolve_tensor_ncdm;           /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
+
+  short evolve_vector_ur;             /**< will we evolve ur vector perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
+  short evolve_vector_ncdm;           /**< will we evolve ncdm vector perturbations (if we have ncdm species and we use the exact method) ? */
 
   short has_cl_cmb_temperature;       /**< do we need \f$ C_l \f$'s for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need \f$ C_l \f$'s for CMB polarization? */
@@ -136,6 +166,7 @@ struct perturbations
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
+  short has_vector_velocity_transfers;/**< do we need to output individual vector velocity transfer functions? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -204,6 +235,14 @@ struct perturbations
 
   //@}
 
+  /** @name - version of the Boltzmann equation */
+
+  //@{
+
+  enum hierarchies hierarchy; /**< which version of the polarization Boltzmann hierarchy */
+
+  //@}
+
   /** @name - indices running on modes (scalar, vector, tensor) */
 
   //@{
@@ -226,6 +265,8 @@ struct perturbations
   int index_ic_nid; /**< index value for neutrino density isocurvature */
   int index_ic_niv; /**< index value for neutrino velocity isocurvature */
   int index_ic_ten; /**< index value for unique possibility for tensors */
+  int index_ic_iso_v; /**< index value for isocurvature in vector modes */
+  int index_ic_oct_v; /**< index value for neutrino octupolar in vector modes */
 
   int * ic_size;       /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
 
@@ -276,14 +317,18 @@ struct perturbations
   short has_source_H_T_Nb_prime; /**< do we need source for metric fluctuation H_T_Nb'? */
   short has_source_k2gamma_Nb; /**< do we need source for metric fluctuation gamma in Nbody gauge? */
 
+  short has_source_vector_theta_g;    /**< do we need source for theta of gammas for vector mode ? */
+  short has_source_vector_theta_b;    /**< do we need source for theta of baryons for vector modes ? */
+  short has_source_vector_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics for vector modes ? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
      to avoid the integration by part that would reduce the source to
      a single term) */
   int index_tp_t0; /**< index value for temperature (j=0 term) */
-  int index_tp_t1; /**< index value for temperature (j=1 term) */
-  int index_tp_t2; /**< index value for temperature (j=2 term) */
+  int index_tp_t1; /**< index value for temperature (j=1 term) for scalar mode (m=0) */
+  int index_tp_vector_t1; /**< index value for temperature (j=1 term) for vector mode (m=1) */
+  int index_tp_t2; /**< index value for temperature (j=2 term), common index for m=0,1,2 */
   int index_tp_p; /**< index value for polarization */
   int index_tp_delta_m; /**< index value for matter density fluctuation */
   int index_tp_delta_cb; /**< index value for delta cb */
@@ -327,6 +372,11 @@ struct perturbations
   int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
   int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
   int index_tp_k2gamma_Nb;   /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
+
+  int index_tp_vector_theta_g;  /**< index value for theta of gammas for vector modes */
+  int index_tp_vector_theta_b;  /**< index value for theta of baryons for vector modes */
+  int index_tp_vector_theta_ur; /**< index value for theta of ur species for vector modes */
+  int index_tp_V;               /**< index value for metric fluctuation V (vector mode) */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
@@ -459,16 +509,33 @@ struct perturbations
 
 struct perturbations_vector
 {
-  int index_pt_delta_g;   /**< photon density */
-  int index_pt_theta_g;   /**< photon velocity */
-  int index_pt_shear_g;   /**< photon shear */
-  int index_pt_l3_g;      /**< photon l=3 */
-  int l_max_g;            /**< max momentum in Boltzmann hierarchy (at least 3) */
-  int index_pt_pol0_g;    /**< photon polarization, l=0 */
-  int index_pt_pol1_g;    /**< photon polarization, l=1 */
-  int index_pt_pol2_g;    /**< photon polarization, l=2 */
-  int index_pt_pol3_g;    /**< photon polarization, l=3 */
-  int l_max_pol_g;        /**< max momentum in Boltzmann hierarchy (at least 3) */
+  /* Boltzmann hierarchy for photons. The first three temperature
+     multipoles have a special definition for scalar modes: the code
+     uses (delta_g, theta_g, shear_g), connected to the
+     energy-momentum tensor components in the Ma & Bertschinger
+     notations. Otherwise the mutipoles are: for the optimal
+     hierarchy, F_l^(m), G_l^(m) of 1305.3261, that generalize Ma &
+     Bertschinger; for the TAM hierarchy, Theta_l^(m), E_l^(m),
+     B_l^(m) of astro-ph/9709066 (with m=0 for scalars, 1 for vectors,
+     2 for tensors) */
+
+  int index_pt_delta_g;   /**< for scalar modes, photon density parameter: F_0^(0) (optimal) or 4 Theta_0^(0) (tam) */
+  int index_pt_theta_g;   /**< for scalar modes, photon velocity parameter: 3k/4 F_1^(0) (optimal) or k Theta_1^(0) (tam) */
+  int index_pt_shear_g;   /**< for scalar modes, photon shear parameter: 1/(2s_2) F_2^(0) (optimal), or  2/(5s_2) Theta_2^(0) (tam) */
+  int index_pt_l0_g;      /**< (optimal hierarchy) photon temperature mutipole F_0^(m) for m=1,2 */
+  int index_pt_l1_g;      /**< (tam hierarchy) photon temperature mutipole Theta_1^(m) for m=1 */
+  int index_pt_l2_g;      /**< (tam hierarchy) photon temperature mutipole Theta_2^(m) for m=2 */
+  int index_pt_l3_g;      /**< F_3^(0) (optimal) or Theta_3^(0) (tam) */
+  int l_max_g;            /**< highest multipole in photon Boltzmann temperature hierarchy (at least 3) */
+
+  int index_pt_pol0_g;    /**< (optimal hierarchy) photon polarization, G_0 */
+  int index_pt_pol1_g;    /**< (optimal hierarchy) photon polarization, G_1 */
+  int index_pt_pol2_g;    /**< (optimal hierarchy) photon polarization, G_2 */
+  int index_pt_pol3_g;    /**< (optimal hierarchy) photon polarization, G_3 */
+  int index_pt_E2;        /**< (tam hierarchy) photon polarization, E_2 for m=1,2*/
+  int index_pt_B2;        /**< (tam hierarchy) photon polarization, B_2 for m=1,2 */
+  int l_max_pol_g;        /**< highest multipole in photon Boltzmann polarisation hierarchy (at least 3) */
+
   int index_pt_delta_b;   /**< baryon density */
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
@@ -482,11 +549,25 @@ struct perturbations_vector
   int index_pt_Gamma_fld;  /**< unique dark energy dynamical variable in PPF case */
   int index_pt_phi_scf;  /**< scalar field density */
   int index_pt_phi_prime_scf;  /**< scalar field velocity */
-  int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
-  int index_pt_theta_ur; /**< velocity of ultra-relativistic neutrinos/relics */
-  int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
-  int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
-  int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
+
+  /* Boltzmann hierarchy for ultra-relativistic species. For scalar
+     modes the code uses (delta_ur, theta_ur, shear_ur), connected to
+     the energy-momentum tensor components in the Ma & Bertschinger
+     notations, and F_l^(0) for l>3. For tensor modes the multipoles
+     are: for the optimal hierarchy, F_l^(m) of 1305.3261, that
+     generalize Ma & Bertschinger; for the TAM hierarchy, Theta_l^(m)
+     of astro-ph/9709066 (with m=0 for scalars, 1 for vectors, 2 for
+     tensors) */
+
+  int index_pt_delta_ur; /**< for scalar modes, ur density parameter: F_0^(0) (optimal) or 4 Theta_0^(0) (tam) */
+  int index_pt_theta_ur; /**< for scalar modes, ur velocity parameter: 3k/4 F_1^(0) (optimal) or k Theta_1^(0) (tam) */
+  int index_pt_shear_ur; /**< for scalar modes, ur shear parameter: 1/(2s_2) F_2^(0) (optimal) or 2/(5s_2) Theta_2^(0) (tam) */
+  int index_pt_l0_ur;    /**< (optimal hierarchy) for tensor modes, ur multipole F_0^(2) */
+  int index_pt_l1_ur;    /**< (tam hierarchy) for vector modes, ur multipole Theta_1^(1) */
+  int index_pt_l2_ur;    /**< (tam hierarchy) for tensor modes, ur multipole Theta_2^(2) */
+  int index_pt_l3_ur;    /**< ur multipole F_3^(0) (optimal) or Theta_3^(0) (tam) */
+  int l_max_ur;          /**< highest multipole in ur Boltzmann hierarchy (at least 3) */
+
   int index_pt_delta_idr; /**< density of interacting dark radiation */
   int index_pt_theta_idr; /**< velocity of interacting dark radiation */
   int index_pt_shear_idr; /**< shear of interacting dark radiation */
@@ -497,7 +578,7 @@ struct perturbations_vector
   int index_pt_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_pt_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
-  /** The index to the first Legendre multipole of the DR expansion. Not
+  /** The index to the first Legendre multipole of the DR expansion. Note
       that this is not exactly the usual delta, see Kaplinghat et al.,
       astro-ph/9907388. */
   int index_pt_F0_dr;
@@ -510,7 +591,7 @@ struct perturbations_vector
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
   int index_pt_phi;	      /**< newtonian gauge metric perturbation phi */
   int index_pt_hv_prime;  /**< vector metric perturbation h_v' in synchronous gauge */
-  int index_pt_V;         /**< vector metric perturbation V in Newtonian gauge */
+  int index_pt_V;         /**< vector metric perturbation V in Newtonian gauge as defined in 12-14 of astro-ph/9709066 */
 
   int index_pt_gw;        /**< tensor metric perturbation h (gravitational waves) */
   int index_pt_gwdot;     /**< its time-derivative */
@@ -550,7 +631,7 @@ struct perturbations_workspace
   int index_mt_alpha;         /**< \f$ \alpha = (h' + 6 \eta') / (2 k^2) \f$ in synchronous gauge */
   int index_mt_alpha_prime;   /**< \f$ \alpha'\f$ wrt conf. time) in synchronous gauge */
   int index_mt_gw_prime_prime;/**< second derivative wrt conformal time of gravitational wave field, often called h */
-  int index_mt_V_prime;       /**< derivative of Newtonian gauge vector metric perturbation V */
+  int index_mt_V_prime;       /**< derivative of Newtonian gauge vector metric perturbation V defined in 12-14 of astro-ph/9709066*/
   int index_mt_hv_prime_prime;/**< Second derivative of Synchronous gauge vector metric perturbation \f$ h_v\f$ */
   int mt_size;                /**< size of metric perturbation vector */
 
@@ -577,11 +658,14 @@ struct perturbations_workspace
   double rho_plus_p_tot;    /**< total (rho+p) (used to infer theta_tot from rho_plus_p_theta) */
 
   double gw_source;		    /**< stress-energy source term in Einstein's tensor equations (gives Tij[tensor]) */
-  double vector_source_pi;	/**< first stress-energy source term in Einstein's vector equations */
-  double vector_source_v;	/**< second stress-energy source term in Einstein's vector equations */
+  double vector_source_pi;	/**< first stress-energy source term in Einstein's vector equations (the second one, v, is not used in this version of the code) */
 
   double tca_shear_g;  /**< photon shear in tight-coupling approximation */
   double tca_slip;     /**< photon-baryon slip in tight-coupling approximation */
+
+  double tca_T2_vector;   /**< photon quadrupole in tight-coupling approximation for vector modes */
+  double tca_slip_vector; /**< photon-baryon slip (2.31 of 2410.03612) in tight-coupling approximation for vector modes */
+
   double tca_shear_idm_dr; /**< interacting dark radiation shear in tight coupling appproximation */
   double rsa_delta_g;  /**< photon density in radiation streaming approximation */
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
@@ -641,12 +725,15 @@ struct perturbations_workspace
 
   //@}
 
-  /** @name - approximations used at a given time */
+  /** @name - miscellaneous */
 
   //@{
 
   int max_l_max;    /**< maximum l_max for any multipole */
-  double * s_l;     /**< array of freestreaming coefficients \f$ s_l = \sqrt{1-K*(l^2-1)/k^2} \f$*/
+  double * s_l;     /**< array of freestreaming coefficients \f$ s_l = \sqrt{1-K*(l^2-1)/k^2} \f$. They are dimensionless. */
+  double * twokappam; /**< array of freestreaming coefficients \f$ {{}_s}\kappa^m_l = \sqrt{(l^2-m^2)(l^2-s^2)/l^2 * (q^2-K*l^2)} \f$ for s=2. They have dimension of k.*/
+  double * zerokappam; /**< array of freestreaming coefficients \f$ {{}_0}\kappa^m_l = \sqrt{(l^2-m^2) * (q^2-K*l^2)} \f$. They have dimension of k.*/
+  double q_m; /**< Current value of q such that \f$ q^2 = k^2 + (1+m) K\f$ */
 
   //@}
 
@@ -664,7 +751,7 @@ struct perturbations_parameters_and_workspace {
   struct background * pba;        /**< pointer to the background structure */
   struct thermodynamics * pth;            /**< pointer to the thermodynamics structure */
   struct perturbations * ppt;          /**< pointer to the precision structure */
-  int index_md;                   /**< index of mode (scalar/.../vector/tensor) */
+  int index_md;                   /**< index of mode (scalar/vector/tensor) */
   int index_ic;			          /**< index of initial condition (adiabatic/isocurvature(s)/...) */
   int index_k;			          /**< index of wavenumber */
   double k;			              /**< current value of wavenumber in 1/Mpc */
@@ -700,21 +787,22 @@ extern "C" {
                                  double * psource_at_z
                                  );
 
-   int perturbations_sources_at_k_and_z(
-                                        struct background * pba,
-                                        struct perturbations * ppt,
-                                        int index_md,
-                                        int index_ic,
-                                        int index_tp,
-                                        double k,
-                                        double z,
-                                        double * psource_at_k_and_z
-                                        );
+  int perturbations_sources_at_k_and_z(
+                                       struct background * pba,
+                                       struct perturbations * ppt,
+                                       int index_md,
+                                       int index_ic,
+                                       int index_tp,
+                                       double k,
+                                       double z,
+                                       double * psource_at_k_and_z
+                                       );
 
   int perturbations_output_data_at_z(
                                      struct background * pba,
                                      struct perturbations * ppt,
                                      enum file_format output_format,
+                                     int index_md,
                                      double z,
                                      int number_of_titles,
                                      double *data
@@ -724,6 +812,7 @@ extern "C" {
                                              struct background * pba,
                                              struct perturbations * ppt,
                                              enum file_format output_format,
+                                             int index_md,
                                              int index_tau,
                                              int number_of_titles,
                                              double *data
@@ -733,6 +822,7 @@ extern "C" {
                                 struct background * pba,
                                 struct perturbations * ppt,
                                 enum file_format output_format,
+                                int index_md,
                                 double * tkfull,
                                 int number_of_titles,
                                 double *data
@@ -742,11 +832,14 @@ extern "C" {
                                   struct background *pba,
                                   struct perturbations *ppt,
                                   enum file_format output_format,
+                                  int index_md,
                                   char titles[_MAXTITLESTRINGLENGTH_]
                                   );
 
+
   int perturbations_output_firstline_and_ic_suffix(
                                                    struct perturbations *ppt,
+                                                   int index_md,
                                                    int index_ic,
                                                    char first_line[_LINE_LENGTH_MAX_],
                                                    char ic_suffix[_SUFFIXNAMESIZE_]
@@ -848,6 +941,14 @@ extern "C" {
                                                 double * interval_limit,
                                                 int ** interval_approx
                                                 );
+
+  int perturbations_update_streaming_coefficients(
+                                                  struct background * pba,
+                                                  struct perturbations * ppt,
+                                                  int index_md,
+                                                  double k,
+                                                  struct perturbations_workspace * ppw
+                                                  );
 
   int perturbations_vector_init(
                                 struct precision * ppr,

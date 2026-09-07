@@ -50,7 +50,7 @@ jobs:
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython nose parameterized
+        pip install numpy scipy pandas matplotlib cython pynose parameterized
     - name: make
       run: cd main_class && make -j
     - name: Testing 🤖
@@ -81,7 +81,7 @@ jobs:
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython nose parameterized
+        pip install numpy scipy pandas matplotlib cython pynose parameterized
         deactivate
     - name: make
       run: |
@@ -129,7 +129,7 @@ jobs:
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython nose parameterized
+        pip install numpy scipy pandas matplotlib cython pynose parameterized
         deactivate
     - name: make
       run: |

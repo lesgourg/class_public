@@ -1797,11 +1797,6 @@ int thermodynamics_output_summary(
                                   struct thermodynamics* pth
                                   ) {
 
-  /** Summary: */
-
-  /** Define local variables */
-  double tau_reio;
-
   printf(" -> recombination (maximum of visibility function) at z = %f\n",pth->z_rec);
   printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
   printf("    with comoving sound horizon = %f Mpc\n",pth->rs_rec);

@@ -168,154 +168,15 @@ extern "C" {
                                double *cl_bb
                                );
 
-
-  int lensing_X000(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double * sigma2,
-                   double ** X000
-                   );
-
-  int lensing_Xp000(
+  int lensing_dm1m2(
+                    struct lensing * ple,
                     double * mu,
                     int num_mu,
                     int lmax,
-                    double * sigma2,
-                    double ** Xp000
+                    int m1,
+                    int m2,
+                    double ** dm1m2
                     );
-
-  int lensing_X220(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double * sigma2,
-                   double ** X220
-                   );
-
-  int lensing_X022(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double * sigma2,
-                   double ** X022
-                   );
-
-  int lensing_Xp022(
-                    double * mu,
-                    int num_mu,
-                    int lmax,
-                    double * sigma2,
-                    double ** Xp022
-                    );
-
-  int lensing_X121(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double * sigma2,
-                   double ** X121
-                   );
-
-  int lensing_X132(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double * sigma2,
-                   double ** X132
-                   );
-
-  int lensing_X242(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double * sigma2,
-                   double ** X242
-                   );
-
-  int lensing_d00(
-                  double * mu,
-                  int num_mu,
-                  int lmax,
-                  double ** d00
-                  );
-
-  int lensing_d11(
-                  double * mu,
-                  int num_mu,
-                  int lmax,
-                  double ** d11
-                  );
-
-  int lensing_d1m1(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double ** d1m1
-                   );
-
-  int lensing_d2m2(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double ** d2m2
-                   );
-
-  int lensing_d22(
-                  double * mu,
-                  int num_mu,
-                  int lmax,
-                  double ** d22
-                  );
-
-  int lensing_d20(
-                  double * mu,
-                  int num_mu,
-                  int lmax,
-                  double ** d20
-                  );
-
-  int lensing_d31(
-                  double * mu,
-                  int num_mu,
-                  int lmax,
-                  double ** d3m1
-                  );
-
-  int lensing_d3m1(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double ** d3m1
-                   );
-
-  int lensing_d3m3(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double ** d3m3
-                   );
-
-  int lensing_d40(
-                  double * mu,
-                  int num_mu,
-                  int lmax,
-                  double ** d40
-                  );
-
-  int lensing_d4m2(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double ** d4m2
-                   );
-
-  int lensing_d4m4(
-                   double * mu,
-                   int num_mu,
-                   int lmax,
-                   double ** d4m4
-                   );
 
 #ifdef __cplusplus
 }

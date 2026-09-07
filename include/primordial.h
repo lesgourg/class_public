@@ -101,6 +101,10 @@ struct primordial {
   double n_t;  /**< usual tensor tilt = [GW power spectrum tilt at pivot scale] */
   double alpha_t; /**< usual tensor running */
 
+  double r_v;     /**< vector to scalar ratio of power spectra, \f$ r_v=A_V/A_S=P_V/P_R \f$*/
+  double n_v;     /**< vector tilt = [Vector power spectrum tilt at pivot scale] */
+  double alpha_v; /**< vector running */
+
   double f_bi;  /**< baryon isocurvature (BI) entropy-to-curvature ratio \f$ S_{bi}/R \f$*/
   double n_bi;  /**< BI tilt */
   double alpha_bi; /**< BI running */

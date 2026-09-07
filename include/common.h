@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v3.3.4"
+#define _VERSION_ "v3.4.0"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -41,6 +41,10 @@ typedef char FileName[_FILENAMESIZE_+_BASEPATHSIZE_];
 #define _TWOPI_ 6.283185307179586476925286766559e0 /**< 2 times pi */
 
 #define _SQRT2_ 1.41421356237309504880168872421e0 /** < square root of 2. */
+
+#define _SQRT3_ 1.73205080756887729352744634151e0 /** < square root of 3. */
+
+#define _SQRT5_ 2.23606797749978969640917366873e0 /** < square root of 5. */
 
 #define _SQRT6_ 2.4494897427831780981972840747059e0 /**< square root of 6. */
 

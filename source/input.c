@@ -1768,13 +1768,15 @@ int input_read_parameters_general(struct file_content * pfc,
   int flag1,flag2;
   double param1,param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  char * options_output[33] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd",
+  char * options_output[36] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd",
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd",
-                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD"};
+                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD",
+                                "wTk","WTk","WTK"};
   char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
   char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
+  char * options_icv[4] = {"iso","oct","ISO","OCT"};
 
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
@@ -1832,13 +1834,18 @@ int input_read_parameters_general(struct file_content * pfc,
       psd->has_distortions=_TRUE_;
       pth->compute_damping_scale=_TRUE_;
     }
+    if ((strstr(string1,"wTk") != NULL) || (strstr(string1,"WTk") != NULL) || (strstr(string1,"WTK") != NULL)) {
+      ppt->has_vector_velocity_transfers=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
+    }
+
 
     /* Test */
-    class_call(parser_check_options(string1, options_output, 33, &flag1),
+    class_call(parser_check_options(string1, options_output, 36, &flag1),
                errmsg,
                errmsg);
     class_test(flag1==_FALSE_,
-               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd'}, you entered '%s'",string1);
+               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd','wTk'}, you entered '%s'",string1);
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -1893,7 +1900,7 @@ int input_read_parameters_general(struct file_content * pfc,
     }
   }
 
-  /** 1.b) Obsevable number count fluctuation spectrum */
+  /** 1.b) Observable number count fluctuation spectrum */
   if (ppt->has_cl_number_count == _TRUE_){
     /* Read */
     class_call(parser_read_string(pfc,"number_count_contributions",&string1,&flag1,errmsg),
@@ -2045,10 +2052,10 @@ int input_read_parameters_general(struct file_content * pfc,
                  "Inconsistency: you want density transfer functions, but no scalar modes\n");
       class_test(ppt->has_velocity_transfers == _TRUE_,
                  errmsg,
-                 "Inconsistency: you want density transfer functions, but no scalar modes\n");
+                 "Inconsistency: you want velocity transfer functions, but no scalar modes\n");
     }
 
-    /** 3.b) List of initial conditions for scalars */
+    /** 3.b) List of methods for tensors */
     if (ppt->has_tensors == _TRUE_) {
       /* Read */
       class_call(parser_read_string(pfc,"tensor_method",&string1,&flag1,errmsg),
@@ -2077,42 +2084,113 @@ int input_read_parameters_general(struct file_content * pfc,
         }
       }
     }
-  }
 
+    /** 3.c) version of Boltzmann equation hierarchy */
+    class_call(parser_read_string(pfc,"hierarchy",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
 
-  /** 4) Gauge */
-  /** 4.a) Set gauge */
-  /* Read */
-  class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
-      ppt->gauge = newtonian;
+    if (flag1 == _TRUE_) {
+
+      if (strstr(string1,"optimal") != NULL) {
+        ppt->hierarchy = optimal;
+      }
+      else if ((strstr(string1,"tam") != NULL) || (strstr(string1,"TAM") != NULL)) {
+        ppt->hierarchy = tam;
+      }
+      else {
+        class_stop(errmsg,
+                   "You specified 'hierarchy as '%s'. It has to be one of {'optimal','tam'}.",string1);
+      }
     }
-    else if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
-      ppt->gauge = synchronous;
-    }
-    else{
-      class_stop(errmsg,
-                 "You specified the gauge as '%s'. It has to be one of {'newtonian','synchronous'}.");
-    }
-  }
 
-  /** 4.b) Do we want density and velocity transfer functions in Nbody gauge? */
-  if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
+    /** 3.d) List of initial conditions for vectors */
+    if (ppt->has_vectors == _TRUE_) {
+      /* Read */
+      class_call(parser_read_string(pfc,"ic_v",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_) {
+        ppt->has_iso_v=_FALSE_;
+        if ((strstr(string1,"iso") != NULL) || (strstr(string1,"ISO") != NULL)){
+          ppt->has_iso_v=_TRUE_;
+        }
+        if ((strstr(string1,"oct") != NULL) || (strstr(string1,"OCT") != NULL)){
+          ppt->has_oct_v=_TRUE_;
+        }
+        /* Test */
+        class_call(parser_check_options(string1, options_icv, 4, &flag1),
+                   errmsg,
+                   errmsg);
+        class_test(flag1==_FALSE_,
+                   errmsg, "The options for 'ic_v' are {'iso','oct'}, you entered '%s'",string1);
+        class_test(ppt->has_iso_v==_FALSE_ && ppt->has_oct_v ==_FALSE_,
+                   errmsg,
+                   "You specified 'ic_v' as '%s'. It has to contain some of {'iso','oct'}.",string1);
+      }
+    }
+    else {
+      class_test(ppt->has_vector_velocity_transfers == _TRUE_,
+                 errmsg,
+                 "Inconsistency: you want vector velocity transfers, but no vector modes\n");
+    }
 
+    /** 3.e) List of methods for vectors */
+    if (ppt->has_vectors == _TRUE_) {
+      /* Read */
+      class_call(parser_read_string(pfc,"vector_method",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if (flag1 == _TRUE_) {
+        if (strstr(string1,"massless") != NULL){
+          ppt->vector_method = vm_massless_approximation;
+        }
+        else if (strstr(string1,"exact") != NULL){
+          ppt->vector_method = vm_exact;
+        }
+        else{
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'vector_method'",string1);
+        }
+      }
+    }
+
+    /** 4) Gauge */
+    /** 4.a) Set gauge */
     /* Read */
-    class_read_flag_or_deprecated("nbody_gauge_transfer_functions","Nbody gauge transfer functions",ppt->has_Nbody_gauge_transfers);
+    class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
+        ppt->gauge = newtonian;
+      }
+      else if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
+        ppt->gauge = synchronous;
+      }
+      else{
+        class_stop(errmsg,
+                   "You specified the gauge as '%s'. It has to be one of {'newtonian','synchronous'}.");
+      }
+    }
+
+    /** 4.b) Do we want density and velocity transfer functions in Nbody gauge? */
+    if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
+
+      /* Read */
+      class_read_flag_or_deprecated("nbody_gauge_transfer_functions","Nbody gauge transfer functions",ppt->has_Nbody_gauge_transfers);
+
+    }
+
+    /** 4.c) Do we want matter and baryon+CDM sources in current gauge, instead of automatic conversion to gauge-invariant variables? */
+    class_read_flag("matter_source_in_current_gauge",ppt->has_matter_source_in_current_gauge);
+
+    /** 4.d) Do we want output perturbations in current gauge, instead of automatic conversion to Newtonian variables? */
+    class_read_flag("get_perturbations_in_current_gauge",ppt->get_perturbations_in_current_gauge);
 
   }
-
-  /** 4.c) Do we want matter and baryon+CDM sources in current gauge, instead of automatic conversion to gauge-invariant variables? */
-  class_read_flag("matter_source_in_current_gauge",ppt->has_matter_source_in_current_gauge);
-
-  /** 4.d) Do we want output perturbations in current gauge, instead of automatic conversion to Newtonian variables? */
-  class_read_flag("get_perturbations_in_current_gauge",ppt->get_perturbations_in_current_gauge);
 
   /** 5) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
   /* Read */
@@ -4308,6 +4386,17 @@ int input_read_parameters_primordial(struct file_content * pfc,
         }
       }
     }
+
+    /** 1.b.3) For vector perturbations we read the vector-to-scalar ratio, the spectral index and running of spectral index */
+    if (ppt->has_vectors == _TRUE_){
+      /* Read */
+      class_read_double("r_v",ppm->r_v);
+      class_read_double("n_v",ppm->n_v);
+      class_read_double("alpha_v",ppm->alpha_v);
+      if (ppt->has_scalars == _FALSE_){
+        class_read_double("A_s",ppm->A_s);
+      }
+    }
   }
 
   else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H)) {
@@ -4914,7 +5003,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
 
   /** 3) Power spectrum P(k) */
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_vector_velocity_transfers == _TRUE_)){
 
     /** 3.a) Maximum k in P(k) */
     /* Read */
@@ -4980,7 +5069,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
   }
 
   /** 3.c) Maximum redshift */
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_vector_velocity_transfers == _TRUE_)) {
     /* Read */
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
                errmsg,
@@ -4998,7 +5087,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
     else {
       ppt->z_max_pk = 0.;
       /* For the z_pk related quantities, test here the z_pk requirements */
-      if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
+      if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_vector_velocity_transfers == _TRUE_)) {
         for (i=0; i<pop->z_pk_num; i++) {
           ppt->z_max_pk = MAX(ppt->z_max_pk,pop->z_pk[i]);
         }
@@ -5064,6 +5153,31 @@ int input_read_parameters_lensing(struct file_content * pfc,
   if ((flag1 == _TRUE_) && (string_begins_with(string1,'y') || string_begins_with(string1,'Y'))){
     if ((ppt->has_scalars == _TRUE_) && ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)){
       ple->has_lensed_cls = _TRUE_;
+
+      /* New in v3.4: if the precision parameter ppr->delta_l_max has
+         been passed explicitely by the user and assigned in
+         input_read_precisions(), the input value will be
+         kept. Otherwise, ppr->delta_l_max is still pointing to a
+         negative value (-1), and is meant to be set automatically
+         according to the following rules: */
+      if (ppr->delta_l_max < 0) {
+        /* - in the non-accurate lensing scheme, we just set by default ppr->delta_l_max to ppt->l_scalar_max/3 */
+        if (ppr->accurate_lensing == _FALSE_) {
+          ppr->delta_l_max = 0.33*ppt->l_scalar_max;
+        }
+        /* - in the accurate lensing scheme, we further increase ppr->delta_l_max to ppt->l_scalar_max/2 */
+        else if (ppr->accurate_lensing == _TRUE_) {
+          ppr->delta_l_max = 0.5*ppt->l_scalar_max;
+        }
+        else {
+          class_stop(errmsg,
+                     "The precision parameter accurate lensing is set to %d, wich is neither _TRUE_=%d nor _FALSE_=%d",
+                     ppr->accurate_lensing,
+                     _TRUE_,
+                     _FALSE_);
+        }
+      }
+
       /* Slightly increase precision by delta_l_max for more precise lensed Cl's*/
       ppt->l_scalar_max += ppr->delta_l_max;
     }
@@ -5719,6 +5833,7 @@ int input_default_params(struct background *pba,
   ppt->has_pk_matter = _FALSE_;
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
+  ppt->has_vector_velocity_transfers = _FALSE_;
   /** 1.a) 'tCl' case */
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;
@@ -5747,10 +5862,19 @@ int input_default_params(struct background *pba,
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
-  /** 3.b) Initial conditions for tensors */
+  /** 3.b) Methods for tensors */
   ppt->tensor_method = tm_massless_approximation;
   ppt->evolve_tensor_ur = _FALSE_;
   ppt->evolve_tensor_ncdm = _FALSE_;
+  /** 3.c hierarchy type */
+  ppt->hierarchy = optimal;
+  /** 3.d) Initial conditions for vectors as defined in 2410.03612 */
+  ppt->has_iso_v=_TRUE_;
+  ppt->has_oct_v=_FALSE_;
+  /** 3.e) Methods to treat ultra-relativistic particles for vector perturbations */
+  ppt->vector_method = vm_massless_approximation;
+  ppt->evolve_vector_ur = _FALSE_;
+  ppt->evolve_vector_ncdm = _FALSE_;
 
   /** 4.a) Gauge */
   ppt->gauge=synchronous;
@@ -6067,6 +6191,13 @@ int input_default_params(struct background *pba,
   ppm->r = 1.;
   ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
+  /** 1.b.3) For vector perturbations */
+  /* vector-to-scalar ratio */
+  ppm->r_v = 1.;
+  /* Spectral index of vector perturbations primordial spectrum */
+  ppm->n_v = 0.;
+  /* Running of spectral index for vector perturbations primordial spectrum */
+  ppm->alpha_v = 0.;
   /** 1.c) For type 'inflation_V' */
   /** 1.c.2) Coefficients of the Taylor expansion */
   ppm->V0=1.25e-13;
@@ -6089,7 +6220,7 @@ int input_default_params(struct background *pba,
       scale and end of inflation */
   ppm->phi_pivot_method = N_star;
   ppm->phi_pivot_target = 60;
-  /** 1.e.5) Nomral numerical integration or analytical slow-roll formulas? */
+  /** 1.e.5) Normal numerical integration or analytical slow-roll formulas? */
   ppm->behavior=numerical;
   /** 1.g) For type 'external_Pk' */
   /** 1.g.1) Command generating the table */

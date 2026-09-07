@@ -542,8 +542,11 @@ int transfer_indices(
 
     index_tt = index_tt_common;
 
-    class_define_index(ptr->index_tt_t1,ppt->has_cl_cmb_temperature, index_tt,1);
-    class_define_index(ptr->index_tt_b, ppt->has_cl_cmb_polarization,index_tt,1);
+    /* For vectors we do not use index_tt_t1 and index_tt_b because this creates problems
+       (as these are not indices which are common to the three types of modes, but only to two of them).
+       Hence we define separate indices index_tt_vector_t1 and index_tt_vector_b */
+    class_define_index(ptr->index_tt_vector_t1,ppt->has_cl_cmb_temperature, index_tt,1);
+    class_define_index(ptr->index_tt_vector_b, ppt->has_cl_cmb_polarization,index_tt,1);
 
     ptr->tt_size[ppt->index_md_vectors]=index_tt;
 
@@ -866,6 +869,9 @@ int transfer_get_l_list(
         l_max=MAX(ppt->l_lss_max,l_max);
     }
 
+    if (ppt->has_vectors == _TRUE_)
+      l_max=MAX(ppt->l_vector_max,l_max);
+
     if (ppt->has_tensors == _TRUE_)
       l_max=MAX(ppt->l_tensor_max,l_max);
 
@@ -984,6 +990,10 @@ int transfer_get_l_list(
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
           l_max=ppt->l_lss_max;
 
+      }
+
+      if (_vectors_) {
+        l_max = ppt->l_vector_max;
       }
 
       if (_tensors_) {
@@ -1562,8 +1572,8 @@ int transfer_get_source_correspondence(
 
       if (_vectors_) {
 
-        if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_t1;
+        if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_vector_t1))
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_vector_t1;
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_t2;
@@ -1571,7 +1581,7 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_p;
 
-        if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b))
+        if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_vector_b))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_p;
       }
 
@@ -1830,6 +1840,13 @@ int transfer_source_tau_size(
         *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./MIN(l_limber,ppt->l_lss_max)))*ppr->selection_sampling_bessel_los);
       }
     }
+  }
+
+  /* vector mode */
+  if (_vectors_) {
+
+    /* for all tensor types */
+    *tau_size = ppt->tau_size;
   }
 
   /* tensor mode */
@@ -3940,13 +3957,13 @@ int transfer_can_be_neglected(
 
   else if (_vectors_) {
 
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*ra_rec)) *neglect = _TRUE_;
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_vector_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*ra_rec)) *neglect = _TRUE_;
 
     else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*ra_rec)) *neglect = _TRUE_;
 
     else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*ra_rec)) *neglect = _TRUE_;
 
-    else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*ra_rec)) *neglect = _TRUE_;
+    else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_vector_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*ra_rec)) *neglect = _TRUE_;
 
   }
 
@@ -3993,13 +4010,13 @@ int transfer_late_source_can_be_neglected(
     }
     else if (_vectors_) {
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        if ((index_tt == ptr->index_tt_t1) ||
+        if ((index_tt == ptr->index_tt_vector_t1) ||
             (index_tt == ptr->index_tt_t2))
           *neglect = _TRUE_;
       }
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         if ((index_tt == ptr->index_tt_e) ||
-            (index_tt == ptr->index_tt_b))
+            (index_tt == ptr->index_tt_vector_b))
           *neglect = _TRUE_;
       }
     }
@@ -4214,8 +4231,8 @@ int transfer_radial_function(
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
-    for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_argument-cotKgen[j]*Phi[j])*rescale_function[j];
+    for (j=0; j<x_size; j++)//There was a typo here and cotKgen[j] instead of cotKgen[x_size-1-j]
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_argument-cotKgen[x_size-1-j]*Phi[j])*rescale_function[j];
     break;
   case VECTOR_POLARISATION_E:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message),
@@ -4224,8 +4241,8 @@ int transfer_radial_function(
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
-    for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_argument)*rescale_function[j];
+    for (j=0; j<x_size; j++)//There was a typo here and cotKgen[j] instead of cotKgen[x_size-1-j]
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[x_size-1-j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_argument)*rescale_function[j];
     break;
   case VECTOR_POLARISATION_B:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message),
@@ -4343,7 +4360,7 @@ int transfer_select_radial_function(
 
     if (ppt->has_cl_cmb_temperature == _TRUE_) {
 
-      if (index_tt == ptr->index_tt_t1) {
+      if (index_tt == ptr->index_tt_vector_t1) {
         *radial_type = VECTOR_TEMPERATURE_1;
       }
       if (index_tt == ptr->index_tt_t2) {
@@ -4356,7 +4373,7 @@ int transfer_select_radial_function(
       if (index_tt == ptr->index_tt_e) {
         *radial_type = VECTOR_POLARISATION_E;
       }
-      if (index_tt == ptr->index_tt_b) {
+      if (index_tt == ptr->index_tt_vector_b) {
         *radial_type = VECTOR_POLARISATION_B;
       }
 

@@ -115,7 +115,8 @@ extern "C" {
   int output_tk(
                 struct background * pba,
                 struct perturbations * ppt,
-                struct output * pop
+                struct output * pop,
+                int index_md
                 );
 
   int output_background(

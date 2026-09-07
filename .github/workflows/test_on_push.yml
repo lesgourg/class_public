@@ -30,7 +30,7 @@ jobs:
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython nose parameterized
+        pip install numpy scipy pandas matplotlib cython pynose parameterized
         deactivate
     - name: make classy
       run: source venv/bin/activate && cd main_class && make -j && deactivate
