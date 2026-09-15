@@ -241,9 +241,9 @@ with open(os.path.join(dir_path,readfile)) as f:
     brfile.write("{} {}\n".format(Nz_arr,sd_PCA_size))
     for index_z in range(Nz_arr):
       brfile.write((form+" ") % z_arr[index_z])
-      brfile.write((form+" ") % f_g[index_z])
-      brfile.write((form+" ") % f_y[index_z])
-      brfile.write((form    ) % f_mu[index_z])
+      brfile.write((form+" ") % J_g[index_z])
+      brfile.write((form+" ") % J_y[index_z])
+      brfile.write((form    ) % J_mu[index_z])
       for index_pca in range(sd_PCA_size):
         brfile.write((" "+form) % E_vecs[index_pca][index_z])
       brfile.write("\n")
