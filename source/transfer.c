@@ -164,7 +164,6 @@ int transfer_init(
   HyperInterpStruct BIS;
   double xmax;
 
-
   /** - check whether any spectrum in harmonic space (i.e., any \f$C_l\f$'s) is actually requested */
 
   if (ppt->has_cls == _FALSE_) {
@@ -1692,9 +1691,16 @@ int transfer_source_tau_size(
 
   /* values of conformal time */
   double tau_min,tau_mean,tau_max;
+  double tau, tau0_minus_tau;
 
-  /* minimum value of index_tt */
-  int index_tau_min;
+  /* index of time in ppt->tau_sampling array */
+  int index_tau_sampling=0;
+
+  /* index of time in resampled time array */
+  int index_tau=0;
+
+  /* factor used to resample some transfer source functions */
+  double factor;
 
   /* value of l at which limber approximation is switched on */
   int l_limber;
@@ -1717,12 +1723,64 @@ int transfer_source_tau_size(
     /* cmb lensing potential */
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 
-      /* find times before recombination, that will be thrown away */
-      index_tau_min=0;
-      while (ppt->tau_sampling[index_tau_min]<=tau_rec) index_tau_min++;
+      /* we count here the number of necessary samples following exactly
+         the same steps as in the complete sequence written inside
+         transfer_sources(). The only difference is that here we
+         don't need to store each value of tau0_minus_tau */
 
-      /* infer number of time steps after removing early times */
-      *tau_size = ppt->tau_size-index_tau_min;
+      /* throw away times before recombination */
+      while (ppt->tau_sampling[index_tau_sampling]<=tau_rec) index_tau_sampling++;
+
+      class_test((index_tau_sampling < 1) || (index_tau_sampling >= ppt->tau_size),
+                 ptr->error_message,
+                 "index_tau_sampling=%d out of bounds (ppt->tau_size=%d)",
+                 index_tau_sampling,
+                 ppt->tau_size);
+
+      /* we want to impose a minimal time step of
+         Delta tau = (tau0-tau)/l_max*ppr->cmb_lensing_sampling_factor
+         = (tau0-tau)*factor
+         with factor given by: */
+      factor = 1./MIN(ppr->l_switch_limber,ppt->l_scalar_max)*ppr->cmb_lensing_sampling_factor;
+
+      class_test(ppr->cmb_lensing_sampling_fraction*factor < 10.*ppr->smallest_allowed_variation,
+                 ptr->error_message,
+                 "cmb_lensing_sampling_fraction=%e is too small\n and/or cmb_lensing_sampling_factor=%e is too small\n and/or l_switch_limber=%g is too big\n and/or l_scalar_max=%d is too big,\n such that the logarithmic step used to sample the CMB lensing source function\n would become of the same order of magnitude as machine precision...",
+                 ppr->cmb_lensing_sampling_fraction,
+                 ppr->cmb_lensing_sampling_factor,
+                 ppr->l_switch_limber,
+                 ppt->l_scalar_max);
+
+      /* use the time steps from the perturbation module as
+         long as they are smaller than this (Delta tau) */
+      while ((index_tau_sampling < ppt->tau_size) &&
+             ((ppt->tau_sampling[index_tau_sampling]-ppt->tau_sampling[index_tau_sampling-1]) < (tau0-ppt->tau_sampling[index_tau_sampling-1])*factor)) {
+        index_tau++;
+        index_tau_sampling++;
+      }
+
+      /* if we have not reached tau0 already, use (Delta tau) until tau = (1-epsilon)*tau0 = tau_max */
+      if (index_tau_sampling < ppt->tau_size) {
+
+        tau = ppt->tau_sampling[index_tau_sampling-1];
+        tau_max = (1.-ppr->cmb_lensing_sampling_fraction)*tau0;
+        tau0_minus_tau = tau0 - tau;
+
+        while (tau < tau_max) {
+          tau += (tau0-tau)*factor;
+          tau0_minus_tau = tau0 - tau;
+          index_tau++;
+        }
+
+        /* if we have not reached tau0 already, add one for the last value, which is tau = tau0 */
+        if (tau0_minus_tau > 0.) {
+          index_tau++;
+        }
+      }
+
+      /* We now have the total number of samples */
+      *tau_size = index_tau;
+
     }
 
     /* density Cl's */
@@ -2347,8 +2405,11 @@ int transfer_sources(
 
   /** - define local variables */
 
-  /* index running on time */
-  int index_tau;
+  /* index running on time in tau0_minus_tau array (the array used to sample the transfer source functions) */
+  int index_tau=0;
+
+  /* index running on time in ppt->tau_sampling array (the array used to sample the perturbation source functions) */
+  int index_tau_sampling=0;
 
   /* bin for computation of cl_density */
   int bin=0;
@@ -2356,11 +2417,11 @@ int transfer_sources(
   /* number of tau values */
   int tau_size;
 
-  /* minimum tau index kept in transfer sources */
-  int index_tau_min;
+  /* conformal times */
+  double tau, tau0, tau_max;
 
-  /* conformal time */
-  double tau, tau0;
+  /* factor used to resample some transfer source functions */
+  double factor;
 
   /* rescaling factor depending on the background at a given time */
   double rescaling=0.;
@@ -2408,18 +2469,99 @@ int transfer_sources(
 
     if (_scalars_) {
 
-      /* lensing source: throw away times before recombination, and multiply psi by window function */
+      /* lensing source: redefine time sampling and multiply psi by window function */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 
-        /* first time step after removing early times */
-        index_tau_min =  ppt->tau_size - tau_size;
+        /* throw away times before recombination */
+        while (ppt->tau_sampling[index_tau_sampling] <= tau_rec) index_tau_sampling++;
+
+        class_test((index_tau_sampling < 1) || (index_tau_sampling >= ppt->tau_size),
+                   ptr->error_message,
+                   "index_tau_sampling=%d out of bounds (ppt->tau_size=%d)",
+                   index_tau_sampling,
+                   ppt->tau_size);
+
+        /* we want to impose a minimal time step of
+           Delta tau = (tau0-tau)/l_max*ppr->cmb_lensing_sampling_factor
+           = (tau0-tau)*factor
+           with a factor given by: */
+        factor = 1./MIN(ppr->l_switch_limber,ppt->l_scalar_max)*ppr->cmb_lensing_sampling_factor;
+
+        class_test(ppr->cmb_lensing_sampling_fraction*factor < 10.*ppr->smallest_allowed_variation,
+                   ptr->error_message,
+                   "cmb_lensing_sampling_fraction=%e is too small\n and/or cmb_lensing_sampling_factor=%e is too small\n and/or l_switch_limber=%g is too big\n and/or l_scalar_max=%d is too big,\n such that the logarithmic step used to sample the CMB lensing source function\n would become of the same order of magnitude as machine precision...",
+                   ppr->cmb_lensing_sampling_fraction,
+                   ppr->cmb_lensing_sampling_factor,
+                   ppr->l_switch_limber,
+                   ppt->l_scalar_max);
+
+        /* use the time steps from the perturbation module as
+           long as they are smaller than this (Delta tau) */
+        while ((index_tau_sampling < ppt->tau_size) &&
+               ((ppt->tau_sampling[index_tau_sampling]-ppt->tau_sampling[index_tau_sampling-1]) < (tau0-ppt->tau_sampling[index_tau_sampling-1])*factor)) {
+
+          tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau_sampling];
+          index_tau++;
+          index_tau_sampling++;
+        }
+
+        /* if we have not reached tau0 already, use (Delta tau) until tau = (1-epsilon)*tau0 = tau_max */
+        if (index_tau_sampling < ppt->tau_size) {
+
+          tau = ppt->tau_sampling[index_tau_sampling-1];
+          tau_max = (1.-ppr->cmb_lensing_sampling_fraction)*tau0;
+
+          while (tau < tau_max) {
+            tau += (tau0-tau)*factor;
+            tau0_minus_tau[index_tau] = tau0 - tau;
+            index_tau++;
+          }
+
+          /* add the last value given by tau = tau0 ... */
+          if (tau0_minus_tau[index_tau-1] > 0.) {
+            tau0_minus_tau[index_tau] = 0.;
+            index_tau++;
+          }
+          /* ... unless we overpassed 0. Then, we must go back */
+          else {
+            tau0_minus_tau[index_tau-1] = 0.;
+          }
+        }
+
+        class_test(index_tau != tau_size,
+                   ptr->error_message,
+                   "Error in cmb lensing resampling (index_tau=%d and tau_size=%d should be equal)",
+                   index_tau,
+                   tau_size);
+
+        /* resample the sources at those times */
+        class_call(transfer_source_resample(ppr,
+                                            pba,
+                                            ppt,
+                                            ptr,
+                                            bin,
+                                            tau0_minus_tau,
+                                            tau_size,
+                                            index_md,
+                                            tau0,
+                                            interpolated_sources,
+                                            sources),
+                   ptr->error_message,
+                   ptr->error_message);
+
+        /* Compute trapezoidal weights for integration over tau */
+        class_call(array_trapezoidal_mweights(tau0_minus_tau,
+                                              tau_size,
+                                              w_trapz,
+                                              ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
 
         /* loop over time and rescale */
-        for (index_tau = index_tau_min; index_tau < ppt->tau_size; index_tau++) {
+        for (index_tau = 0; index_tau < tau_size; index_tau++) {
 
-          /* conformal time */
-          tau = ppt->tau_sampling[index_tau];
+          tau = tau0 - tau0_minus_tau[index_tau];
 
           /* lensing source =  - W(tau) (phi(k,tau) + psi(k,tau)) Heaviside(tau-tau_rec)
              with
@@ -2430,7 +2572,7 @@ int transfer_sources(
              regulated anyway by Bessel).
           */
 
-          if (index_tau == ppt->tau_size-1) {
+          if (index_tau == tau_size-1) {
             rescaling=0.;
           }
           else {
@@ -2454,25 +2596,10 @@ int transfer_sources(
             // Note: until 2.4.3 there was a bug here: the curvature effects had been omitted.
           }
 
-          /* copy from input array to output array */
-          sources[index_tau-index_tau_min] =
-            interpolated_sources[index_tau]
-            * rescaling
+          sources[index_tau] *= rescaling
             * ptr->lcmb_rescale
             * pow(k/ptr->lcmb_pivot,ptr->lcmb_tilt);
-
-          /* store value of (tau0-tau) */
-          tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
-
         }
-
-        /* Compute trapezoidal weights for integration over tau */
-        class_call(array_trapezoidal_mweights(tau0_minus_tau,
-                                              tau_size,
-                                              w_trapz,
-                                              ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
       }
 
       /* Non-integrated contributions to dCl/nCl need selection time sampling*/
