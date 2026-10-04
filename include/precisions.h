@@ -334,14 +334,18 @@ class_precision_parameter(perturbations_integration_stepsize,double,0.5)
  */
 class_precision_parameter(perturbations_sampling_stepsize,double,0.1)
 /**
- * added in v 3.2.2: age fraction (between 0 and 1 ) such that, when
+ * added in v3.2.2, deprecated since v3.4.1:
+ * age fraction (between 0 and 1 ) such that, when
  * tau > conformal_age * age_fraction, the time sampling of sources is
  * twice finer, in order to boost the accuracy of the lensing
  * line-of-sight integrals (for l < l_switch_limber) without changing
- * that of unlensed CMB observables. Setting to 1.0 disables this
- * functionality.
+ * that of unlensed CMB observables.
+ * Since v3.4.1, the finer sampling is implemented at the level of the
+ * transfer module and controlled by cmb_lensing_sampling_factor and
+ * cmb_lensing_sampling_fraction.
+ * Setting to 1.0 disables this functionality.
 */
-class_precision_parameter(perturbations_sampling_boost_above_age_fraction, double, 0.9)
+class_precision_parameter(perturbations_sampling_boost_above_age_fraction, double, 1.0)
 /**
  * control parameter for the precision of the perturbation integration,
  * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15
@@ -495,7 +499,7 @@ class_precision_parameter(transfer_neglect_delta_k_T_b,double,0.1)  /**< same fo
 
 class_precision_parameter(transfer_neglect_late_source,double,400.0)  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
-class_precision_parameter(l_switch_limber,double,10.) /**< when to use the Limber approximation for project gravitational potential cl's */
+class_precision_parameter(l_switch_limber,double,30.) /**< when to use the Limber approximation for projected gravitational potential cl's. Changed from 10 to 30 in v3.4.1 for high precision in C_l^phiphi at low l. You may further increase it (e.g., to 100) for ultra-high precision. */
 // For density Cl, we recommend not to use the Limber approximation
 // at all, and hence to put here a very large number (e.g. 10000); but
 // if you have wide and smooth selection functions you may wish to
@@ -513,6 +517,8 @@ class_precision_parameter(selection_sampling,double,50.0) /**< controls sampling
 class_precision_parameter(selection_sampling_bessel,double,20.0)/**< controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling. IMPORTANT for lensed contributions. */
 class_precision_parameter(selection_sampling_bessel_los,double,ppr->selection_sampling_bessel)/**< controls sampling of integral over time when selection functions vary slower than Bessel functions. This parameter is specific to number counts contributions to Cl integrated along the line of sight. Increase for better sampling */
 class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
+class_precision_parameter(cmb_lensing_sampling_factor,double,1.)      /**< controls stepsize of line-of-sight integral for CMB lensing. Defines the logarithmic stepsize at late time. Decrease for more precision. */
+class_precision_parameter(cmb_lensing_sampling_fraction,double,0.001) /**< controls stepsize of line-of-sight integral for CMB lensing. Defines the age fraction (1-fraction)*tau0 above which we don't need to sample the lensing source function (because the distance from us is too small). Decrease for more precision. */
 
 /*
  * Fourier module precision parameters

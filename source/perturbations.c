@@ -1838,7 +1838,7 @@ int perturbations_timesampling_for_sources(
     /* check the time corresponding to the highest redshift requested
        in output plus 1, tau(z_max_pk+1). This margin of 1 aims at
        adding a few sampled values above z_max_pk, to make
-       interpolations more relia=ble up to z_max_pk, without boundary
+       interpolations more reliable up to z_max_pk, without boundary
        effects. */
     class_call(background_tau_of_z(pba,
                                    ppt->z_max_pk+1,
@@ -1846,8 +1846,13 @@ int perturbations_timesampling_for_sources(
                pba->error_message,
                ppt->error_message);
 
-    /* obsolete: previous choice was to start always at recombination time */
-    /* tau_ini = pth->tau_rec; */
+    /* the cmb lensing potential should be known for tau >= tau_rec.
+       We even take a small margin below tau_rec for safe interpolation,
+       tau_ini = (1-epsilon)* tau_rec,
+       with epsilon = 10* machine precision */
+    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+      tau_ini = MIN(tau_ini, (1.-10.*ppr->smallest_allowed_variation)*pth->tau_rec);
+    }
 
     /* set values of first_index_back/thermo */
     class_call(background_at_tau(pba,
