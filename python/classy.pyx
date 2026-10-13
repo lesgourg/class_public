@@ -2085,6 +2085,141 @@ cdef class Class:
 
         return (sigmas_cb[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigmas_cb.reshape(len(zarr),len(Rarr))))
 
+    def sigma_prime(self,R,z, h_units = False):
+        """
+        Return the derivative of sigma (total matter) with respect to R, for radius R and redshift z
+
+        Return d sigma / dR, the derivative with respect to the radius R of the root mean square (rms)
+        of the relative density fluctuation of total matter in spheres of radius R at redshift z.
+        Like sigma, it is computed from the linear power spectrum, and it is negative for any R.
+        The derivative of the variance follows as d sigma^2 / dR = 2 sigma d sigma / dR, and the
+        logarithmic slope (used e.g. in halo mass functions) as d ln sigma / d ln R = R d sigma / dR / sigma.
+        If the user passes a single value of R and z, the function returns d sigma / dR (R,z).
+        If the user passes an array of R and/or z values, the function sets the shape of the returned grid accordingly.
+
+        If h_units = False (default), R is in unit of Mpc and the result is in unit of 1/Mpc.
+        If h_units = True, R is in unit of Mpc/h and the result is in unit of h/Mpc.
+
+        This function requires that the 'output' field contains at
+        least 'mPk' and that 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc' are
+        such that k_max is bigger or equal to 1 h/Mpc.
+
+        Parameters
+        ----------
+        R : float
+            Radius of the spheres in which the rms is computed (single value or array)
+        z : float
+            Redshift (single value or array)
+        h_units : bool, optional
+            Whether to use Mpc/h instead of Mpc for R (and h/Mpc instead of 1/Mpc for the result)
+
+        Returns
+        -------
+        sigma_prime : float
+            Derivative of the rms of density fluctuation of total matter with respect to R (single value or grid of values)
+        """
+        self.compute(["fourier"])
+
+        cdef double sigma
+        cdef double sigma_squared_prime
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+        Rarr = np.atleast_1d(R).astype(np.float64)
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get d sigma(R,z) / dR you must add mPk to the list of outputs.")
+
+        if (self.pt.k_max_for_pk < self.ba.h):
+            raise CosmoSevereError("In order to get d sigma(R,z) / dR you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
+
+        R_in_Mpc = (Rarr if not h_units else Rarr/self.ba.h)
+
+        pairs = np.array(np.meshgrid(zarr,R_in_Mpc)).T.reshape(-1,2)
+
+        sigma_primes = np.empty(pairs.shape[0])
+        for ip, pair in enumerate(pairs):
+          if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,pair[1],pair[0],self.fo.index_pk_m,out_sigma,&sigma)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+          # with out_sigma_prime, fourier_sigmas_at_z returns d sigma^2 / dR
+          if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,pair[1],pair[0],self.fo.index_pk_m,out_sigma_prime,&sigma_squared_prime)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+          sigma_primes[ip] = sigma_squared_prime/(2.*sigma)
+
+        # d sigma / dR is in 1/Mpc; convert to h/Mpc if R was given in Mpc/h
+        if h_units:
+            sigma_primes /= self.ba.h
+
+        return (sigma_primes[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigma_primes.reshape(len(zarr),len(Rarr))))
+
+    def sigma_cb_prime(self,R,z, h_units = False):
+        """
+        Return the derivative of sigma_cb (CDM+baryon) with respect to R, for radius R and redshift z
+
+        Return d sigma_cb / dR, the derivative with respect to the radius R of the root mean square (rms)
+        of the relative density fluctuation of CDM+baryon in spheres of radius R at redshift z.
+        Like sigma_cb, it is computed from the linear power spectrum, and it is negative for any R.
+        The derivative of the variance follows as d sigma_cb^2 / dR = 2 sigma_cb d sigma_cb / dR, and the
+        logarithmic slope (used e.g. in halo mass functions) as d ln sigma_cb / d ln R = R d sigma_cb / dR / sigma_cb.
+        If the user passes a single value of R and z, the function returns d sigma_cb / dR (R,z).
+        If the user passes an array of R and/or z values, the function sets the shape of the returned grid accordingly.
+
+        If h_units = False (default), R is in unit of Mpc and the result is in unit of 1/Mpc.
+        If h_units = True, R is in unit of Mpc/h and the result is in unit of h/Mpc.
+
+        This function requires that the 'output' field contains at
+        least 'mPk' and that 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc' are
+        such that k_max is bigger or equal to 1 h/Mpc.
+
+        Parameters
+        ----------
+        R : float
+            Radius of the spheres in which the rms is computed (single value or array)
+        z : float
+            Redshift (single value or array)
+        h_units : bool, optional
+            Whether to use Mpc/h instead of Mpc for R (and h/Mpc instead of 1/Mpc for the result)
+
+        Returns
+        -------
+        sigma_cb_prime : float
+            Derivative of the rms of density fluctuation of CDM+baryon with respect to R (single value or grid of values)
+        """
+        self.compute(["fourier"])
+
+        cdef double sigma_cb
+        cdef double sigma_cb_squared_prime
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+        Rarr = np.atleast_1d(R).astype(np.float64)
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get d sigma_cb(R,z) / dR you must add mPk to the list of outputs.")
+
+        if (self.fo.has_pk_cb == _FALSE_):
+            raise CosmoSevereError("sigma_cb not computed by CLASS (probably because there are no massive neutrinos)")
+
+        if (self.pt.k_max_for_pk < self.ba.h):
+            raise CosmoSevereError("In order to get d sigma_cb(R,z) / dR you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
+
+        R_in_Mpc = (Rarr if not h_units else Rarr/self.ba.h)
+
+        pairs = np.array(np.meshgrid(zarr,R_in_Mpc)).T.reshape(-1,2)
+
+        sigma_cb_primes = np.empty(pairs.shape[0])
+        for ip, pair in enumerate(pairs):
+          if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,pair[1],pair[0],self.fo.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+          # with out_sigma_prime, fourier_sigmas_at_z returns d sigma_cb^2 / dR
+          if fourier_sigmas_at_z(&self.pr,&self.ba,&self.fo,pair[1],pair[0],self.fo.index_pk_cb,out_sigma_prime,&sigma_cb_squared_prime)==_FAILURE_:
+              raise CosmoSevereError(self.fo.error_message)
+          sigma_cb_primes[ip] = sigma_cb_squared_prime/(2.*sigma_cb)
+
+        # d sigma_cb / dR is in 1/Mpc; convert to h/Mpc if R was given in Mpc/h
+        if h_units:
+            sigma_cb_primes /= self.ba.h
+
+        return (sigma_cb_primes[0] if (np.isscalar(z) and np.isscalar(R)) else np.squeeze(sigma_cb_primes.reshape(len(zarr),len(Rarr))))
+
     def pk_tilt(self,double k,double z):
         """
         Return the logarithmic slope of the linear matter power spectrum at k and z
@@ -2122,6 +2257,49 @@ cdef class Class:
             raise CosmoSevereError(self.fo.error_message)
 
         return pk_tilt
+
+    def pk_nonlinear_tilt(self,double k,double z):
+        """
+        Return the logarithmic slope of the non-linear matter power spectrum at k and z
+
+        Return the logarithmic slope of the non-linear matter power
+        spectrum, d ln P_NL / d ln k (dimensionless), at a given
+        wavenumber k (units of 1/Mpc) and redshift z. It is computed
+        with the same finite-difference step in ln k as pk_tilt, and
+        is only as smooth as the non-linear correction it derives from.
+
+        This function requires that the 'output' field contains at
+        least 'mPk' and that a 'non_linear' method has been selected.
+
+        Parameters
+        ----------
+        k : float
+            Wavenumber
+        z : float
+            Redshift
+
+        Returns
+        -------
+        pk_nonlinear_tilt : float
+            Logarithmic slope
+        """
+        self.compute(["fourier"])
+
+        cdef double pk_nonlinear_tilt
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get pk_nonlinear_tilt(k,z) you must add mPk to the list of outputs.")
+
+        if (self.fo.method == nl_none):
+            raise CosmoSevereError("No non-linear power spectrum computed. In order to get pk_nonlinear_tilt(k,z) you must select a 'non_linear' method.")
+
+        if (k < self.fo.k[1] or k > self.fo.k[self.fo.k_size-2]):
+            raise CosmoSevereError("In order to get pk_nonlinear_tilt at k=%e 1/Mpc, you should compute P(k,z) in a wider range of k's"%k)
+
+        if fourier_pk_tilt_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_nonlinear,k,z,self.fo.index_pk_total,&pk_nonlinear_tilt)==_FAILURE_:
+            raise CosmoSevereError(self.fo.error_message)
+
+        return pk_nonlinear_tilt
 
     def angular_distance(self, z):
         """
