@@ -1,0 +1,14 @@
+Copyright (c) 2010-2018 Julien Lesgourgues, Thomas Tram, Benjamin
+Audren, Simon Prunet, Deanna Hooper, Maria Archidiacono, Karim
+Benabed, Nils Schoeneberg, Thejs Brinckmann, Marius Millea, Simeon
+Bird, Samuel Brieden, Jesus Torrado, Miguel Zumalacarregui, Francesco
+Montanari, et al. under the GNU GPL license version 3
+(https://www.gnu.org/licenses/quick-guide-gplv3.html) or any later
+version - see the file LICENSE for details.
+
+See the git edit history at https://github.com/lesgourg/class_public
+for a full list of co-authors, e.g.
+
+git log --stat |grep Author |sort |uniq -c |sort -nr -k1,1
+
+and correct for repeated authors.
