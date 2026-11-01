@@ -1879,9 +1879,21 @@ int array_interpolate_spline(
 }
 
  /**
-  * Get the y[i] for which y[i]>c
+  * Find by bisection the index i such that c lies between array[i]
+  * and array[i+1], in a monotonic array: array[i] <= c < array[i+1]
+  * for a growing array, array[i] >= c > array[i+1] for a decreasing
+  * one (when c is equal to the last value, i = n_lines-2). Returns an
+  * error if c is outside the range of the array.
   *
-  * Called by fourier_HMcode()
+  * Called by hmcode_compute(), transfer_time_samplings() and
+  * transfer_limber_interpolate()
+  *
+  * @param n_lines    Input: size of the array
+  * @param array      Input: monotonic array
+  * @param c          Input: value to search
+  * @param last_index Output: index i
+  * @param errmsg     Output: error message
+  * @return the error status
   */
 int array_search_bisect(
                         int n_lines,
@@ -3407,11 +3419,25 @@ int array_trapezoidal_convolution(
                                      ErrorMsg errmsg
                                      ) {
   int i;
-  double res=0.0;
-  for (i=0; i<n; i++){
-    res += integrand1[i]*integrand2[i]*w_trapz[i];
+  /* Eight independent partial sums: this allows the compiler to
+     vectorize the sum and to perform several additions in parallel
+     (with a single sum, each addition must wait for the previous
+     one). This changes the result at the level of rounding errors. */
+  double res0=0.0,res1=0.0,res2=0.0,res3=0.0,res4=0.0,res5=0.0,res6=0.0,res7=0.0;
+  for (i=0; i<n-7; i+=8){
+    res0 += integrand1[i]*integrand2[i]*w_trapz[i];
+    res1 += integrand1[i+1]*integrand2[i+1]*w_trapz[i+1];
+    res2 += integrand1[i+2]*integrand2[i+2]*w_trapz[i+2];
+    res3 += integrand1[i+3]*integrand2[i+3]*w_trapz[i+3];
+    res4 += integrand1[i+4]*integrand2[i+4]*w_trapz[i+4];
+    res5 += integrand1[i+5]*integrand2[i+5]*w_trapz[i+5];
+    res6 += integrand1[i+6]*integrand2[i+6]*w_trapz[i+6];
+    res7 += integrand1[i+7]*integrand2[i+7]*w_trapz[i+7];
   }
-  *I = res;
+  for (; i<n; i++){
+    res0 += integrand1[i]*integrand2[i]*w_trapz[i];
+  }
+  *I = ((res0+res1)+(res2+res3))+((res4+res5)+(res6+res7));
   return _SUCCESS_;
 }
 

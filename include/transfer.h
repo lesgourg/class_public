@@ -7,47 +7,66 @@
 #include "hyperspherical.h"
 #include "errno.h"
 
+/** maximum number of characters in a line of the file containing tabulated selection functions (selection=tabulated) */
+#define _SELECTION_FILE_LINE_LENGTH_MAX_ 8192
+
 /* macro: test if index_tt is in the range between index and index+num, while the flag is true */
 #define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
-/* macro: test if index_tt corresponds to an integrated nCl/sCl contribution */
-#define _integrated_ncl_ (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) || \
-  (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) || \
-    (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) || \
-    (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
-/* macro: test if index_tt corresponds to an non-integrated nCl/sCl contribution */
-#define _nonintegrated_ncl_ (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) || \
-  (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) || \
-    (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) || \
-    (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) || \
-    (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  || \
-    (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  || \
-    (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-/* macro: bin number associated to particular redshift bin and selection function for non-integrated contributions*/
-#define _get_bin_nonintegrated_ncl_(index_tt)                           \
-  if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) \
-    bin = index_tt - ptr->index_tt_density;                             \
-  if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) \
-    bin = index_tt - ptr->index_tt_rsd;                                 \
-  if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) \
-    bin = index_tt - ptr->index_tt_d0;                                  \
-  if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) \
-    bin = index_tt - ptr->index_tt_d1;                                  \
-  if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr)) \
-    bin = index_tt - ptr->index_tt_nc_g1;                               \
-  if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr)) \
-    bin = index_tt - ptr->index_tt_nc_g2;                               \
-  if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr)) \
-    bin = index_tt - ptr->index_tt_nc_g3;
-/* macro: bin number associated to particular redshift bin and selection function for integrated contributions*/
-#define _get_bin_integrated_ncl_(index_tt)                              \
-  if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) \
-    bin = index_tt - ptr->index_tt_lensing;                             \
-  if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) \
-    bin = index_tt - ptr->index_tt_nc_lens;                             \
-  if (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) \
-    bin = index_tt - ptr->index_tt_nc_g4;                               \
-  if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)) \
-    bin = index_tt - ptr->index_tt_nc_g5;
+
+/**
+ * enumeration of possible radial function types. This looks redundant with
+ * respect to the definition of indices index_tt_... This definition is however
+ * convenient and time-saving: it allows to use a "case" statement in
+ * transfer_radial_function()
+ */
+
+typedef enum {SCALAR_TEMPERATURE_0,
+              SCALAR_TEMPERATURE_1,
+              SCALAR_TEMPERATURE_2,
+              SCALAR_POLARISATION_E,
+              VECTOR_TEMPERATURE_1,
+              VECTOR_TEMPERATURE_2,
+              VECTOR_POLARISATION_E,
+              VECTOR_POLARISATION_B,
+              TENSOR_TEMPERATURE_2,
+              TENSOR_POLARISATION_E,
+              TENSOR_POLARISATION_B,
+              NC_RSD} radial_function_type;
+
+/**
+ * enumeration of the possible window functions \f$ W^X(\tau) \f$
+ * multiplying the perturbation source \f$ S^{Y(X)}(k,\tau) \f$ in the
+ * line-of-sight integral of a transfer type X
+ */
+
+enum transfer_window_type {
+  window_none,           /**< W=1 (CMB temperature and polarisation types) */
+  window_cmb_lensing,    /**< CMB lensing kernel with support [tau_rec, tau0] */
+  window_selection,      /**< selection function of a redshift bin times a function of the background, with support [tau_min, tau_max] of the bin (local number count contributions) */
+  window_integrated      /**< selection function of a redshift bin convolved with a kernel, with support [tau_min, tau0] (galaxy lensing and number count contributions integrated along the line of sight) */
+};
+
+/**
+ * enumeration of the two ways of sampling the line-of-sight integrals in time
+ */
+
+enum transfer_sampling_type {
+  sampling_from_perturbations, /**< the times of the perturbation module (ppt->tau_sampling) that are larger than tau_min */
+  sampling_uniform,            /**< tau_size evenly spaced times between tau_min and tau_max (just tau_min if tau_size=1) */
+  sampling_logarithmic         /**< the times of the perturbation module larger than tau_min, as long as their step is smaller than (tau0-tau)*log_step; then times with logarithmic steps Delta tau = (tau0-tau)*log_step until tau_max; then tau0 */
+};
+
+/**
+ * enumeration of the possible integration methods for computing a transfer function
+ * at a given wavenumber and multipole
+ */
+
+enum transfer_integration_method {
+  transfer_set_zero,             /**< the transfer function vanishes or can be neglected */
+  transfer_limber_approximation, /**< Limber approximation */
+  transfer_line_of_sight         /**< line-of-sight integral of the transfer source times a radial function */
+};
+
 /**
  * Structure containing everything about transfer functions in
  * harmonic space \f$ \Delta_l^{X} (q) \f$ that other modules need to
@@ -108,6 +127,14 @@ struct transfer {
   double * nz_evo_dlog_nz;    /**< log of tabulated values of evolution function */
   double * nz_evo_dd_dlog_nz; /**< second derivatives in splined log of evolution function */
 
+  FileName selection_file_name;    /**< for selection=tabulated: name of the file containing the redshift z in the first column and the selection function dN/dz of each bin in the next columns */
+  int selection_file_z_size;       /**< for selection=tabulated: number of redshift values in this file */
+  double * selection_file_z;       /**< for selection=tabulated: redshift values */
+  double * selection_file_dNdz;    /**< for selection=tabulated: selection function of each bin, selection_file_dNdz[bin*selection_file_z_size+index_z] */
+  double * selection_file_dddNdz;  /**< for selection=tabulated: second derivatives of the previous array with respect to z, for spline interpolation */
+  double selection_z_min[_SELECTION_NUM_MAX_]; /**< for selection=tabulated: smallest redshift at which the selection function of each bin is non-zero (set in the input module) */
+  double selection_z_max[_SELECTION_NUM_MAX_]; /**< for selection=tabulated: largest redshift at which the selection function of each bin is non-zero (set in the input module) */
+
   //@}
 
   /** @name - flag stating whether we need transfer functions at all */
@@ -150,6 +177,50 @@ struct transfer {
 
   //@}
 
+  /** @name - properties of each transfer type X, defined once for all in transfer_type_properties() */
+
+  //@{
+
+  int ** tp_of_tt;                     /**< index of the perturbation source Y(X) used by each transfer type, tp_of_tt[index_md][index_tt] */
+  int ** bin_of_tt;                    /**< redshift bin of the number count and galaxy lensing types (-1 for CMB types), bin_of_tt[index_md][index_tt] */
+  radial_function_type ** radial_type; /**< type of radial function (Bessel function or derivatives) in the line-of-sight integral, radial_type[index_md][index_tt] */
+  enum transfer_window_type ** window_type; /**< type of window function W(tau) multiplying the perturbation source, window_type[index_md][index_tt] */
+  double ** k_power;                   /**< the transfer source W(tau) S(k,tau) is further multiplied by (k/k_pivot)^k_power, k_power[index_md][index_tt] */
+  double ** k_pivot;                   /**< pivot wavenumber of the previous factor, k_pivot[index_md][index_tt] */
+  double ** l_limber;                  /**< the Limber approximation is used for l >= l_limber[index_md][index_tt] (_HUGE_ if never) */
+  double ** delta_k_neglect;           /**< the transfer function is set to zero for l < (q-delta_k_neglect)*r_a(tau_rec), delta_k_neglect[index_md][index_tt] (_HUGE_ if never) */
+  short ** has_late_source_cut;        /**< can the source be neglected at late times (tau>tau_cut) for l > ppr->transfer_neglect_late_source? has_late_source_cut[index_md][index_tt] */
+  short ** has_full_limber;            /**< is the type also computed in the full Limber q-sampling scheme (on the grid q_limber)? has_full_limber[index_md][index_tt] (only for the CMB lensing potential of scalar modes, when ptr->do_lcmb_full_limber is true) */
+
+  //@}
+
+  /** @name - time samplings of the line-of-sight integrals, defined once for all in transfer_time_samplings() */
+
+  //@{
+
+  int * ts_size;                /**< number of distinct time sampling schemes for each mode, ts_size[index_md]; several types can share a time sampling */
+  int ** ts_of_tt;              /**< index of the time sampling used by each type, ts_of_tt[index_md][index_tt] */
+  int ** tau_size_ts;           /**< number of sampled times, tau_size_ts[index_md][index_ts] */
+  int tau_size_max;             /**< largest value in tau_size_ts */
+  double *** tau0_minus_tau;    /**< sampled values of (tau0-tau) in decreasing order, tau0_minus_tau[index_md][index_ts][index_tau] */
+  double *** w_trapz;           /**< corresponding weights of the trapezoidal integration rule, w_trapz[index_md][index_ts][index_tau] */
+  int *** index_tau_pt;         /**< for each sampled time, index of the time in ppt->tau_sampling just before it (or equal to it): used for resampling perturbation sources by linear interpolation, index_tau_pt[index_md][index_ts][index_tau] */
+  double *** weight_tau_pt;     /**< corresponding weight of the next time in ppt->tau_sampling in the linear interpolation, weight_tau_pt[index_md][index_ts][index_tau] */
+  double ** q_max_sampled;      /**< largest wavenumber q for which the Bessel functions are sampled with at least ppr->selection_sampling_bessel_min points per radian, q_max_sampled[index_md][index_ts] (_HUGE_ for samplings that are not evenly spaced, which are not designed for this criterion) */
+  double *** window;            /**< window function W(tau) by which the perturbation source is multiplied, sampled like the type, window[index_md][index_tt][index_tau] */
+
+  //@}
+
+  /** @name - conformal times delimiting the selection function of each redshift bin, computed once for all in transfer_selection_times() */
+
+  //@{
+
+  double selection_tau_min[_SELECTION_NUM_MAX_];  /**< smallest time at which the selection function of each bin is non-zero */
+  double selection_tau_mean[_SELECTION_NUM_MAX_]; /**< time corresponding to the mean redshift of each bin */
+  double selection_tau_max[_SELECTION_NUM_MAX_];  /**< largest time at which the selection function of each bin is non-zero */
+
+  //@}
+
   /** @name - number and list of multipoles */
 
   //@{
@@ -180,13 +251,13 @@ struct transfer {
 
   int index_q_flat_approximation; /**< index of the first q value using the flat rescaling approximation */
 
-  short do_lcmb_full_limber; /**< in this particular run, will we use the full Limber scheme? */
+  short do_lcmb_full_limber; /**< in this particular run, will we use the full Limber q-sampling scheme? */
 
   size_t q_size_limber; /**< number of wavenumber values corresponding to k up to k_max */
 
-  double * q_limber;  /**< list of wavenumber values used in full limber scheme, q_limber[index_q] */
+  double * q_limber;  /**< list of wavenumber values used in full Limber q-sampling scheme, q_limber[index_q] */
 
-  double ** k_limber; /**< list of wavenumber values used in full limber scheme */
+  double ** k_limber; /**< list of wavenumber values used in full Limber q-sampling scheme */
 
   //@}
 
@@ -196,7 +267,7 @@ struct transfer {
 
   double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->q_size + index_q] */
 
-  double ** transfer_limber; /**< table of transfer functions used in full limber scheme */
+  double ** transfer_limber; /**< table of transfer functions used in full Limber q-sampling scheme */
 
   //@}
 
@@ -240,25 +311,42 @@ struct transfer_workspace {
 
   //@{
 
-  int tau_size;                  /**< number of discrete time values for a given type */
-  int tau_size_max;              /**< maximum number of discrete time values for all types */
-  double * interpolated_sources; /**< interpolated_sources[index_tau]:
-                                    sources interpolated from the
-                                    perturbation module at the right
-                                    value of k */
-  double * sources;              /**< sources[index_tau]: sources
-                                    used in transfer module, possibly
-                                    differing from those in the
-                                    perturbation module by some
-                                    resampling or rescaling */
-  double * tau0_minus_tau;       /**< tau0_minus_tau[index_tau]: values of (tau0 - tau) */
-  double * w_trapz;              /**< w_trapz[index_tau]: values of weights in trapezoidal integration (related to time steps) */
+  int ic_size_max;               /**< maximum number of initial conditions over all modes */
+  int tp_size_max;               /**< maximum number of perturbation source types over all modes */
+  int tt_per_ts_max;             /**< maximum number of transfer types sharing a time sampling */
+
+  double ** interpolated_sources; /**< interpolated_sources[index_ic*tp_size_max+index_tp][index_tau]:
+                                     perturbation sources interpolated at the current value of k, on the time
+                                     sampling of the perturbation module (only allocated for sources needed in this module) */
+  short * is_interpolated;       /**< is_interpolated[index_ic*tp_size_max+index_tp]: has the previous source been
+                                    interpolated at the current wavenumber and mode? */
+  double * sources;              /**< sources[(index_ic*tt_per_ts_max+index_tt_of_ts)*tau_size_max+index_tau]: transfer sources
+                                    W(tau) S(k,tau) (k/k_pivot)^k_power of the types using the current time sampling scheme (index_tt_of_ts runs over these types) */
   double * chi;                  /**< chi[index_tau]: value of argument of bessel
                                     function: k(tau0-tau) (flat case)
                                     or sqrt(|K|)(tau0-tau) (non-flat
                                     case) */
   double * cscKgen;              /**< cscKgen[index_tau]: useful trigonometric function */
   double * cotKgen;              /**< cotKgen[index_tau]: useful trigonometric function */
+
+  //@}
+
+  /** @name - quantities related to the current multipole l, shared by all types using the current time sampling */
+
+  //@{
+
+  enum transfer_integration_method * method; /**< method[index_ic*tt_per_ts_max+index_tt_of_ts]: method for computing the transfer function of each type using the current time sampling scheme */
+  int * index_tau_max;           /**< index_tau_max[index_ic*tt_per_ts_max+index_tt_of_ts]: for transfer_line_of_sight, index of the last sampled time contributing to the line-of-sight integral */
+  short * bessel_truncation;     /**< bessel_truncation[index_ic*tt_per_ts_max+index_tt_of_ts]: for transfer_line_of_sight, is the integral truncated by the lower cut of the Bessel function (at tau0_minus_tau_min_bessel)? */
+
+  int bessel_size;               /**< number of times of the current time sampling (starting from the first one) at which Bessel functions have been interpolated */
+  double rescale_argument;       /**< rescaling of the argument of the Bessel functions in the flat rescaling approximation (curved space) */
+  double * Phi;                  /**< Bessel function at the radial coordinates of the current time sampling, in reverse order (i.e. order of increasing argument): Phi[bessel_size-1-index_tau] */
+  double * dPhi;                 /**< first derivative of Bessel function, same order */
+  double * d2Phi;                /**< second derivative of Bessel function, same order */
+  double * chireverse;           /**< argument of the Bessel function, same order */
+  double * rescale_function;     /**< rescaling function of the flat rescaling approximation in curved space, same order */
+  double * radial_function;      /**< radial function of a given type, in the order of the time sampling */
 
   //@}
 
@@ -271,29 +359,8 @@ struct transfer_workspace {
 
   //@}
 
-  double tau0_minus_tau_cut; /**< critical value of (tau0-tau) in time cut approximation for the wavenumber at hand */
-  short neglect_late_source; /**< flag stating whether we use the time cut approximation for the wavenumber at hand */
+  double tau0_minus_tau_cut; /**< critical value of (tau0-tau) in time cut approximation */
 };
-
-/**
- * enumeration of possible source types. This looks redundant with
- * respect to the definition of indices index_tt_... This definition is however
- * convenient and time-saving: it allows to use a "case" statement in
- * transfer_radial_function()
- */
-
-typedef enum {SCALAR_TEMPERATURE_0,
-              SCALAR_TEMPERATURE_1,
-              SCALAR_TEMPERATURE_2,
-              SCALAR_POLARISATION_E,
-              VECTOR_TEMPERATURE_1,
-              VECTOR_TEMPERATURE_2,
-              VECTOR_POLARISATION_E,
-              VECTOR_POLARISATION_B,
-              TENSOR_TEMPERATURE_2,
-              TENSOR_POLARISATION_E,
-              TENSOR_POLARISATION_B,
-              NC_RSD} radial_function_type;
 
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
@@ -394,60 +461,72 @@ extern "C" {
                           double K
                           );
 
-  int transfer_get_source_correspondence(
-                                         struct perturbations * ppt,
-                                         struct transfer * ptr,
-                                         int ** tp_of_tt
-                                         );
-
-  int transfer_free_source_correspondence(
-                                          struct transfer * ptr,
-                                          int ** tp_of_tt
-                                          );
-
-  int transfer_source_tau_size_max(
-                                   struct precision * ppr,
-                                   struct background * pba,
-                                   struct perturbations * ppt,
-                                   struct transfer * ptr,
-                                   double tau_rec,
-                                   double tau0,
-                                   int * tau_size_max
-                                   );
-
-  int transfer_source_tau_size(
+  int transfer_type_properties(
                                struct precision * ppr,
-                               struct background * pba,
                                struct perturbations * ppt,
-                               struct transfer * ptr,
-                               double tau_rec,
-                               double tau0,
-                               int index_md,
-                               int index_tt,
-                               int * tau_size
+                               struct transfer * ptr
                                );
+
+  int transfer_type_sampling(
+                             struct precision * ppr,
+                             struct perturbations * ppt,
+                             struct transfer * ptr,
+                             double tau_rec,
+                             double tau0,
+                             int index_md,
+                             int index_tt,
+                             enum transfer_sampling_type * sampling_type,
+                             double * tau_min,
+                             double * tau_max,
+                             double * log_step,
+                             int * tau_size
+                             );
+
+  int transfer_uniform_sampling(
+                                double tau0,
+                                double tau_min,
+                                double tau_max,
+                                int tau_size,
+                                double * tau0_minus_tau
+                                );
+
+  int transfer_logarithmic_sampling(
+                                    struct perturbations * ppt,
+                                    double tau0,
+                                    double tau_min,
+                                    double tau_max,
+                                    double log_step,
+                                    double * tau0_minus_tau,
+                                    int * tau_size,
+                                    ErrorMsg error_message
+                                    );
+
+  int transfer_time_samplings(
+                              struct precision * ppr,
+                              struct background * pba,
+                              struct perturbations * ppt,
+                              struct transfer * ptr,
+                              double tau_rec
+                              );
 
   int transfer_compute_for_each_q(
                                   struct precision * ppr,
                                   struct background * pba,
                                   struct perturbations * ppt,
                                   struct transfer * ptr,
-                                  int ** tp_of_tt,
                                   int index_q,
-                                  int tau_size_max,
                                   double tau_rec,
                                   double *** sources,
                                   double *** sources_spline,
-                                  double * window,
                                   struct transfer_workspace * ptw,
                                   short use_full_limber
                                   );
 
   int transfer_radial_coordinates(
-                                  struct transfer * ptr,
                                   struct transfer_workspace * ptw,
-                                  int index_md,
-                                  int index_q
+                                  double * tau0_minus_tau,
+                                  int tau_size,
+                                  double k
                                   );
 
   int transfer_interpolate_sources(
@@ -463,21 +542,12 @@ extern "C" {
                                    );
 
   int transfer_sources(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct perturbations * ppt,
                        struct transfer * ptr,
                        double * interpolated_sources,
-                       double tau_rec,
                        double k,
                        int index_md,
                        int index_tt,
-                       double * sources,
-                       double * window,
-                       int tau_size_max,
-                       double * tau0_minus_tau,
-                       double * delta_tau,
-                       int * tau_size_out
+                       double * sources
                        );
 
   int transfer_selection_function(
@@ -494,47 +564,12 @@ extern "C" {
                              double * dNdz,
                              double * dln_dNdz_dz);
 
-  int transfer_selection_sampling(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct perturbations * ppt,
-                                  struct transfer * ptr,
-                                  int bin,
-                                  double * tau0_minus_tau,
-                                  int tau_size);
-
-  int transfer_lensing_sampling(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct perturbations * ppt,
-                                struct transfer * ptr,
-                                int bin,
-                                double tau0,
-                                double * tau0_minus_tau,
-                                int tau_size);
-
-  int transfer_source_resample(
-                               struct precision * ppr,
-                               struct background * pba,
-                               struct perturbations * ppt,
-                               struct transfer * ptr,
-                               int bin,
-                               double * tau0_minus_tau,
-                               int tau_size,
-                               int index_md,
-                               double tau0,
-                               double * interpolated_sources,
-                               double * sources);
-
   int transfer_selection_times(
                                struct precision * ppr,
                                struct background * pba,
                                struct perturbations * ppt,
-                               struct transfer * ptr,
-                               int bin,
-                               double * tau_min,
-                               double * tau_mean,
-                               double * tau_max);
+                               struct transfer * ptr
+                               );
 
   int transfer_selection_compute(
                                  struct precision * ppr,
@@ -549,25 +584,29 @@ extern "C" {
                                  double tau0,
                                  int bin);
 
-  int transfer_compute_for_each_l(
-                                  struct transfer_workspace * ptw,
-                                  struct precision * ppr,
-                                  struct perturbations * ppt,
-                                  struct transfer * ptr,
-                                  int index_q,
-                                  int index_md,
-                                  int index_ic,
-                                  int index_tt,
-                                  int index_l,
-                                  double l,
-                                  double q_max_bessel,
-                                  radial_function_type radial_type,
-                                  short use_full_limber
-                                  );
+  int transfer_select_method(
+                             struct precision * ppr,
+                             struct transfer * ptr,
+                             struct transfer_workspace * ptw,
+                             int index_q,
+                             int index_md,
+                             int index_tt,
+                             int index_l,
+                             double l,
+                             double q,
+                             double ra_rec,
+                             double q_max_bessel,
+                             double tau0_minus_tau_min_bessel,
+                             double * tau0_minus_tau,
+                             int tau_size,
+                             double * sources,
+                             short use_full_limber,
+                             enum transfer_integration_method * method,
+                             int * index_tau_max,
+                             short * bessel_truncation
+                             );
 
   int transfer_use_limber(
-                          struct precision * ppr,
-                          struct perturbations * ppt,
                           struct transfer * ptr,
                           double q_max_bessel,
                           int index_md,
@@ -577,27 +616,40 @@ extern "C" {
                           short * use_limber
                           );
 
+  int transfer_bessel_cut(
+                          struct transfer * ptr,
+                          struct transfer_workspace * ptw,
+                          int index_q,
+                          int index_l,
+                          double l,
+                          double k,
+                          double * tau0_minus_tau_min_bessel
+                          );
+
   int transfer_integrate(
-                         struct perturbations * ppt,
                          struct transfer * ptr,
                          struct transfer_workspace *ptw,
-                         int index_q,
                          int index_md,
                          int index_tt,
-                         double l,
                          int index_l,
-                         double q,
-                         radial_function_type radial_type,
+                         double k,
+                         double * tau0_minus_tau,
+                         double * w_trapz,
+                         double * sources,
+                         int index_tau_max,
+                         short bessel_truncation,
+                         double tau0_minus_tau_min_bessel,
                          double * trsf
                          );
 
   int transfer_limber(
                       struct transfer * ptr,
                       struct transfer_workspace * ptw,
-                      int index_md,
-                      int index_q,
                       double l,
                       double q,
+                      double * tau0_minus_tau,
+                      int tau_size,
+                      double * sources,
                       radial_function_type radial_type,
                       double * trsf
                       );
@@ -625,11 +677,8 @@ extern "C" {
                        );
 
   int transfer_can_be_neglected(
-                                struct precision * ppr,
-                                struct perturbations * ppt,
                                 struct transfer * ptr,
                                 int index_md,
-                                int index_ic,
                                 int index_tt,
                                 double ra_rec,
                                 double q,
@@ -639,27 +688,34 @@ extern "C" {
 
   int transfer_late_source_can_be_neglected(
                                             struct precision * ppr,
-                                            struct perturbations * ppt,
                                             struct transfer * ptr,
                                             int index_md,
                                             int index_tt,
                                             double l,
                                             short * neglect);
 
-  int transfer_select_radial_function(
-                                      struct perturbations * ppt,
-                                      struct transfer * ptr,
-                                      int index_md,
-                                      int index_tt,
-                                      radial_function_type *radial_type
-                                      );
+  int transfer_radial_function_needs(
+                                     radial_function_type radial_type,
+                                     short * need_Phi,
+                                     short * need_dPhi,
+                                     short * need_d2Phi
+                                     );
+
+  int transfer_bessel_interpolate(
+                                  struct transfer_workspace * ptw,
+                                  struct transfer * ptr,
+                                  int index_q,
+                                  int index_l,
+                                  int x_size,
+                                  short need_Phi,
+                                  short need_dPhi,
+                                  short need_d2Phi
+                                  );
 
   int transfer_radial_function(
                                struct transfer_workspace * ptw,
-                               struct perturbations * ppt,
                                struct transfer * ptr,
                                double k,
-                               int index_q,
                                int index_l,
                                int x_size,
                                double * radial_function,
@@ -675,12 +731,27 @@ extern "C" {
                                      struct transfer * ptr
                                      );
 
+  int transfer_selection_file_read(
+                                   char * file_name,
+                                   int * z_size_out,
+                                   int * bin_num_out,
+                                   double ** z_out,
+                                   double ** dNdz_out,
+                                   double * z_mean,
+                                   double * z_min,
+                                   double * z_max,
+                                   ErrorMsg error_message
+                                   );
+
+  int transfer_tabulated_selection_read(
+                                        struct perturbations * ppt,
+                                        struct transfer * ptr
+                                        );
+
   int transfer_workspace_init(
                               struct transfer * ptr,
-                              struct precision * ppr,
+                              struct perturbations * ppt,
                               struct transfer_workspace *ptw,
-                              int perturbations_tau_size,
-                              int tau_size_max,
                               double K,
                               int sgnK,
                               double tau0_minus_tau_cut,
@@ -718,15 +789,13 @@ extern "C" {
                         int *index_l_right,
                         ErrorMsg error_message);
 
-  int transfer_precompute_selection(
-                                    struct precision * ppr,
-                                    struct background * pba,
-                                    struct perturbations * ppt,
-                                    struct transfer * ptr,
-                                    double tau_rec,
-                                    int tau_size_max,
-                                    double ** window
-                                    );
+  int transfer_precompute_windows(
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct perturbations * ppt,
+                                  struct transfer * ptr,
+                                  double tau_rec
+                                  );
 
   int transfer_f_evo(
                      struct background* pba,

@@ -4811,6 +4811,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
   char string1[_ARGUMENT_LENGTH_MAX_];
   int int1;
   double * pointer1;
+  double * pointer2;
   int i;
   double z_max=0.;
   int bin;
@@ -4854,16 +4855,59 @@ int input_read_parameters_spectra(struct file_content * pfc,
       else if (strstr(string1,"dirac") != NULL){
         ppt->selection=dirac;
       }
+      else if (strstr(string1,"tabulated") != NULL){
+        ppt->selection=tabulated;
+      }
       else {
-        class_stop(errmsg,"You specified 'selection' as '%s'. It has to be one of {'gaussian','tophat','dirac'}.",string1);
+        class_stop(errmsg,"You specified 'selection' as '%s'. It has to be one of {'gaussian','tophat','dirac','tabulated'}.",string1);
       }
     }
 
     /* Read */
-    class_call(parser_read_list_of_doubles(pfc,"selection_mean",&(int1),&(pointer1),&flag1,errmsg),
-               errmsg,
-               errmsg);
-    if ((flag1 == _TRUE_) && (int1>0)) {
+    if (ppt->selection == tabulated) {
+
+      class_call(parser_read_string(pfc,"selection_file",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_test(flag1 == _FALSE_,
+                 errmsg,
+                 "With selection = tabulated, you must pass the name of the file containing the selection functions in 'selection_file'.");
+      class_read_string("selection_file",ptr->selection_file_name);
+
+      /* Read the file once to find the number of bins, their mean redshift and their redshift range */
+      class_call(transfer_selection_file_read(ptr->selection_file_name,
+                                              &int1,
+                                              &(ppt->selection_num),
+                                              &pointer1,
+                                              &pointer2,
+                                              ppt->selection_mean,
+                                              ptr->selection_z_min,
+                                              ptr->selection_z_max,
+                                              errmsg),
+                 errmsg,
+                 errmsg);
+      free(pointer1);
+      free(pointer2);
+
+      for (i=0; i<ppt->selection_num; i++) {
+        /* Test */
+        class_test((i>0) && (ppt->selection_mean[i]<=ppt->selection_mean[i-1]),
+                   errmsg,
+                   "input of selection functions: the bins in file %s must be ordered by growing mean redshift; bin %d has mean redshift %e, bin %d has mean redshift %e.",
+                   ptr->selection_file_name,i-1,ppt->selection_mean[i-1],i,ppt->selection_mean[i]);
+        /* Complete set of parameters */
+        ppt->selection_width[i] = 0.;
+        ptr->selection_bias[i] = ptr->selection_bias[0];
+        ptr->selection_magnification_bias[i] = ptr->selection_magnification_bias[0];
+      }
+    }
+    else {
+
+      class_call(parser_read_list_of_doubles(pfc,"selection_mean",&(int1),&(pointer1),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    if ((ppt->selection != tabulated) && (flag1 == _TRUE_) && (int1>0)) {
       /* Test */
       class_test(int1 > _SELECTION_NUM_MAX_,errmsg,
                  "you want to compute density Cl's for %d different bins, hence you should increase _SELECTION_NUM_MAX_ in include/perturbations.h to at least this number.",int1);
@@ -4910,54 +4954,54 @@ int input_read_parameters_spectra(struct file_content * pfc,
         }
         free(pointer1);
       }
+    }
 
-      /* Read */
-      class_call(parser_read_list_of_doubles(pfc,"selection_bias",&int1,&pointer1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Complete set of parameters */
-      if ((flag1 == _TRUE_) && (int1>0)) {
-        if (int1==1) {
-          for (i=0; i<ppt->selection_num; i++) {
-            ptr->selection_bias[i] = pointer1[0];
-          }
+    /* Read */
+    class_call(parser_read_list_of_doubles(pfc,"selection_bias",&int1,&pointer1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if ((flag1 == _TRUE_) && (int1>0)) {
+      if (int1==1) {
+        for (i=0; i<ppt->selection_num; i++) {
+          ptr->selection_bias[i] = pointer1[0];
         }
-        else if (int1==ppt->selection_num) {
-          for (i=0; i<int1; i++) {
-            ptr->selection_bias[i] = pointer1[i];
-          }
-        }
-        else {
-          class_stop(errmsg,
-                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
-                     ppt->selection_num,int1,ppt->selection_num);
-        }
-        free(pointer1);
       }
+      else if (int1==ppt->selection_num) {
+        for (i=0; i<int1; i++) {
+          ptr->selection_bias[i] = pointer1[i];
+        }
+      }
+      else {
+        class_stop(errmsg,
+                   "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
+                   ppt->selection_num,int1,ppt->selection_num);
+      }
+      free(pointer1);
+    }
 
-      /* Read */
-      class_call(parser_read_list_of_doubles(pfc,"selection_magnification_bias",&int1,&pointer1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Complete set of parameters */
-      if ((flag1 == _TRUE_) && (int1>0)) {
-        if (int1==1) {
-          for (i=0; i<ppt->selection_num; i++) {
-            ptr->selection_magnification_bias[i] = pointer1[0];
-          }
+    /* Read */
+    class_call(parser_read_list_of_doubles(pfc,"selection_magnification_bias",&int1,&pointer1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if ((flag1 == _TRUE_) && (int1>0)) {
+      if (int1==1) {
+        for (i=0; i<ppt->selection_num; i++) {
+          ptr->selection_magnification_bias[i] = pointer1[0];
         }
-        else if (int1==ppt->selection_num) {
-          for (i=0; i<int1; i++) {
-            ptr->selection_magnification_bias[i] = pointer1[i];
-          }
-        }
-        else {
-          class_stop(errmsg,
-                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
-                     ppt->selection_num,int1,ppt->selection_num);
-        }
-        free(pointer1);
       }
+      else if (int1==ppt->selection_num) {
+        for (i=0; i<int1; i++) {
+          ptr->selection_magnification_bias[i] = pointer1[i];
+        }
+      }
+      else {
+        class_stop(errmsg,
+                   "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
+                   ppt->selection_num,int1,ppt->selection_num);
+      }
+      free(pointer1);
     }
 
     /* Read */
@@ -4975,6 +5019,11 @@ int input_read_parameters_spectra(struct file_content * pfc,
                errmsg);
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
+      /* Test */
+      class_test(ppt->selection == tabulated,
+                 errmsg,
+                 "With selection = tabulated, the selection function of each bin is the full dN/dz read in the file %s, it cannot be multiplied by the one passed in 'dNdz_selection'.",
+                 ptr->selection_file_name);
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_analytic = _TRUE_;
       }
@@ -5104,6 +5153,9 @@ int input_read_parameters_spectra(struct file_content * pfc,
           }
           if (ppt->selection==dirac) {
             z_max = ppt->selection_mean[bin];
+          }
+          if (ppt->selection==tabulated) {
+            z_max = ptr->selection_z_max[bin];
           }
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
