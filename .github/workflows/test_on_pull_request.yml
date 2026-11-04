@@ -2,47 +2,74 @@ name: Nosetests lvl2
 
 on: [pull_request]
 
+permissions:
+  contents: read
+
+# A new push to the pull request cancels the run on the commit it replaces.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   nose_tests_lvl2:
     runs-on: [self-hosted]
 
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: main_class
     - name: Checkout reference 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         ref: devel
         path: ref_class
-    - name: Create or update virtual Python environment
+    # The venv lives in RUNNER_TEMP, which the runner empties after every job,
+    # so no package survives from an earlier run.
+    - name: Create virtual Python environment
       run: |
-        rm -f venv/bin/python
-        virtualenv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython pynose parameterized
-        deactivate
-    - name: make classy
-      run: source venv/bin/activate && cd main_class && make -j && deactivate
+        python3 -m venv "$RUNNER_TEMP/venv"
+        echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --upgrade pip
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --group main_class/pyproject.toml:test
+    # pip builds from the top-level setup.py and pyproject.toml (python/setup.py
+    # is not used), so the reference is renamed there, and in classy.pyx, which
+    # looked up the data files of the package 'classy' until it used __package__.
+    # The reference is installed before the pull request's classy: if the renaming
+    # ever stops working, classy is the pull request's build and the import of
+    # classyref fails.
     - name: make reference classy
       run: |
-        source venv/bin/activate
         cd ref_class
-        sed -i.bak "s/'classy'/'classyref'/g" python/setup.py
-        sed -i.bak 's/"classy"/"classyref"/g' python/setup.py
-        make -j
-        deactivate
+        sed -i.bak -e 's/"classy\._classy"/"classyref._classy"/' \
+                   -e "s/'classy'/'classyref'/g" \
+                   -e 's/"classy"/"classyref"/g' setup.py
+        sed -i.bak "s/files('classy')/files('classyref')/" python/classy.pyx
+        sed -i.bak 's/^name = "classy"$/name = "classyref"/' pyproject.toml
+        pip install .
+    - name: make classy
+      run: cd main_class && pip install .
+    # classyref must run on its own code and its own data files (BBN, HyRec, ...):
+    # with classy's data files hidden, it still computes.
+    - name: Check that classyref does not use classy
+      run: |
+        cd "$RUNNER_TEMP"
+        python -c 'import classy, classyref; print(classy.__file__); print(classyref.__file__); assert classy.__file__ != classyref.__file__'
+        pip show classy classyref | grep -E '^(Name|Version|Location)'
+        classy_dir=$(python -c 'import classy, os; print(os.path.dirname(classy.__file__))')
+        mv "$classy_dir/external" "$classy_dir/external.hidden"
+        status=0
+        python -c 'import classyref; c = classyref.Class(); c.set({"output": "tCl"}); c.compute(); print("classyref computes without classy/external")' || status=$?
+        mv "$classy_dir/external.hidden" "$classy_dir/external"
+        exit $status
     - name: Testing 🤖
       run: |
-        source venv/bin/activate
         cd main_class/python
         OMP_NUM_THREADS=16 COMPARE_OUTPUT_REF=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
-        deactivate
     - name: Upload plots 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-          name: BranchVsMasterPlots
-          path: main_class/python/faulty_figs
+        name: BranchVsDevelPlots
+        path: main_class/python/faulty_figs
+        if-no-files-found: ignore

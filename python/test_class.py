@@ -74,8 +74,6 @@ that the reference does not know yet (listed in INPUT_NOT_IN_REFERENCE) are not
 compared.
 """
 from __future__ import print_function
-from six import iteritems
-#from future.utils import iteritems
 import matplotlib as mpl
 mpl.use('Agg')
 
@@ -104,10 +102,11 @@ VALGRIND_MODE = bool(int(os.getenv('VALGRIND_MODE', '0')))
 TEST_LEVEL = int(os.getenv('TEST_LEVEL', '0')) # 0 <= TEST_LEVEL <= 3
 
 if COMPARE_OUTPUT_REF:
+    # No silent fallback: without classyref, COMPARE_OUTPUT_REF=1 would test nothing.
     try:
         import classyref
-    except:
-        COMPARE_OUTPUT_REF = False
+    except ImportError as err:
+        raise ImportError("COMPARE_OUTPUT_REF=1 needs the reference version installed as 'classyref'") from err
 # Define bounds on the relative and absolute errors of C(l) and P(k)
 # between reference, Newtonian and Synchronous gauge
 COMPARE_CL_RELATIVE_ERROR = 3e-3
@@ -225,11 +224,11 @@ if TEST_LEVEL > 2:
 FULL_SETTINGS = {'output':'mPk mTk vTk tCl pCl lCl sCl nCl','P_k_max_1/Mpc': 2,'lensing':'yes','modes':'s,t'}
 
 if POWER_ALL:
-    for k, v in iteritems(CLASS_INPUT):
+    for k, v in CLASS_INPUT.items():
         models, state = v
         CLASS_INPUT[k] = (models, 'power')
 if VALGRIND_MODE:
-    for k, v in iteritems(CLASS_INPUT):
+    for k, v in CLASS_INPUT.items():
         if k == 'Output_spectra':
             continue
         models, state = v
@@ -437,14 +436,18 @@ class TestClass(unittest.TestCase):
                 # testing absence of mPk
                 self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
-        if COMPARE_OUTPUT_REF or COMPARE_OUTPUT_GAUGE:
+        # Without output, CLASS computes no perturbations and does not read
+        # 'gauge' (unread input is an error), so there is no Newtonian run.
+        has_perturbations = bool(self.scenario.get('output', '').split())
+
+        if has_perturbations and (COMPARE_OUTPUT_REF or COMPARE_OUTPUT_GAUGE):
             # Now compute same scenario in Newtonian gauge
             self.cosmo_newt.set(
                 dict(list(self.verbose.items())+list(self.scenario.items())))
             self.cosmo_newt.set({'gauge': 'newtonian'})
             self.cosmo_newt.compute()
 
-        if COMPARE_OUTPUT_GAUGE:
+        if has_perturbations and COMPARE_OUTPUT_GAUGE:
             # Compare synchronous and Newtonian gauge
             self.assertTrue(
                 self.cosmo_newt.state,
@@ -460,11 +463,12 @@ class TestClass(unittest.TestCase):
             status = self.compare_output(cosmo_ref, "Reference", self.cosmo, 'Synchronous', COMPARE_CL_RELATIVE_ERROR, COMPARE_PK_RELATIVE_ERROR)
             assert status, 'Reference comparison failed in Synchronous gauge!'
 
-            cosmo_ref = classyref.Class()
-            cosmo_ref.set(self.cosmo_newt.pars)
-            cosmo_ref.compute()
-            self.compare_output(cosmo_ref, "Reference", self.cosmo_newt, 'Newtonian', COMPARE_CL_RELATIVE_ERROR, COMPARE_PK_RELATIVE_ERROR)
-            assert status, 'Reference comparison failed in Newtonian gauge!'
+            if has_perturbations:
+                cosmo_ref = classyref.Class()
+                cosmo_ref.set(self.cosmo_newt.pars)
+                cosmo_ref.compute()
+                status = self.compare_output(cosmo_ref, "Reference", self.cosmo_newt, 'Newtonian', COMPARE_CL_RELATIVE_ERROR, COMPARE_PK_RELATIVE_ERROR)
+                assert status, 'Reference comparison failed in Newtonian gauge!'
 
     @parameterized.expand([
         ('ragged_columns', '0.0 1.0 0.0\n0.5 2.0 1.0\n1.0 0.0\n'),

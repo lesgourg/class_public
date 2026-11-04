@@ -6,34 +6,32 @@ on:
   schedule:
     - cron: '0 20 * * *'  # Daily at UTC 20:00
 
+# iftest reads the list of earlier runs of this workflow.
+permissions:
+  contents: read
+  actions: read
+
 jobs:
+  # The tests run only if the commit differs from the one of the last successful run.
   iftest:
     runs-on: [self-hosted]
     outputs:
-      should_run: ${{ steps.store_output.outputs.SHOULD_RUN }}
+      should_run: ${{ steps.compare.outputs.should_run }}
     steps:
-    - name: Store output
-      id: store_output
+    - name: Compare with the commit of the last successful run
+      id: compare
       env:
-        SHA_LAST_SUCCESS: ${{ secrets.SHA_LAST_SUCCESS }}
+        GH_TOKEN: ${{ github.token }}
       run: |
-        if [ "$SHA_LAST_SUCCESS" == "${{ github.sha }}" ]; then
-          echo "::set-output name=SHOULD_RUN::0"
+        last=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+          "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/test_nightly.yml/runs?status=success&branch=$GITHUB_REF_NAME&per_page=1" \
+          | python3 -c 'import json, sys; runs = json.load(sys.stdin)["workflow_runs"]; print(runs[0]["head_sha"] if runs else "")')
+        echo "Last successful run: ${last:-none}. This run: $GITHUB_SHA."
+        if [ "$last" = "$GITHUB_SHA" ]; then
+          echo "should_run=0" >> "$GITHUB_OUTPUT"
         else
-          echo "::set-output name=SHOULD_RUN::1"
+          echo "should_run=1" >> "$GITHUB_OUTPUT"
         fi
-
-  conclude:
-    runs-on: [self-hosted]
-    needs: [nose_tests_lvl3, valgrind-wide-and-shallow, valgrind-narrow-and-deep]
-    steps:
-    - name: Store current SHA as secret
-      uses: hmanzur/actions-set-secret@v2.0.0
-      with:
-        name: 'SHA_LAST_SUCCESS'
-        value: ${{ github.sha }}
-        repository: lesgourg/class
-        token: ${{ secrets.REPO_ACCESS_TOKEN }}
 
   nose_tests_lvl3:
     runs-on: [self-hosted]
@@ -41,29 +39,30 @@ jobs:
     if: needs.iftest.outputs.should_run > 0
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: main_class
-    - name: Create or update virtual Python environment
+    # The venv lives in RUNNER_TEMP, which the runner empties after every job,
+    # so no package survives from an earlier run.
+    - name: Create virtual Python environment
       run: |
-        rm -f venv/bin/python
-        virtualenv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython pynose parameterized
+        python3 -m venv "$RUNNER_TEMP/venv"
+        echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --upgrade pip
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --group main_class/pyproject.toml:test
     - name: make
       run: cd main_class && make -j
     - name: Testing 🤖
       run: |
-        source venv/bin/activate
         cd main_class/python
         OMP_NUM_THREADS=32 COMPARE_OUTPUT_GAUGE=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture
     - name: Upload plots 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ComparePlots
         path: main_class/python/faulty_figs
+        if-no-files-found: ignore
 
   valgrind-wide-and-shallow:
     runs-on: [self-hosted]
@@ -72,29 +71,23 @@ jobs:
     timeout-minutes: 1440
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: main_class
-    - name: Create or update virtual Python environment
+    # The venv lives in RUNNER_TEMP, which the runner empties after every job,
+    # so no package survives from an earlier run.
+    - name: Create virtual Python environment
       run: |
-        rm -rf venv
-        virtualenv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython pynose parameterized
-        deactivate
+        python3 -m venv "$RUNNER_TEMP/venv"
+        echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --upgrade pip
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --group main_class/pyproject.toml:test
     - name: make
-      run: |
-        source venv/bin/activate
-        cd main_class
-        make -j
-        deactivate
+      run: cd main_class && make -j
     - name: Generate input files
       run: |
-        source venv/bin/activate
         cd main_class/python
-        TEST_LEVEL=3 VALGRIND_MODE=1 CLASS_VERBOSE=1 python "$(which nosetests)" -a dump_ini_files test_class.py
-        deactivate
+        TEST_LEVEL=3 VALGRIND_MODE=1 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
     - name: Valgrind 🤖
       run: |
         cd main_class/python/faulty_figs
@@ -108,10 +101,11 @@ jobs:
           || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
     - name: Upload errors 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ValgrindOutputWideShallow
         path: main_class/python/faulty_figs/valgrind_output
+        if-no-files-found: ignore
 
   valgrind-narrow-and-deep:
     runs-on: [self-hosted]
@@ -120,29 +114,23 @@ jobs:
     timeout-minutes: 1440
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: main_class
-    - name: Create or update virtual Python environment
+    # The venv lives in RUNNER_TEMP, which the runner empties after every job,
+    # so no package survives from an earlier run.
+    - name: Create virtual Python environment
       run: |
-        rm -rf venv
-        virtualenv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython pynose parameterized
-        deactivate
+        python3 -m venv "$RUNNER_TEMP/venv"
+        echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --upgrade pip
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --group main_class/pyproject.toml:test
     - name: make
-      run: |
-        source venv/bin/activate
-        cd main_class
-        make -j
-        deactivate
+      run: cd main_class && make -j
     - name: Generate input files
       run: |
-        source venv/bin/activate
         cd main_class/python
         TEST_LEVEL=1 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
-        deactivate
     - name: Valgrind 🤖
       run: |
         cd main_class/python/faulty_figs
@@ -154,7 +142,8 @@ jobs:
           || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
     - name: Upload errors 📤
       if: success() || failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ValgrindOutputNarrowDeep
         path: main_class/python/faulty_figs/valgrind_output
+        if-no-files-found: ignore

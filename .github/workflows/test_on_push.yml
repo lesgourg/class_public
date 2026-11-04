@@ -2,13 +2,21 @@ name: Build and light test
 
 on: [push]
 
+permissions:
+  contents: read
+
+# A new push cancels the run on the commit it replaces, except on devel and master.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/devel' && github.ref != 'refs/heads/master' }}
+
 jobs:
   build:
     runs-on: [self-hosted]
 
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: main_class
     - name: make
@@ -21,22 +29,20 @@ jobs:
 
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: main_class
-    - name: Create or update virtual Python environment
+    # The venv lives in RUNNER_TEMP, which the runner empties after every job,
+    # so no package survives from an earlier run.
+    - name: Create virtual Python environment
       run: |
-        rm -f venv/bin/python
-        virtualenv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install numpy scipy pandas matplotlib cython pynose parameterized
-        deactivate
+        python3 -m venv "$RUNNER_TEMP/venv"
+        echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --upgrade pip
+        "$RUNNER_TEMP/venv/bin/python" -m pip install --group main_class/pyproject.toml:test
     - name: make classy
-      run: source venv/bin/activate && cd main_class && make -j && deactivate
+      run: cd main_class && make -j
     - name: Testing 🤖
       run: |
-        source venv/bin/activate
         cd main_class/python
-        OMP_NUM_THREADS=16 TEST_LEVEL=1 python "$(which nosetests)" -v -a test_scenario test_class.py --nologcapture --nocapture
-        deactivate
+        OMP_NUM_THREADS=16 TEST_LEVEL=1 nosetests -v -a test_scenario test_class.py --nologcapture --nocapture

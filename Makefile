@@ -212,7 +212,7 @@ classy: libclass.a python/classy.pyx python/cclassy.pxd
     if echo "$$output" | grep -q "ERROR: Cannot uninstall"; then \
         site_packages=$$($(PYTHON) -c "import distutils.sysconfig; print(distutils.sysconfig.get_python_lib())" || $(PYTHON) -c "import site; print(site.getsitepackages()[0])") && \
         echo "Cleaning up previous installation in: $$site_packages" && \
-        rm -rf $$site_packages/classy* && \
+        rm -rf $$site_packages/classy $$site_packages/classy.* $$site_packages/classy-* && \
         $(PYTHON) -m pip install .; \
     fi
 
