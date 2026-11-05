@@ -165,7 +165,7 @@ C_ALL = $(C_MAIN) $(C_TOOLS) $(C_SOURCE)
 H_ALL = $(addprefix include/, common.h svnversion.h $(addsuffix .h, $(basename $(notdir $(C_ALL)))))
 PRE_ALL = cl_ref.pre clt_permille.pre
 INI_ALL = explanatory.ini lcdm.ini
-MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
+MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myselection_bins.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
 PYTHON_FILES = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
 
 all: class libclass.a classy
@@ -212,7 +212,7 @@ classy: libclass.a python/classy.pyx python/cclassy.pxd
     if echo "$$output" | grep -q "ERROR: Cannot uninstall"; then \
         site_packages=$$($(PYTHON) -c "import distutils.sysconfig; print(distutils.sysconfig.get_python_lib())" || $(PYTHON) -c "import site; print(site.getsitepackages()[0])") && \
         echo "Cleaning up previous installation in: $$site_packages" && \
-        rm -rf $$site_packages/classy* && \
+        rm -rf $$site_packages/classy $$site_packages/classy.* $$site_packages/classy-* && \
         $(PYTHON) -m pip install .; \
     fi
 

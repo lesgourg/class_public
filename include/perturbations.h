@@ -91,7 +91,7 @@ enum hierarchies {optimal, tam};
  * maximum number and types of selection function (for bins of matter density or cosmic shear)
  */
 #define _SELECTION_NUM_MAX_ 100
-enum selection_type {gaussian,tophat,dirac};
+enum selection_type {gaussian,tophat,dirac,tabulated};
 
 //@}
 

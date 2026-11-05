@@ -67,10 +67,13 @@ Comparing output: When the flag 'COMPARE_OUTPUT_GAUGE' is set to true, the code 
 rerun CLASS for each case under Newtonian gauge and then compare Cl's and
 matter power spectrum. If the two are not close enough, it will generate a
 PDF plot of this and save it in the 'fail' folder.
+
+When the flag 'COMPARE_OUTPUT_REF' is set to true, the code compares each case
+with a reference version installed as 'classyref'. Cases using an input parameter
+that the reference does not know yet (listed in INPUT_NOT_IN_REFERENCE) are not
+compared.
 """
 from __future__ import print_function
-from six import iteritems
-#from future.utils import iteritems
 import matplotlib as mpl
 mpl.use('Agg')
 
@@ -79,6 +82,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import shutil
+import tempfile
 import unittest
 
 from classy import Class
@@ -98,10 +102,11 @@ VALGRIND_MODE = bool(int(os.getenv('VALGRIND_MODE', '0')))
 TEST_LEVEL = int(os.getenv('TEST_LEVEL', '0')) # 0 <= TEST_LEVEL <= 3
 
 if COMPARE_OUTPUT_REF:
+    # No silent fallback: without classyref, COMPARE_OUTPUT_REF=1 would test nothing.
     try:
         import classyref
-    except:
-        COMPARE_OUTPUT_REF = False
+    except ImportError as err:
+        raise ImportError("COMPARE_OUTPUT_REF=1 needs the reference version installed as 'classyref'") from err
 # Define bounds on the relative and absolute errors of C(l) and P(k)
 # between reference, Newtonian and Synchronous gauge
 COMPARE_CL_RELATIVE_ERROR = 3e-3
@@ -111,6 +116,15 @@ COMPARE_PK_RELATIVE_ERROR = 1e-2
 COMPARE_PK_RELATIVE_ERROR_GAUGE = 5*1e-2
 COMPARE_PK_ABSOLUTE_ERROR = 1e-20
 COMPARE_SHOOTING_RELATIVE_ERROR = 1e-5
+
+# Input parameters which may not exist yet in the reference version
+# (classyref), because they are introduced by the version being tested.
+# Scenarios using them are not compared with the reference. This list
+# can be emptied once the reference contains these parameters.
+INPUT_NOT_IN_REFERENCE = ['selection_file']
+
+# Example file of tabulated selection functions (see explanatory.ini)
+SELECTION_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'myselection_bins.dat')
 
 # Dictionary of models to test the wrapper against. Each of these scenario will
 # be run against all the possible output choices (nothing, tCl, mPk, etc...),
@@ -145,6 +159,11 @@ if TEST_LEVEL > 0:
     CLASS_INPUT['Mnu'] = (
         [{'N_ur': 0.0, 'N_ncdm': 1, 'm_ncdm': 0.06, 'deg_ncdm': 3.0},
         {'N_ur': 1.5, 'N_ncdm': 1, 'm_ncdm': 0.03, 'deg_ncdm': 1.5}],
+        'normal')
+
+    CLASS_INPUT['Selection'] = (
+        [{'selection': 'tabulated', 'selection_file': SELECTION_FILE,
+          'selection_bias': '1., 1.5, 2.', 'non_diagonal': 2}],
         'normal')
 
 if TEST_LEVEL > 1:
@@ -205,11 +224,11 @@ if TEST_LEVEL > 2:
 FULL_SETTINGS = {'output':'mPk mTk vTk tCl pCl lCl sCl nCl','P_k_max_1/Mpc': 2,'lensing':'yes','modes':'s,t'}
 
 if POWER_ALL:
-    for k, v in iteritems(CLASS_INPUT):
+    for k, v in CLASS_INPUT.items():
         models, state = v
         CLASS_INPUT[k] = (models, 'power')
 if VALGRIND_MODE:
-    for k, v in iteritems(CLASS_INPUT):
+    for k, v in CLASS_INPUT.items():
         if k == 'Output_spectra':
             continue
         models, state = v
@@ -254,7 +273,7 @@ def powerset(iterable):
         itertools.combinations(xs, n) for n in range(1, len(xs)+1))
 
 def custom_name_func(testcase_func, param_num, param):
-    special_keys = ['N_ncdm','Pk_ini_type','ic','Neff','sigma8','S8','theta_s_100','tau_reio']
+    special_keys = ['N_ncdm','Pk_ini_type','ic','Neff','sigma8','S8','theta_s_100','tau_reio','selection']
     somekeys = []
     for key in param.args[0]:
         if key in special_keys:
@@ -417,14 +436,18 @@ class TestClass(unittest.TestCase):
                 # testing absence of mPk
                 self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
-        if COMPARE_OUTPUT_REF or COMPARE_OUTPUT_GAUGE:
+        # Without output, CLASS computes no perturbations and does not read
+        # 'gauge' (unread input is an error), so there is no Newtonian run.
+        has_perturbations = bool(self.scenario.get('output', '').split())
+
+        if has_perturbations and (COMPARE_OUTPUT_REF or COMPARE_OUTPUT_GAUGE):
             # Now compute same scenario in Newtonian gauge
             self.cosmo_newt.set(
                 dict(list(self.verbose.items())+list(self.scenario.items())))
             self.cosmo_newt.set({'gauge': 'newtonian'})
             self.cosmo_newt.compute()
 
-        if COMPARE_OUTPUT_GAUGE:
+        if has_perturbations and COMPARE_OUTPUT_GAUGE:
             # Compare synchronous and Newtonian gauge
             self.assertTrue(
                 self.cosmo_newt.state,
@@ -432,7 +455,7 @@ class TestClass(unittest.TestCase):
 
             self.compare_output(self.cosmo, "Synchronous", self.cosmo_newt, 'Newtonian', COMPARE_CL_RELATIVE_ERROR_GAUGE, COMPARE_PK_RELATIVE_ERROR_GAUGE)
 
-        if COMPARE_OUTPUT_REF:
+        if COMPARE_OUTPUT_REF and not any(key in self.scenario for key in INPUT_NOT_IN_REFERENCE):
             # Compute reference models in both gauges and compare
             cosmo_ref = classyref.Class()
             cosmo_ref.set(self.cosmo.pars)
@@ -440,11 +463,51 @@ class TestClass(unittest.TestCase):
             status = self.compare_output(cosmo_ref, "Reference", self.cosmo, 'Synchronous', COMPARE_CL_RELATIVE_ERROR, COMPARE_PK_RELATIVE_ERROR)
             assert status, 'Reference comparison failed in Synchronous gauge!'
 
-            cosmo_ref = classyref.Class()
-            cosmo_ref.set(self.cosmo_newt.pars)
-            cosmo_ref.compute()
-            self.compare_output(cosmo_ref, "Reference", self.cosmo_newt, 'Newtonian', COMPARE_CL_RELATIVE_ERROR, COMPARE_PK_RELATIVE_ERROR)
-            assert status, 'Reference comparison failed in Newtonian gauge!'
+            if has_perturbations:
+                cosmo_ref = classyref.Class()
+                cosmo_ref.set(self.cosmo_newt.pars)
+                cosmo_ref.compute()
+                status = self.compare_output(cosmo_ref, "Reference", self.cosmo_newt, 'Newtonian', COMPARE_CL_RELATIVE_ERROR, COMPARE_PK_RELATIVE_ERROR)
+                assert status, 'Reference comparison failed in Newtonian gauge!'
+
+    @parameterized.expand([
+        ('ragged_columns', '0.0 1.0 0.0\n0.5 2.0 1.0\n1.0 0.0\n'),
+        ('decreasing_z', '0.0 1.0\n0.5 2.0\n0.4 0.0\n'),
+        ('negative_dNdz', '0.0 1.0\n0.5 -2.0\n1.0 0.0\n'),
+        ('empty_bin', '0.0 1.0 0.0\n0.5 2.0 0.0\n1.0 0.0 0.0\n'),
+        ('unordered_bins', '0.0 0.0 1.0\n0.5 1.0 2.0\n1.0 2.0 0.0\n'),
+        ('single_column', '0.0\n0.5\n1.0\n'),
+        ('too_long_line', '0.0 1.0\n0.5 ' + '0'*9000 + '1.0\n1.0 0.0\n'),
+    ])
+    @attr('test_scenario')
+    def test_selection_file_malformed(self, name, content):
+        """Check that malformed files of tabulated selection functions are rejected"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.dat', delete=False) as f:
+            f.write(content)
+            filename = f.name
+        try:
+            self.cosmo.set({'output': 'nCl', 'l_max_lss': 100,
+                            'selection': 'tabulated', 'selection_file': filename})
+            self.assertRaises(CosmoSevereError, self.cosmo.compute)
+        finally:
+            os.remove(filename)
+
+    @attr('test_scenario')
+    def test_selection_file_inconsistent_input(self):
+        """Check that tabulated selection functions cannot be combined with dNdz_selection, and need a file"""
+        self.cosmo.set({'output': 'nCl', 'l_max_lss': 100,
+                        'selection': 'tabulated', 'selection_file': SELECTION_FILE,
+                        'dNdz_selection': 'analytic'})
+        self.assertRaises(CosmoSevereError, self.cosmo.compute)
+        self.cosmo.struct_cleanup()
+        self.cosmo.empty()
+        self.cosmo.set({'output': 'nCl', 'l_max_lss': 100, 'selection': 'tabulated'})
+        self.assertRaises(CosmoSevereError, self.cosmo.compute)
+        self.cosmo.struct_cleanup()
+        self.cosmo.empty()
+        self.cosmo.set({'output': 'nCl', 'l_max_lss': 100,
+                        'selection': 'tabulated', 'selection_file': '/nonexistent/selection.dat'})
+        self.assertRaises(CosmoSevereError, self.cosmo.compute)
 
     def has_incompatible_input(self):
 
@@ -535,6 +598,16 @@ class TestClass(unittest.TestCase):
         if 'hierarchy' in self.scenario:
             if 'output' not in self.scenario:
                 should_fail = True
+
+        # If we have specified selection functions, we must have number count
+        # or galaxy lensing Cl's, otherwise they will not be read (which is an error).
+        if 'selection' in self.scenario:
+            if 'output' not in self.scenario:
+                should_fail = True
+            else:
+                output = self.scenario['output'].split()
+                if not any(elem in output for elem in ['nCl', 'dCl', 'sCl']):
+                    should_fail = True
 
         return should_fail
 

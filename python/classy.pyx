@@ -344,10 +344,12 @@ cdef class Class:
         sprintf(self.fc.filename,"%s",dumc)
         self.ncp = set()
         if default: self.set_default()
+        # The data files (BBN, HyRec, ...) of this module's own package, which is
+        # not called classy in a renamed build such as the reference classyref.
         try:
           import importlib.resources
-          resource_path = abspath(importlib.resources.files('classy'))
-        except ImportError as ie:
+          resource_path = abspath(importlib.resources.files(__package__))
+        except (ImportError, TypeError, ValueError) as ie:
           resource_path = dirname(abspath(__file__))
         path_to_this_as_bytes = resource_path.encode()
         dumc = path_to_this_as_bytes

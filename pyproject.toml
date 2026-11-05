@@ -13,6 +13,11 @@ authors = [
 Homepage = "http://www.class-code.net"
 # Documentation = https://readthdocs.org/classy # TBD
 
+# What python/test_class.py needs besides classy; the CI installs it with
+# pip install --group pyproject.toml:test (pip >= 25.1).
+[dependency-groups]
+test = ["numpy", "scipy", "matplotlib", "pynose", "parameterized"]
+
 [build-system]
 requires = ['setuptools','wheel','numpy','cython']
 build-backend = "setuptools.build_meta"
