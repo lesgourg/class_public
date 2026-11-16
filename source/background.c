@@ -539,16 +539,21 @@ int background_functions(
   /* fluid with w(a) and constant cs2 */
   if (pba->has_fld == _TRUE_) {
 
-    /* get rho_fld from vector of integrated variables */
-    pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
-
-    /* get w_fld from dedicated function */
+    /* get w_fld and the integral of 3(1+w_fld)/a from dedicated function */
     class_call(background_w_fld(pba,a,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
     pvecback[pba->index_bg_w_fld] = w_fld;
 
-    // Obsolete: at the beginning, we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0):
-    // pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a-1.));
-    // But now everthing is integrated numerically for a given w_fld(a) defined in the function background_w_fld.
+    /* get rho_fld from the analytic integral when background_w_fld()
+       provides one (CLP), and otherwise from the vector of integrated
+       variables. The analytic integral gives rho_fld(a_0) = Omega0_fld
+       H0^2 exactly. The numerical integration only gives it up to the
+       integration error, which can be large when w(a) varies fast. */
+    if (pba->fluid_equation_of_state == CLP) {
+      pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) * exp(integral_fld);
+    }
+    else {
+      pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
+    }
 
     rho_tot += pvecback[pba->index_bg_rho_fld];
     p_tot += w_fld * pvecback[pba->index_bg_rho_fld];
@@ -1163,7 +1168,8 @@ int background_indices(
   class_define_index(pba->index_bi_rho_dr,pba->has_dr,index_bi,1);
 
   /* -> energy density in fluid */
-  class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
+  /* - fluid density, only when w(a) has no analytic integral (see background_w_fld()) */
+  class_define_index(pba->index_bi_rho_fld,(pba->has_fld == _TRUE_) && (pba->fluid_equation_of_state != CLP),index_bi,1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
   class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
@@ -1888,9 +1894,7 @@ int background_solve(
   /* conformal distance in Mpc (equal to comoving radius in flat case) */
   double conformal_distance;
 
-  /* evolvers */
-  extern int evolver_rk(EVOLVER_PROTOTYPE);
-  extern int evolver_ndf15(EVOLVER_PROTOTYPE);
+  /* evolver */
   int (*generic_evolver)(EVOLVER_PROTOTYPE) = evolver_ndf15;
 
   /* initial and final loga values */
@@ -1955,6 +1959,13 @@ int background_solve(
     generic_evolver = evolver_ndf15;
     if (pba->background_verbose > 1) {
       printf("%s\n", "Chose ndf15 as generic_evolver");
+    }
+    break;
+
+  case rkdp45:
+    generic_evolver = evolver_rkdp45;
+    if (pba->background_verbose > 1) {
+      printf("%s\n", "Chose rkdp45 as generic_evolver");
     }
     break;
   }
@@ -2237,7 +2248,7 @@ int background_initial_conditions(
     }
   }
 
-  if (pba->has_fld == _TRUE_) {
+  if ((pba->has_fld == _TRUE_) && (pba->fluid_equation_of_state != CLP)) {
 
     /* rho_fld today */
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
@@ -2655,8 +2666,8 @@ int background_derivs(
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_rho_dr]+pba->Gamma_dcdm/H*y[pba->index_bi_rho_dcdm];
   }
 
-  if (pba->has_fld == _TRUE_) {
-    /** - Compute fld density \f$ d\rho/dloga = -3 (1+w_{fld}(a)) \rho \f$ */
+  if ((pba->has_fld == _TRUE_) && (pba->fluid_equation_of_state != CLP)) {
+    /** - Compute fld density \f$ d\rho/dloga = -3 (1+w_{fld}(a)) \rho \f$ (only when w(a) has no analytic integral) */
     dy[pba->index_bi_rho_fld] = -3.*(1.+pvecback[pba->index_bg_w_fld])*y[pba->index_bi_rho_fld];
   }
 

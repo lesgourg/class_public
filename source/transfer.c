@@ -439,6 +439,7 @@ int transfer_free(
       free(ptr->k_pivot[index_md]);
       free(ptr->l_limber[index_md]);
       free(ptr->delta_k_neglect[index_md]);
+      free(ptr->l_half_neglect[index_md]);
       free(ptr->has_late_source_cut[index_md]);
       free(ptr->has_full_limber[index_md]);
       free(ptr->ts_of_tt[index_md]);
@@ -474,6 +475,7 @@ int transfer_free(
     free(ptr->k_pivot);
     free(ptr->l_limber);
     free(ptr->delta_k_neglect);
+    free(ptr->l_half_neglect);
     free(ptr->has_late_source_cut);
     free(ptr->has_full_limber);
     free(ptr->ts_of_tt);
@@ -1616,6 +1618,7 @@ int transfer_type_properties(
   class_alloc(ptr->k_pivot,ptr->md_size*sizeof(double*),ptr->error_message);
   class_alloc(ptr->l_limber,ptr->md_size*sizeof(double*),ptr->error_message);
   class_alloc(ptr->delta_k_neglect,ptr->md_size*sizeof(double*),ptr->error_message);
+  class_alloc(ptr->l_half_neglect,ptr->md_size*sizeof(double*),ptr->error_message);
   class_alloc(ptr->has_late_source_cut,ptr->md_size*sizeof(short*),ptr->error_message);
   class_alloc(ptr->has_full_limber,ptr->md_size*sizeof(short*),ptr->error_message);
 
@@ -1629,6 +1632,7 @@ int transfer_type_properties(
     class_alloc(ptr->k_pivot[index_md],ptr->tt_size[index_md]*sizeof(double),ptr->error_message);
     class_alloc(ptr->l_limber[index_md],ptr->tt_size[index_md]*sizeof(double),ptr->error_message);
     class_alloc(ptr->delta_k_neglect[index_md],ptr->tt_size[index_md]*sizeof(double),ptr->error_message);
+    class_alloc(ptr->l_half_neglect[index_md],ptr->tt_size[index_md]*sizeof(double),ptr->error_message);
     class_alloc(ptr->has_late_source_cut[index_md],ptr->tt_size[index_md]*sizeof(short),ptr->error_message);
     class_alloc(ptr->has_full_limber[index_md],ptr->tt_size[index_md]*sizeof(short),ptr->error_message);
 
@@ -1645,6 +1649,7 @@ int transfer_type_properties(
       ptr->k_pivot[index_md][index_tt] = 1.;
       ptr->l_limber[index_md][index_tt] = _HUGE_;
       ptr->delta_k_neglect[index_md][index_tt] = _HUGE_;
+      ptr->l_half_neglect[index_md][index_tt] = 0.;
       ptr->has_late_source_cut[index_md][index_tt] = _FALSE_;
       ptr->has_full_limber[index_md][index_tt] = _FALSE_;
       is_number_count = _FALSE_;
@@ -1654,7 +1659,8 @@ int transfer_type_properties(
       if (_scalars_) {
 
         /** - --> CMB temperature and polarisation: the transfer function
-            can be neglected for l < (q-delta_k_neglect) r_a(tau_rec);
+            can be neglected for l < (q-delta_k) r_a(tau_rec), with
+            delta_k growing with l (see transfer_can_be_neglected());
             sources at late times can be neglected at high l,
             excepted for T0, which contains the late ISW effect */
 
@@ -1662,12 +1668,14 @@ int transfer_type_properties(
           ptr->tp_of_tt[index_md][index_tt] = ppt->index_tp_t0;
           ptr->radial_type[index_md][index_tt] = SCALAR_TEMPERATURE_0;
           ptr->delta_k_neglect[index_md][index_tt] = ppr->transfer_neglect_delta_k_S_t0;
+          ptr->l_half_neglect[index_md][index_tt] = ppr->transfer_neglect_l_half_S_t0;
         }
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1)) {
           ptr->tp_of_tt[index_md][index_tt] = ppt->index_tp_t1;
           ptr->radial_type[index_md][index_tt] = SCALAR_TEMPERATURE_1;
           ptr->delta_k_neglect[index_md][index_tt] = ppr->transfer_neglect_delta_k_S_t1;
+          ptr->l_half_neglect[index_md][index_tt] = ppr->transfer_neglect_l_half_S_t1;
           ptr->has_late_source_cut[index_md][index_tt] = _TRUE_;
         }
 
@@ -1675,6 +1683,7 @@ int transfer_type_properties(
           ptr->tp_of_tt[index_md][index_tt] = ppt->index_tp_t2;
           ptr->radial_type[index_md][index_tt] = SCALAR_TEMPERATURE_2;
           ptr->delta_k_neglect[index_md][index_tt] = ppr->transfer_neglect_delta_k_S_t2;
+          ptr->l_half_neglect[index_md][index_tt] = ppr->transfer_neglect_l_half_S_t2;
           ptr->has_late_source_cut[index_md][index_tt] = _TRUE_;
         }
 
@@ -1682,6 +1691,7 @@ int transfer_type_properties(
           ptr->tp_of_tt[index_md][index_tt] = ppt->index_tp_p;
           ptr->radial_type[index_md][index_tt] = SCALAR_POLARISATION_E;
           ptr->delta_k_neglect[index_md][index_tt] = ppr->transfer_neglect_delta_k_S_e;
+          ptr->l_half_neglect[index_md][index_tt] = ppr->transfer_neglect_l_half_S_e;
           ptr->has_late_source_cut[index_md][index_tt] = _TRUE_;
         }
 
@@ -4233,7 +4243,21 @@ int transfer_can_be_neglected(
                               double l,
                               short * neglect) {
 
-  if (l < (q-ptr->delta_k_neglect[index_md][index_tt])*ra_rec)
+  double delta_k_neglect;
+
+  /** - the transfer function is neglected for q > l/r_a(tau_rec) +
+      delta_k, where the source function only overlaps with the
+      oscillating tail of the Bessel function. For the scalar CMB
+      types, delta_k increases with l as delta_k_neglect
+      sqrt(l/(l+l_half_neglect)), since at low l the integrand becomes
+      negligible closer to q = l/r_a(tau_rec) than at high l. If
+      l_half_neglect = 0, delta_k = delta_k_neglect for all l. */
+
+  delta_k_neglect = ptr->delta_k_neglect[index_md][index_tt];
+  if (ptr->l_half_neglect[index_md][index_tt] > 0.)
+    delta_k_neglect *= sqrt(l/(l+ptr->l_half_neglect[index_md][index_tt]));
+
+  if (l < (q-delta_k_neglect)*ra_rec)
     *neglect = _TRUE_;
   else
     *neglect = _FALSE_;

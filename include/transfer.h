@@ -188,7 +188,8 @@ struct transfer {
   double ** k_power;                   /**< the transfer source W(tau) S(k,tau) is further multiplied by (k/k_pivot)^k_power, k_power[index_md][index_tt] */
   double ** k_pivot;                   /**< pivot wavenumber of the previous factor, k_pivot[index_md][index_tt] */
   double ** l_limber;                  /**< the Limber approximation is used for l >= l_limber[index_md][index_tt] (_HUGE_ if never) */
-  double ** delta_k_neglect;           /**< the transfer function is set to zero for l < (q-delta_k_neglect)*r_a(tau_rec), delta_k_neglect[index_md][index_tt] (_HUGE_ if never) */
+  double ** delta_k_neglect;           /**< the transfer function is set to zero for l < (q-delta_k)*r_a(tau_rec), with delta_k = delta_k_neglect[index_md][index_tt] (_HUGE_ if never), multiplied by sqrt(l/(l+l_half_neglect)) if l_half_neglect is positive */
+  double ** l_half_neglect;            /**< see delta_k_neglect, l_half_neglect[index_md][index_tt] (0 if delta_k does not depend on l) */
   short ** has_late_source_cut;        /**< can the source be neglected at late times (tau>tau_cut) for l > ppr->transfer_neglect_late_source? has_late_source_cut[index_md][index_tt] */
   short ** has_full_limber;            /**< is the type also computed in the full Limber q-sampling scheme (on the grid q_limber)? has_full_limber[index_md][index_tt] (only for the CMB lensing potential of scalar modes, when ptr->do_lcmb_full_limber is true) */
 

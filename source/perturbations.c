@@ -2169,6 +2169,7 @@ int perturbations_get_k_list(
   int newk_size, index_newk, add_k_output_value;
   double m;
   int l_max;
+  int l_max_asked;
 
   /** Summary: */
 
@@ -2262,8 +2263,22 @@ int perturbations_get_k_list(
          pi/lmax: this is equivalent to
          k_max_cl[index_md]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[index_md] = ppr->k_max_tau0_over_l_max*l_max
-        /pba->conformal_age/pth->angular_rescaling;
+      if (_scalars_) {
+        /* With lensed C_l's, l_scalar_max is l_max_scalars plus
+           delta_l_max, and otherwise delta_l_max = 0 (see
+           input_read_parameters_lensing()). The extra multipoles only
+           enter the lensed C_l's through the lensing convolution, so
+           k_max is set by l_max_scalars. See k_max_tau0_above_l_max in
+           precisions.h for the second argument of MAX(). */
+        l_max_asked = ppt->l_scalar_max - ppr->delta_l_max;
+        k_max_cmb[index_md] = MAX(ppr->k_max_tau0_over_l_max*l_max_asked,
+                                  l_max_asked+ppr->k_max_tau0_above_l_max)
+          /pba->conformal_age/pth->angular_rescaling;
+      }
+      else {
+        k_max_cmb[index_md] = ppr->k_max_tau0_over_l_max*l_max
+          /pba->conformal_age/pth->angular_rescaling;
+      }
       k_max_cl[index_md] = k_max_cmb[index_md];
       k_max     = k_max_cmb[index_md];
 
@@ -3022,6 +3037,20 @@ int perturbations_solve(
     }
   }
 
+  /* for the vector and non-adiabatic scalar modes, check also the condition on om*tau used in the bisection
+     below. If tau_lower does not satisfy it, the bisection returns a starting time that does not satisfy it either. */
+  if ((_vectors_) ||
+      ((_scalars_) && ((ppt->has_ad == _FALSE_) || (index_ic != ppt->index_ic_ad)))) {
+    rho_m = ppw->pvecback[pba->index_bg_Omega_m]*ppw->pvecback[pba->index_bg_rho_crit];
+    rho_r = ppw->pvecback[pba->index_bg_Omega_r]*ppw->pvecback[pba->index_bg_rho_crit];
+    om = ppw->pvecback[pba->index_bg_a]*rho_m/sqrt(rho_r);
+    class_test(om*tau_lower > (_vectors_ ? ppr->start_vectors_at_omega_tau : ppr->start_isocurvature_at_omega_tau),
+               ppt->error_message,
+               "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase '%s' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
+               (_vectors_ ? "start_vectors_at_omega_tau" : "start_isocurvature_at_omega_tau"),
+               om*tau_lower);
+  }
+
   /* is at most the time at which sources must be sampled */
   tau_upper = ppt->tau_sampling[0];
 
@@ -3076,7 +3105,13 @@ int perturbations_solve(
          It is of the same order as $c_H$ defined in 3.9 of 2410.03612 and given the asymptotic expansion of V (Eq. 3.5 which starts as Vinit * (1 - c_H*tau) ),
          we must make sure that om * tau << 1 by choosing om*tau < ppr->start_vectors_at_omega_tau << 1.
       */
-      if (_vectors_) {
+      /* The same holds for the non-adiabatic scalar initial conditions, which are series in om*tau
+         (Bucher, Moodley & Turok 1999). In the adiabatic mode, om*tau only appears in small corrections
+         to the leading terms, but in the non-adiabatic modes it appears already at leading order. For
+         small k, the two conditions above can start the integration at om*tau ~ 1, where the truncated
+         series is inaccurate. Thus, we also require om*tau < ppr->start_isocurvature_at_omega_tau. */
+      if ((_vectors_) ||
+          ((_scalars_) && ((ppt->has_ad == _FALSE_) || (index_ic != ppt->index_ic_ad)))) {
         /* 8piG/3 rho_m(t_i) */
         rho_m = ppw->pvecback[pba->index_bg_Omega_m]*ppw->pvecback[pba->index_bg_rho_crit];
         /* 8piG/3 rho_r(t_i) */
@@ -3084,7 +3119,7 @@ int perturbations_solve(
         /* {\cal H}_0 \Omega_m/\sqrt{\Omega_r} */
         om = ppw->pvecback[pba->index_bg_a]*rho_m/sqrt(rho_r);
 
-        if (om*tau_mid > ppr->start_vectors_at_omega_tau)
+        if (om*tau_mid > (_vectors_ ? ppr->start_vectors_at_omega_tau : ppr->start_isocurvature_at_omega_tau))
           is_early_enough = _FALSE_;
       }
     }
@@ -3229,6 +3264,9 @@ int perturbations_solve(
 
     if (ppr->evolver == rk){
       generic_evolver = evolver_rk;
+    }
+    else if (ppr->evolver == rkdp45){
+      generic_evolver = evolver_rkdp45;
     }
     else {
       generic_evolver = evolver_ndf15;
@@ -4276,7 +4314,7 @@ int perturbations_vector_init(
           ppv->l_max_g = ppr->l_max_g_ten;
           ppv->l_max_pol_g = ppr->l_max_pol_g_ten;
           class_define_index(ppv->index_pt_l0_g,_TRUE_,index_pt,ppv->l_max_g+1);   /* photon F_0^(2) */
-          class_define_index(ppv->index_pt_pol0_g,_TRUE_,index_pt,ppv->l_max_g+1); /* photon G_0^(2) */
+          class_define_index(ppv->index_pt_pol0_g,_TRUE_,index_pt,ppv->l_max_pol_g+1); /* photon G_0^(2) */
           break;
         case tam:
           /* tensor modes: l_max should be incremented by 2 to reach the same expansion order as in optimal (see 2005.12119) */
@@ -5983,7 +6021,8 @@ int perturbations_initial_conditions(struct precision * ppr,
 
         shear_ur = ktau_two/(45.+12.*fracnu) * (3.*s2_squared-1.) * (1.+(4.*fracnu-5.)/4./(2.*fracnu+15.)*tau*om) * ppr->curvature_ini;//TBC /s2_squared; /* shear of ultra-relativistic neutrinos/relics */  //TBC:0
 
-        l3_ur = ktau_three*2./7./(12.*fracnu+45.)* ppr->curvature_ini;//TBC
+        /* leading order of the l=3 equation, d(l3_ur)/dtau = k/7 (6 s_2 s_3 shear_ur - ...), with shear_ur above */
+        l3_ur = ktau_three*2./7./(12.*fracnu+45.)*(3.*s2_squared-1.)*ppw->s_l[2]*ppw->s_l[3]* ppr->curvature_ini;
 
         if (pba->has_dr == _TRUE_) delta_dr = delta_ur;
       }
@@ -5999,10 +6038,13 @@ int perturbations_initial_conditions(struct precision * ppr,
        Turok 99, with just a different normalization convention for
        tau and the scale factor. [k tau] from BMT99 is left invariant
        because it is the ratio [k/aH]. But [Omega_i,0 tau] from BMT99
-       must be replaced by [frac_i*om*tau/4]. Some doubts remain about
-       the niv formulas, that should be recheked at some point. We
-       also checked that for bi,cdi,nid, everything coincides exactly
-       with the CAMB formulas. */
+       must be replaced by [frac_i*om*tau/4]. We also checked that for
+       bi,cdi,nid, everything coincides exactly with the CAMB formulas.
+       In flat space, the initial conditions of all five modes agree,
+       to the order included, with a power-series solution of the
+       equations. Since om*tau appears at leading order in these
+       modes, they start no later than
+       om*tau = start_isocurvature_at_omega_tau. */
 
     /** - --> (b.2.) Cold dark matter Isocurvature */
 
@@ -6099,6 +6141,8 @@ int perturbations_initial_conditions(struct precision * ppr,
       theta_ur = ppr->entropy_ini*k*k*tau/4.;
       shear_ur = ppr->entropy_ini*ktau_two/(4.*fracnu+15.)/2.;
 
+      l3_ur = ppr->entropy_ini*ktau_three/7./(4.*fracnu+15.)*ppw->s_l[2]*ppw->s_l[3]; /* integral of d(l3_ur)/dtau = 6/7 k s_2 s_3 shear_ur */
+
       eta = -ppr->entropy_ini*fracnu/(4.*fracnu+15.)/6.*ktau_two;
 
     }
@@ -6132,9 +6176,13 @@ int perturbations_initial_conditions(struct precision * ppr,
 
       delta_ur = -ppr->entropy_ini*k*tau*(1.+3./16.*fracb*fracnu/fracg*om*tau);  /* small diff wrt camb */
       theta_ur = ppr->entropy_ini*3./4.*k*(1. - 1./6.*ktau_two*(4.*fracnu+9.)/(4.*fracnu+5.));
-      shear_ur = ppr->entropy_ini/(4.*fracnu+15.)*k*tau*(1. + 3.*om*tau*fracnu/(4.*fracnu+15.)); /* small diff wrt camb */
+      /* leading order of shear_ur' = (1/2)(8/15 theta_ur + 8/5 eta'), with theta_ur = 3/4 k and
+         eta' = -fracnu k/(4 fracnu+5). In eta, the fracb term is of order om*tau. */
+      shear_ur = ppr->entropy_ini/(4.*fracnu+5.)*k*tau*(1. + 3.*om*tau*fracnu/(4.*fracnu+15.));
 
-      eta = ppr->entropy_ini*fracnu*k*tau*(-1./(4.*fracnu+5.) + (-3./64.*fracb/fracg+15./4./(4.*fracnu+15.)/(4.*fracnu+5.)*om*tau)); /* small diff wrt camb */
+      l3_ur = ppr->entropy_ini*3./7./(4.*fracnu+5.)*ktau_two*ppw->s_l[2]*ppw->s_l[3];
+
+      eta = ppr->entropy_ini*fracnu*k*tau*(-1./(4.*fracnu+5.) + (-3./64.*fracb/fracg+15./4./(4.*fracnu+15.)/(4.*fracnu+5.))*om*tau);
 
     }
 
@@ -6289,19 +6337,38 @@ int perturbations_initial_conditions(struct precision * ppr,
       idx = ppw->pv->index_pt_psi0_ncdm1;
       for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
 
+        /* The momentum grid of the perturbations (set by tol_ncdm_synchronous) is coarser than the one of the
+           background. Thus, the density computed on it, rho_q = -1/4 factor/a^4 sum_q q^2 eps w_q dlnf0/dlnq
+           (the delta_rho of Psi_0 below for delta_ur = 1), differs from rho_ncdm by an amount of the order of
+           that tolerance. We multiply the initial Psi_l by rho_ncdm/rho_q, such that delta_rho, (rho+p) theta
+           and (rho+p) shear have the values assumed by the initial conditions, which use the background density
+           fractions. (For relativistic momenta, the sums giving the momentum and the shear are the same as the
+           one giving the density.) This matters for niv, where the photon and neutrino momenta must cancel at
+           order tau^0. Otherwise the residual makes eta' ~ 1/tau^2, and the C_l's would grow without bound as
+           the starting time moves earlier. */
+        double rho_q_ncdm = 0., norm_ncdm;
+        for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++) {
+          q = pba->q_ncdm[n_ncdm][index_q];
+          epsilon = sqrt(q*q+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+          rho_q_ncdm += q*q*epsilon*pba->w_ncdm[n_ncdm][index_q]*pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+        }
+        rho_q_ncdm *= -0.25*pba->factor_ncdm[n_ncdm]/pow(a,4);
+        norm_ncdm = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]/rho_q_ncdm;
+
         for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++) {
 
           q = pba->q_ncdm[n_ncdm][index_q];
 
           epsilon = sqrt(q*q+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
 
-          ppw->pv->y[idx] = -0.25 * delta_ur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+          ppw->pv->y[idx] = -0.25 * delta_ur * norm_ncdm * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-          ppw->pv->y[idx+1] =  -epsilon/3./q/k*theta_ur* pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+          ppw->pv->y[idx+1] =  -epsilon/3./q/k*theta_ur* norm_ncdm * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-          ppw->pv->y[idx+2] = -0.5 * shear_ur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+          /* Psi_2 = -F_2/4 dlnf0/dlnq with F_2 = 2 s_2 shear_ur in curved space (see the ur shear equation) */
+          ppw->pv->y[idx+2] = -0.5 * ppw->s_l[2] * shear_ur * norm_ncdm * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-          ppw->pv->y[idx+3] = -0.25 * l3_ur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+          ppw->pv->y[idx+3] = -0.25 * l3_ur * norm_ncdm * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
           //Jump to next momentum bin:
           idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
@@ -6944,8 +7011,8 @@ int perturbations_approximations(
 
       /** - ----> (b.2.b) check whether tight-coupling approximation should be on */
 
-      if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h) &&
-          (tau_c/tau_k < ppr->tight_coupling_trigger_tau_c_over_tau_k)) {
+      if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h_vec) &&
+          (tau_c/tau_k < ppr->tight_coupling_trigger_tau_c_over_tau_k_vec)) {
         ppw->approx[ppw->index_ap_tca] = (int)tca_on;
       }
       else {
@@ -6996,8 +7063,8 @@ int perturbations_approximations(
       tau_c = 1./ppw->pvecthermo[pth->index_th_dkappa];
 
       /** - ----> (b.2.b) check whether tight-coupling approximation should be on */
-      if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h) &&
-          (tau_c/tau_k < ppr->tight_coupling_trigger_tau_c_over_tau_k)) {
+      if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h_ten) &&
+          (tau_c/tau_k < ppr->tight_coupling_trigger_tau_c_over_tau_k_ten)) {
         ppw->approx[ppw->index_ap_tca] = (int)tca_on;
       }
       else {

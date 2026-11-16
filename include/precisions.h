@@ -14,14 +14,14 @@ class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
  */
 class_precision_parameter(background_Nloga,int,40000)
 /**
- * Evolver to be used for thermodynamics (rk, ndf15)
+ * Evolver to be used for the background (rk, ndf15, rkdp45)
  */
 class_type_parameter(background_evolver,int,enum evolver_type,ndf15)
 /**
  * Tolerance of the background integration, giving the allowed relative integration error.
  * (used by both evolvers)
  */
-class_precision_parameter(tol_background_integration,double,1.e-10)
+class_precision_parameter(tol_background_integration,double,1.e-7)
 /**
  * Only relevant for rk evolver: the default integration step is given
  * by this number multiplied by the timescale defined in
@@ -137,14 +137,14 @@ class_precision_parameter(thermo_Nz_lin,int,20000)
  */
 class_precision_parameter(thermo_Nz_log,int,5000)
 /**
- * Evolver to be used for thermodynamics (rk, ndf15)
+ * Evolver to be used for thermodynamics (rk, ndf15, rkdp45)
  */
 class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
 /**
  * Tolerance of the relative value of integral during thermodynamical integration
  * (used by both evolvers)
  */
-class_precision_parameter(tol_thermo_integration,double,1.0e-6)
+class_precision_parameter(tol_thermo_integration,double,1.0e-7)
 /**
  * Only relevant for rk evolver: the default integration step is given
  * by this number multiplied by the timescale defined in
@@ -154,7 +154,7 @@ class_precision_parameter(thermo_integration_stepsize,double,0.1)
 /**
  * Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards
  */
-class_precision_parameter(thermo_rate_smoothing_radius,int,50)
+class_precision_parameter(thermo_rate_smoothing_radius,int,10)
 /**
  * Redshift at which CLASS starts to test for too early re-ionization and/or incomplete recombination.
  */
@@ -230,7 +230,7 @@ class_string_parameter(hyrec_path,"/external/HyRec2020/","hyrec_path") /**< Path
  */
 
 class_precision_parameter(reionization_z_start_max,double,50.0) /**< Maximum starting value in z for reionization */
-class_precision_parameter(reionization_sampling,double,1.5e-2)  /**< Minimum sampling density in z during reionization */
+class_precision_parameter(reionization_sampling,double,1.e-2)  /**< Minimum sampling density in z during reionization */
 class_precision_parameter(reionization_optical_depth_tol,double,1.0e-4) /**< Relative tolerance on finding the user-given optical depth of reionization given a certain redshift of reionization */
 class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching optical depth corresponding to the redshift is started from an initial offset beyond z_reionization_start, multiplied by reionization_width */
 
@@ -248,9 +248,10 @@ class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshi
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
 class_precision_parameter(k_max_tau0_over_l_max,double,1.8) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two. In v3.2.2: lowered from 2.4 to 1.8, because the high value 2.4 was needed to keep CMB lensing accurate enough. With the new Limber scheme, this will be the case anyway, and k_max can be lowered in other observables in order to speed up the code. */
-class_precision_parameter(k_step_sub,double,0.05) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
+class_precision_parameter(k_max_tau0_above_l_max,double,2500.) /**< number defining k_max for the computation of scalar CMB Cl's (dimensionless): k_max tau_0 = max(k_max_tau0_over_l_max * l_max, l_max + k_max_tau0_above_l_max), where l_max is the input parameter l_max_scalars. The second expression is the larger one at small l_max. It is needed since, below l ~ 3000, the transfer functions still get contributions from wavenumbers above k_max_tau0_over_l_max * l / tau_0. At higher l these contributions are suppressed by diffusion damping. */
+class_precision_parameter(k_step_sub,double,0.08) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
 class_precision_parameter(k_step_super,double,0.002) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */
-class_precision_parameter(k_step_transition,double,0.2) /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
+class_precision_parameter(k_step_transition,double,0.4) /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
 class_precision_parameter(k_step_super_reduction,double,0.1) /**< the step k_step_super is reduced by this amount in the k-->0 limit (below scale of Hubble and/or curvature radius) */
 
 class_precision_parameter(k_per_decade_for_pk,double,10.0) /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
@@ -268,6 +269,7 @@ class_precision_parameter(start_small_k_at_tau_c_over_tau_h,double,0.0015) /**< 
 class_precision_parameter(start_large_k_at_tau_h_over_tau_k,double,0.07)  /**< largest wavelengths start being sampled when mode is sufficiently outside Hubble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ which is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
 class_precision_parameter(start_vectors_at_omega_tau,double,0.01) /**< value of omega*tau which gives an upper value for the starting tau when integrating vector modes. Decrease to start earlier in time*/
+class_precision_parameter(start_isocurvature_at_omega_tau,double,0.01) /**< value of omega*tau which gives an upper value for the starting tau when integrating non-adiabatic scalar modes (cdi, bi, nid, niv), whose initial conditions are series in omega*tau. Decrease to start earlier in time*/
 
 /**
  * when to switch off tight-coupling approximation: first condition:
@@ -285,7 +287,19 @@ class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h,double,0.015)
  * tight_coupling_trigger_tau_c_over_tau_k.
  * Decrease this value to switch off earlier in time.
  */
-class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k,double,0.01)
+class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k,double,0.04)
+
+/**
+ * The two conditions above, for tensor and vector modes. They are
+ * separate from the scalar ones since tensor B modes come from the
+ * photon polarisation at last scattering, which the tight-coupling
+ * approximation suppresses. Thus, tensor modes need the approximation
+ * to be switched off earlier than scalar modes.
+ */
+class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h_ten,double,0.015)
+class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k_ten,double,0.01)
+class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h_vec,double,0.015)
+class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k_vec,double,0.01)
 
 /**
  * when to switch off tight-coupling approximation:
@@ -348,9 +362,9 @@ class_precision_parameter(perturbations_sampling_stepsize,double,0.1)
 class_precision_parameter(perturbations_sampling_boost_above_age_fraction, double, 1.0)
 /**
  * control parameter for the precision of the perturbation integration,
- * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15
+ * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15 AND RKDP45
  */
-class_precision_parameter(tol_perturbations_integration,double,1.0e-5)
+class_precision_parameter(tol_perturbations_integration,double,1.0e-4)
 /**
  * cutoff relevant for controlling stiffness in the PPF scheme. It is
  * neccessary for the Runge-Kutta evolver, but not for ndf15. However,
@@ -392,7 +406,7 @@ class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for 
  * when to switch off ur (massless neutrinos / ultra-relativistic
  * relics) fluid approximation
  */
-class_precision_parameter(ur_fluid_trigger_tau_over_tau_k,double,30.0)
+class_precision_parameter(ur_fluid_trigger_tau_over_tau_k,double,20.0)
 class_precision_parameter(ncdm_fluid_approximation,int,ncdmfa_CLASS) /**< method for non-cold dark matter fluid approximation */
 /**
  * when to switch off ncdm (massive neutrinos / non-cold
@@ -403,9 +417,13 @@ class_precision_parameter(ncdm_fluid_trigger_tau_over_tau_k,double,31.0)
  * whether CMB source functions can be approximated as zero when
  * visibility function g(tau) is tiny
  */
-class_precision_parameter(neglect_CMB_sources_below_visibility,double,1.0e-3)
+class_precision_parameter(neglect_CMB_sources_below_visibility,double,2.0e-3)
 /**
- * The type of evolver to use: options are ndf15 or rk
+ * The type of evolver to use for the perturbations: options are ndf15,
+ * rk or rkdp45. If 'evolver' is not set in the input file, ndf15 is
+ * used for models with a species or an option that can make the
+ * perturbation equations stiff, and rkdp45 for all other models
+ * (see input_select_perturbations_evolver() in input.c).
  */
 class_type_parameter(evolver,int,enum evolver_type,ndf15)
 
@@ -441,11 +459,11 @@ class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing 
 class_precision_parameter(l_logstep,double,1.12) /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
 class_precision_parameter(hyper_x_min,double,1.0e-5)  /**< flat case: lower bound on the smallest value of x at which we sample \f$ \Phi_l^{\nu}(x)\f$ or \f$ j_l(x)\f$ */
-class_precision_parameter(hyper_sampling_flat,double,8.0)  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$, should remain >7.5 */
-class_precision_parameter(hyper_sampling_curved_low_nu,double,7.0)  /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ smaller than hyper_nu_sampling_step */
+class_precision_parameter(hyper_sampling_flat,double,12.0)  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$, should remain >7.5 */
+class_precision_parameter(hyper_sampling_curved_low_nu,double,8.0)  /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ smaller than hyper_nu_sampling_step */
 class_precision_parameter(hyper_sampling_curved_high_nu,double,3.0) /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ greater than hyper_nu_sampling_step */
 class_precision_parameter(hyper_nu_sampling_step,double,1000.0)  /**< open/closed cases: value of nu at which sampling changes  */
-class_precision_parameter(hyper_phi_min_abs,double,1.0e-10)  /**< small value of Bessel function used in calculation of first point x (\f$ \Phi_l^{\nu}(x) \f$ equals hyper_phi_min_abs) */
+class_precision_parameter(hyper_phi_min_abs,double,1.0e-8)  /**< small value of Bessel function used in calculation of first point x (\f$ \Phi_l^{\nu}(x) \f$ equals hyper_phi_min_abs) */
 class_precision_parameter(hyper_x_tol,double,1.0e-4)  /**< tolerance parameter used to determine first value of x */
 class_precision_parameter(hyper_flat_approximation_nu,double,4000.0)  /**< value of nu below which the flat approximation is used to compute Bessel function */
 
@@ -454,7 +472,7 @@ class_precision_parameter(q_linstep,double,0.45)         /**< asymptotic linear 
                                (comoving angular diameter distance to
                                recombination), very important for CMB */
 
-class_precision_parameter(q_logstep_spline,double,170.0) /**< initial logarithmic sampling step in q
+class_precision_parameter(q_logstep_spline,double,400.0) /**< initial logarithmic sampling step in q
                                 space, in units of \f$ 2\pi/r_a(\tau_{rec})\f$
                                 (comoving angular diameter distance to
                                 recombination), very important for CMB and LSS */
@@ -485,10 +503,22 @@ class_precision_parameter(q_numstep_transition,double,250.0) /**< number of step
 class_precision_parameter(q_logstep_limber,double,1.025) /**< new in v3.2.2: in the new 'full limber' scheme, logarithmic step for the k-grid (and q-grid) */
 class_precision_parameter(k_max_limber_over_l_max_scalars,double,0.001) /**< new in v3.2.2: in the new 'full limber' scheme, the integral runs up to k_max = l_max_scalars times this parameter (units of 1/Mpc) */
 
-class_precision_parameter(transfer_neglect_delta_k_S_t0,double,0.15) /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
-class_precision_parameter(transfer_neglect_delta_k_S_t1,double,0.04) /**< same for temperature source function T1 of scalar mode */
+/* The scalar CMB transfer function at multipole l is set to zero for wavenumbers
+   k > l/r_a(tau_rec) + delta_k(l), with r_a(tau_rec) the comoving angular diameter distance to
+   recombination. At larger k, the source function only overlaps with the oscillating tail of
+   the Bessel function, and the transfer function is negligible. For each source function X,
+   delta_k(l) = transfer_neglect_delta_k_S_X sqrt(l / (l + transfer_neglect_l_half_S_X)).
+   It increases with l since at low l the integrand becomes negligible closer to l/r_a(tau_rec)
+   than at high l. With transfer_neglect_l_half_S_X = 0, delta_k is the same for all l, as in
+   v3.4.2 and earlier versions. */
+class_precision_parameter(transfer_neglect_delta_k_S_t0,double,0.19) /**< for temperature source function T0 of scalar mode, the value of delta_k(l) at large l, in 1/Mpc (see above) */
+class_precision_parameter(transfer_neglect_delta_k_S_t1,double,0.05) /**< same for temperature source function T1 of scalar mode */
 class_precision_parameter(transfer_neglect_delta_k_S_t2,double,0.15) /**< same for temperature source function T2 of scalar mode */
-class_precision_parameter(transfer_neglect_delta_k_S_e,double,0.11)  /**< same for polarization source function E of scalar mode */
+class_precision_parameter(transfer_neglect_delta_k_S_e,double,0.165)  /**< same for polarization source function E of scalar mode */
+class_precision_parameter(transfer_neglect_l_half_S_t0,double,50.) /**< for temperature source function T0 of scalar mode, the multipole at which delta_k(l) is transfer_neglect_delta_k_S_t0/sqrt(2) (see above) */
+class_precision_parameter(transfer_neglect_l_half_S_t1,double,20.) /**< same for temperature source function T1 of scalar mode */
+class_precision_parameter(transfer_neglect_l_half_S_t2,double,100.) /**< same for temperature source function T2 of scalar mode */
+class_precision_parameter(transfer_neglect_l_half_S_e,double,400.)  /**< same for polarization source function E of scalar mode */
 class_precision_parameter(transfer_neglect_delta_k_V_t1,double,1.0) /**< same for temperature source function T1 of vector mode */
 class_precision_parameter(transfer_neglect_delta_k_V_t2,double,1.0) /**< same for temperature source function T2 of vector mode */
 class_precision_parameter(transfer_neglect_delta_k_V_e,double,1.0)  /**< same for polarization source function E of vector mode */

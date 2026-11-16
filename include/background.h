@@ -9,6 +9,9 @@
 #include "arrays.h"
 #include "dei_rkck.h"
 #include "parser.h"
+#include "evolver_ndf15.h"
+#include "evolver_rkck.h"
+#include "evolver_rkdp45.h"
 
 /** list of possible parametrisations of the DE equation of state */
 
@@ -274,6 +277,12 @@ struct background
       *
       * having one of these flag set to zero allows to skip the
       * corresponding contributions, instead of adding null contributions.
+      *
+      * WARNING: if you add a species whose perturbation equations can
+      * be stiff, add its flag to the list in
+      * input_select_perturbations_evolver() (input.c). Otherwise the
+      * perturbations will be integrated with the explicit evolver
+      * rkdp45 by default.
       */
 
 

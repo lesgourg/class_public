@@ -1563,9 +1563,7 @@ int thermodynamics_solve(
   /* contains all fixed parameters which should be passed to thermodynamics_derivs */
   struct thermodynamics_parameters_and_workspace tpaw;
 
-  /* function pointer to ODE evolver and names of possible evolvers. */
-  extern int evolver_rk(EVOLVER_PROTOTYPE);
-  extern int evolver_ndf15(EVOLVER_PROTOTYPE);
+  /* function pointer to ODE evolver */
   int (*generic_evolver)(EVOLVER_PROTOTYPE) = evolver_ndf15;
 
   /** - choose evolver */
@@ -1575,6 +1573,9 @@ int thermodynamics_solve(
     break;
   case ndf15:
     generic_evolver = evolver_ndf15;
+    break;
+  case rkdp45:
+    generic_evolver = evolver_rkdp45;
     break;
   }
 
@@ -2192,9 +2193,7 @@ int thermodynamics_reionization_evolve_with_tau(
   struct thermodynamics * pth;
   struct thermo_workspace * ptw;
 
-  /* function pointer to ODE evolver and names of possible evolvers */
-  extern int evolver_rk(EVOLVER_PROTOTYPE);
-  extern int evolver_ndf15(EVOLVER_PROTOTYPE);
+  /* function pointer to ODE evolver */
   int (*generic_evolver)(EVOLVER_PROTOTYPE) = evolver_ndf15;
 
   /* pointers towards two thermo vector stuctures (see below) */
@@ -2217,6 +2216,9 @@ int thermodynamics_reionization_evolve_with_tau(
     break;
   case ndf15:
     generic_evolver = evolver_ndf15;
+    break;
+  case rkdp45:
+    generic_evolver = evolver_rkdp45;
     break;
   }
 
