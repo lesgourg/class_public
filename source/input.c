@@ -1732,6 +1732,12 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
+  /** Choose the evolver for the perturbations, unless 'evolver' is set in the input file */
+  class_call(input_select_perturbations_evolver(pfc,ppr,pba,pth,ppt,
+                                                errmsg),
+             errmsg,
+             errmsg);
+
   return _SUCCESS_;
 
 }
@@ -5237,6 +5243,13 @@ int input_read_parameters_lensing(struct file_content * pfc,
       class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCl', and also, importantly, 'lCl', the CMB lensing potential spectrum.");
     }
   }
+  /* Without lensed Cl's, l_scalar_max is not increased, and we set
+     delta_l_max to zero. Then l_scalar_max - delta_l_max is always
+     the input parameter l_max_scalars (this is used in
+     perturbations_get_k_list()) */
+  else {
+    ppr->delta_l_max = 0;
+  }
 
 
   /** 2) Should the lensed spectra be rescaled (either with just A_L, or otherwise with amplitude, and tilt and pivot scale in k space) */
@@ -5593,6 +5606,76 @@ int input_read_parameters_additional(struct file_content* pfc,
 
 }
 
+
+/**
+ * Choose the evolver for the perturbations if the user has not set
+ * 'evolver' in the input file.
+ *
+ * Whether the system of perturbation equations is stiff depends on the
+ * model. With the tight-coupling approximation, the equations of the
+ * standard species are not stiff, and the explicit Dormand-Prince
+ * evolver rkdp45 is faster than ndf15 for the same accuracy. Some
+ * species and options make the system stiff, and an explicit evolver
+ * then has to take very small steps. Thus, we only use rkdp45 when none
+ * of them is present, and keep ndf15 otherwise.
+ *
+ * WARNING: the species and options that can make the system stiff are
+ * listed explicitly below. If you add a new one, you must add it to
+ * that list, otherwise the code will use rkdp45 for it.
+ *
+ * The default value of tol_perturbations_integration has been chosen
+ * for rkdp45. For ndf15, the same value gives a tighter integration.
+ *
+ * @param pfc     Input: pointer to local structure
+ * @param ppr     Input/Output: pointer to precision structure
+ * @param pba     Input: pointer to background structure
+ * @param pth     Input: pointer to thermodynamics structure
+ * @param ppt     Input: pointer to perturbations structure
+ * @param errmsg  Input: Error message
+ * @return the error status
+ */
+
+int input_select_perturbations_evolver(struct file_content * pfc,
+                                       struct precision * ppr,
+                                       struct background * pba,
+                                       struct thermodynamics * pth,
+                                       struct perturbations * ppt,
+                                       ErrorMsg errmsg){
+
+  /** Summary: */
+
+  /** - Define local variables */
+  int flag;
+  int int_param;
+
+  /** - If 'evolver' is set in the input file, keep that choice */
+  class_call(parser_read_int(pfc,"evolver",&int_param,&flag,errmsg),
+             errmsg,
+             errmsg);
+  if (flag == _TRUE_)
+    return _SUCCESS_;
+
+  /** - Keep the default ndf15 if the model has a species or an option
+      that can make the perturbation equations stiff: decaying dark
+      matter, decaying dark radiation, a scalar field, interacting dark
+      matter or dark radiation, perturbed recombination, or vector
+      modes. WARNING: a new species or option of this kind must be
+      added to this list. */
+  if ((pba->has_dcdm == _TRUE_) ||
+      (pba->has_dr == _TRUE_) ||
+      (pba->has_scf == _TRUE_) ||
+      (pba->has_idr == _TRUE_) ||
+      (pba->has_idm == _TRUE_) ||
+      (ppt->has_perturbed_recombination == _TRUE_) ||
+      (ppt->has_vectors == _TRUE_))
+    return _SUCCESS_;
+
+  /** - Otherwise, use the explicit Dormand-Prince evolver rkdp45 */
+  ppr->evolver = rkdp45;
+
+  return _SUCCESS_;
+
+}
 
 /**
  * Read the parameters of output structure.

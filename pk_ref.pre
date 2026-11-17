@@ -2,7 +2,8 @@
 
 tol_ncdm_bg = 1.e-10
 
-recfast_Nz0=100000
+thermo_Nz_lin=100000
+thermo_Nz_log=25000
 tol_thermo_integration=1.e-5
 
 recfast_x_He0_trigger_delta = 0.01
@@ -20,6 +21,10 @@ start_small_k_at_tau_c_over_tau_h = 0.0004
 start_large_k_at_tau_h_over_tau_k = 0.05
 tight_coupling_trigger_tau_c_over_tau_h=0.005
 tight_coupling_trigger_tau_c_over_tau_k=0.008
+tight_coupling_trigger_tau_c_over_tau_h_ten=0.005
+tight_coupling_trigger_tau_c_over_tau_k_ten=0.008
+tight_coupling_trigger_tau_c_over_tau_h_vec=0.005
+tight_coupling_trigger_tau_c_over_tau_k_vec=0.008
 start_sources_at_tau_c_over_tau_h = 0.006
 
 l_max_g=50
@@ -27,8 +32,8 @@ l_max_pol_g=25
 l_max_ur=150
 l_max_ncdm=50
 
-tol_perturb_integration=1.e-6
-perturb_sampling_stepsize=0.01
+tol_perturbations_integration=1.e-6
+perturbations_sampling_stepsize=0.01
 
 radiation_streaming_approximation = 2
 radiation_streaming_trigger_tau_over_tau_k = 240.

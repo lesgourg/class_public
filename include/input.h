@@ -437,6 +437,13 @@ extern "C" {
                                        struct thermodynamics * pth,
                                        ErrorMsg errmsg);
 
+  int input_select_perturbations_evolver(struct file_content * pfc,
+                                         struct precision * ppr,
+                                         struct background * pba,
+                                         struct thermodynamics * pth,
+                                         struct perturbations * ppt,
+                                         ErrorMsg errmsg);
+
   int input_read_parameters_output(struct file_content * pfc,
                                    struct background * pba,
                                    struct thermodynamics * pth,

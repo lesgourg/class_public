@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v3.4.2"
+#define _VERSION_ "v3.4.3"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -379,8 +379,9 @@ struct output;
  * list of evolver types for integrating perturbations over time
  */
 enum evolver_type {
-  rk, /* Runge-Kutta integrator */
-  ndf15 /* stiff integrator */
+  rk, /* Runge-Kutta Cash-Karp 5(4) explicit integrator with adaptive steps */
+  ndf15, /* stiff integrator */
+  rkdp45 /* Dormand-Prince 5(4) explicit Runge-Kutta integrator */
 };
 
 /**

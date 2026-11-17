@@ -509,6 +509,17 @@ class TestClass(unittest.TestCase):
                         'selection': 'tabulated', 'selection_file': '/nonexistent/selection.dat'})
         self.assertRaises(CosmoSevereError, self.cosmo.compute)
 
+    @attr('test_scenario')
+    def test_cmb_tt_at_small_l_max(self):
+        """Check that the TT spectrum up to l = 200 is the same for l_max_scalars = 200 and l_max_scalars = 1000"""
+        self.cosmo.set({'output': 'tCl', 'l_max_scalars': 200})
+        self.cosmo.compute()
+        tt_200 = self.cosmo.raw_cl(200)['tt'][2:]
+        self.cosmo_newt.set({'output': 'tCl', 'l_max_scalars': 1000})
+        self.cosmo_newt.compute()
+        tt_1000 = self.cosmo_newt.raw_cl(200)['tt'][2:]
+        self.assertLess(np.max(np.abs(tt_200/tt_1000-1.)), 1.e-3)
+
     def has_incompatible_input(self):
 
         should_fail = False
