@@ -142,8 +142,19 @@ int hyperspherical_HIS_create(int K,
       PhiL[lmax+1] = 0.0;
       lmax--;
     }
-    //Use backwards method:
-    hyperspherical_backwards_recurrence(K,
+    //Use forwards method at chi = n*pi/4:
+    if ((K == 1) && (fabs(sin(4.0 * pHIS->x[j])) < _TRIG_PRECISSION_))
+      hyperspherical_forwards_recurrence(K,
+                                        MIN(l_recurrence_max,lmax)+1,
+                                        beta,
+                                        pHIS->x[j],
+                                        pHIS->sinK[j],
+                                        pHIS->cotK[j],
+                                        sqrtK,
+                                        one_over_sqrtK,
+                                        PhiL);
+    else
+      hyperspherical_backwards_recurrence(K,
                                         MIN(l_recurrence_max,lmax)+1,
                                         beta,
                                         pHIS->x[j],
