@@ -123,28 +123,28 @@ System
 <table>
   <tr><td><hr color=#d2b48c></td></tr>
 	  <tr><td bgcolor="black">
-	<a href="class.html#download">
+	<a href="index.html#download">
 	&gt;&nbsp;Download
 	</a>
 	  </td></tr>
 	  <tr><td bgcolor="black">
 
-	<a href="class.html#documentation">
+	<a href="index.html#documentation">
 &gt;&nbsp;Documentation
 	</a>
 	  </td></tr>
 	  <tr><td bgcolor="black">
-	  <a href="class.html#papers">
+	  <a href="index.html#papers">
 	  &gt;&nbsp;Papers
 	</a>
 	  </td></tr>
 	  <tr><td bgcolor="black">
-	<a href="class.html#versions">
+	<a href="index.html#versions">
 	  &gt;&nbsp;Versions
 	  </a>
 	  </td></tr>
 	  <tr><td bgcolor="black">
-	<a href="class.html#contact">
+	<a href="index.html#contact">
 	&gt;&nbsp;Support
 	</a>
 	  </td></tr>
@@ -160,84 +160,49 @@ System
   <p align="center"> Julien Lesgourgues, Nils Sch&ouml;neberg, Thomas Tram </p>
 
   <!--Its name also comes from the fact that it is written in object-oriented style mimicking the notion of class. Classes are a wonderfull programming feature available e.g. in C++ and python, but these languages are known to be less vectorizable/parallelizable than plain C (or Fortran), and hence potentially slower. For CLASS we choose to use plain C for high performances, while organizing the code in a few modules that reproduce the architecture and philosophy of C++ classes, for optimal readability and modularity.-->
-<p>
-<h2><a name="download">Download</a></h2>
+  <p>
+<hr color=#d2b48c>
+<h2><a name="download">Download and installation</a></h2>
 <p>
 The use of CLASS is free provided that when you use it in a publication, you cite at least the paper <a href="http://arxiv.org/abs/1104.2933">CLASS II: Approximation schemes</a> (reference below). You are welcome to cite any other CLASS paper if relevant!
 <p>
-  There are three ways to get to use CLASS. If you only want to use it through its python wrapper <tt>classy</tt> and not modify it, just install it as a python module with <tt>pip3 install classy</tt>. If you want to see the code and/or modify it just for yourself, download a tar.gz archive of the latest released (master branch) version, v3.4.3, by clicking <a href="class_public-3.4.3.tar.gz" download="class_public-3.4.3.tar.gz">class_public-3.4.3.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
-<br>
+  There are three ways to get CLASS:
+  <li> If you only want to use it from python and not modify it, just install it as a python module with <tt>pip install classy</tt> (or <tt>pip3 ...</tt>). <tt>classy</tt> is the name of the pyhton wrapper of the C code.
+    <p>
+      <li> If you are familiar with <tt>git</tt> repositories, and you wish to develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository. Then, go to the class directory (<tt>cd class_public-v3.4.3/</tt>) and build the python module from the downloaded code with <tt>pip install .</tt> (if you prefer, you may compile only the C code with <tt>make -j class</tt>).
+        <p>
+  <li> If you don't want to use git, you may download a tar.gz archive of the latest released (master branch) version, v3.4.3, by clicking <a href="class_public-3.4.3.tar.gz" download="class_public-3.4.3.tar.gz">class_public-3.4.3.tar.gz</a>. Then, unpack the archive (<tt>tar -zxvf
+class_public-v3.4.3.tar.gz</tt>), go to the class directory, and follow the same steps as described in the previous point.
+<p>
 <hr color=#d2b48c>
 <h2><a name="documentation">Documentation</a></h2>
 
-After downloading the code, unpack the archive (<tt>tar -zxvf
-class_public-vx.y.z.tar.gz</tt>), go to the class directory (<tt>cd
-  class_public-vx.y.z/</tt>) and compile. Several details on the CLASS compilation are given on the <a
-href="https://github.com/lesgourg/class_public/wiki/Installation"
-target="_blank"> installation wiki page</a>. In a nutshell:
-
 <p>
-
-<li> If you are only interested in running CLASS through its python wrapper <tt>classy</tt>,
-install it with <tt>pip3 install .</tt> (since v3.3.0; before you had to execute <tt>make clean; make -j all</tt>).
-To check that things work, you may run any of our demo python scripts located in <tt>scripts/</tt> (e.g. <tt>python scripts/warmup.py</tt>), or any of the equivalent jupyter notebooks located in <tt>notebooks/</tt>.
-
+<li> The <tt>explanatory.ini</tt> file is a reference file containing and
+explaning the name and the use of all possible input parameters.
+These parameters do not need to be passed in each run since they are
+always assigned simple default values before parsing the user input. We recommend to
+read <tt>explanatory.ini</tt> to check what the code can do, to keep
+it unchanged (for future reference), and to create for your own
+purposes some shorter input files (for the C code) or input
+dictionaries (for the python module), containing only the input
+parameters that are useful for you.
 <p>
-
-<li> If instead you are interested in compiling the C code and running in a terminal, execute <tt>make clean; make -j class</tt>.
-To check that the code runs, type: <tt>./class explanatory.ini</tt>
-The <tt>explanatory.ini</tt> file is a reference input file,
-containing and explaning the use of all possible input parameters. We
-recommend to read it, to keep it unchanged (for future reference), and
-to create for your own purposes some shorter input files, containing
-only the input lines which are useful for you. Input files must have a
-<tt>*.ini</tt> extension.
-If you want to play with the precision/speed of the code, you can use
-one of the provided precision files (e.g. <tt>cl_permille.pre</tt>) or
-modify one of them, and run with two input files (e.g. <tt>./class
-test.ini cl_permille.pre</tt>).
-
+<li> The functionalities of the python module <tt>classy</tt> are documented in  <a href="https://class-code.readthedocs.io/en/latest/"
+target="_blank">class-code.readthedocs.io</a>
 <p>
-
-For more details, view
+<li> For more technical details and a description of the full code (which is in any case in C/C++, <tt>classy</tt> is only a wrapper), view
 our <a href="class_public-3.3.0/doc/manual/html/index.html">online
 html documentation</a> generated by doxygen (credits D.C.
-Hooper). Other CLASS papers dedicated to various aspects of the code
-are listed <a href="class.html#papers">below</a>. You can also look
+Hooper).
+<p>
+<li> Other CLASS papers dedicated to various aspects of the code
+are listed <a href="index.html#papers">below</a>.
+<p>
+<li> You may also look
 at <a href="https://lesgourg.github.io/courses.html"
 target="_blank"> slides from CLASS-dedicated courses</a>.
-
 <p>
-
-To use CLASS from python, or ipython notebooks, or from the Monte
-Python parameter extraction code, you need to compile not only the
-code, but also its python wrapper. This can be done by typing just
-<tt>make</tt> instead of <tt>make class</tt>. More details on the
-wrapper and its compilation are found on the <a
-href="https://github.com/lesgourg/class_public/wiki" target="_blank">wiki
-page</a>.
-
-<p>
-
-Since version 2.3, the package includes an improved plotting script
-called <tt>CPU.py</tt> (Class Plotting Utility), written by Benjamin
-Audren and Jesus Torrado. It can plot the Cl&apos;s, the P(k) or any other
-CLASS puput, for one or several models, as well as their ratio or
-percentage difference. The syntax and list of available options is
-obtained by typing <tt>pyhton CPU.py --help</tt>. There is a similar
-script for MATLAB, written by Thomas Tram. To use it, once in MATLAB,
-type <tt>help plot_CLASS_output.m</tt>
-
-<p>
-
-If you want to develop the code, we
-suggest that you download it from the <a
-href="https://github.com/lesgourg/class_public" target="_blank"> github
-webpage</a> rather than from class-code.net. Then you will enjoy all
-the feature of git repositories. You can even develop your own branch
-and get it merged to the public distribution, following the <a
-href="https://github.com/lesgourg/class_public/wiki/Public-Contributing"
-target="_blank"> public contributing instructions</a>.
 
 <hr color=#d2b48c>
 <h2><a name="papers">Papers</a></h2>
@@ -284,15 +249,18 @@ target="_blank"> public contributing instructions</a>.
   <li>GW_CLASS: Cosmological Gravitational Wave Background in the cosmic linear anisotropy solving system,
     by F. Schulze, L. Valbusa Dall'Armi, J. Lesgourgues, A. Ricciardone, N. Bartolo, D. Bertacca, C. Fidler and S. Matarrese
     <a href="https://arxiv.org/abs/2305.01602" target="_blank">JCAP 10 (2023) 025</a>
+</ul>
+
+<hr color=#d2b48c>
 <h2><a name="versions">Version history</a></h2>
 
 The developement of CLASS benefits from various
 essential contributors credited below. In absence of specific credits,
 developements are written by the main CLASS authors: Julien
-Lesgourgues, Thomas Tram, and since 2018, Nils Sch&ouml;neberg.  <p>
+Lesgourgues (since 2009), Thomas Tram (since 2011), Nils Sch&ouml;neberg (since 2018).  <p>
 
 In case you are interested in downloading an old version, go to the
-<a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> page. Close to the branch name (by default <em>master</em>) you can click on <em>branches</em> or <em>tags</em>. Click <em>tags</em> and you&apos;ll get access to <tt>zip</tt> or <tt>tar.gz</tt> archives of each previous minor release <tt>vx.y.z</tt>.
+<a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> page. Close to the branch name (by default <em>master</em>) you can click on <em>branches</em> or <em>tags</em>. Click <em>tags</em> and you&apos;ll be able to see and clone the corresponding commit (or download the corresponding <tt>zip</tt> or <tt>tar.gz</tt>).
 <p>
 
   <table>
@@ -306,7 +274,7 @@ In case you are interested in downloading an old version, go to the
           <li> Several minor bug fixes.
           <li> 4.10.2026 (<tt>v3.4.1</tt>): much higher accuracy for CMB lensing potential Cl's at low l:  <tt>l_switch_limber</tt> increased to 30; improved time sampling for transfer source function of CMB lensing, controlled by new precision parameters <tt>cmb_lensing_sampling_factor</tt> and <tt>_fraction</tt>; previous accuracy parameter <tt>perturbations_sampling_boost_above_age_fraction</tt> set by default to 1, that is, feature disabled (thanks to C. Pitrou).
           <li> 5.11.2026 (<tt>v3.4.2</tt>): new option <tt>'tabulated'</tt> for the input field <tt>'selection'</tt>. This allows the user to pass tabulated selection functions dN/dz for each bin, through an input <tt>'selection_file'</tt>. This adds up to the previous option of passing a global dNdz and multiplying it by a Gaussian, top-hat or Dirac in each bin. See details in <tt>'explanatory'</tt>, and an example of input file in <tt>'myselection_bins.dat'</tt>. Besides, some internal functions of the transfer module have been extensively restructured for more clarity, homogeneity, performance and accuracy. Everything that distinguishes transfer types is defined once before the main loops. The code avoids previous redundancies, fixes an accuracy issue when using very narrow redshift bins in density Cls, and uses more efficient schemes. (Changes defined by us and implemented by ClaudeCode 5.5.)
-          <li> 17.11.2026 (<tt>v3.4.3</tt>): about 3x speed up (with slighty enhanced precision with respect to cosmic variance and instrumental noise: default settings tested to be sufficient for MCMC fits to Planck+SPT+ACT). New optimisation of existing precision parameters, improved l-dependent scheme to cut scalar CMB transfer functions at large k, and new Dormand-Prince 5(4) evolver, <tt>rkdp45</tt>. CLASS still uses ndf15 for perturbations in situations where the system is very stiff, and defaults to rkdp45 otherwise (logic defined in <tt>input_select_perturbations_evolver()</tt>). Also, minor bug fix related to the TAM hierarchy for tensor, and increased accuracy for the CPL model. (Profiling and checking performed by ClaudeCode 5.5.)
+          <li> 17.11.2026 (<tt>v3.4.3</tt>): about 3x speed up (with slighty enhanced precision with respect to cosmic variance and instrumental noise: default settings tested to be sufficient for MCMC fits to Planck+SPT+ACT). New optimisation of existing precision parameters, improved l-dependent scheme to cut scalar CMB transfer functions at large k, and new Dormand-Prince 5(4) evolver, <tt>rkdp45</tt>. CLASS still uses <tt>ndf15</tt> for perturbations in situations where the system is very stiff, and defaults to <tt>rkdp45</tt> otherwise (logic defined in <tt>input_select_perturbations_evolver()</tt>). Also, minor bug fix related to the TAM hierarchy for tensor, and increased accuracy for the CPL model. (Profiling and checking performed by ClaudeCode 5.5.)
         </ul>
       </td>
     </tr>
@@ -836,11 +804,13 @@ press <tt>Submit new issue</tt>. Your text will automatically be sent
 by e-mail to the class developpers, and they will answer you as soon
 as possible.  <br> If your question is related to the MontePython
 code, you should do the same but on the <a
-href="https://github.com/brinckmann/montepython_public"
-target="_blank">montepython_public</a> page.  <hr color=#d2b48c> </td>
+href="https://github.com/brinckmann/montepython_public" target="_blank">montepython_public</a> page.
+
+<p>
+  <hr color=#d2b48c> </td>
 <td width=30> </td> </table>
 
 <h5>Webmaster Julien Lesgourgues; thanks to Diego Blas for aesthetic advices.</hr>
-<h5>Last update on the 17.11.2026</h5>
+<h5>Last update on the 18.11.2026</h5>
 </body>
 </html>
