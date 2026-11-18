@@ -1,0 +1,95 @@
+diff -uNr -x '*.o' -x '*.pyc' -x __pycache__ -x build -x class_env class_public/include/perturbations.h class_gddv2/include/perturbations.h
+--- class_public/include/perturbations.h        2026-04-28 01:51:06.183024227 +0000
++++ class_gddv2/include/perturbations.h 2026-04-28 13:42:22.721796057 +0000
+@@ -228,6 +228,10 @@
+   int index_ic_ten; /**< index value for unique possibility for tensors */
+
+   int * ic_size;       /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
++  double xi_gdd;
++
++  double mu_gdd;
++  int gdd_mode;
+
+   //@}
+
+diff -uNr -x '*.o' -x '*.pyc' -x __pycache__ -x build -x class_env class_public/source/input.c class_gddv2/source/input.c
+--- class_public/source/input.c 2026-04-28 01:51:06.190357560 +0000
++++ class_gddv2/source/input.c  2026-04-28 13:43:35.780053357 +0000
+@@ -2536,6 +2536,32 @@
+     Omega_m_remaining-= pba->Omega0_b;
+   }
+
++/** GDDv2 parameter: xi_gdd */
++class_call(parser_read_double(pfc,"xi_gdd",&ppt->xi_gdd,&flag1,errmsg),
++           errmsg,
++           errmsg);
++
++if (flag1 == _FALSE_) {
++  ppt->xi_gdd = 1.0;
++}
++
++class_call(parser_read_double(pfc,"mu_gdd",&ppt->mu_gdd,&flag1,errmsg),
++           errmsg,
++           errmsg);
++
++if (flag1 == _FALSE_) {
++  ppt->mu_gdd = 1.0;
++}
++
++class_call(parser_read_int(pfc,"gdd_mode",&ppt->gdd_mode,&flag1,errmsg),
++           errmsg,
++           errmsg);
++
++if (flag1 == _FALSE_) {
++  ppt->gdd_mode = 0;
++}
++
++
+   /** 5) Non-cold relics (ncdm) */
+   /** 5.a) Number of non-cold relics */
+   /* Read */
+diff -uNr -x '*.o' -x '*.pyc' -x __pycache__ -x build -x class_env class_public/source/perturbations.c class_gddv2/source/perturbations.c
+--- class_public/source/perturbations.c 2026-04-28 01:51:06.194024227 +0000
++++ class_gddv2/source/perturbations.c  2026-04-28 13:47:11.695598462 +0000
+@@ -6946,21 +6946,34 @@
+
+     /* cdm contribution */
+     if (pba->has_cdm == _TRUE_) {
+-      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm]; // contribution to total perturbed stress-energy
+-      if (ppt->gauge == newtonian)
++if (ppt->gdd_mode == 0) {
++  ppw->delta_rho += ppt->xi_gdd * ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
++}
++else {
++  ppw->delta_rho += ppt->mu_gdd * ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
++}
++
++if (ppt->gauge == newtonian)
+         ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm]; // contribution to total perturbed stress-energy
+
+       ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_cdm];
+
+-      if (ppt->has_source_delta_m == _TRUE_) {
+-        delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm]; // contribution to delta rho_matter
+-        rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
+-      }
++if (ppt->has_source_delta_m == _TRUE_) {
++if (ppt->gdd_mode == 0) {
++  delta_rho_m += ppt->xi_gdd * ppw->pvecback[pba->index_bg_rho_cdm] * y[ppw->pv->index_pt_delta_cdm];
++  rho_m += ppt->xi_gdd * ppw->pvecback[pba->index_bg_rho_cdm];
++}
++else {
++  delta_rho_m += ppt->mu_gdd * ppw->pvecback[pba->index_bg_rho_cdm] * y[ppw->pv->index_pt_delta_cdm];
++  rho_m += ppt->mu_gdd * ppw->pvecback[pba->index_bg_rho_cdm];
++}
++}
++
+       if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
+         if (ppt->gauge == newtonian)
+           rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm]; // contribution to [(rho+p)theta]_matter
+         rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
+-      }
++     }
+     }
+
+     /* idm contribution */
