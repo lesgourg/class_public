@@ -2,6 +2,10 @@
 name = "classy"
 dynamic=["version"]
 description="Python interface to the Cosmological Boltzmann code CLASS"
+# CHANGED: runtime dependencies were not declared, so 'pip install classy'
+# did not install what python/classy.pyx imports at run time (numpy, and
+# scipy.interpolate); they were previously only build requirements (numpy).
+dependencies = ["numpy", "scipy"]
 authors = [
   {name = "Julien Lesgourgues"},
   {name = "Thomas Tram"},
