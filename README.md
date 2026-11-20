@@ -21,19 +21,52 @@ class_vx.y.z.tar.gz), or clone it from
 https://github.com/lesgourg/class_public. Go to the class directory
 (cd class/ or class_public/ or class_vx.y.z/) and compile (make clean;
 make class). You can usually speed up compilation with the option -j:
-make -j class. If the first compilation attempt fails, you may need to
-open the Makefile and adapt the name of the compiler (default: gcc),
-of the optimization flag (default: -O4 -ffast-math) and of the OpenMP
-flag (default: -fopenmp; this flag is facultative, you are free to
-compile without OpenMP if you don't want parallel execution; note that
-you need the version 4.2 or higher of gcc to be able to compile with
--fopenmp). Many more details on the CLASS compilation are given on the
-wiki page
+make -j class.
+
+You need a C compiler, a C++11 compiler (part of CLASS is C-style code
+compiled as C++), and make. On macOS, install the Xcode Command Line
+Tools (xcode-select --install); on Linux, install gcc/g++ and make from
+your distribution. See "Choosing the compilers" below for using other
+compilers, including those of a conda environment.
+
+If the first compilation attempt fails, you may need to open the Makefile
+and adapt the optimization flag (default: -O3) and the threading flag
+(default: -pthread; CLASS no longer uses OpenMP by default, the line
+with -fopenmp in the Makefile is commented out). Many more details on
+the CLASS compilation are given on the wiki page
 
 https://github.com/lesgourg/class_public/wiki/Installation
 
-(in particular, for compiling on Mac >= 10.9 despite of the clang
-incompatibility with OpenMP).
+Choosing the compilers: the Makefile takes the C compiler from the
+variable CC and the C++ compiler from the variable CXX. If you do not
+set them, it uses "cc" and "c++", i.e. the system compilers (Apple clang on macOS, usually gcc/g++
+on Linux). To use other compilers, set both variables, on the make
+command line or in the environment (the environment also works for
+"pip install", where the make command line is not accessible):
+
+    make -j class CC=gcc-14 CXX=g++-14       # e.g. Homebrew gcc on macOS
+    CC=gcc-14 CXX=g++-14 pip install .       # same, for the python wrapper
+
+Always set CC and CXX together and from the same compiler family (clang
+and clang++, or gcc and g++): the C++ standard library used by the C and
+C++ parts of CLASS and by the python wrapper must be the same. After
+changing compilers, run "make clean" first, because make does not
+notice that the compiler changed.
+
+In a conda environment, install the compilers and python packages with
+
+    conda install compilers python numpy scipy cython setuptools wheel pip
+
+(or "clang_osx-arm64 clangxx_osx-arm64", "clang_osx-64 clangxx_osx-64"
+instead of "compilers" on macOS). Depending on the conda package,
+activating the environment either defines CC and CXX (the
+clang_osx-* packages), which the Makefile then uses, or defines nothing
+but provides "cc" and "c++" (the "compilers" package, version 2.0), which
+the Makefile uses by default. Either way the conda compilers are used,
+with no further action. (Both cases were tested on macOS arm64. The
+Fortran compiler of the "compilers" package is not needed by CLASS.)
+BUILD_SYSTEM_FIXES.md explains these choices in detail, including what
+was and was not tested.
 
 To check that the code runs, type:
 
@@ -73,7 +106,12 @@ Python
 To use CLASS from python, or ipython notebooks, or from the Monte
 Python parameter extraction code, you need to compile not only the
 code, but also its python wrapper. This can be done by typing just
-'make' instead of 'make class' (or for speeding up: 'make -j'). More
+'make' instead of 'make class' (or for speeding up: 'make -j'), or with
+'pip install .' (which also works as 'pip install classy' from PyPI).
+The wrapper needs numpy, scipy and cython; in a conda environment,
+install them first and use 'pip install --no-build-isolation .' so that
+the build uses the environment's own numpy and cython. The compilers are
+chosen as described in "Choosing the compilers" above. More
 details on the wrapper and its compilation are found on the wiki page
 
 https://github.com/lesgourg/class_public/wiki

@@ -18,11 +18,58 @@ vpath .base build
 ###### LINES TO ADAPT TO YOUR PLATEFORM ################
 ########################################################
 
-# your C compiler:
-CC       = gcc
-#CC       = icc
-#CC       = pgcc
-CPP      = g++ --std=c++11 -fpermissive -Wno-write-strings
+# Your C and C++ compilers.
+#
+# CC and CXX are chosen, in decreasing order of priority, from:
+#   1. the make command line:   make CC=gcc-14 CXX=g++-14
+#   2. the environment:         export CC=... CXX=...
+#      (conda's clang_osx-*/gcc_linux-* packages set these when the
+#      environment is activated, and pip passes the environment on to make)
+#   3. the defaults chosen below ('cc' and 'c++').
+# Always set CC and CXX together, from the same compiler family: the C++
+# standard library used by libclass.a and by the python extension must match
+# (libc++ with clang, libstdc++ with gcc), otherwise linking fails.
+#
+# CHANGED: CC used to be hardcoded as 'gcc' ("CC = gcc"), and the C++ compiler
+# as "CPP = g++ ...". A plain assignment in a Makefile overrides the
+# environment, so a user's CC/CXX (and conda's) were silently ignored and
+# /usr/bin/gcc and /usr/bin/g++ were always used, even inside a conda
+# environment with its own compilers. Only the make command line could change
+# them, and that is not reachable through 'pip install'.
+#
+# CC: make has a built-in default (CC = cc), which the environment and the
+# command line already override, so CC is deliberately NOT assigned here.
+# We default to the generic name 'cc' rather than 'gcc' because:
+#   - on macOS 'gcc' is always Apple clang (cc is too, so nothing is lost);
+#   - in a conda environment created with the 'compilers' metapackage
+#     'gcc' is a real GNU gcc while 'cc' and 'c++' are conda's clang, so
+#     'cc' and 'c++' are the pair that belongs together;
+#   - on Linux 'cc' is the system compiler, normally gcc.
+# Other compilers (icc, pgcc, ...) can be selected with CC=icc, CXX=icpc, etc.
+#
+# CXX: make's built-in default is 'g++', which would pair a conda 'cc' (clang)
+# with a system 'g++' (see above). Override that default only if the user has
+# not set CXX ('origin' is 'default' only when neither the environment nor
+# the command line defined it).
+ifeq ($(origin CXX),default)
+CXX = c++
+endif
+
+# C++ language flags for the C++ compiler.
+# CHANGED: these were previously part of the compiler variable ("CPP = g++
+# --std=c++11 ..."). They are split out so that a user-supplied CXX (which
+# is a bare compiler name, e.g. conda's arm64-apple-darwin20.0.0-clang++)
+# still gets them. They are used as "$(CXX) $(CXXSTD)" below.
+#   --std=c++11          include/parallel.h needs C++11 (std::future etc.)
+#   -fpermissive         CLASS is C-style code compiled as C++ (see .opp)
+#   -Wno-write-strings   string literals are assigned to char *
+CXXSTD   = --std=c++11 -fpermissive -Wno-write-strings
+
+# CHANGED: the variable called CPP was removed. In make's and the
+# environment's convention CPP is the C *preprocessor* (conda sets
+# CPP=...-clang-cpp, make's built-in is "$(CC) -E"); the C++ compiler is CXX.
+# Using CPP for the C++ compiler made an environment-provided CPP unusable
+# and could not be combined with 'make -e'.
 
 # your tool for creating static libraries:
 AR        = ar rv
@@ -106,8 +153,18 @@ HEADERFILES += $(wildcard ./$(HMCODE)/*.h)
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
+# The .opp rule compiles the C sources that include parallel.h as C++ (the
+# object files are named .opp so that they are built by this rule rather than
+# by the C rule above; the list of which files are .opp is in TOOLS, SOURCE
+# and EXTERNAL below).
+# CHANGED: "-x c++" was added before the source file, and $(CPP) became
+# "$(CXX) $(CXXSTD)". The sources have a .c extension; g++ silently treats
+# them as C++ in C++ mode, but clang++ does so with a deprecation warning
+# ("treating 'c' input as 'c++' when in C++ mode, this behavior is
+# deprecated"), which is expected to become an error. "-x c++" states the
+# language explicitly for every compiler.
 %.opp:  %.c .base $(HEADERFILES)
-	cd $(WRKDIR);$(CPP) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
+	cd $(WRKDIR);$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c -x c++ ../$< -o $*.opp
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o evolver_ndf15.o evolver_rkdp45.o arrays.opp parser.o quadrature.o hyperspherical.opp common.o trigonometric_integrals.o
 
@@ -173,32 +230,36 @@ all: class libclass.a classy
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
+# CHANGED (this rule and the test_* rules below): the executables are linked
+# with "$(CXX) $(CXXSTD)" instead of "$(CPP)", because the .opp objects need
+# the C++ runtime library. test_hyperspherical has no C++ objects and is
+# linked with $(CC).
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_loops_omp: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS_OMP)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_harmonic: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_HARMONIC)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_transfer: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_TRANSFER)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_fourier: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_FOURIER)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_perturbations: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_PERTURBATIONS)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_thermodynamics: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_THERMODYNAMICS)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_background: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_BACKGROUND)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(CXXSTD) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_hyperspherical: $(TOOLS) $(TEST_HYPERSPHERICAL)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_hyperspherical $(addprefix build/,$(notdir $^)) -lm
@@ -206,8 +267,15 @@ test_hyperspherical: $(TOOLS) $(TEST_HYPERSPHERICAL)
 tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
 	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
 
+# CHANGED: "export CC=$(CC)" became 'export CC="$(CC)" CXX="$(CXX)"'.
+# The python build (setup.py) runs 'make libclass.a' again and compiles the
+# python extension, and both must see the same compilers as this Makefile.
+# Exporting the values explicitly passes on the choice made here even when it
+# came from a default (make does not export its built-in defaults) or from
+# the make command line. CXX is new; it was not passed on before. The values
+# are quoted because a compiler variable may contain spaces (e.g. "ccache cc").
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-	export CC=$(CC); output=$$($(PYTHON) -m pip install . 2>&1); \
+	export CC="$(CC)" CXX="$(CXX)"; output=$$($(PYTHON) -m pip install . 2>&1); \
     echo "$$output"; \
     if echo "$$output" | grep -q "ERROR: Cannot uninstall"; then \
         site_packages=$$($(PYTHON) -c "import distutils.sysconfig; print(distutils.sysconfig.get_python_lib())" || $(PYTHON) -c "import site; print(site.getsitepackages()[0])") && \

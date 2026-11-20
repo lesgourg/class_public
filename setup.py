@@ -3,6 +3,7 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 import os
+import shlex
 import subprocess as sbp
 import sys
 
@@ -25,15 +26,32 @@ print("BIN_DIR",bin_dir)
 # Get the root folder of the CLASS installation -- this setup.py should be in that folder
 root_folder = os.path.dirname(os.path.abspath(__file__))
 
-# Recover the gcc compiler
+# Choose the compilers. The Makefile (which builds libclass.a below) and the
+# cython extension must be built with the same toolchain, in particular the same
+# C++ standard library. We follow the Makefile's rule: CC and CXX from the
+# environment if the user (or an activated conda environment) defined them,
+# otherwise the generic names 'cc' and 'c++'. Setting the defaults here, in
+# os.environ, makes them reach both the 'make' call in classy_builder and
+# setuptools, which would otherwise fall back on the compiler that python itself
+# was built with (a name baked into python's sysconfig that need not exist here).
+# (Before this change the probes below always ran 'gcc', whatever CC was.)
+os.environ.setdefault("CC", "cc")
+os.environ.setdefault("CXX", "c++")
+# CC may hold several words (e.g. "ccache gcc"), hence shlex.split.
+CC_COMMAND = shlex.split(os.environ["CC"])
+
+# Recover the directory of the compiler's runtime library (CHANGED: probe the
+# selected compiler instead of 'gcc'; clang prints its own runtime library)
 GCCPATH_STRING = sbp.Popen(
-    ['gcc', '-print-libgcc-file-name'],
+    CC_COMMAND + ['-print-libgcc-file-name'],
     stdout=sbp.PIPE).communicate()[0]
 GCCPATH = os.path.normpath(os.path.dirname(GCCPATH_STRING)).decode()
 
 liblist = ["class"]
+# Linking with no input fails with a message naming the library if libmvec is
+# missing (macOS, most non-glibc systems); (CHANGED: use the selected compiler)
 MVEC_STRING = sbp.Popen(
-    ['gcc', '-lmvec'],
+    CC_COMMAND + ['-lmvec'],
     stderr=sbp.PIPE).communicate()[1]
 if b"mvec" not in MVEC_STRING:
     liblist += ["mvec","m"]

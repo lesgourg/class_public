@@ -52,13 +52,19 @@ future_output.clear();
 //
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
+// CHANGED: <cstdlib> (std::getenv) and <type_traits> (std::result_of) were
+// used below but not included, and only worked when another header happened
+// to include them. libc++ 23 (conda-forge's clang_osx-* 23) no longer does:
+// "no type named 'result_of' in namespace 'std'". See BUILD_SYSTEM_FIXES.md.
 #include <atomic>
 #include <condition_variable>
+#include <cstdlib>
 #include <deque>
 #include <functional>
 #include <future>
 #include <mutex>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
